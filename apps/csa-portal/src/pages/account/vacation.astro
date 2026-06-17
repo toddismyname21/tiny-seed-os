@@ -119,6 +119,27 @@ if (members.length > 0) {
   holds = holdRes.data ?? [];
 }
 
+// ─── Hide auto-cascade ADD-ON rider holds (double-count fix) ──────────
+// Members can only schedule a hold on their PRIMARY (box) share — the
+// /account/vacation/new form posts a fixed member_id = primary.id. When a
+// box hold is created, lib/vacation-cascade.ts ALSO inserts a "rider" hold
+// on every add_on row for that customer ("rides the held box"), so the
+// add-on doesn't try to pack with no box. Those rider holds are an internal
+// artifact, NOT a separate vacation the member booked: they consume 0
+// vacation weeks (add_on has no delivery calendar — see vacationWeeksUsed).
+//
+// Bug: this page fetched holds for ALL member rows, so a member with a box
+// share + an add-on saw TWO "Scheduled" cards for one calendar hold and read
+// it as "two weeks used." Fix: render only holds on box/share rows; the
+// add_on rider holds are suppressed here. A hold on a non-add_on share
+// (incl. a second box share like flower) is always kept. memberById is the
+// authoritative share_type source (more robust than matching the rider
+// reason suffix). A hold whose member row is missing (defensive) is kept.
+holds = holds.filter((h) => {
+  const m = memberById.get(h.member_id);
+  return !m || m.share_type !== 'add_on';
+});
+
 // ─── Disposition label (migration 0041) ──────────────────────────────
 // "Moved to Jun 24" / "Donated" / "Skipped". The move target is a Monday
 // (week_starting); we show the delivery Wednesday (Monday + 2) the member

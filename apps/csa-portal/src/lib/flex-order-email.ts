@@ -40,7 +40,7 @@ export interface FlexOrderEmailInput {
   totalCents: number;
   /** Human label for this week ("Week of June 15"), for the subject/body. */
   weekLabel: string;
-  /** Human label for the change deadline ("Tuesday 7 AM"). */
+  /** Human label for the change deadline ("Tuesday 8 AM"). */
   cutoffLabel: string;
   /**
    * Where the box goes — a short, member-facing pickup line

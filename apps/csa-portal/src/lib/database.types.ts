@@ -169,6 +169,10 @@ export interface Database {
           // The MONDAY (week_starting) of the target delivery week when
           // disposition='move'; NULL otherwise.
           move_to_week: string | null;
+          // Migration 0052: for add-on RIDER holds only — the BOX hold's id
+          // this rider rides (FK → vacation_holds.id). NULL for box holds and
+          // member-booked add-on holds. The cancel cascade selects riders by it.
+          parent_hold_id: string | null;
         };
         Insert: { member_id: string; start_date: string; end_date: string } & Partial<
           Database['public']['Tables']['vacation_holds']['Row']

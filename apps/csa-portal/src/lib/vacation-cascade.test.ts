@@ -14,8 +14,10 @@
  */
 import {
   cascadeVacationHoldToAddOns,
+  cascadeVacationCancelToAddOns,
   rangesOverlap,
   riderReason,
+  isRiderReason,
 } from './vacation-cascade';
 
 type Row = Record<string, unknown>;
@@ -51,13 +53,16 @@ function makeSupabase(tables: Tables) {
   function builderFor(table: keyof Tables) {
     let data = (tables[table] ?? []).map((r) => ({ ...r }));
     let pendingInsert: Row[] | null = null;
+    let pendingUpdate: Row | null = null;
     let selectAfterInsert = false;
+    let selectAfterUpdate = false;
 
     const builder: Record<string, unknown> = {};
     const ret = () => builder;
 
     builder.select = () => {
       if (pendingInsert) selectAfterInsert = true;
+      if (pendingUpdate) selectAfterUpdate = true;
       return builder;
     };
     builder.order = ret;
@@ -84,13 +89,28 @@ function makeSupabase(tables: Tables) {
       tables[table].push(...pendingInsert);
       return builder;
     };
+    builder.update = (patch: Row) => {
+      pendingUpdate = patch;
+      return builder;
+    };
     builder.maybeSingle = async () => ({ data: data[0] ?? null, error: null });
 
-    // Thenable resolution. For an insert chain we return the inserted rows;
-    // otherwise the filtered select result.
+    // Thenable resolution.
+    //   - insert chain → return the inserted rows (when .select() was called).
+    //   - update chain → apply the patch to the already-filtered rows in the
+    //     shared store and return them (when .select() was called).
+    //   - otherwise    → the filtered select result.
     builder.then = (resolve: (v: { data: Row[]; error: null }) => unknown) => {
       if (pendingInsert) {
         return resolve({ data: selectAfterInsert ? pendingInsert : null as unknown as Row[], error: null });
+      }
+      if (pendingUpdate) {
+        const ids = new Set(data.map((r) => r.id));
+        for (const row of tables[table]) {
+          if (ids.has(row.id)) Object.assign(row, pendingUpdate);
+        }
+        const updated = data.map((r) => ({ ...r, ...pendingUpdate }));
+        return resolve({ data: selectAfterUpdate ? updated : (null as unknown as Row[]), error: null });
       }
       return resolve({ data, error: null });
     };
@@ -139,6 +159,7 @@ test('BOX hold cascades to ALL active add-ons of the same customer', async () =>
   const sb = makeSupabase(tables);
   const res = await cascadeVacationHoldToAddOns(sb, {
     boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
     boxShareType: 'summer_veg',
     start_date: '2026-07-08',
     end_date: '2026-07-22',
@@ -164,6 +185,10 @@ test('BOX hold cascades to ALL active add-ons of the same customer', async () =>
     'rider dates mirror the box hold'
   );
   assertTrue(riders.every((h) => h.disposition === 'skip' && h.status === 'scheduled'), 'disposition/status mirrored');
+  assertTrue(
+    riders.every((h) => h.parent_hold_id === 'h_box1'),
+    'rider parent_hold_id stamped with the box hold id (migration 0052)'
+  );
 });
 
 test('idempotent: an add-on already held for an overlapping range is skipped', async () => {
@@ -177,6 +202,7 @@ test('idempotent: an add-on already held for an overlapping range is skipped', a
   const sb = makeSupabase(tables);
   const res = await cascadeVacationHoldToAddOns(sb, {
     boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
     boxShareType: 'summer_veg',
     start_date: '2026-07-08',
     end_date: '2026-07-22',
@@ -198,6 +224,7 @@ test('repeat call is a no-op (idempotency end-to-end)', async () => {
   const sb = makeSupabase(tables);
   const input = {
     boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
     boxShareType: 'summer_veg',
     start_date: '2026-08-01',
     end_date: '2026-08-08',
@@ -222,6 +249,7 @@ test('held share is itself an add_on → no cascade', async () => {
   const sb = makeSupabase(tables);
   const res = await cascadeVacationHoldToAddOns(sb, {
     boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
     boxShareType: 'add_on',
     start_date: '2026-07-08',
     end_date: '2026-07-22',
@@ -243,6 +271,7 @@ test('flex share → no cascade', async () => {
   const sb = makeSupabase(tables);
   const res = await cascadeVacationHoldToAddOns(sb, {
     boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
     boxShareType: 'flex',
     start_date: '2026-07-08',
     end_date: '2026-07-22',
@@ -259,6 +288,7 @@ test('no add-ons on the customer → cascaded true, nothing created', async () =
   const sb = makeSupabase(tables);
   const res = await cascadeVacationHoldToAddOns(sb, {
     boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
     boxShareType: 'summer_veg',
     start_date: '2026-07-08',
     end_date: '2026-07-22',
@@ -276,6 +306,7 @@ test('MOVE disposition mirrors move_to_week onto rider holds', async () => {
   const sb = makeSupabase(tables);
   const res = await cascadeVacationHoldToAddOns(sb, {
     boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
     boxShareType: 'summer_veg',
     start_date: '2026-07-08',
     end_date: '2026-07-14',
@@ -288,6 +319,210 @@ test('MOVE disposition mirrors move_to_week onto rider holds', async () => {
   const rider = tables.vacation_holds.find((h) => h.member_id === 'ao_bread')!;
   assertEqual(rider.disposition, 'move', 'rider disposition = move');
   assertEqual(rider.move_to_week, '2026-07-20', 'rider move_to_week mirrors box');
+});
+
+// ─── isRiderReason predicate ─────────────────────────────────────────
+test('isRiderReason: detects the rider marker, ignores member-booked holds', async () => {
+  assertTrue(isRiderReason('Italy trip [auto: rides the held box]'), 'suffixed reason is a rider');
+  assertTrue(isRiderReason('[auto: rides the held box]'), 'bare marker is a rider');
+  assertTrue(!isRiderReason('Italy trip'), 'plain reason is NOT a rider');
+  assertTrue(!isRiderReason(null), 'null reason is NOT a rider');
+  assertTrue(!isRiderReason(''), 'empty reason is NOT a rider');
+});
+
+// ─── CANCEL cascade behaviour ────────────────────────────────────────
+function riderHold(id: string, member_id: string, over: Partial<Row> = {}): Row {
+  return {
+    id,
+    member_id,
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+    status: 'scheduled',
+    reason: '[auto: rides the held box]',
+    // Migration 0052: riders carry the box hold's id. Default to the box hold
+    // 'h_box1' used across these tests; override for a different-parent rider.
+    parent_hold_id: 'h_box1',
+    ...over,
+  };
+}
+
+test('CANCEL: a box cancel cancels the overlapping add-on RIDER holds', async () => {
+  const tables: Tables = {
+    members: [boxMember(), addOn('ao_bread'), addOn('ao_cheese')],
+    vacation_holds: [
+      riderHold('r_bread', 'ao_bread'),
+      riderHold('r_cheese', 'ao_cheese'),
+    ],
+  };
+  const sb = makeSupabase(tables);
+  const res = await cascadeVacationCancelToAddOns(sb, {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
+    boxShareType: 'summer_veg',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+  });
+
+  assertTrue(res.cascaded, 'cascaded for a box share');
+  assertTrue(arrayEqUnordered(res.cancelled, ['r_bread', 'r_cheese']), 'both rider holds cancelled');
+  const riders = tables.vacation_holds.filter((h) => h.member_id !== 'box1');
+  assertTrue(riders.every((h) => h.status === 'cancelled'), 'rider rows are now cancelled');
+  assertTrue(riders.every((h) => typeof h.cancelled_at === 'string'), 'cancelled_at stamped');
+});
+
+test('CANCEL: a member-booked add-on hold (no parent FK) is NOT cancelled', async () => {
+  const tables: Tables = {
+    members: [boxMember(), addOn('ao_bread')],
+    vacation_holds: [
+      // Same dates + active, but parent_hold_id NULL (no rider marker either)
+      // — the member booked this directly on the add-on. The FK query won't
+      // match it, so it is never collaterally cancelled.
+      riderHold('member_booked', 'ao_bread', {
+        reason: 'My own add-on hold',
+        parent_hold_id: null,
+      }),
+    ],
+  };
+  const sb = makeSupabase(tables);
+  const res = await cascadeVacationCancelToAddOns(sb, {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
+    boxShareType: 'summer_veg',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+  });
+
+  assertEqual(res.cancelled.length, 0, 'nothing cancelled');
+  assertEqual(tables.vacation_holds[0].status, 'scheduled', 'member-booked hold untouched');
+});
+
+test("CANCEL: a rider of a DIFFERENT box hold is left intact (FK scoped)", async () => {
+  const tables: Tables = {
+    members: [boxMember(), addOn('ao_bread')],
+    vacation_holds: [
+      // Rider for a DIFFERENT box hold (h_box2) — even if its dates overlapped,
+      // the FK match on h_box1 must not touch it.
+      riderHold('r_other', 'ao_bread', { parent_hold_id: 'h_box2' }),
+    ],
+  };
+  const sb = makeSupabase(tables);
+  const res = await cascadeVacationCancelToAddOns(sb, {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
+    boxShareType: 'summer_veg',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+  });
+
+  assertEqual(res.cancelled.length, 0, 'different-parent rider → nothing cancelled');
+  assertEqual(tables.vacation_holds[0].status, 'scheduled', "other box hold's rider untouched");
+});
+
+test('CANCEL: an already-cancelled rider is skipped (status filter)', async () => {
+  const tables: Tables = {
+    members: [boxMember(), addOn('ao_bread')],
+    vacation_holds: [riderHold('r_done', 'ao_bread', { status: 'cancelled' })],
+  };
+  const sb = makeSupabase(tables);
+  const res = await cascadeVacationCancelToAddOns(sb, {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
+    boxShareType: 'summer_veg',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+  });
+  assertEqual(res.cancelled.length, 0, 'already-cancelled rider not re-cancelled');
+});
+
+test('CANCEL: held share is itself an add_on → no cascade', async () => {
+  const tables: Tables = {
+    members: [addOn('box1'), addOn('ao_bread')],
+    vacation_holds: [riderHold('r_bread', 'ao_bread')],
+  };
+  const sb = makeSupabase(tables);
+  const res = await cascadeVacationCancelToAddOns(sb, {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
+    boxShareType: 'add_on',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+  });
+  assertTrue(!res.cascaded, 'add_on share does not cascade');
+  assertEqual(res.cancelled.length, 0, 'nothing cancelled');
+});
+
+test('CANCEL: create then cancel round-trips (riders gone)', async () => {
+  const tables: Tables = {
+    members: [boxMember(), addOn('ao_bread'), addOn('ao_cheese')],
+    vacation_holds: [],
+  };
+  // Create the box hold's riders first.
+  const created = await cascadeVacationHoldToAddOns(makeSupabase(tables), {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
+    boxShareType: 'summer_veg',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+    status: 'scheduled',
+    disposition: 'skip',
+    move_to_week: null,
+    reason: 'Italy trip',
+  });
+  assertEqual(created.created.length, 2, 'two riders created');
+
+  // Now cancel — every rider should be cancelled.
+  const cancelled = await cascadeVacationCancelToAddOns(makeSupabase(tables), {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_box1',
+    boxShareType: 'summer_veg',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+  });
+  assertEqual(cancelled.cancelled.length, 2, 'two riders cancelled');
+  const active = tables.vacation_holds.filter((h) => h.status !== 'cancelled');
+  assertEqual(active.length, 0, 'no active rider holds remain');
+});
+
+test('CANCEL: two OVERLAPPING box holds — cancelling one cancels ONLY its riders', async () => {
+  // The exact edge the parent_hold_id FK (migration 0052) fixes. The old
+  // heuristic (customer + date OVERLAP + rider marker) would have cancelled
+  // BOTH riders here, because both overlap the cancelled hold's window, share
+  // the customer, and carry the marker. With the FK, cancelling box hold A's
+  // id touches only A's rider; B's rider (same add-on, overlapping dates) is
+  // left intact.
+  const tables: Tables = {
+    members: [boxMember(), addOn('ao_bread')],
+    vacation_holds: [
+      // Rider of box hold A (h_boxA): 7/08–7/22.
+      riderHold('r_a', 'ao_bread', {
+        parent_hold_id: 'h_boxA',
+        start_date: '2026-07-08',
+        end_date: '2026-07-22',
+      }),
+      // Rider of box hold B (h_boxB): 7/15–7/29 — OVERLAPS A's window.
+      riderHold('r_b', 'ao_bread', {
+        parent_hold_id: 'h_boxB',
+        start_date: '2026-07-15',
+        end_date: '2026-07-29',
+      }),
+    ],
+  };
+  const sb = makeSupabase(tables);
+
+  // Cancel box hold A only.
+  const res = await cascadeVacationCancelToAddOns(sb, {
+    boxMemberId: 'box1',
+    boxHoldId: 'h_boxA',
+    boxShareType: 'summer_veg',
+    start_date: '2026-07-08',
+    end_date: '2026-07-22',
+  });
+
+  assertTrue(arrayEqUnordered(res.cancelled, ['r_a']), "only box A's rider cancelled");
+  const rA = tables.vacation_holds.find((h) => h.id === 'r_a')!;
+  const rB = tables.vacation_holds.find((h) => h.id === 'r_b')!;
+  assertEqual(rA.status, 'cancelled', "box A's rider is cancelled");
+  assertEqual(rB.status, 'scheduled', "box B's overlapping rider is LEFT INTACT (the bug this fixes)");
 });
 
 // ─── Run ─────────────────────────────────────────────────────────────

@@ -276,6 +276,10 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   try {
     const cascade = await cascadeVacationHoldToAddOns(locals.supabase, {
       boxMemberId: member_id,
+      // The box hold's id — stamped onto each rider as parent_hold_id (0052)
+      // so the cancel cascade can find them by FK. schedule_vacation_hold
+      // returns it as hold_id on success.
+      boxHoldId: result.hold_id,
       boxShareType: memberData.share_type,
       start_date,
       end_date,

@@ -13,11 +13,13 @@
  *   fallback · M4 over-balance copy · M5 onboarding modal · M6 a11y ·
  *   M7 post-cutoff lock.
  *
- * ORDER WINDOW (Todd 2026-06-08): Week 1 ('2026-06-08') is already open and
- * CLOSES Tue Jun 9 6 PM ET. Standing weeks OPEN the prior Thursday 00:00 ET
- * and CLOSE that week's Tuesday 7 AM ET. The page renders three states:
- * BEFORE-OPEN (read-only "opens Thursday"), OPEN (orderable), AFTER-CLOSE
- * (existing locked state). All window math lives in lib/flex-order.ts.
+ * ORDER WINDOW (Todd 2026-06-08, corrected 2026-06-16): Week 1 ('2026-06-08')
+ * is already open and CLOSES Tue Jun 9 8 AM ET (aligned 2026-06-16 to the
+ * standing Tuesday-8-AM deadline). Standing weeks OPEN the prior Friday 00:00
+ * ET and CLOSE that week's Tuesday 8 AM ET (aligned with the box-swap
+ * cutoff). The page renders three states: BEFORE-OPEN (read-only
+ * "opens Friday"), OPEN (orderable), AFTER-CLOSE (existing locked state). All
+ * window math lives in lib/flex-order.ts.
  *
  * EXPLICIT SUBMIT (Todd 2026-06-08): the cart PRE-FILLS with the Small CSA
  * Share by default; the member customizes and MUST tap Submit. Non-submitters
@@ -99,7 +101,7 @@ const pickupDay: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null =
     : (rawDow as 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat');
 const isWeekendMarketMember = pickupDay === 'Sat' || pickupDay === 'Sun';
 
-// ─── Week + order window (open Thu / close Tue; Week-1 override). ─────
+// ─── Week + order window (open Fri / close Tue 8 AM; Week-1 override). ─
 // BUG B FIX (2026-06-08): select the delivery week by the CURRENT ORDER
 // WINDOW, not `upcomingMonday()`. On Tuesday (deadline day) the window for
 // THIS week is still open, but upcomingMonday() returned next week —
@@ -132,8 +134,8 @@ const beforeOpen = isBeforeOpen(week, NOW);
 // The window is "live" (orderable) only between open and close.
 const windowOpen = !beforeOpen && !pastCutoff;
 // Human label for this week's close time, in THE MEMBER'S terms:
-// weekend-market → "Wednesday midnight"; Wed/home → "Tuesday 6 PM" (wk1) /
-// "Tuesday 7 AM".
+// weekend-market → "Wednesday midnight"; Wed/home → "Tuesday 8 AM" (every
+// week, incl. Week 1).
 const closeCopy = closeLabel(week, pickupDay);
 
 // Concrete ET open/close labels for the closed + before-open brand-moment
@@ -143,7 +145,7 @@ const closeCopy = closeLabel(week, pickupDay);
 // both cases `opensLabel` is null only for the already-open Week-1.
 const nextWindowWeek = pastCutoff ? currentOrderWeek(Math.max(cutoffMs, NOW), pickupDay) : week;
 const { opensLabel: nextOpensLabel, closesLabel: nextClosesLabel } = windowLabels(nextWindowWeek, pickupDay);
-// "Opens Thursday" short date for the before-open headline + preview copy.
+// "Opens Friday" short date for the before-open headline + preview copy.
 const opensLabel = beforeOpen
   ? new Intl.DateTimeFormat('en-US', {
       weekday: 'long', month: 'long', day: 'numeric',
@@ -351,8 +353,8 @@ const headerDeadlineLine = isWeekendMarketMember
 const pickupPhrase = isWeekendMarketMember
   ? `Pick up your box ${pickupDayLong ? `on ${pickupDayLong}` : 'at the market'} at your stop.`
   : 'Pick up your box on Wednesday at your stop.';
-// Empty-state window phrasing ("open Thursday and close <member cutoff>").
-const emptyStateCloseCopy = isWeekendMarketMember ? 'Wednesday midnight' : 'Tuesday 7 AM';
+// Empty-state window phrasing ("open Friday and close <member cutoff>").
+const emptyStateCloseCopy = isWeekendMarketMember ? 'Wednesday midnight' : 'Tuesday 8 AM';
 ---
 
 <MemberShell
@@ -398,7 +400,7 @@ const emptyStateCloseCopy = isWeekendMarketMember ? 'Wednesday midnight' : 'Tues
       </li>
       <li class="flex gap-2">
         <span aria-hidden="true">⏰</span>
-        <span><span class="font-medium text-ts-text">Order by {closeCopy}.</span> {pickupPhrase}</span>
+        <span><span class="font-medium text-ts-text">The list goes live Friday — order by {closeCopy}.</span> {pickupPhrase}</span>
       </li>
       <li class="flex gap-2">
         <span aria-hidden="true">🌿</span>
@@ -594,7 +596,7 @@ const emptyStateCloseCopy = isWeekendMarketMember ? 'Wednesday midnight' : 'Tues
       {/* ITEM GRID (M2/M3/M5/M6) — one card per orderable item. */}
       {orderable.length === 0 ? (
         <EmptyState title="This week's items aren't up yet" icon="🌱" tone="default" dashed={true}>
-          Each week's box choices open Thursday and close {emptyStateCloseCopy} — check
+          The Flex list goes live Friday and closes {emptyStateCloseCopy} — check
           back to build your box. Nothing is packed until you order, and your Flex
           balance always carries forward.
         </EmptyState>

@@ -171,9 +171,9 @@ const liveMembers = allMembers.filter(
 // CSA members never see it (Phase 1: no extras/swaps for them).
 const isFlexMember = liveMembers.some((m) => m.share_type === 'flex');
 
-// Flex order-window close label for the entry-point teaser. Week 1
-// ('2026-06-08') closes Tue 6 PM; standing weeks close Tue 7 AM. Mirrors
-// the close-time cadence in lib/flex-order.ts (Todd 2026-06-08).
+// Flex order-window close label for the entry-point teaser. Every week —
+// including Week 1 ('2026-06-08') — closes Tue 8 AM ET (aligned with the
+// box-swap cutoff). Mirrors lib/flex-order.ts (Todd 2026-06-08/2026-06-16).
 const flexCloseLabel = isFlexMember ? closeLabel(upcomingMonday()) : '';
 
 // Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). Same rule as the

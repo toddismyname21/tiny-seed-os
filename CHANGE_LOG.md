@@ -6,6 +6,90 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-17] CSA — Vacation rider ↦ parent FK: exact cancel-cascade matching (fullstack-builder)
+
+NOT committed/deployed and the migration was NOT applied to the live DB — the PM applies the migration and deploys. App: `apps/csa-portal`; migration at the repo-root sequence `supabase/migrations/`. Built on top of the prior uncommitted passes (none reverted). Closes the "EDGE CASE LEFT FOR PM" from the 2026-06-16 entry below: the cancel-cascade matched riders by customer + date OVERLAP + reason marker, which mis-fires when a member holds TWO OVERLAPPING box holds (cancelling one would cancel the other's riders too). Riders now carry a real `parent_hold_id` FK and the cancel path matches on it.
+
+Validation: `npx tsx src/lib/vacation-cascade.test.ts` 17/17 (was 16) / 50 assertions; `npx tsx src/lib/vacation.test.ts` 23/23; `npx tsx src/lib/flex-order.test.ts` all pass; `npx astro check` reports exactly ONE error — the pre-existing `src/lib/cycle.ts:673` (untouched; its 0041-fallback select column-set mismatch, unrelated to this change) — and NO new errors in any edited file.
+
+**Migration `supabase/migrations/0052_vacation_rider_parent.sql`** (next number after the highest existing, `0051`):
+- `ALTER TABLE vacation_holds ADD COLUMN IF NOT EXISTS parent_hold_id uuid REFERENCES vacation_holds(id) ON DELETE CASCADE;` (nullable — only riders set it). Guarded CHECK `vacation_holds_parent_not_self` (a hold can't be its own parent). Index `vacation_holds_parent_idx ON vacation_holds(parent_hold_id)`. All adds `IF NOT EXISTS` / DO-block guarded → idempotent.
+- **Backfill (conservative):** links each NULL-parent rider (`reason LIKE '%[auto: rides the held box]%'`, `share_type='add_on'`, scheduled/active) to its box hold ONLY when EXACTLY ONE same-customer box hold (share_type in summer_veg/spring_veg/fall_veg/flower/wholesale_csa, non-rider, scheduled/active) matches the rider's `[start_date, end_date]` exactly. Ambiguous (0 or 2+ candidates) left NULL — never guesses. Links Naomi Anderson's existing 6/15–6/19 rider. Only fills rows still NULL → re-run is a no-op.
+
+**Create side — `src/lib/vacation-cascade.ts` `cascadeVacationHoldToAddOns`:** `CascadeHoldInput` gains `boxHoldId`; every inserted rider now sets `parent_hold_id = input.boxHoldId`. The pre-0041 missing-column fallback regex also matches `parent_hold_id`, and its baseRows (which already omit the column) cover a pre-0052 DB — auto-recovers once 0052 is applied.
+
+**Cancel side — `cascadeVacationCancelToAddOns`:** `CancelCascadeInput` gains `boxHoldId`. PRIMARY path now selects riders by `parent_hold_id = boxHoldId` + status scheduled/active — no customer resolution, no date math, no marker guessing (RLS still scopes the read to the customer's own holds). PRE-0052 FALLBACK: if `parent_hold_id` errors as a missing column (`42703`/schema-cache), it falls back to the legacy customer + date-overlap + marker heuristic for riders created before the migration. Kept the direct-UPDATE, RLS-scoped, never-touch-`vacation_weeks_used` model.
+
+**Callers:** `src/pages/api/account/vacation/schedule.ts` passes `boxHoldId: result.hold_id` (the box hold id returned by `schedule_vacation_hold`); `src/pages/api/account/vacation/cancel.ts` passes `boxHoldId: hold_id` (the cancelled box hold's id).
+
+**`src/lib/database.types.ts`** — `vacation_holds.Row` gains `parent_hold_id: string | null`.
+
+**`src/lib/vacation-cascade.test.ts`** — every cascade call now passes `boxHoldId`; `riderHold` fixtures default `parent_hold_id: 'h_box1'`; create test asserts riders are stamped with the parent FK; the "member-booked" test uses `parent_hold_id: null`; the old "non-overlapping rider" test is reframed as "rider of a DIFFERENT box hold left intact (FK scoped)". Added the key edge-case test — TWO OVERLAPPING box holds where cancelling box A cancels ONLY A's rider and leaves B's overlapping rider intact (the exact bug the FK fixes). 17/17 green.
+
+---
+
+## [2026-06-16] CSA — Week-1 flex window aligned to Tuesday 8 AM + vacation cancel-cascade for add-on riders (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys the whole batch. App: `apps/csa-portal`. Two approved fixes built on top of the prior uncommitted passes (none reverted). Validation: `npx tsx src/lib/flex-order.test.ts` passes; `npx tsx src/lib/vacation-cascade.test.ts` 16/16 (was 9) / 46 assertions; `npx tsx src/lib/vacation.test.ts` 23/23; `npx astro check` reports exactly ONE error — the pre-existing `src/lib/cycle.ts:673` (untouched) — and NO new errors in any edited file.
+
+**FIX A — Week-1 flex override aligned to Tuesday 8:00 AM ET (resolves the OPEN QUESTION FOR TODD in the entry below; Todd approved 8 AM).**
+The one-time Week-1 launch override (`WEEK_ONE = '2026-06-08'`) previously closed **Tuesday Jun 9 6:00 PM ET**; it now closes **Tuesday Jun 9 8:00 AM ET**, the same deadline as every standing week (one deadline for members to remember). `src/lib/flex-order.ts` is the single source of truth; the member page + API guards route through it.
+- `cutoffEpochMs()` — the `weekStarting === WEEK_ONE ? 18 : 8` close-hour branch is gone; ALL Wed/home weeks close Tue 08:00 ET. Weekend-market (Sat/Sun) Wednesday 23:59:59 ET cutoff UNCHANGED. `WEEK_ONE` constant retained — still used by `opensEpochMs()` (epoch-0 "already open" sentinel) and the `currentOrderWeek` window scan.
+- `closeLabel()` — Week-1 "Tuesday 6 PM" → **"Tuesday 8 AM"** (now returns "Tuesday 8 AM" for all Wed/home weeks; "Wednesday midnight" for market unchanged).
+- `windowLabels('2026-06-08').closesLabel`: **"Tuesday, June 9 at 6:00 PM" → "Tuesday, June 9 at 8:00 AM"** (close derives from `cutoffEpochMs`).
+- `src/lib/flex-order.test.ts` — Week-1 assertions updated: cutoff ISO `2026-06-09T22:00:00Z` → **`2026-06-09T12:00:00Z`** (08:00 EDT = 12:00 UTC); `closeLabel('2026-06-08')` → "Tuesday 8 AM" (incl. the weekend-market-vs-Week-1 pair); windowLabels Week-1 close → "8:00 AM"; the `currentOrderWeek` BUG-B worked examples re-timed around the new 8 AM close (Tue 6/9 07:00 ET → 6/8 open; Tue 6/9 09:00 ET → 6/15 before-open). All other helpers unchanged.
+- Stale doc-comments synced to the new contract: `flex-order.ts` (module header, cadence + `cutoffEpochMs`/`currentOrderWeek` JSDoc, pickup-day section), `src/pages/api/account/flex-order/submit.ts` (×2 window-guard comments), `src/pages/account/flex-order.astro` (header + closeCopy comment), `src/pages/account/index.astro` (`flexCloseLabel` teaser comment, which also still wrongly said "Tue 7 AM" for standing weeks → corrected to "Tue 8 AM"). No runtime copy hardcoded — all labels derive from `closeLabel`/`windowLabels`.
+
+**FIX B — cancel-cascade for add-on rider holds (closes the KNOWN GAP from the add-on cascade work).**
+When a member cancelled a BOX vacation hold, the auto-created add-on "rider" holds stayed scheduled/active — orphaning them (add-on paused with no box to ride). The cancel path now mirrors the create path's cascade.
+- `src/lib/vacation-cascade.ts` — new `cascadeVacationCancelToAddOns(supabase, { boxMemberId, boxShareType, start_date, end_date })`: only cascades for `BOX_SHARE_TYPES`; resolves the customer via the box member, finds its `add_on` members' scheduled/active holds that OVERLAP the cancelled hold's dates AND carry the rider marker, then cancels them via a DIRECT UPDATE (`status='cancelled', cancelled_at=now()`) through the RLS-scoped client — symmetric with how riders are CREATED (direct INSERT, never touches `vacation_weeks_used`; riders consumed 0 weeks so there's nothing to refund, and this avoids `cancel_vacation_hold`'s refund decrement). New exported helper `isRiderReason()` gates the scope so a member-booked add-on hold (no marker) is NEVER collaterally cancelled.
+- `src/pages/api/account/vacation/cancel.ts` — hold lookup now also selects `start_date, end_date`; after a successful `cancel_vacation_hold` RPC it resolves the member's `share_type` and invokes the cascade. BEST-EFFORT (try/catch + logged): a cascade failure NEVER undoes the box cancel that already succeeded. Box-cancel behavior + redirects unchanged.
+- `src/lib/vacation-cascade.test.ts` — mock builder extended with `.update().in().select()` support; added 7 tests (isRiderReason predicate; box-cancel cancels overlapping riders; member-booked hold NOT cancelled; non-overlapping rider intact; already-cancelled skipped; add_on share no-op; create→cancel round-trip). 16/16 green.
+
+**EDGE CASE LEFT FOR PM:** the cancel-cascade matches riders by the reason marker + date OVERLAP, not by a stored parent-hold FK (the schema has none — consistent with how riders are created). If a customer had TWO box holds with overlapping date ranges and only one is cancelled, a rider overlapping BOTH would be cancelled even though the other box hold is still active. This is rare (overlapping box holds are themselves unusual) and the create-side overlap idempotency would have prevented a second rider anyway, but a true fix needs a parent-hold reference column — flagged, not silently encoded.
+
+---
+
+## [2026-06-16] CSA — Farm Flex ordering window corrected to Friday open / Tuesday 8 AM close + "goes live Friday" copy (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. Resolves the discrepancy flagged in the prior entry below: Todd confirmed the true FLEX window is **opens Friday → closes Tuesday 8:00 AM ET** (aligned with the box-swap cutoff). Validation: `npx tsx src/lib/flex-order.test.ts` passes; full unit suite `npm run test:unit` 23/23 green; `npx astro check` adds NO new errors in any edited file (the one remaining error is the pre-existing `src/lib/cycle.ts:673`, untouched here).
+
+**CHANGE #1 — standard flex order window moved to Friday open / Tuesday 8 AM close.**
+`src/lib/flex-order.ts` is the single source of truth; both the member page and the API guards route through it.
+- `opensEpochMs()` — standing-week OPEN moved from prior Thursday (week_starting − 4 days) to **prior Friday (week_starting − 3 days) 00:00 ET**. DST-aware math (Intl offset) unchanged. Week-1 sentinel (epoch 0 = already open) unchanged.
+- `cutoffEpochMs()` — standing Wed/home CLOSE hour moved from **07:00 → 08:00 ET** (Tuesday = week_starting + 1 day). Weekend-market (Sat/Sun) Wednesday 23:59:59 ET cutoff UNCHANGED. Week-1 override (18:00 ET) UNCHANGED.
+- `closeLabel()` — standing label "Tuesday 7 AM" → **"Tuesday 8 AM"**. Week-1 "Tuesday 6 PM" and market "Wednesday midnight" unchanged.
+- New computed labels (`windowLabels('2026-06-15')`): opens **"Friday, June 12 at 12:00 AM"**, closes **"Tuesday, June 16 at 8:00 AM"** (was Thursday Jun 11 12:00 AM / Tuesday Jun 16 7:00 AM). Winter EST sanity: open Fri Jan 2 00:00 EST = 05:00 UTC, close Tue Jan 6 08:00 EST = 13:00 UTC.
+- `src/lib/flex-order.test.ts` — updated every window assertion + worked example to the new contract (incl. the Thu 6/11 case which is now BEFORE-OPEN, and the Fri 6/12 case which is now OPEN). All other helpers (money, stock tiers, week resolution, market cutoff) unchanged.
+
+**CHANGE #2 — surface WHEN the flex list goes live (this is what confused Amy Hepner / Nancy Bergman; the flex flow never said it).**
+- `src/pages/dashboard.astro` — flex CTA line now: "The Flex list goes live Friday — order by {flexCloseLabel}. Your balance carries forward." (`flexCloseLabel` is the page's computed `closeLabel(...)`, not hardcoded.)
+- `src/pages/account/flex-order.astro` — "How Farm Flex works" disclosure ⏰ bullet now leads with "The list goes live Friday — order by {closeCopy}." (`closeCopy` is the member's computed, pickup-day-aware label.) Empty-state copy updated to "The Flex list goes live Friday and closes {emptyStateCloseCopy}". Stale doc-comments + the empty-state `emptyStateCloseCopy` default ("Tuesday 7 AM" → "Tuesday 8 AM") corrected. The before-open headline/preview already render the live computed open label (now Friday) — no hardcoding.
+- Comments synced for accuracy: `src/pages/api/account/flex-order/submit.ts` (window guard) and `src/lib/flex-order-email.ts` (cutoffLabel example).
+
+**OPEN QUESTION FOR TODD — Week-1 override left UNCHANGED on purpose.** The one-time Week-1 launch override (`WEEK_ONE = '2026-06-08'`) still closes **Tuesday Jun 9 6:00 PM ET**, not 8 AM. Should Week 1 ALSO move to Tuesday 8:00 AM ET for consistency, or stay 6:00 PM ET (since it was the season-launch grace window)? It is a one-character change (`closeHour = WEEK_ONE ? 18 : 8`) plus its test/label assertions if Todd wants it moved. Left as-is pending his call.
+
+---
+
+## [2026-06-16] CSA — Flex/box "Tuesday evening" copy fix + vacation add-on double-count fix (fullstack-builder)
+
+NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `astro check` adds NO new errors in any edited file (the one remaining error is the pre-existing `src/lib/cycle.ts:673`, untouched here); vacation unit suites green (`vacation.test.ts` 23/23, `vacation-cascade.test.ts` 9/9).
+
+**BUG #1 — misleading "check back Tuesday evening" box copy (Amy Hepner, Nancy Bergman missed ordering).**
+The "box not posted / box being planned" empty states told members to "check back Tuesday evening," which collides with the Tuesday-MORNING order/swap cutoff — members read it as "act Tuesday night" and missed the window. Member-facing COPY only; no ordering logic touched.
+- `src/pages/box/index.astro` (box-not-posted EmptyState) — now: "We post each week's box contents by Monday … open this page any time before Tuesday 8 AM to see what's coming and make swaps." (Tuesday 8 AM = the box-customization cutoff in `lib/box.ts`, `isCutoffPassed`.)
+- `src/pages/dashboard.astro` (box-being-planned placeholder) — same correction, one line.
+
+**DISCREPANCY FLAGGED FOR PM (could not safely resolve):** the task described the FLEX window as "list goes up Friday → order by Tuesday 8 AM." The IMPLEMENTED flex-order logic (`lib/flex-order.ts`) opens the window the prior **Thursday 00:00 ET** and closes **Tuesday 07:00 ET** (Week-1 override Tue 6 PM); box swaps close Tuesday **8 AM** (`lib/box.ts`). So "Friday"/"8 AM" for FLEX does not match code. I did NOT hardcode "Friday"/"8 AM" into flex copy because the flex page also renders computed open/close labels from that logic and the strings would contradict each other. Decision needed: either (a) change flex-order logic to open Friday / close Tue 8 AM (then copy follows), or (b) confirm the real flex window so copy can be aligned. The flex-order page (`flex-order.astro`) does NOT currently tell members WHEN the list goes up; adding a "list goes live <openLabel>" line to the dashboard flex CTA + the How-Flex disclosure would directly address the Amy/Nancy confusion once the window is confirmed.
+
+**BUG #2 — vacation hold double-counted a week for a member with an add-on (Naomi Anderson).**
+Naomi has a `summer_veg` box row + a `mushroom add_on` row under one customer. One calendar hold (2026-06-15→2026-06-19) showed as TWO "Scheduled" cards → read as "two weeks." Cause: `lib/vacation-cascade.ts` auto-creates a "rider" hold on each add_on row (so the add-on doesn't pack with no box) via a DIRECT INSERT (it consumes 0 vacation weeks — add_on has no delivery calendar), but `/account/vacation` fetched holds for ALL member rows and rendered the rider as its own card. Members can only schedule on their PRIMARY box row (the `/account/vacation/new` form posts a fixed `member_id = primary.id`), so add_on holds are ALWAYS internal riders.
+- `src/pages/account/vacation.astro` — after the holds fetch, filter out holds whose member row is `share_type === 'add_on'` (authoritative via the existing `memberById` map — more robust than matching the rider reason suffix). A single household hold now renders as ONE card. Non-add_on shares (incl. a 2nd box share like flower) keep their holds; a hold whose member row is missing is kept (defensive). The budget card already read only `primary.vacation_weeks_used` (a single row, never a sum) and the rider counter stays 0, so the count itself was never inflated — only the duplicate card was.
+
+**FOLLOW-UP FLAGGED FOR PM (pre-existing, NOT changed here):** cancelling the box hold (`/api/account/vacation/cancel`) acts on one `hold_id` only — it does NOT cancel the rider add_on holds. Now that the rider card is hidden, a member can no longer cancel it manually either, so a box-hold cancel would orphan the rider (add-on stays held). Recommended minimal follow-up: have the cancel path (or a small cancel-cascade mirroring `cascadeVacationHoldToAddOns`) also cancel overlapping rider holds for the customer's add_on rows. Left out of this change to keep the fix minimal and avoid an unprompted write-path change.
+
+---
+
 ## [2026-06-16] CSA — Vacation WEEKS-USED over-count fix (fullstack-builder)
 
 NOT committed/deployed — PM verifies & deploys. App: `apps/csa-portal`. `npm run build` passes; `npm run test:unit` passes (23 new vacation tests incl. the Naomi regression + all existing suites green); `astro check` adds NO new errors (the one remaining error is the pre-existing `src/lib/cycle.ts:673`, untouched here); build artifacts removed.

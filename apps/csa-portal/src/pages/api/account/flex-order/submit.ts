@@ -9,8 +9,8 @@
  *   1. CSRF + auth (isSameOriginPost + a logged-in user).
  *   2. Resolves the caller's flex member for the target week.
  *   3. Enforces the order WINDOW (server-side, gap research M7/G10):
- *      writable only between OPEN (prior Thu 00:00 ET) and CLOSE (Tue
- *      07:00 ET; Tue 18:00 ET for Week 1 '2026-06-08'). Outside it, the
+ *      writable only between OPEN (prior Fri 00:00 ET) and CLOSE (Tue
+ *      08:00 ET, every week incl. Week 1 '2026-06-08'). Outside it, the
  *      week is read-only.
  *   4. Resolves the LIVE flex balance (Shopify store credit) → cents.
  *   5. Parses the cart lines and calls the RPC.
@@ -70,11 +70,11 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   // ── Pickup-day-aware cutoff (Todd 2026-06-12). Resolve THIS caller's flex
   //    member pickup day (RLS-scoped to their own row). Weekend-market members
   //    (Sat/Sun pickup) order until Wed 23:59:59 ET; Wed/home members keep the
-  //    Tue 07:00 ET cutoff. A lookup miss → null → conservative Tue cutoff. ──
+  //    Tue 08:00 ET cutoff. A lookup miss → null → conservative Tue cutoff. ──
   const pickupDay = await resolveFlexMemberPickupDay(locals.supabase, memberId);
 
   // ── Window guard (gap research M7/G10): the week is writable only between
-  //    OPEN (prior Thu 00:00 ET) and CLOSE — Tue 07:00 ET (Tue 18:00 ET for
+  //    OPEN (prior Fri 00:00 ET) and CLOSE — Tue 08:00 ET (every week incl.
   //    Week 1 '2026-06-08'), or Wed 23:59:59 ET for weekend-market members.
   //    Before open or after that member's close the week is read-only. ──────
   if (isBeforeOpen(week) || isPastCutoff(week, Date.now(), pickupDay)) {

@@ -8,9 +8,9 @@
  * and the low-stock thresholds.
  *
  * Source of truth for:
- *   - The order WINDOW (opens prior Thursday 00:00 ET, closes Tuesday
- *     07:00 ET that delivery week — with a one-time Week-1 override that
- *     closes Tue Jun 9 2026 18:00 ET) — gap research M1/M7.
+ *   - The order WINDOW (opens prior Friday 00:00 ET, closes Tuesday
+ *     08:00 ET that delivery week — aligned with the box-swap cutoff,
+ *     EVERY week including the Week-1 launch) — gap research M1/M7.
  *   - Low-stock tiers from remaining_qty — gap research M2.
  *   - Dollars ↔ price_cents conversion — admin enters dollars, DB stores cents.
  *   - The category-emoji fallback for items with no photo — gap research M3.
@@ -82,15 +82,20 @@ export function formatCents(cents: number): string {
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Order window (opens prior Thursday 00:00 ET, closes Tuesday 07:00 ET) — M1 / M7
+ * Order window (opens prior Friday 00:00 ET, closes Tuesday 08:00 ET) — M1 / M7
  *
- * Cadence (America/New_York, DST-aware), set by Todd 2026-06-08:
+ * Cadence (America/New_York, DST-aware), set by Todd 2026-06-08, corrected
+ * 2026-06-16 to align the flex window with the box-swap cutoff:
  *
- *   • Week 1 ONLY (week_starting === '2026-06-08'): treated as ALREADY
- *     OPEN (the season just launched), and CLOSES Tue Jun 9 2026 18:00 ET.
- *   • All other (standing) weeks: the window OPENS the prior Thursday at
- *     00:00 ET — i.e. (week_starting − 4 days) — and CLOSES that week's
- *     Tuesday at 07:00 ET — i.e. (week_starting + 1 day) 07:00 ET.
+ *   • Week 1 (week_starting === '2026-06-08'): treated as ALREADY OPEN (the
+ *     season just launched). Its CLOSE now matches every other week —
+ *     Tuesday 08:00 ET (Todd 2026-06-16; previously a one-time 18:00 ET
+ *     override, retired so Week 1 has the same deadline as the rest).
+ *   • All weeks (Week 1 + standing): the window CLOSES that week's Tuesday
+ *     at 08:00 ET — i.e. (week_starting + 1 day) 08:00 ET, matching the
+ *     box-swap cutoff so members have one deadline to remember. Standing
+ *     weeks additionally OPEN the prior Friday at 00:00 ET — i.e.
+ *     (week_starting − 3 days); Week 1 is already open.
  *
  * `week_starting` is the MONDAY of the delivery week. ET is UTC−4 in June
  * (EDT) and UTC−5 in winter (EST); we never hardcode the offset — we
@@ -109,8 +114,8 @@ const WEEK_ONE = '2026-06-08';
  * edit / cancel / skip their flex order until WEDNESDAY 23:59:59 ET of
  * the cycle week — because their box is packed for the weekend run, not
  * the Wednesday run. Members who pick up on Wednesday (or take home
- * delivery, which runs Wednesday) keep the existing Tuesday 07:00 ET
- * cutoff (Tuesday 18:00 ET for the Week-1 launch override).
+ * delivery, which runs Wednesday) keep the Tuesday 08:00 ET cutoff
+ * (every week, including the Week-1 launch).
  *
  * `PickupDay` is the raw `pickup_locations.day_of_week` short code (or
  * null for home delivery / unresolved). `isWeekendMarket()` is the single
@@ -136,7 +141,7 @@ export function isWeekendMarket(pickupDay: PickupDay): boolean {
  * at `hour:minute` ET) to an absolute epoch-ms instant — DST-aware.
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
- * @param dayOffset    days from that Monday (e.g. +1 = Tuesday, −4 = prior Thursday).
+ * @param dayOffset    days from that Monday (e.g. +1 = Tuesday, −3 = prior Friday).
  * @param hour         wall-clock hour in ET (0–23).
  * @param minute       wall-clock minute in ET (default 0).
  * @param second       wall-clock second in ET (default 0).
@@ -169,11 +174,9 @@ function etWallClockEpochMs(
  *   • WEEKEND-MARKET members (pickupDay 'Sat'/'Sun', `isWeekendMarket` true):
  *     that week's WEDNESDAY (week_starting + 2 days) 23:59:59 ET. Their box
  *     is packed for the weekend run, so they get until Wednesday midnight.
- *     (The Week-1 launch override does NOT shorten this — a market member in
- *     Week 1 still gets Wednesday midnight, which is later than Tue 18:00.)
  *   • Wednesday / home-delivery members (pickupDay null/'Wed'/anything else):
- *     - Week 1 ('2026-06-08'): Tue Jun 9 2026 18:00 ET.
- *     - Standing weeks: that week's Tuesday (week_starting + 1 day) 07:00 ET.
+ *     that week's Tuesday (week_starting + 1 day) 08:00 ET — EVERY week,
+ *     including the Week-1 launch (aligned with the box-swap cutoff).
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
  * @param pickupDay    raw pickup_locations.day_of_week ('Sat'/'Sun' → later
@@ -184,9 +187,11 @@ export function cutoffEpochMs(weekStarting: string, pickupDay: PickupDay = null)
     // Wednesday = Monday + 2 days, at 23:59:59 ET.
     return etWallClockEpochMs(weekStarting, 2, 23, 59, 59);
   }
-  const closeHour = weekStarting === WEEK_ONE ? 18 : 7;
-  // Tuesday = Monday + 1 day in both cases.
-  return etWallClockEpochMs(weekStarting, 1, closeHour, 0);
+  // ALL weeks — including the Week-1 launch — close Tuesday 08:00 ET to match
+  // the box-swap cutoff so members have one deadline to remember (Todd
+  // 2026-06-16; Week-1 aligned to 08:00 ET 2026-06-16, previously 18:00 ET).
+  // Tuesday = Monday + 1 day.
+  return etWallClockEpochMs(weekStarting, 1, 8, 0);
 }
 
 /**
@@ -194,14 +199,14 @@ export function cutoffEpochMs(weekStarting: string, pickupDay: PickupDay = null)
  *
  *   • Week 1 ('2026-06-08'): already open — returns a far-past instant
  *     (the season-launch week is live the moment members land on it).
- *   • Standing weeks: the prior Thursday (week_starting − 4 days) 00:00 ET.
+ *   • Standing weeks: the prior Friday (week_starting − 3 days) 00:00 ET.
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
  */
 export function opensEpochMs(weekStarting: string): number {
   if (weekStarting === WEEK_ONE) return 0; // already open (epoch 0 = far past).
-  // Prior Thursday = Monday − 4 days, at 00:00 ET.
-  return etWallClockEpochMs(weekStarting, -4, 0, 0);
+  // Prior Friday = Monday − 3 days, at 00:00 ET (Todd 2026-06-16).
+  return etWallClockEpochMs(weekStarting, -3, 0, 0);
 }
 
 /** America/New_York UTC offset in minutes for a given instant (e.g. -240 for EDT). */
@@ -227,7 +232,7 @@ export function isPastCutoff(weekStarting: string, now: number = Date.now(), pic
 }
 
 /** Has the order window for this week NOT yet opened, relative to `now`?
- *  The OPEN instant is the same for everyone (prior Thursday 00:00 ET) — only
+ *  The OPEN instant is the same for everyone (prior Friday 00:00 ET) — only
  *  the CLOSE shifts by pickup day — so this takes no `pickupDay`. */
 export function isBeforeOpen(weekStarting: string, now: number = Date.now()): boolean {
   return now < opensEpochMs(weekStarting);
@@ -242,11 +247,11 @@ export function isWindowOpen(weekStarting: string, now: number = Date.now(), pic
 /**
  * Human label for the close instant, used in member copy + onboarding:
  *   • weekend-market members → "Wednesday midnight"
- *   • Wed/home members       → "Tuesday 6 PM" (Week 1) or "Tuesday 7 AM".
+ *   • Wed/home members       → "Tuesday 8 AM" (every week, incl. Week 1).
  */
 export function closeLabel(weekStarting: string, pickupDay: PickupDay = null): string {
   if (isWeekendMarket(pickupDay)) return 'Wednesday midnight';
-  return weekStarting === WEEK_ONE ? 'Tuesday 6 PM' : 'Tuesday 7 AM';
+  return 'Tuesday 8 AM';
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -297,9 +302,9 @@ export function upcomingMondayET(now: Date = new Date()): string {
  *
  * This fixes the Tuesday/deadline-day bug: `upcomingMonday()` flips to NEXT
  * Monday as soon as the calendar passes Monday, so on Tuesday (when this
- * week's window is STILL OPEN until 6 PM / 7 AM) the page jumped to next
- * week (which has no inventory and is before-open). Members lost the final
- * hours before the deadline.
+ * week's window is STILL OPEN until 8 AM) the page jumped to next week
+ * (which has no inventory and is before-open). Members lost the final hours
+ * before the deadline.
  *
  * Contract (per spec FLEX_ORDERING_AUDIT_FIX_2026-06-08 §BUG B):
  *   1. If some week W's window is currently OPEN
@@ -310,15 +315,16 @@ export function upcomingMondayET(now: Date = new Date()): string {
  *      future (`now < opensEpochMs(W)`); the page renders its before-open
  *      state for it.
  *
- * Worked examples (Week-1 closes Tue 6/9 18:00 ET; 6/15 opens Thu 6/11):
+ * Worked examples (Week-1 closes Tue 6/9 08:00 ET; 6/15 opens Fri 6/12):
  *   • Mon 6/8           → 6/8  (Week-1 open)
- *   • Tue 6/9 10:00 ET  → 6/8  (Week-1 still open, closes 18:00)
- *   • Wed 6/10          → 6/15 (Week-1 closed; 6/15 not open till Thu — before-open)
- *   • Thu 6/11          → 6/15 (6/15 window opens Thu 00:00 ET)
+ *   • Tue 6/9 07:00 ET  → 6/8  (Week-1 still open, closes 08:00)
+ *   • Tue 6/9 09:00 ET  → 6/15 (Week-1 closed; 6/15 not open till Fri — before-open)
+ *   • Wed 6/10          → 6/15 (Week-1 closed; 6/15 not open till Fri — before-open)
+ *   • Fri 6/12          → 6/15 (6/15 window opens Fri 00:00 ET)
  *
  * Implementation: enumerate candidate Mondays in a window around `now`
  * (−2 … +3 weeks covers every transition, since a window spans at most
- * Thu→Tue of the following week). Among them pick the OPEN week if any,
+ * Fri→Tue of the following week). Among them pick the OPEN week if any,
  * else the soonest week that opens in the future. Falls back to the
  * upcoming Monday if nothing matches (defensive — shouldn't happen).
  */
@@ -327,7 +333,7 @@ export function currentOrderWeek(now: number = Date.now(), pickupDay: PickupDay 
   const anchorMonday = upcomingMondayET_mondayOfWeek(new Date(now));
 
   // Candidate delivery weeks around the anchor. A standing week's window
-  // runs prior-Thursday → that-week's-Tuesday (or Wednesday for a weekend-
+  // runs prior-Friday → that-week's-Tuesday (or Wednesday for a weekend-
   // market member), so the open week for any instant is at most one week
   // away from the calendar week; we scan a generous range to be safe and
   // deterministic. The member's `pickupDay` selects which cutoff applies so
