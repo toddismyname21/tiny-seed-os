@@ -114,6 +114,8 @@ interface AddonChip {
   type: AddOnType;
   /** Display label, e.g. "Bread". */
   label: string;
+  /** How many of this add-on type the member has (renders "×N" when >1). */
+  count: number;
 }
 
 interface LabelData {
@@ -391,6 +393,12 @@ for (const stop of stopsOrdered) {
   const byCustomer = new Map<string, CycleMember[]>();
   for (const m of members) {
     if (m.share_type === 'add_on') continue;
+    // A flex share only ships (and only gets a label) when the member placed a
+    // flex order THIS week. flexByMember holds exactly this week's orders
+    // (week_starting + packable statuses), so a flex member with no order is
+    // skipped — no empty FLEX label prints at the stop. Mirrors the gate in
+    // /admin/stop-manifest and /admin/route-sheet (Todd 2026-06-17).
+    if (m.share_type === 'flex' && !flexByMember.has(m.id)) continue;
     const arr = byCustomer.get(m.customer_id);
     if (arr) arr.push(m);
     else byCustomer.set(m.customer_id, [m]);
@@ -419,14 +427,18 @@ for (const stop of stopsOrdered) {
       (m) => !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid'),
     );
 
-    // Add-on chips (dedup by type so two "cheese" rows show one chip but we
-    // never drop a distinct type). Stable order by chip label.
-    const seenTypes = new Set<AddOnType>();
-    const addonChips: AddonChip[] = [];
+    // Add-on chips: GROUP by type and COUNT each, so two "mushroom" rows print
+    // ONE chip marked "×2" (packer packs 2) — never collapsed to one, never two
+    // ambiguous identical chips. Stable order by chip label.
+    const byType = new Map<AddOnType, { label: string; count: number }>();
     for (const a of addons) {
-      if (seenTypes.has(a.addon_type)) continue;
-      seenTypes.add(a.addon_type);
-      addonChips.push({ type: a.addon_type, label: addonChipLabel(a) });
+      const e = byType.get(a.addon_type);
+      if (e) e.count += 1;
+      else byType.set(a.addon_type, { label: addonChipLabel(a), count: 1 });
+    }
+    const addonChips: AddonChip[] = [];
+    for (const [type, { label, count }] of byType) {
+      addonChips.push({ type, label, count });
     }
     addonChips.sort((x, y) => x.label.localeCompare(y.label));
 
@@ -719,7 +731,7 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                             style={`background:${ADDON_STYLE[chip.type].bg};color:${ADDON_STYLE[chip.type].text};border-color:${ADDON_STYLE[chip.type].border};`}
                           >
                             <span aria-hidden="true">{ADDON_STYLE[chip.type].emoji}</span>
-                            <span class="addon-chip-label">{chip.label}</span>
+                            <span class="addon-chip-label">{chip.label}{chip.count > 1 ? ` ×${chip.count}` : ''}</span>
                           </span>
                         ))}
                       </div>

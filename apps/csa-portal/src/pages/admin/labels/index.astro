@@ -17,14 +17,14 @@
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
 import {
-  mondayOfWeek, upcomingMonday, prettyWeekHeader, isMonday, resolveCycle,
+  mondayOfWeek, currentDeliveryWeek, prettyWeekHeader, isMonday, resolveCycle,
 } from '../../../lib/cycle';
 import { weekOptions } from '../../../lib/cycle-ui';
 
 const supabase = Astro.locals.supabase;
 
 const options = weekOptions();
-const defaultWeek = mondayOfWeek(upcomingMonday());
+const defaultWeek = currentDeliveryWeek();
 
 // Resolve the chosen week from the query (snap to Monday); default to the
 // upcoming Monday. Validated against the YYYY-MM-DD shape before use.

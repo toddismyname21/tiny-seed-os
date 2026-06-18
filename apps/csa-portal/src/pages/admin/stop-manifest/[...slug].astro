@@ -333,7 +333,7 @@ function sharePriority(m: CycleMember): number {
 
 interface ManifestRow {
   primary: CycleMember;
-  addonChips: Array<{ type: AddOnType; label: string }>;
+  addonChips: Array<{ type: AddOnType; label: string; count: number }>;
   flexLines: Array<{ name: string | null; qty: number }>;
 }
 
@@ -361,13 +361,18 @@ function manifestRowsForStop(stop: StopTotals): ManifestRow[] {
     const primary = sorted[0];
     const addons = addonRowsByCustomer.get(customerId) ?? [];
 
-    // Dedup add-on chips by type, stable order by label.
-    const seen = new Set<AddOnType>();
-    const addonChips: Array<{ type: AddOnType; label: string }> = [];
+    // Group add-on rows by type and COUNT each — a member with TWO mushroom
+    // add-on rows renders ONE chip marked "×2" (never collapsed to one, never
+    // two ambiguous identical chips). Stable order by label.
+    const byType = new Map<AddOnType, { label: string; count: number }>();
     for (const a of addons) {
-      if (seen.has(a.addon_type)) continue;
-      seen.add(a.addon_type);
-      addonChips.push({ type: a.addon_type, label: addonChipLabel(a) });
+      const e = byType.get(a.addon_type);
+      if (e) e.count += 1;
+      else byType.set(a.addon_type, { label: addonChipLabel(a), count: 1 });
+    }
+    const addonChips: Array<{ type: AddOnType; label: string; count: number }> = [];
+    for (const [type, { label, count }] of byType) {
+      addonChips.push({ type, label, count });
     }
     addonChips.sort((x, y) => x.label.localeCompare(y.label));
 
@@ -679,7 +684,7 @@ function movedFromLabel(m: CycleMember): string | null {
                                 style={`background:${ADDON_STYLE[chip.type].bg};color:${ADDON_STYLE[chip.type].text};border:1px solid ${ADDON_STYLE[chip.type].border};`}
                               >
                                 <span aria-hidden="true">{ADDON_STYLE[chip.type].emoji}</span>
-                                {chip.label}
+                                {chip.label}{chip.count > 1 ? ` ×${chip.count}` : ''}
                               </span>
                             ))}
                           </Fragment>
