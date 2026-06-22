@@ -6,6 +6,10 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-22] CSA — share-list large-display fix (family->large) + per-item totals (PM_Architect + fullstack-builder)
+
+DEPLOYED+verified. (1) BUG: /admin/share-contents queried share_type IN (small,family) but DB uses large -> large items never rendered (Todd: "has small but not large"). Classic naming-drift the glossary warns about. Fixed to (small,large) + renamed family->large in logic/labels. (2) Added resolveCycle-driven per-item TOTAL NEEDED on the printable share list (large_n*lQty + small_n*sQty); header shows box counts. Verified live 2026-06-22: 24 large + 64 small, Head Lettuce total 112, Escarole 24. Box also updated this week: Dill->Basil, Kale->Dandelion Greens, +Escarole to large (Karl Leslie dup member row deleted). box_contents is single source (resolver reads it).
+
 ## [2026-06-22] CSA — Floral list screen (resolveCycle-driven, like harvest) (PM_Architect + fullstack-builder)
 
 DEPLOYED + verified. New /admin/floral/[week] mirrors the harvest list, driven by resolveCycle (A/B + holds applied, never hand-counted): Mon/Thu day tabs, stop-by-stop bouquet make-list (petite/full counts + member checklist), excluded-off-week/hold stat cards, printable. Nav: Floral (flower) in Pack Week group. Verified 2026-06-22: mon 28 + thu 4 = 32 (matches resolveCycle, NOT raw 56). Also emailed Loren+Todd a stop-by-stop floral PDF. Root-cause note: prior 56 error was a raw active-member count bypassing resolveCycle — see feedback_always_use_resolvecycle.

@@ -5,22 +5,36 @@
  * a few feet away:
  *   • EVERY BOX — the base list (the SMALL share items; this is what every box
  *     gets, regardless of size).
- *   • FAMILY ALSO GETS — the EXTRA items a Family box adds on top of Small,
- *     computed as family_items MINUS small_items by product_name
+ *   • LARGE ALSO GETS — the EXTRA items a Large box adds on top of Small,
+ *     computed as large_items MINUS small_items by product_name
  *     (case-insensitive, trimmed). Omitted entirely when there are no extras.
- * Large mirrors Family upstream, so it is NOT rendered as its own section.
+ * The only two share SIZES are 'large' / 'small' (per the glossary); there is
+ * no 'family' size — Large IS the bigger box.
  *
  * Data: table `box_contents`, columns
  *   { share_type, product_name, quantity, unit, variety, week_date }.
  * We query the chosen week for the two share sizes we need:
- *   box_contents?week_date=eq.<week>&share_type=in.(small,family)
- * ordered by product_name, then split Small (= base) from Family-extras.
+ *   box_contents?week_date=eq.<week>&share_type=in.(small,large)
+ * ordered by product_name, then split Small (= base) from Large-extras.
+ *
+ * ── PER-ITEM "TOTAL NEEDED" (accountability) ────────────────────────────
+ * Next to each item we print the TOTAL quantity needed across EVERY box this
+ * week, so the pack floor can cross-check the harvest. We call `resolveCycle`
+ * (the single source of truth for who is receiving a box) to count this week's
+ * summer_veg boxes by size:
+ *   large_n = summer_veg members with size_bucket === 'large'
+ *   small_n = summer_veg members with size_bucket !== 'large'
+ * An item appears in the small box at qty `sQty` and/or the large box at qty
+ * `lQty`; its total need is:  sQty*small_n + lQty*large_n.
+ *   - large-only items → lQty*large_n
+ *   - items in both    → both terms summed
+ * Items are joined by product_name (case-insensitive, trimmed) across sizes.
  *
  * The week key is `box_contents.week_date` — the MONDAY week_starting
- * (e.g. 2026-06-08), the SAME key the labels + manifest + box editor use.
- * `[...slug]` takes the week as its first segment; a missing/invalid week
- * redirects back to the picker (which defaults to the most-recent week with
- * rows).
+ * (e.g. 2026-06-08), the SAME key the labels + manifest + box editor use, and
+ * the SAME key `resolveCycle` is keyed on (week_starting). `[...slug]` takes
+ * the week as its first segment; a missing/invalid week redirects back to the
+ * picker (which defaults to the most-recent week with rows).
  *
  * ── PRINT PATTERN (debugged — follow exactly) ───────────────────────────
  * AdminShell removes its own chrome (sticky header, nav, page-heading + the
@@ -29,11 +43,12 @@
  * page 1. Every on-screen-only element (the Print button) carries
  * `.screen-only`, which the @media print rule below hides. The result on
  * paper: just the SHARE CONTENTS header + the EVERY BOX list and (if any)
- * the FAMILY ALSO GETS list, with real empty (B&W-friendly) checkboxes.
+ * the LARGE ALSO GETS list, with real empty (B&W-friendly) checkboxes and the
+ * per-item total need printed beside each line.
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
-import { mondayOfWeek, isMonday, prettyWeekHeader } from '../../../lib/cycle';
+import { mondayOfWeek, isMonday, prettyWeekHeader, resolveCycle } from '../../../lib/cycle';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -50,8 +65,9 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
 // week_date is the Monday week_starting — normalize any in-week date to Monday.
 const week_date = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
 
-// ─── Fetch the two share sizes we need (small = base, family = extras) ──
-// Large mirrors Family upstream, so we never query/render it separately.
+// ─── Fetch the two share SIZES we need (small = base, large = extras) ──
+// The only sizes are 'large' / 'small'; there is no 'family' size. Large IS
+// the bigger box, so we query both and split Small (= base) from Large-extras.
 type ContentRow = {
   share_type: string;
   product_name: string;
@@ -64,7 +80,7 @@ const { data: rows, error: fetchErr } = await supabase
   .from('box_contents')
   .select('share_type, product_name, quantity, unit, variety')
   .eq('week_date', week_date)
-  .in('share_type', ['small', 'family'])
+  .in('share_type', ['small', 'large'])
   .order('product_name', { ascending: true })
   .overrideTypes<ContentRow[], { merge: false }>();
 
@@ -74,23 +90,49 @@ if (fetchErr) {
 
 const allRows: ContentRow[] = (rows ?? []) as ContentRow[];
 
-// ─── Split into base (Small) + family-only extras ──────────────────────
-//   baseItems        = SMALL share rows   → "EVERY BOX" (what every box gets)
-//   familyExtraItems = FAMILY rows whose product_name is NOT in Small
-//                      → "FAMILY ALSO GETS" (what a Family box adds on top)
+// ─── Resolve this week's cycle to count summer_veg boxes by size ───────
+// resolveCycle is the single source of truth for who is RECEIVING a box this
+// week (biweekly parity, vacation holds, and season-window already applied).
+//   large_n = summer_veg members whose size_bucket === 'large'
+//   small_n = summer_veg members whose size_bucket !== 'large' (small/unknown)
+// These drive the per-item "total needed" math below. If the resolver fails
+// we degrade gracefully to 0/0 (totals simply don't render) rather than
+// blanking the whole sheet — the checkable list is still printable.
+let large_n = 0;
+let small_n = 0;
+try {
+  const cycle = await resolveCycle(supabase, week_date);
+  const summerVeg = cycle.members.filter((m) => m.share_type === 'summer_veg');
+  large_n = summerVeg.filter((m) => m.size_bucket === 'large').length;
+  small_n = summerVeg.filter((m) => m.size_bucket !== 'large').length;
+} catch (err) {
+  console.error('[admin/share-contents] resolveCycle failed:', (err as Error).message);
+}
+
+// ─── Split into base (Small) + large-only extras ───────────────────────
+//   baseItems       = SMALL share rows  → "EVERY BOX" (what every box gets)
+//   largeExtraItems = LARGE rows whose product_name is NOT in Small
+//                     → "LARGE ALSO GETS" (what a Large box adds on top)
 // Difference is computed by product_name, case-insensitive + trimmed.
 const baseItems: ContentRow[] = [];
-const familyItems: ContentRow[] = [];
+const largeItems: ContentRow[] = [];
 for (const r of allRows) {
   if (r.share_type === 'small') baseItems.push(r);
-  else if (r.share_type === 'family') familyItems.push(r);
+  else if (r.share_type === 'large') largeItems.push(r);
 }
 
 const nameKey = (name: string) => name.trim().toLowerCase();
 const smallNameSet = new Set(baseItems.map((r) => nameKey(r.product_name)));
-const familyExtraItems = familyItems.filter(
+const largeExtraItems = largeItems.filter(
   (r) => !smallNameSet.has(nameKey(r.product_name)),
 );
+
+// Per-product qty indexes (by name key) so we can sum the per-item total
+// need across the small box and the large box independently.
+const smallQtyByName = new Map<string, number>();
+for (const r of baseItems) smallQtyByName.set(nameKey(r.product_name), r.quantity ?? 0);
+const largeQtyByName = new Map<string, number>();
+for (const r of largeItems) largeQtyByName.set(nameKey(r.product_name), r.quantity ?? 0);
 
 /** "2 head — Lettuce (Romaine)". Quantity omitted only when null/blank. */
 function itemLabel(r: ContentRow): string {
@@ -101,6 +143,40 @@ function itemLabel(r: ContentRow): string {
     ? `${r.product_name} (${r.variety.trim()})`
     : r.product_name;
   return lead ? `${lead} — ${name}` : name;
+}
+
+/**
+ * Total quantity of this product needed across EVERY box this week:
+ *   total = sQty*small_n + lQty*large_n
+ * where sQty / lQty are the per-box quantities in the small / large box (0 if
+ * the item isn't in that size). Returns the number + the unit to print, e.g.
+ * "112 head". Unit is taken from whichever size carries the item (large
+ * preferred — it's the superset). Returns null when there is no quantity to
+ * total (qty missing in both sizes) so the caller can omit the total line.
+ */
+function totalNeeded(r: ContentRow): { total: number; unit: string } | null {
+  const key = nameKey(r.product_name);
+  const sQty = smallQtyByName.get(key) ?? 0;
+  const lQty = largeQtyByName.get(key) ?? 0;
+  const total = sQty * small_n + lQty * large_n;
+  if (sQty === 0 && lQty === 0) return null;
+  const unit = (r.unit ?? '').trim();
+  return { total, unit };
+}
+
+/** "1 head (small) / 2 head (large)" — the per-box split, when an item is in
+ *  both sizes at different/same qty. Returns '' when the item is in only one
+ *  size (the main itemLabel already shows that size's qty). */
+function perBoxBreakdown(r: ContentRow): string {
+  const key = nameKey(r.product_name);
+  const inSmall = smallQtyByName.has(key);
+  const inLarge = largeQtyByName.has(key);
+  if (!inSmall || !inLarge) return '';
+  const sQty = smallQtyByName.get(key) ?? 0;
+  const lQty = largeQtyByName.get(key) ?? 0;
+  const unit = (r.unit ?? '').trim();
+  const u = unit ? ` ${unit}` : '';
+  return `${sQty}${u} (small) / ${lQty}${u} (large)`;
 }
 ---
 
@@ -134,14 +210,18 @@ function itemLabel(r: ContentRow): string {
       <p class="mt-1 text-base font-bold text-ts-text sm:text-lg">
         {prettyWeekHeader(week_date)}
       </p>
+      {/* Box count drives every per-item "total needed" below. */}
+      <p class="mt-1 text-base font-semibold text-ts-text-secondary tabular-nums sm:text-lg">
+        This week: {large_n} large + {small_n} small boxes
+      </p>
     </header>
 
-    {baseItems.length === 0 && familyExtraItems.length === 0 ? (
+    {baseItems.length === 0 && largeExtraItems.length === 0 ? (
       <Card tone="muted" padding="lg" elevation="sm" class="screen-only">
         <div class="text-center text-sm text-ts-text-secondary">
           <p class="font-semibold text-ts-text">No share contents for this week.</p>
           <p class="mt-1">
-            Add items under <a href="/admin/box-contents" class="text-ts-primary underline-offset-2 hover:underline">Box (legacy)</a> for the Small and Family shares, then reload.
+            Add items under <a href="/admin/box-contents" class="text-ts-primary underline-offset-2 hover:underline">Box (legacy)</a> for the Small and Large shares, then reload.
           </p>
         </div>
       </Card>
@@ -159,48 +239,69 @@ function itemLabel(r: ContentRow): string {
             </span>
           </h3>
           <ul class="mt-4 flex flex-col">
-            {baseItems.map((r) => (
-              <li class="share-item flex items-center gap-4 border-b border-ts-border/60 py-4">
-                {/* Real empty checkbox — B&W-friendly square the packer ticks. */}
-                <span
-                  class="share-check inline-block h-10 w-10 shrink-0 rounded-md border-[3px] border-ts-text bg-white print:border-black"
-                  aria-hidden="true"
-                ></span>
-                <span class="text-2xl font-bold leading-snug text-ts-text sm:text-3xl">
-                  {itemLabel(r)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* ── FAMILY ALSO GETS — family-minus-small extras (omit if none) ── */}
-        {familyExtraItems.length > 0 && (
-          <section
-            class="share-section border-t-4 border-ts-text pt-6"
-            aria-labelledby="sc-family-extra"
-          >
-            <h3
-              id="sc-family-extra"
-              class="font-display text-3xl font-extrabold uppercase tracking-wide text-ts-text sm:text-4xl"
-            >
-              Family also gets
-              <span class="ml-3 align-middle text-lg font-bold text-ts-text-secondary tabular-nums">
-                ({familyExtraItems.length} item{familyExtraItems.length === 1 ? '' : 's'})
-              </span>
-            </h3>
-            <ul class="mt-4 flex flex-col">
-              {familyExtraItems.map((r) => (
+            {baseItems.map((r) => {
+              const tot = totalNeeded(r);
+              const breakdown = perBoxBreakdown(r);
+              return (
                 <li class="share-item flex items-center gap-4 border-b border-ts-border/60 py-4">
+                  {/* Real empty checkbox — B&W-friendly square the packer ticks. */}
                   <span
                     class="share-check inline-block h-10 w-10 shrink-0 rounded-md border-[3px] border-ts-text bg-white print:border-black"
                     aria-hidden="true"
                   ></span>
-                  <span class="text-2xl font-bold leading-snug text-ts-text sm:text-3xl">
-                    {itemLabel(r)}
+                  <span class="flex flex-1 flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span class="text-2xl font-bold leading-snug text-ts-text sm:text-3xl">
+                      {breakdown ? `${r.product_name}${r.variety && r.variety.trim() ? ` (${r.variety.trim()})` : ''} — ${breakdown}` : itemLabel(r)}
+                    </span>
+                    {tot && (
+                      <span class="text-xl font-bold leading-snug text-ts-text tabular-nums sm:text-2xl">
+                        — total {tot.total}{tot.unit ? ` ${tot.unit}` : ''}
+                      </span>
+                    )}
                   </span>
                 </li>
-              ))}
+              );
+            })}
+          </ul>
+        </section>
+
+        {/* ── LARGE ALSO GETS — large-minus-small extras (omit if none) ── */}
+        {largeExtraItems.length > 0 && (
+          <section
+            class="share-section border-t-4 border-ts-text pt-6"
+            aria-labelledby="sc-large-extra"
+          >
+            <h3
+              id="sc-large-extra"
+              class="font-display text-3xl font-extrabold uppercase tracking-wide text-ts-text sm:text-4xl"
+            >
+              Large also gets
+              <span class="ml-3 align-middle text-lg font-bold text-ts-text-secondary tabular-nums">
+                ({largeExtraItems.length} item{largeExtraItems.length === 1 ? '' : 's'})
+              </span>
+            </h3>
+            <ul class="mt-4 flex flex-col">
+              {largeExtraItems.map((r) => {
+                const tot = totalNeeded(r);
+                return (
+                  <li class="share-item flex items-center gap-4 border-b border-ts-border/60 py-4">
+                    <span
+                      class="share-check inline-block h-10 w-10 shrink-0 rounded-md border-[3px] border-ts-text bg-white print:border-black"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="flex flex-1 flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span class="text-2xl font-bold leading-snug text-ts-text sm:text-3xl">
+                        {itemLabel(r)}
+                      </span>
+                      {tot && (
+                        <span class="text-xl font-bold leading-snug text-ts-text tabular-nums sm:text-2xl">
+                          — total {tot.total}{tot.unit ? ` ${tot.unit}` : ''}
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}
@@ -219,7 +320,7 @@ function itemLabel(r: ContentRow): string {
    *  itself — hiding it would blank the whole sheet). On-screen-only UI
    *  (the Print button, the back link, the empty-state card) carries
    *  `.screen-only`, which the rule below hides. The two sections — EVERY
-   *  BOX and FAMILY ALSO GETS — print full-width, stacked, big and bold. */
+   *  BOX and LARGE ALSO GETS — print full-width, stacked, big and bold. */
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
 
