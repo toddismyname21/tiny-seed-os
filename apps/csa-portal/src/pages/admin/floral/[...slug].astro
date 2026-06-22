@@ -1,0 +1,301 @@
+---
+/**
+ * /admin/floral/[week] — printable FLORAL list for the cycle.
+ *
+ * Mirrors /admin/harvest/[week] structure exactly (week-from-slug parsing,
+ * Mon/Thu day tabs, AdminShell wrapper, print stylesheet, Print button) but
+ * for FLOWER shares only. Flowers are packed/made separately from veg, so
+ * this is its own stop-by-stop make/pack list — no photos, just counts +
+ * checkboxes.
+ *
+ * THE WHOLE POINT — counts come straight from resolveCycle:
+ *   `cycle.members.filter(m => m.share_type === 'flower')` is already
+ *   A/B-biweekly + vacation-hold + season filtered. We NEVER hand-count.
+ *   The per-day split uses `cycle.byDistributionDay` exactly like harvest:
+ *     'mon' tab → flower members in the Tue + Wed buckets
+ *     'thu' tab → flower members in the Sat bucket
+ *
+ * UI:
+ *   - Two tabs: "Monday floral" (Tue + Wed pickups) and "Thursday floral"
+ *     (Sat pickups). Same single cycle (one Mon 6 AM cutoff).
+ *   - Stat cards: total bouquets this day, petite count, full count, plus a
+ *     small "off-week (A/B) excluded" + "on hold" count (flower only) for
+ *     transparency — mirrors harvest's biweekly badge.
+ *   - Stop-by-stop: a section per stop (sorted by day then stop name; home
+ *     delivery grouped under "Home delivery"), each with a count line
+ *     "(N bouquets: X petite, Y full[, Z other])" and a checkbox list of
+ *     members ("[ ] Name — size").
+ *   - Print button.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyWeekHeader,
+  mondayOfWeek, isMonday,
+  type CycleMember, type WeekdayCode,
+} from '../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+const week_input = segments[0] ?? '';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/floral', 303);
+}
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+const dayTabRaw = Astro.url.searchParams.get('day') ?? 'mon';
+const dayTab = dayTabRaw === 'thu' ? 'thu' : 'mon';
+
+const cycle = await resolveCycle(supabase, week_starting);
+
+// ─── Which flower members ship on the selected floral day ──────────
+// Mon floral serves Tue + Wed distributions; Thu serves Sat. Drawn from
+// cycle.byDistributionDay (already A/B + holds + season applied), then
+// filtered to flower shares. This is the per-tab flower set, by design.
+const targetDays: WeekdayCode[] = dayTab === 'mon' ? ['Tue', 'Wed'] : ['Sat'];
+const flowerMembers: CycleMember[] = targetDays
+  .flatMap((d) => cycle.byDistributionDay.get(d) ?? [])
+  .filter((m) => m.share_type === 'flower');
+
+// ─── Size → display + bucket ───────────────────────────────────────
+// resolveCycle already bucketed share_size into size_bucket:
+//   'small' → petite, 'large' → full, 'unknown' → other.
+type FlowerBucket = 'petite' | 'full' | 'other';
+function flowerBucket(m: CycleMember): FlowerBucket {
+  if (m.size_bucket === 'small') return 'petite';
+  if (m.size_bucket === 'large') return 'full';
+  return 'other';
+}
+/** Human label for the per-member checkbox line ("petite" / "full" / raw size). */
+function sizeLabel(m: CycleMember): string {
+  const b = flowerBucket(m);
+  if (b === 'petite') return 'petite';
+  if (b === 'full') return 'full';
+  // 'other' — show the raw share_size if present so Todd can clean it up.
+  return m.share_size ? m.share_size : 'unsized';
+}
+
+// ─── Group flower members STOP-BY-STOP ─────────────────────────────
+// Each CycleMember already carries its joined pickup_location (name +
+// day_of_week). Home delivery = delivery_address with no pickup_location_id.
+// An active member with neither lands in a "No pickup set" sentinel group so
+// they stay visible to admin (mirrors resolveCycle's byStop bucketing).
+const HOME_DELIVERY_KEY = 'home_delivery';
+const NO_PICKUP_KEY = 'no_pickup_set';
+
+interface FloralStop {
+  key: string;
+  name: string;
+  day: WeekdayCode | null;
+  members: CycleMember[];
+  petite: number;
+  full: number;
+  other: number;
+}
+
+const stopMap = new Map<string, FloralStop>();
+for (const m of flowerMembers) {
+  let key: string;
+  let name: string;
+  let day: WeekdayCode | null;
+  if (m.pickup_location_id && m.pickup_location) {
+    key = m.pickup_location_id;
+    name = m.pickup_location.name;
+    day = m.pickup_location.day_of_week;
+  } else if (m.delivery_address) {
+    key = HOME_DELIVERY_KEY;
+    name = 'Home delivery';
+    day = 'Wed';
+  } else {
+    key = NO_PICKUP_KEY;
+    name = 'No pickup set';
+    day = null;
+  }
+  let stop = stopMap.get(key);
+  if (!stop) {
+    stop = { key, name, day, members: [], petite: 0, full: 0, other: 0 };
+    stopMap.set(key, stop);
+  }
+  stop.members.push(m);
+  const b = flowerBucket(m);
+  if (b === 'petite') stop.petite += 1;
+  else if (b === 'full') stop.full += 1;
+  else stop.other += 1;
+}
+
+// Sort stops by day rank (Mon→Sun) then name; home delivery + no-pickup
+// (no day) fall to the end. Members within a stop sort by name.
+const DAY_RANK: Record<WeekdayCode, number> = {
+  Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7,
+};
+const stops: FloralStop[] = Array.from(stopMap.values()).sort((a, b) => {
+  const da = a.day ? DAY_RANK[a.day] : 99;
+  const db = b.day ? DAY_RANK[b.day] : 99;
+  if (da !== db) return da - db;
+  return a.name.localeCompare(b.name);
+});
+for (const s of stops) {
+  s.members.sort((a, b) => a.contact_name.localeCompare(b.contact_name));
+}
+
+// ─── Day totals ────────────────────────────────────────────────────
+const totalBouquets = flowerMembers.length;
+const totalPetite = flowerMembers.filter((m) => flowerBucket(m) === 'petite').length;
+const totalFull = flowerMembers.filter((m) => flowerBucket(m) === 'full').length;
+const totalOther = flowerMembers.filter((m) => flowerBucket(m) === 'other').length;
+
+// ─── Transparency: flower members excluded this cycle ──────────────
+// resolveCycle hands back the FULL exclusion lists for the cycle; filter to
+// flower so the badge reflects this list's scope (mirrors harvest's badge).
+const flowerBiweeklyExcluded = cycle.excluded_biweekly.filter((m) => m.share_type === 'flower').length;
+const flowerOnHoldExcluded = cycle.excluded_on_hold.filter((m) => m.share_type === 'flower').length;
+
+/** "(N bouquets: X petite, Y full[, Z other])" — the per-stop count line. */
+function countLine(s: FloralStop): string {
+  const parts = [`${s.petite} petite`, `${s.full} full`];
+  if (s.other > 0) parts.push(`${s.other} other`);
+  const total = s.members.length;
+  return `${total} ${total === 1 ? 'bouquet' : 'bouquets'}: ${parts.join(', ')}`;
+}
+---
+
+<AdminShell
+  title={`Floral list · ${dayTab === 'mon' ? 'Monday' : 'Thursday'}`}
+  subtitle={prettyWeekHeader(week_starting)}
+  pageTitle="Floral list — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+    >
+      🖨 Print
+    </button>
+  </Fragment>
+
+  {/* ── Tab strip ─────────────────────────────────────────────────── */}
+  <nav aria-label="Floral day" class="flex gap-2 border-b border-ts-border">
+    <a
+      href={`/admin/floral/${week_starting}?day=mon`}
+      aria-current={dayTab === 'mon' ? 'page' : undefined}
+      class={[
+        'inline-flex h-10 items-center border-b-2 px-4 text-sm font-semibold transition-colors',
+        dayTab === 'mon'
+          ? 'border-ts-primary text-ts-primary'
+          : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
+      ].join(' ')}
+    >
+      Monday floral <span class="ml-2 text-xs text-ts-text-muted">→ Tue + Wed</span>
+    </a>
+    <a
+      href={`/admin/floral/${week_starting}?day=thu`}
+      aria-current={dayTab === 'thu' ? 'page' : undefined}
+      class={[
+        'inline-flex h-10 items-center border-b-2 px-4 text-sm font-semibold transition-colors',
+        dayTab === 'thu'
+          ? 'border-ts-primary text-ts-primary'
+          : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
+      ].join(' ')}
+    >
+      Thursday floral <span class="ml-2 text-xs text-ts-text-muted">→ Sat</span>
+    </a>
+  </nav>
+
+  {/* ── Stat row ──────────────────────────────────────────────────── */}
+  <section aria-label="Stats" class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 print:grid-cols-4">
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Bouquets this day</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalBouquets}</div>
+      <div class="mt-1 text-xs text-ts-text-secondary">flower members on {targetDays.join(' + ')}</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Petite</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalPetite}</div>
+      {totalOther > 0 && (
+        <div class="mt-1 text-xs text-ts-text-secondary">+ {totalOther} other (unsized)</div>
+      )}
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Full</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalFull}</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Excluded (flower)</div>
+      <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">
+        {flowerBiweeklyExcluded + flowerOnHoldExcluded}
+      </div>
+      <div class="mt-1 text-xs text-ts-text-secondary">
+        {flowerBiweeklyExcluded} off-week (A/B) · {flowerOnHoldExcluded} on hold
+      </div>
+    </Card>
+  </section>
+
+  {/* ── Stop-by-stop make/pack list ──────────────────────────────── */}
+  <section aria-labelledby="floral-heading" class="flex flex-col gap-3">
+    <h2 id="floral-heading" class="font-display text-xl font-bold text-ts-text">
+      Bouquets by stop
+    </h2>
+    {stops.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <p class="text-center text-sm text-ts-text-secondary">
+          No flower members for {dayTab === 'mon' ? "this Monday's (Tue + Wed)" : "this Thursday's (Sat)"} pickups.
+          Counts come straight from <span class="font-semibold text-ts-text">resolveCycle</span> — if the flower
+          season hasn't opened or it's the biweekly off-week, there's nothing to make.
+        </p>
+      </Card>
+    ) : (
+      <div class="flex flex-col gap-4">
+        {stops.map((stop) => (
+          <Card padding="none" elevation="sm">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-ts-border bg-ts-bg-muted/30 px-5 py-2.5">
+              <h3 class="font-display text-sm font-bold text-ts-text">{stop.name}</h3>
+              {stop.day && (
+                <span class="text-xs font-medium text-ts-text-muted">{stop.day}</span>
+              )}
+              <span class="ml-auto text-xs text-ts-text-secondary tabular-nums">({countLine(stop)})</span>
+            </div>
+            <ul class="divide-y divide-ts-border/60">
+              {stop.members.map((m) => (
+                <li class="flex items-center gap-3 px-5 py-2.5 text-sm text-ts-text">
+                  <span
+                    class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ts-sm border border-ts-border-strong"
+                    aria-hidden="true"
+                  ></span>
+                  <span class="font-medium">{m.contact_name}</span>
+                  <span class="text-ts-text-muted">—</span>
+                  <span class="text-ts-text-secondary">{sizeLabel(m)}</span>
+                  {m.payment_status && m.payment_status.toLowerCase() !== 'paid' && (
+                    <span class="ml-auto rounded-ts-sm bg-ts-warning/10 px-2 py-0.5 text-xs font-semibold text-ts-warning">
+                      ⚠ owes
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))}
+      </div>
+    )}
+  </section>
+
+  <p class="text-xs text-ts-text-muted">
+    Floral is separate from veg; counts come straight from resolveCycle (A/B + holds applied).
+    Petite = small share, Full = large share. Members shown are this cycle's flower shares for the
+    {dayTab === 'mon' ? ' Monday (Tue + Wed)' : ' Thursday (Sat)'} pickups only — off-week (A/B) and
+    on-hold members are excluded automatically and tallied in the stat cards above.
+  </p>
+</AdminShell>
+
+<style is:global>
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+    body, html { background: white !important; }
+    header[class*="sticky"], nav[aria-label="Admin sections"],
+    button[onclick*="print"], nav[aria-label="Floral day"] {
+      display: none !important;
+    }
+    main > div:first-child { padding-top: 0 !important; }
+  }
+</style>

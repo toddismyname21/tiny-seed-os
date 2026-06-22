@@ -6,6 +6,10 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-22] CSA — Floral list screen (resolveCycle-driven, like harvest) (PM_Architect + fullstack-builder)
+
+DEPLOYED + verified. New /admin/floral/[week] mirrors the harvest list, driven by resolveCycle (A/B + holds applied, never hand-counted): Mon/Thu day tabs, stop-by-stop bouquet make-list (petite/full counts + member checklist), excluded-off-week/hold stat cards, printable. Nav: Floral (flower) in Pack Week group. Verified 2026-06-22: mon 28 + thu 4 = 32 (matches resolveCycle, NOT raw 56). Also emailed Loren+Todd a stop-by-stop floral PDF. Root-cause note: prior 56 error was a raw active-member count bypassing resolveCycle — see feedback_always_use_resolvecycle.
+
 ## [2026-06-22] CSA market — per-market tagging + planned qty + harvest pack-day split (PM_Architect + fullstack-builder)
 
 DEPLOYED + verified. Market channel now delineates WHAT GOES WHERE for pick/pack. Schema (live + migration 0055): `market_offerings` += `market_location_id`(→pickup_locations), `planned_qty`, `leftover_qty`, `donated_qty`; new `market_sessions`(market+date → cash_sales_cents, notes; RLS staff) for end-of-market close-out. Market editor (`/admin/market`): each offering tagged to one of the 4 markets (Lawrenceville Tue / Bloomfield Sat / Sewickley Sat / South Side Sun) + planned qty, grouped by market w/ pack-day chip; save.ts validates market server-side. Harvest list market section now SPLITS by pack day via market day: Mon tab = Tue markets (Lawrenceville), Thu tab = Sat/Sun markets — grouped by market w/ planned qty. VERIFIED live: mon→Lawrenceville only, thu→Bloomfield only, editor selector+qty present. REMAINING = close-out screen (per-item leftover+donated, per-market cash+notes from market_sessions) + planned-vs-sold history.
