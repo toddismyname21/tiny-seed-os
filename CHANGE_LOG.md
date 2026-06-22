@@ -6,6 +6,10 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-22] CSA market — per-market tagging + planned qty + harvest pack-day split (PM_Architect + fullstack-builder)
+
+DEPLOYED + verified. Market channel now delineates WHAT GOES WHERE for pick/pack. Schema (live + migration 0055): `market_offerings` += `market_location_id`(→pickup_locations), `planned_qty`, `leftover_qty`, `donated_qty`; new `market_sessions`(market+date → cash_sales_cents, notes; RLS staff) for end-of-market close-out. Market editor (`/admin/market`): each offering tagged to one of the 4 markets (Lawrenceville Tue / Bloomfield Sat / Sewickley Sat / South Side Sun) + planned qty, grouped by market w/ pack-day chip; save.ts validates market server-side. Harvest list market section now SPLITS by pack day via market day: Mon tab = Tue markets (Lawrenceville), Thu tab = Sat/Sun markets — grouped by market w/ planned qty. VERIFIED live: mon→Lawrenceville only, thu→Bloomfield only, editor selector+qty present. REMAINING = close-out screen (per-item leftover+donated, per-market cash+notes from market_sessions) + planned-vs-sold history.
+
 ## [2026-06-22] CSA admin — P1 NAV REDESIGN: grouped sidebar + Cmd-K + git sync (PM_Architect + fullstack-builder)
 
 DEPLOYED + verified across 9 admin pages (all 200, new nav present). Rebuilt `AdminShell.astro`: flat 28-item horizontal strip -> collapsible LEFT SIDEBAR with 6 task groups (Pack Week / Members / Market & Flex / Deliveries / Comms & Content / System) + standalone Home; the active page's group auto-expands; mobile hamburger drawer (backdrop/Escape close, 44px targets); **Cmd-K command palette** (fuzzy jump to any of 29 destinations, ⌘K + visible Search button). All slots/props/print behavior preserved; all 29 hrefs reachable (SSR-verified). 

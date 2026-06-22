@@ -20,7 +20,7 @@ import {
   mondayOfWeek, isMonday, addDays,
   type CycleMember,
 } from '../../../lib/cycle';
-import { formatCents, categoryEmoji } from '../../../lib/flex-order';
+import { categoryEmoji } from '../../../lib/flex-order';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -249,20 +249,26 @@ const wholesaleRows = Array.from(wholesaleMap.values())
 // Which delivery day this tab represents for wholesale (note copy).
 const wholesaleDayLabel = dayTab === 'mon' ? 'Wed' : 'Fri/Sat';
 
-// ─── Market offerings — what to bring to the stall this week ────────
-// No computed harvest qty (it's the farmer's estimate) — just list what's
-// going to market so the team harvests for it. Keyed on the cycle Monday.
+// ─── Market offerings — what to bring to each market, SPLIT BY PACK DAY ─
+// Each offering is tagged to a specific market (pickup_locations) whose
+// day_of_week sets the PACK DAY:
+//   Tue market       → MONDAY pack  (shown on the 'mon' tab)
+//   Sat / Sun market → THURSDAY pack (shown on the 'thu' tab)
+// We list the planned harvest qty per item (the farmer's estimate), grouped by
+// market. Keyed on the cycle Monday. Join → pickup_locations + product_library.
 interface MarketOfferingRow {
   id: string;
   name: string | null;
   unit: string;
-  price_cents: number;
+  planned_qty: number | null;
+  market: { id: string; name: string; day_of_week: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null } | null;
   library: { name: string | null; photo_url: string | null; category: string | null } | null;
 }
 const { data: marketOfferingRows, error: marketErr } = await supabase
   .from('market_offerings')
   .select(
-    'id, name, unit, price_cents, ' +
+    'id, name, unit, planned_qty, ' +
+    'market:pickup_locations ( id, name, day_of_week ), ' +
     'library:product_library ( name, photo_url, category )',
   )
   .eq('week_starting', week_starting)
@@ -273,14 +279,39 @@ const { data: marketOfferingRows, error: marketErr } = await supabase
 if (marketErr) {
   throw new Error(`harvest: market_offerings fetch failed: ${marketErr.message}`);
 }
-const marketRows = (marketOfferingRows ?? []).map((o) => ({
-  id: o.id,
-  name: o.name ?? o.library?.name ?? 'Untitled product',
-  unit: o.unit,
-  price_cents: o.price_cents,
-  photo: o.library?.photo_url ?? null,
-  category: o.library?.category ?? null,
-}));
+
+/** Which harvest-day tab a market belongs to (Tue → mon; Sat/Sun → thu). */
+function marketTabFor(day: string | null | undefined): 'mon' | 'thu' | null {
+  if (day === 'Tue') return 'mon';
+  if (day === 'Sat' || day === 'Sun') return 'thu';
+  return null; // untagged / non-market day — excluded from both tabs
+}
+
+// Keep only offerings whose market maps to the current tab, then GROUP by
+// market (preserving the sort_order/price ordering within each group).
+interface MarketItem { id: string; name: string; unit: string; planned_qty: number | null; photo: string | null; category: string | null; }
+interface MarketGroup { marketName: string; day: string | null; items: MarketItem[] }
+const marketGroupMap = new Map<string, MarketGroup>(); // key = market id
+for (const o of marketOfferingRows ?? []) {
+  if (marketTabFor(o.market?.day_of_week) !== dayTab) continue;
+  const mid = o.market?.id ?? 'untagged';
+  let group = marketGroupMap.get(mid);
+  if (!group) {
+    group = { marketName: o.market?.name ?? 'Untagged', day: o.market?.day_of_week ?? null, items: [] };
+    marketGroupMap.set(mid, group);
+  }
+  group.items.push({
+    id: o.id,
+    name: o.name ?? o.library?.name ?? 'Untitled product',
+    unit: o.unit,
+    planned_qty: o.planned_qty,
+    photo: o.library?.photo_url ?? null,
+    category: o.library?.category ?? null,
+  });
+}
+const marketGroups: MarketGroup[] = Array.from(marketGroupMap.values()).sort(
+  (a, b) => a.marketName.localeCompare(b.marketName),
+);
 
 const totalDistinctCrops = rows.length;
 const totalBoxesThisHarvest = membersForHarvest.filter((m) => m.share_type === 'summer_veg').length;
@@ -509,53 +540,71 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
     </p>
   </section>
 
-  {/* ── Selling at market (what to bring — qty is the farmer's call) ── */}
+  {/* ── Selling at market — split by THIS day's markets, grouped by market ── */}
   <section aria-labelledby="market-table-heading" class="flex flex-col gap-3">
     <h2 id="market-table-heading" class="font-display text-xl font-bold text-ts-text">
       Selling at market
-      <span class="ml-2 align-middle text-xs font-medium text-ts-text-muted">bring to market</span>
+      <span class="ml-2 align-middle text-xs font-medium text-ts-text-muted">
+        bring to market — {dayTab === 'mon' ? 'Tuesday market' : 'Saturday + Sunday markets'}
+      </span>
     </h2>
-    {marketRows.length === 0 ? (
+    {marketGroups.length === 0 ? (
       <Card tone="muted" padding="lg" elevation="sm">
         <p class="text-center text-sm text-ts-text-secondary">
-          Nothing is listed for market this week —
+          No market items for {dayTab === 'mon' ? "this Monday's markets" : "this Thursday's markets"} —
           set the stall list at <a href={`/admin/market`} class="font-semibold text-ts-primary hover:underline">Market list</a>.
         </p>
       </Card>
     ) : (
-      <Card padding="none" elevation="sm">
-        <table class="w-full text-left">
-          <thead class="border-b border-ts-border bg-ts-bg-muted/30">
-            <tr>
-              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Product</th>
-              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Unit</th>
-              <th class="px-5 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Price</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-ts-border/60">
-            {marketRows.map((row) => (
-              <tr>
-                <td class="px-5 py-3 text-sm font-medium text-ts-text">
-                  <span class="flex items-center gap-3">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg">
-                      {row.photo
-                        ? <img src={row.photo} alt="" width="40" height="40" loading="lazy" class="h-full w-full object-cover" />
-                        : <span aria-hidden="true">{categoryEmoji(row.category)}</span>}
-                    </span>
-                    <span>{row.name}</span>
-                  </span>
-                </td>
-                <td class="px-5 py-3 text-sm text-ts-text-secondary">{row.unit}</td>
-                <td class="px-5 py-3 text-right text-sm font-semibold tabular-nums text-ts-text">{formatCents(row.price_cents)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      <div class="flex flex-col gap-4">
+        {marketGroups.map((group) => (
+          <Card padding="none" elevation="sm">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-ts-border bg-ts-bg-muted/30 px-5 py-2.5">
+              <h3 class="font-display text-sm font-bold text-ts-text">{group.marketName}</h3>
+              {group.day && (
+                <span class="text-xs font-medium text-ts-text-muted">{group.day}</span>
+              )}
+              <span class="ml-auto text-xs text-ts-text-muted tabular-nums">
+                {group.items.length} {group.items.length === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+            <table class="w-full text-left">
+              <thead class="border-b border-ts-border bg-ts-bg-muted/30">
+                <tr>
+                  <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Product</th>
+                  <th class="px-5 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Planned qty</th>
+                  <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Unit</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-ts-border/60">
+                {group.items.map((row) => (
+                  <tr>
+                    <td class="px-5 py-3 text-sm font-medium text-ts-text">
+                      <span class="flex items-center gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg">
+                          {row.photo
+                            ? <img src={row.photo} alt="" width="40" height="40" loading="lazy" class="h-full w-full object-cover" />
+                            : <span aria-hidden="true">{categoryEmoji(row.category)}</span>}
+                        </span>
+                        <span>{row.name}</span>
+                      </span>
+                    </td>
+                    <td class="px-5 py-3 text-right text-base font-bold tabular-nums text-ts-text">
+                      {row.planned_qty != null ? row.planned_qty.toLocaleString() : '—'}
+                    </td>
+                    <td class="px-5 py-3 text-sm text-ts-text-secondary">{row.unit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        ))}
+      </div>
     )}
     <p class="text-xs text-ts-text-muted">
-      Listed for the farmers-market stall this week. No harvest quantity is shown —
-      bring what you judge the stall needs. Set the list at <a href={`/admin/market`} class="font-semibold text-ts-primary hover:underline">Market list</a>.
+      Listed for the farmers-market stall this week, split by market.
+      Tuesday markets pack on Monday; Saturday + Sunday markets pack on Thursday.
+      Planned qty is the farmer's estimate of what to bring. Set the list at <a href={`/admin/market`} class="font-semibold text-ts-primary hover:underline">Market list</a>.
     </p>
   </section>
 </AdminShell>

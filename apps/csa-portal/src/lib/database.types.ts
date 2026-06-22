@@ -691,12 +691,19 @@ export interface Database {
           // FK → product_library.id (the shared master product).
           library_id: string;
           week_starting: string;
+          // FK → pickup_locations.id — the specific market this offering is sold at.
+          market_location_id: string | null;
           // Optional display override; falls back to product_library.name.
           name: string | null;
           unit: string;
           price_cents: number;
           is_active: boolean;
           sort_order: number;
+          // Planned harvest quantity to bring to the market (farmer's estimate).
+          planned_qty: number | null;
+          // Post-market reconciliation (set later): unsold + donated amounts.
+          leftover_qty: number | null;
+          donated_qty: number | null;
           created_at: string;
           updated_at: string;
         };
