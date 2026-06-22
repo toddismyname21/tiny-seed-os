@@ -1,0 +1,542 @@
+---
+/**
+ * /admin/products — the MASTER product catalog.
+ *
+ * The single place to manage a product's IDENTITY (name, category, unit,
+ * description) + its canonical PHOTO + its STANDING wholesale listing.
+ *
+ * `product_library` is the source of truth: flex (weekly), box (weekly), and
+ * the chef wholesale page all read the photo + identity library-first. This
+ * screen is NOT a weekly editor — flex availability lives in
+ * /admin/flex-inventory and box contents in the box editor. Here we manage
+ * the master record and the always-on wholesale catalog only.
+ *
+ * Layout:
+ *   1. "➕ Add product" form (identity + photo).
+ *   2. Instant client-side search over the full catalog (like the
+ *      market-checkout member search — filters in place, no reload).
+ *   3. A list of every product — photo thumb (or category emoji), name,
+ *      category, unit-ish line, and a wholesale chip ("Wholesale $X.XX" if
+ *      an active linked wholesale_products row exists, else "Not in
+ *      wholesale"). Each row expands (<details>) to an inline edit form:
+ *      identity + photo replace + a "List in wholesale" toggle + price +
+ *      wholesale unit.
+ *
+ * Reads with the cookie-aware admin RLS client (lib_read + the
+ * wholesale_products_staff policy lets admin/staff see inactive listings via
+ * the embed). The save/image APIs re-check via requireAdmin.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import FormRow from '../../../components/FormRow.astro';
+import Badge from '../../../components/Badge.astro';
+import {
+  FLEX_UNITS, FLEX_CATEGORIES,
+  centsToDollars, formatCents, categoryEmoji,
+} from '../../../lib/flex-order';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+// ─── Catalog: every product_library row + its linked wholesale listing ──
+// LEFT JOIN the wholesale_products row by library_id. The embed is an array
+// (no unique constraint on library_id) — in practice there's ≤1 per product
+// (the save endpoint upserts), so we read the first.
+type WholesaleLink = {
+  id: string;
+  price_cents: number;
+  unit: string;
+  is_active: boolean;
+};
+type ProductRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  description: string | null;
+  photo_url: string | null;
+  wholesale_products: WholesaleLink[] | null;
+};
+
+const { data: rows, error: fetchErr } = await supabase
+  .from('product_library')
+  .select(
+    'id, name, category, description, photo_url, ' +
+    'wholesale_products:wholesale_products!library_id ( id, price_cents, unit, is_active )'
+  )
+  .order('category', { ascending: true, nullsFirst: false })
+  .order('name', { ascending: true })
+  .overrideTypes<ProductRow[], { merge: false }>();
+
+if (fetchErr) {
+  console.error('[admin/products] fetch failed:', fetchErr.message);
+}
+const products: ProductRow[] = rows ?? [];
+
+/** The product's active wholesale listing (if any). */
+function activeWholesale(p: ProductRow): WholesaleLink | null {
+  const links = p.wholesale_products ?? [];
+  return links.find((w) => w.is_active) ?? null;
+}
+
+/** The product's unit to seed the edit form: prefer the linked wholesale
+ *  listing's unit (active or not), else a sensible 'each' default — the
+ *  library itself has no unit column. */
+function unitFor(p: ProductRow): string {
+  const links = p.wholesale_products ?? [];
+  const active = links.find((w) => w.is_active);
+  if (active) return active.unit;
+  if (links.length > 0) return links[0].unit;
+  return 'each';
+}
+
+// Existing categories for the datalist (catalog + curated list, de-duped).
+const categorySet = new Set<string>(FLEX_CATEGORIES);
+for (const p of products) if (p.category) categorySet.add(p.category);
+const categories = Array.from(categorySet).sort((a, b) => a.localeCompare(b));
+
+// ─── Flash ──────────────────────────────────────────────────────────
+const okFlag = url.searchParams.get('ok');
+const errorFlag = url.searchParams.get('error');
+const OK_COPY: Record<string, string> = {
+  created: 'Product added to the catalog.',
+  saved: 'Product updated.',
+};
+const ERROR_COPY: Record<string, string> = {
+  invalid_input: 'Some fields were invalid — please check and try again.',
+  invalid_price: 'Enter a valid wholesale price in dollars (e.g. 4.50).',
+  duplicate_name: 'A product with that name already exists — pick a different name.',
+  save_failed: "Couldn't save that product. Please try again.",
+  wholesale_failed: "Saved the product, but couldn't update its wholesale listing. Try again.",
+  not_found: 'That product no longer exists.',
+};
+
+const okMessage = okFlag ? OK_COPY[okFlag] ?? null : null;
+const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
+
+// Catalog rows embedded for the instant client filter (name + category only).
+const searchIndex = products.map((p) => ({
+  id: p.id,
+  name: p.name,
+  category: p.category ?? '',
+}));
+---
+
+<AdminShell
+  title="Products"
+  subtitle="Master catalog"
+  pageTitle="Products — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/products"
+>
+  {okMessage && (
+    <div
+      role="status"
+      aria-live="polite"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Done.</span> {okMessage}
+    </div>
+  )}
+  {errorMessage && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Heads up.</span> {errorMessage}
+    </div>
+  )}
+
+  {/* Shared datalists (used by add + every edit form). */}
+  <datalist id="product-categories">
+    {categories.map((c) => <option value={c}></option>)}
+  </datalist>
+  <datalist id="product-units">
+    {FLEX_UNITS.map((u) => <option value={u}></option>)}
+  </datalist>
+
+  {/* ════ Add product ════ */}
+  <Card padding="md" elevation="sm">
+    <h2 class="mb-4 font-display text-lg font-bold text-ts-text">➕ Add a product</h2>
+    <p class="mb-4 text-sm text-ts-text-secondary">
+      This creates the master record. Its photo + identity show everywhere the product appears
+      (flex, box, wholesale). You can list it in wholesale now or later from its edit form.
+    </p>
+
+    <form
+      method="POST"
+      action="/api/admin/products/save"
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+      data-add-form
+    >
+      <input type="hidden" name="op" value="create" />
+
+      <div class="sm:col-span-2">
+        <FormRow label="Product name" htmlFor="add-name" required>
+          <input
+            id="add-name" type="text" name="name" required maxlength="160"
+            placeholder="e.g. King Spring Mix"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          />
+        </FormRow>
+      </div>
+
+      <FormRow label="Category" htmlFor="add-category">
+        <input
+          id="add-category" type="text" name="category" list="product-categories" maxlength="80"
+          placeholder="e.g. Salad Mixes"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+        />
+      </FormRow>
+
+      <FormRow label="Unit" htmlFor="add-unit" required help="The base selling unit (used for the wholesale listing).">
+        <input
+          id="add-unit" type="text" name="unit" required list="product-units" maxlength="40"
+          value="each"
+          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+        />
+      </FormRow>
+
+      <div class="sm:col-span-2">
+        <FormRow label="Description" htmlFor="add-desc" help="Optional. Shown to members + chefs.">
+          <textarea
+            id="add-desc" name="description" rows="2" maxlength="2000"
+            placeholder="e.g. Our signature tender salad mix — sweet, mild, ready to dress."
+            class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+          ></textarea>
+        </FormRow>
+      </div>
+
+      {/* Wholesale link */}
+      <div class="sm:col-span-2 flex flex-col gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface p-4" data-wholesale-block>
+        <label class="flex items-start gap-3 text-sm text-ts-text">
+          <input type="checkbox" name="list_wholesale" value="true" class="mt-0.5 h-4 w-4 rounded border-ts-border text-ts-primary" data-wholesale-toggle />
+          <span><span class="font-semibold">List in wholesale</span> — make this a standing item on the chef order page.</span>
+        </label>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2" data-wholesale-fields hidden>
+          <FormRow label="Wholesale price (dollars)" htmlFor="add-price" help="e.g. 4.50">
+            <div class="relative">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+              <input
+                id="add-price" type="text" inputmode="decimal" name="price_dollars"
+                placeholder="0.00"
+                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-4 py-3 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+              />
+            </div>
+          </FormRow>
+          <FormRow label="Wholesale unit" htmlFor="add-w-unit" help="Defaults to the unit above.">
+            <input
+              id="add-w-unit" type="text" name="wholesale_unit" list="product-units" maxlength="40"
+              placeholder="e.g. case, bunch"
+              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+            />
+          </FormRow>
+        </div>
+      </div>
+
+      <div class="sm:col-span-2 border-t border-ts-border pt-4">
+        <p class="text-xs text-ts-text-muted">
+          Add the photo after creating — open the new product below and upload it there.
+        </p>
+        <button
+          type="submit"
+          class="mt-3 inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Add product
+        </button>
+      </div>
+    </form>
+  </Card>
+
+  {/* ════ Search ════ */}
+  <Card padding="md" elevation="sm">
+    <label for="product-search" class="text-sm font-semibold text-ts-text">Find a product</label>
+    <input
+      id="product-search"
+      type="search"
+      autocomplete="off"
+      placeholder="Name or category…"
+      class="mt-2 block h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+      data-product-search
+    />
+    <p class="mt-2 text-xs text-ts-text-muted">
+      <span data-product-count>{products.length} {products.length === 1 ? 'product' : 'products'}</span> in the master catalog.
+    </p>
+  </Card>
+
+  {/* ════ Catalog list ════ */}
+  <Card padding="none" elevation="sm">
+    {products.length === 0 ? (
+      <div class="px-5 py-12 text-center">
+        <p class="text-4xl" aria-hidden="true">📦</p>
+        <p class="mt-3 text-sm font-medium text-ts-text">No products in the catalog yet.</p>
+        <p class="mt-1 text-xs text-ts-text-muted">Add your first product above — it becomes the master record for every channel.</p>
+      </div>
+    ) : (
+      <ul role="list" class="divide-y divide-ts-border" data-product-list>
+        {products.map((p) => {
+          const w = activeWholesale(p);
+          const seedUnit = unitFor(p);
+          return (
+            <li
+              id={`p-${p.id}`}
+              data-product-row
+              data-name={p.name.toLowerCase()}
+              data-category={(p.category ?? '').toLowerCase()}
+            >
+              <details class="group">
+                <summary class="flex cursor-pointer list-none items-start gap-4 px-5 py-4 transition-colors duration-150 hover:bg-ts-bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">
+                  <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-2xl">
+                    {p.photo_url
+                      ? <img src={p.photo_url} alt="" width="56" height="56" loading="lazy" class="h-full w-full object-cover" />
+                      : <span aria-hidden="true">{categoryEmoji(p.category)}</span>}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-ts-text">{p.name}</p>
+                    <p class="mt-0.5 text-sm text-ts-text-secondary">
+                      {p.category ?? <span class="text-ts-text-muted">Uncategorized</span>}
+                      <span class="text-ts-text-muted"> · {seedUnit}</span>
+                    </p>
+                    <p class="mt-1.5">
+                      {w
+                        ? <Badge variant="green" size="xs">Wholesale {formatCents(w.price_cents)}</Badge>
+                        : <Badge variant="gray" size="xs">Not in wholesale</Badge>}
+                    </p>
+                  </div>
+                  <span class="shrink-0 self-center text-sm font-medium text-ts-text-secondary transition-transform duration-150 group-open:rotate-90" aria-hidden="true">›</span>
+                </summary>
+
+                {/* ── Inline edit ── */}
+                <div class="border-t border-ts-border bg-ts-bg-surface px-5 py-5">
+                  {/* Photo */}
+                  <div class="mb-5">
+                    <p class="text-sm font-semibold text-ts-text">Photo</p>
+                    <p class="mb-2 text-xs text-ts-text-muted">JPG/PNG/WebP, up to 5 MB. Saves instantly + shows everywhere this product appears.</p>
+                    <div class="flex flex-wrap items-center gap-4">
+                      <div
+                        class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-base text-3xl"
+                        data-photo-preview
+                      >
+                        {p.photo_url
+                          ? <img src={p.photo_url} alt="" width="80" height="80" class="h-full w-full object-cover" />
+                          : <span aria-hidden="true">{categoryEmoji(p.category)}</span>}
+                      </div>
+                      <div class="flex flex-col gap-2">
+                        <input
+                          type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+                          data-photo-input data-product-id={p.id}
+                          class="block text-sm text-ts-text file:mr-3 file:rounded-ts-md file:border-0 file:bg-ts-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-ts-primary-dark"
+                          aria-label={`Replace photo for ${p.name}`}
+                        />
+                        <p class="text-xs text-ts-text-muted" data-photo-status role="status" aria-live="polite"></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Identity + wholesale */}
+                  <form method="POST" action="/api/admin/products/save" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <input type="hidden" name="op" value="update" />
+                    <input type="hidden" name="id" value={p.id} />
+
+                    <div class="sm:col-span-2">
+                      <FormRow label="Product name" htmlFor={`name-${p.id}`} required>
+                        <input
+                          id={`name-${p.id}`} type="text" name="name" required maxlength="160"
+                          value={p.name}
+                          class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                        />
+                      </FormRow>
+                    </div>
+
+                    <FormRow label="Category" htmlFor={`cat-${p.id}`}>
+                      <input
+                        id={`cat-${p.id}`} type="text" name="category" list="product-categories" maxlength="80"
+                        value={p.category ?? ''}
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                      />
+                    </FormRow>
+
+                    <FormRow label="Unit" htmlFor={`unit-${p.id}`} required>
+                      <input
+                        id={`unit-${p.id}`} type="text" name="unit" required list="product-units" maxlength="40"
+                        value={seedUnit}
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                      />
+                    </FormRow>
+
+                    <div class="sm:col-span-2">
+                      <FormRow label="Description" htmlFor={`desc-${p.id}`} help="Optional. Shown to members + chefs.">
+                        <textarea
+                          id={`desc-${p.id}`} name="description" rows="2" maxlength="2000"
+                          class="block w-full resize-y rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+                        >{p.description ?? ''}</textarea>
+                      </FormRow>
+                    </div>
+
+                    {/* Wholesale catalog section */}
+                    <div class="sm:col-span-2 flex flex-col gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-4" data-wholesale-block>
+                      <p class="text-sm font-semibold text-ts-text">Wholesale catalog</p>
+                      <label class="flex items-start gap-3 text-sm text-ts-text">
+                        <input
+                          type="checkbox" name="list_wholesale" value="true"
+                          checked={!!w}
+                          class="mt-0.5 h-4 w-4 rounded border-ts-border text-ts-primary"
+                          data-wholesale-toggle
+                        />
+                        <span><span class="font-semibold">List in wholesale</span> — a standing item on the chef order page. Turning this off hides it (history is kept).</span>
+                      </label>
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2" data-wholesale-fields hidden={!w}>
+                        <FormRow label="Wholesale price (dollars)" htmlFor={`price-${p.id}`} help="e.g. 4.50">
+                          <div class="relative">
+                            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+                            <input
+                              id={`price-${p.id}`} type="text" inputmode="decimal" name="price_dollars"
+                              value={w ? centsToDollars(w.price_cents) : ''}
+                              placeholder="0.00"
+                              class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-4 py-3 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                            />
+                          </div>
+                        </FormRow>
+                        <FormRow label="Wholesale unit" htmlFor={`wunit-${p.id}`} help="Defaults to the unit above.">
+                          <input
+                            id={`wunit-${p.id}`} type="text" name="wholesale_unit" list="product-units" maxlength="40"
+                            value={w ? w.unit : ''}
+                            placeholder={seedUnit}
+                            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                          />
+                        </FormRow>
+                      </div>
+                    </div>
+
+                    <div class="sm:col-span-2 border-t border-ts-border pt-4">
+                      <button
+                        type="submit"
+                        class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                      >
+                        Save changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </details>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+
+    {/* Empty state shown by the client script when a search matches nobody. */}
+    {products.length > 0 && (
+      <div class="px-5 py-10 text-center" data-product-empty hidden>
+        <p class="text-3xl" aria-hidden="true">🔍</p>
+        <p class="mt-2 text-sm font-medium text-ts-text">No products match "<strong class="text-ts-text" data-product-empty-q></strong>".</p>
+        <p class="mt-1 text-xs text-ts-text-muted">Try a different spelling, or search by category.</p>
+      </div>
+    )}
+  </Card>
+
+  {/* Search index for the instant client filter. */}
+  <script is:inline type="application/json" id="product-index" set:html={JSON.stringify(searchIndex)} />
+
+  {/* ════ Instant search ════ */}
+  <script is:inline>
+    (function () {
+      var input = document.querySelector('[data-product-search]');
+      var list = document.querySelector('[data-product-list]');
+      if (!input || !list) return;
+      var rows = Array.prototype.slice.call(list.querySelectorAll('[data-product-row]'));
+      var countEl = document.querySelector('[data-product-count]');
+      var emptyWrap = document.querySelector('[data-product-empty]');
+      var emptyQ = document.querySelector('[data-product-empty-q]');
+      var total = rows.length;
+
+      function applyFilter() {
+        var q = (input.value || '').trim().toLowerCase();
+        var shown = 0;
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var name = row.getAttribute('data-name') || '';
+          var cat = row.getAttribute('data-category') || '';
+          var match = q === '' || name.indexOf(q) !== -1 || cat.indexOf(q) !== -1;
+          row.hidden = !match;
+          if (match) shown++;
+        }
+        if (countEl) {
+          countEl.textContent = q === ''
+            ? total + (total === 1 ? ' product' : ' products')
+            : shown + ' of ' + total + (total === 1 ? ' product' : ' products');
+        }
+        if (emptyWrap) {
+          var noneShown = shown === 0 && total > 0;
+          emptyWrap.hidden = !noneShown;
+          if (noneShown && emptyQ) emptyQ.textContent = input.value.trim();
+        }
+      }
+      input.addEventListener('input', applyFilter);
+    })();
+  </script>
+
+  {/* ════ Wholesale toggle: show/hide price + unit fields ════ */}
+  <script is:inline>
+    (function () {
+      var blocks = document.querySelectorAll('[data-wholesale-block]');
+      Array.prototype.forEach.call(blocks, function (block) {
+        var toggle = block.querySelector('[data-wholesale-toggle]');
+        var fields = block.querySelector('[data-wholesale-fields]');
+        if (!toggle || !fields) return;
+        function sync() { fields.hidden = !toggle.checked; }
+        toggle.addEventListener('change', sync);
+        sync();
+      });
+    })();
+  </script>
+
+  {/* ════ Photo upload (per row): POST → /api/admin/products/image ════
+      Sets product_library.photo_url server-side, then updates the live
+      preview. Because all channels read library-first, the new photo
+      propagates everywhere — no form save needed. */}
+  <script is:inline>
+    (function () {
+      var inputs = document.querySelectorAll('[data-photo-input]');
+      Array.prototype.forEach.call(inputs, function (input) {
+        // Walk up to the photo block to find this row's preview + status.
+        var photoBlock = input.closest('details') || document;
+        input.addEventListener('change', async function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          var preview = photoBlock.querySelector('[data-photo-preview]');
+          var status = photoBlock.querySelector('[data-photo-status]');
+          var id = input.getAttribute('data-product-id');
+          if (!id) return;
+          if (file.size > 5 * 1024 * 1024) {
+            if (status) status.textContent = 'That image is over 5 MB — pick a smaller one.';
+            input.value = '';
+            return;
+          }
+          if (status) status.textContent = 'Uploading…';
+          input.disabled = true;
+          try {
+            var fd = new FormData();
+            fd.append('id', id);
+            fd.append('image', file);
+            var res = await fetch('/api/admin/products/image', {
+              method: 'POST', body: fd, credentials: 'same-origin',
+            });
+            var data = await res.json();
+            if (!res.ok || !data.ok || !data.url) {
+              throw new Error(data.error || 'upload_failed');
+            }
+            if (preview) {
+              preview.innerHTML =
+                '<img src="' + data.url + '" alt="" width="80" height="80" class="h-full w-full object-cover" />';
+            }
+            if (status) status.textContent = 'Photo saved — it now shows everywhere this product appears.';
+          } catch (err) {
+            console.error('product photo upload failed:', err);
+            if (status) status.textContent = "Couldn't upload that image. Please try again.";
+          } finally {
+            input.disabled = false;
+          }
+        });
+      });
+    })();
+  </script>
+</AdminShell>

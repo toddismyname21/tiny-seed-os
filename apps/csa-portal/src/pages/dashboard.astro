@@ -137,6 +137,7 @@ type ActiveShare = {
     address: string | null;
     city: string | null;
     state: string;
+    zip: string | null;
     day_of_week: string | null;
     time_start: string | null;
     time_end: string | null;
@@ -190,6 +191,7 @@ if (account) {
         address,
         city,
         state,
+        zip,
         day_of_week,
         time_start,
         time_end,
@@ -404,6 +406,10 @@ type BoxItem = {
   quantity: number;
   unit: string;
   is_swappable: boolean;
+  // Photo comes purely from the linked product_library row (box_contents has
+  // no own photo column). Nullable link; null → text-only line, as before.
+  library_id: string | null;
+  library: { photo_url: string | null } | null;
 };
 
 const userShareTypes = Array.from(new Set(activeShares.map((s) => s.share_type)));
@@ -414,7 +420,10 @@ let boxItems: BoxItem[] = [];
 if (showBoxSection && userShareTypes.length > 0) {
   const { data: boxRows, error: boxError } = await supabaseAdmin
     .from('box_contents')
-    .select('share_type, product_name, variety, quantity, unit, is_swappable')
+    .select(
+      'share_type, product_name, variety, quantity, unit, is_swappable, library_id, ' +
+      'library:product_library ( photo_url )'
+    )
     .eq('week_date', targetWeek)
     .in('share_type', userShareTypes)
     .order('share_type', { ascending: true })
@@ -507,6 +516,9 @@ let pickupLocationName: string | null = null;
 let pickupDayLong: string | null = null;
 let pickupTimeRange: string | null = null;
 let pickupCity: string | null = null;
+let pickupAddress: string | null = null;
+let pickupState: string | null = null;
+let pickupZip: string | null = null;
 let pickupDeliveryAddress: string | null = null;
 // Member-facing per-site instructions for the primary stop (DISTINCT from the
 // admin-only `notes`). Null/blank → PickupCard shows no instructions block.
@@ -527,6 +539,9 @@ if (primaryShare) {
   } else if (primaryShare.pickup_location) {
     pickupCardMode = 'pickup';
     pickupLocationName = primaryShare.pickup_location.name;
+    pickupAddress = primaryShare.pickup_location.address;
+    pickupState = primaryShare.pickup_location.state ?? null;
+    pickupZip = primaryShare.pickup_location.zip;
     pickupInstructions =
       typeof primaryShare.pickup_location.pickup_instructions === 'string' &&
       primaryShare.pickup_location.pickup_instructions.trim().length > 0
@@ -935,6 +950,9 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           dayLong={pickupDayLong}
           timeRange={pickupTimeRange}
           city={pickupCity}
+          address={pickupAddress}
+          state={pickupState}
+          zip={pickupZip}
           deliveryAddress={pickupDeliveryAddress}
           pickupInstructions={pickupInstructions}
           hostName={pickupHostName}
@@ -1255,7 +1273,17 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                   )}
                   <ul class="divide-y divide-ts-border/60">
                     {items.map((item) => (
-                      <li class="flex items-baseline gap-3 px-5 py-3 sm:px-6">
+                      <li class="flex items-center gap-3 px-5 py-3 sm:px-6">
+                        {item.library?.photo_url && (
+                          <img
+                            src={item.library.photo_url}
+                            alt=""
+                            width="40"
+                            height="40"
+                            loading="lazy"
+                            class="h-10 w-10 shrink-0 rounded-ts-md border border-ts-border object-cover"
+                          />
+                        )}
                         <div class="min-w-0 flex-1">
                           <span class="font-medium text-ts-text">{item.product_name}</span>
                           {item.variety && (

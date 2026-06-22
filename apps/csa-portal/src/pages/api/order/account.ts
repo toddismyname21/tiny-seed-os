@@ -83,6 +83,9 @@ const FormSchema = z.object({
   contact_name: optionalText(120),
   phone: optionalText(40),
   address: optionalText(300),
+  delivery_day: optionalText(80),
+  delivery_hours: optionalText(120),
+  delivery_instructions: optionalText(500),
   contacts: z
     .array(ContactSchema)
     .min(1, 'no_contacts')
@@ -139,6 +142,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     contact_name: String(form.get('contact_name') ?? ''),
     phone: String(form.get('phone') ?? ''),
     address: String(form.get('address') ?? ''),
+    delivery_day: String(form.get('delivery_day') ?? ''),
+    delivery_hours: String(form.get('delivery_hours') ?? ''),
+    delivery_instructions: String(form.get('delivery_instructions') ?? ''),
     contacts: contactsRaw,
   });
 
@@ -152,7 +158,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     return redirect(backToAccount(token, known.has(msg) ? msg : 'invalid_input'), 303);
   }
 
-  const { contact_name, phone, address, contacts } = parsed.data;
+  const { contact_name, phone, address, delivery_day, delivery_hours, delivery_instructions, contacts } = parsed.data;
 
   // ── 1) Update the account's basic fields. Scoped by id (from the token). ──
   const { error: updErr } = await supabaseAdmin
@@ -161,6 +167,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       contact_name,
       phone,
       address,
+      delivery_day,
+      delivery_hours,
+      delivery_instructions,
       updated_at: new Date().toISOString(),
     })
     .eq('id', account.id);

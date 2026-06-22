@@ -51,8 +51,19 @@ export interface WholesaleOrderEmailInput {
   totalCents: number;
   /** Pretty delivery-date label, e.g. "Wednesday, June 18". */
   deliveryLabel: string;
-  /** Pretty edit-cutoff label, e.g. "Sunday 8 PM". */
+  /** Pretty edit-cutoff label, e.g. "Tuesday 7 AM". */
   cutoffLabel: string;
+  /**
+   * Extra BCC recipients (hidden from the chef) — the farm inbox(es) so every
+   * order is captured. Merged with the owner copy and de-duped. Optional.
+   */
+  bcc?: string[];
+  /**
+   * Absolute URL to the chef's account-settings page
+   * (https://csa.tinyseedfarm.com/order/<token>/account). When present, we add a
+   * soft P.S. inviting them to set their delivery hours & instructions. Optional.
+   */
+  accountUrl?: string;
   /** Resolved Resend API key (astro:env/server). */
   resendApiKey: string | undefined;
   /** Resolved Resend from-address (astro:env/server). */
@@ -93,6 +104,8 @@ export async function sendWholesaleOrderConfirmation(
       totalCents,
       deliveryLabel,
       cutoffLabel,
+      bcc,
+      accountUrl,
       resendApiKey,
       resendFromEmail,
     } = input;
@@ -123,10 +136,18 @@ export async function sendWholesaleOrderConfirmation(
 
     const subject = `Tiny Seed order received — ${restaurantName}`;
 
+    // Only honor a clean http(s) account URL for the P.S. (defensive — it's
+    // server-built, but we never want a malformed/unsafe href in the email).
+    const safeAccountUrl =
+      accountUrl && /^https?:\/\//i.test(accountUrl.trim()) ? accountUrl.trim() : '';
+
     // ── Plain text ─────────────────────────────────────────────────────
     const lineText = lines
       .map((l) => `  ${l.qty} × ${l.name} (${l.unit}) — ${formatCents(l.lineCents)}`)
       .join('\n');
+    const psText = safeAccountUrl
+      ? `\n\nP.S. Set your delivery hours & instructions here so we deliver it right: ${safeAccountUrl}`
+      : '';
     const text =
       `Thanks — we've got your order for ${restaurantName}. 🌱\n\n` +
       `${lineText}\n` +
@@ -134,7 +155,7 @@ export async function sendWholesaleOrderConfirmation(
       `Total: ${formatCents(totalCents)}\n\n` +
       `Delivery: ${deliveryLabel}\n` +
       `Need to change it? Reply to this email — you can edit until ${cutoffLabel}.\n\n` +
-      `We'll text when it's on the way.\n\n` +
+      `We'll text when it's on the way.${psText}\n\n` +
       `Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic`;
 
     // ── Minimal HTML ───────────────────────────────────────────────────
@@ -167,6 +188,12 @@ export async function sendWholesaleOrderConfirmation(
       `🚚 <strong>Delivery:</strong> ${escapeHtml(deliveryLabel)}<br>` +
       `You can edit this order until <strong>${escapeHtml(cutoffLabel)}</strong> — just reply to this email.` +
       `</p>` +
+      (safeAccountUrl
+        ? `<p style="color:#475569;font-size:13px;margin:16px 0 0">` +
+          `<strong>P.S.</strong> Set your delivery hours &amp; instructions ` +
+          `<a href="${escapeHtml(safeAccountUrl)}" style="color:#166534;font-weight:600">here</a> ` +
+          `so we deliver it right.</p>`
+        : '') +
       `<p style="color:#6b7280;font-size:13px;margin-top:20px">` +
       `We'll text when it's on the way.<br>` +
       `Tiny Seed Farm · 257 Zeigler Rd, Rochester, PA · Certified Organic</p>` +
@@ -174,6 +201,16 @@ export async function sendWholesaleOrderConfirmation(
 
     // reply_to = the team inbox(es), as an array (Resend accepts a list).
     const replyTo = CSA_CONTACT_EMAILS.split(',').map((e) => e.trim()).filter(Boolean);
+
+    // BCC (hidden from the chef): always the owner copy, plus any farm inbox(es)
+    // the caller passed (e.g. tinyseedorders@gmail.com). De-duped + trimmed.
+    const bccList = Array.from(
+      new Set(
+        [CSA_OWNER_EMAIL, ...(bcc ?? [])]
+          .map((e) => (e ?? '').trim())
+          .filter((e) => e !== '')
+      )
+    );
 
     const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -184,7 +221,7 @@ export async function sendWholesaleOrderConfirmation(
       body: JSON.stringify({
         from: resendFromEmail,
         to: recipients,
-        bcc: [CSA_OWNER_EMAIL],
+        bcc: bccList,
         reply_to: replyTo,
         subject,
         text,

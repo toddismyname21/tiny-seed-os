@@ -24,11 +24,12 @@
  *      `members[]`, which in turn excludes them from every other view.
  *      No caching — the resolver runs live on every page request.
  *
- *   3. **Real read of `weekly_box_plan`**: the box composition served
- *      from the resolver is the LIVE plan (published or not). The Phase 1
- *      pack pages render even when published_at is null so admin can
- *      preview before publish; member-facing pages will gate on
- *      published_at separately.
+ *   3. **Real read of `box_contents`**: the box composition served from the
+ *      resolver is the LIVE plan, read from `box_contents` — the single
+ *      source of truth the rest of the app already uses. Rows are keyed by
+ *      `week_date` (the cycle Monday) and `share_type` ('large'/'small').
+ *      published_at is no longer carried (box_contents has no publish gate);
+ *      the resolver always renders whatever is in box_contents.
  *
  *   4. **All distribution days inside ONE cycle**: per Todd 2026-05-27,
  *      there is one weekly cutoff (Mon 6 AM). A single cycle's
@@ -698,12 +699,22 @@ export async function resolveCycle(
     .eq('week_starting', week_starting)
     .in('status', ['locked', 'pending']);
 
-  // ─── 4. Fetch the published (or draft) box plans ───────────────
+  // ─── 4. Fetch the box plans from box_contents ──────────────────
+  // box_contents is the single source of truth used everywhere else in the
+  // app (member /box page, swaps, etc.). week_date IS the cycle Monday (same
+  // value as week_starting). We group rows by share_type ('large'/'small')
+  // below into the boxPlanBySize shape the downstream lookup expects.
+  type BoxContentsRow = {
+    share_type: string;
+    product_name: string;
+    quantity: number;
+    unit: string | null;
+  };
   const planFetch = supabase
-    .from('weekly_box_plan')
-    .select('share_size, contents, published_at')
-    .eq('cycle_code', 'WEEKLY')
-    .eq('week_starting', week_starting);
+    .from('box_contents')
+    .select('share_type, product_name, quantity, unit')
+    .eq('week_date', week_starting)
+    .overrideTypes<BoxContentsRow[], { merge: false }>();
 
   // ─── 5. Fetch flex orders for the cycle ────────────────────────
   // Locked OR fulfilled — anything paid for this week.
@@ -719,7 +730,11 @@ export async function resolveCycle(
     .select('flex_item_id, qty, total_cents, member_id, flex_inventory:flex_inventory ( name )')
     .eq('cycle_code', 'WEEKLY')
     .eq('week_starting', week_starting)
-    .in('status', ['locked', 'fulfilled'])
+    // pending|locked|fulfilled — the PACKABLE set, matching the labels / stop
+    // manifest / pack-check / flex-orders admin. 'pending' is now debited AT
+    // ORDER (so it's paid + must pack), so it counts here too. Was ['locked',
+    // 'fulfilled'] which under-counted vs the pack lists (audit 2026-06-19).
+    .in('status', ['pending', 'locked', 'fulfilled'])
     .overrideTypes<FlexOrderRow[], { merge: false }>();
 
   // ─── 6. Fetch member preferences (allergies for auto-subs) ─────
@@ -743,7 +758,7 @@ export async function resolveCycle(
   for (const [label, res] of [
     ['members', memberRes],
     ['vacation_holds (move-in)', moveInRes], ['box_swap_events', swapRes],
-    ['weekly_box_plan', planRes], ['flex_orders', flexRes],
+    ['box_contents', planRes], ['flex_orders', flexRes],
     ['member_preferences', prefsRes],
   ] as const) {
     if (res.error) {
@@ -761,7 +776,7 @@ export async function resolveCycle(
   const holds = (holdRes.data ?? []) as Row41[];
   const moveInHolds = (moveInRes.data ?? []) as Row41[];
   const swaps = swapRes.data ?? [];
-  const plans = planRes.data ?? [];
+  const plans = (planRes.data ?? []) as unknown as BoxContentsRow[];
   const flexOrders = (flexRes.data ?? []) as unknown as FlexOrderRow[];
   const prefs = prefsRes.data ?? [];
 
@@ -799,13 +814,22 @@ export async function resolveCycle(
     });
   }
 
-  // share_size → { contents, published_at }
+  // share_type ('large'/'small') → { contents, published_at }. Built from
+  // box_contents: group the per-product rows by share_type, mapping each row
+  // to a BoxContentLine. published_at is null (box_contents has no publish
+  // gate; downstream never reads it). The keys ('large'/'small') keep the
+  // downstream lookup `boxPlanBySize.get(size_bucket === 'large' ? ... )`
+  // working unchanged.
   const boxPlanBySize = new Map<string, { contents: BoxContentLine[]; published_at: string | null }>();
   for (const p of plans) {
-    boxPlanBySize.set(p.share_size, {
-      contents: Array.isArray(p.contents) ? (p.contents as unknown as BoxContentLine[]) : [],
-      published_at: p.published_at,
-    });
+    const line: BoxContentLine = {
+      crop: p.product_name,
+      qty: Number(p.quantity) || 1,
+      unit: p.unit || 'ea',
+    };
+    const existing = boxPlanBySize.get(p.share_type);
+    if (existing) existing.contents.push(line);
+    else boxPlanBySize.set(p.share_type, { contents: [line], published_at: null });
   }
 
   // member_id → row, for resolving moved-in members (their full join data
@@ -1308,6 +1332,26 @@ export function upcomingMonday(now: Date = new Date()): string {
   // Special case: if today is Sun (0), the upcoming Mon is tomorrow (1).
   const daysUntilMon = todayIdx === 1 ? 0 : (1 - todayIdx + 7) % 7;
   return addDays(`${get('year')}-${get('month')}-${get('day')}`, daysUntilMon);
+}
+
+/**
+ * The Monday of the CURRENT delivery week — the week we are executing RIGHT NOW.
+ *
+ * THIS is the canonical "active week" for every delivery-EXECUTION tool: the
+ * driver run sheet, stop manifests, labels, pack sheets, pack day, host sheets,
+ * harvest list, and the text-a-stop tool. They must show TODAY's delivery.
+ *
+ * Unlike `upcomingMonday()` — which rolls forward to NEXT Monday on Tue–Sun and
+ * therefore, on a delivery Wednesday, showed the driver NEXT week's roster and
+ * phone numbers (the 2026-06-17 incident) — this stays on the current Mon–Sun
+ * week (so it spans the Wed delivery AND any Sat market) and only advances to
+ * the next week on Monday, when the new cycle genuinely begins.
+ *
+ * Forward-PLANNING tools (flex ordering, flex inventory, vendor orders, box
+ * plan) intentionally keep using `upcomingMonday()` — they look ahead by design.
+ */
+export function currentDeliveryWeek(now: Date = new Date()): string {
+  return mondayOfWeek(todayET(now));
 }
 
 /** Sentinel id for the home-delivery bucket in byStop. */

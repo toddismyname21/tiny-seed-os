@@ -185,14 +185,15 @@ function etWallClockEpochMs(
  */
 export function cutoffEpochMs(weekStarting: string, pickupDay: PickupDay = null): number {
   if (isWeekendMarket(pickupDay)) {
-    // Wednesday = Monday + 2 days, at 23:59:59 ET.
-    return etWallClockEpochMs(weekStarting, 2, 23, 59, 59);
+    // Weekend cycle (Sat/Sun pickups) harvests Thursday → flex à-la-carte
+    // closes Thursday 6:00 AM ET (Monday + 3 days). (Todd 2026-06-19:
+    // per-pickup-day 6 AM cutoffs so pick/pack prints that morning.)
+    return etWallClockEpochMs(weekStarting, 3, 6, 0);
   }
-  // ALL weeks — including the Week-1 launch — close Tuesday 08:00 ET to match
-  // the box-swap cutoff so members have one deadline to remember (Todd
-  // 2026-06-16; Week-1 aligned to 08:00 ET 2026-06-16, previously 18:00 ET).
-  // Tuesday = Monday + 1 day.
-  return etWallClockEpochMs(weekStarting, 1, 8, 0);
+  // Tue/Wed cycle harvests Monday → flex à-la-carte closes Tuesday 6:00 AM ET
+  // (Monday + 1 day). NOTE: box SWAPS lock EARLIER — Monday 6 AM, at the
+  // harvest — see lib/box.ts (handled with the box-swap build).
+  return etWallClockEpochMs(weekStarting, 1, 6, 0);
 }
 
 /**
@@ -252,8 +253,8 @@ export function isWindowOpen(weekStarting: string, now: number = Date.now(), pic
  *   • Wed/home members       → "Tuesday 8 AM" (every week, incl. Week 1).
  */
 export function closeLabel(weekStarting: string, pickupDay: PickupDay = null): string {
-  if (isWeekendMarket(pickupDay)) return 'Wednesday midnight';
-  return 'Tuesday 8 AM';
+  if (isWeekendMarket(pickupDay)) return 'Thursday 6 AM';
+  return 'Tuesday 6 AM';
 }
 
 /* ──────────────────────────────────────────────────────────────────

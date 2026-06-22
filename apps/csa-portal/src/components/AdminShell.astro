@@ -8,7 +8,7 @@
  * desktop-first (we showed Todd manages from his laptop), but the
  * shell still works on mobile via a horizontally scrolling nav strip.
  *
- * Nav items: Home, Members, Box contents, Pickup locations, Reports.
+ * Nav items: Home, Members, Share list, Pickup locations, Reports, etc.
  * The active item is highlighted by comparing `Astro.url.pathname`
  * against each nav entry's `match` prefix.
  *
@@ -52,9 +52,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: '/admin',                   label: 'Home',          match: '/admin',                  icon: '🏠' },
+  { href: '/admin/products',          label: 'Products',      match: '/admin/products',         icon: '📦' },
   { href: '/admin/pack-day',          label: 'Pack day',      match: '/admin/pack-day',         icon: '⭐' },
   { href: '/admin/members',           label: 'Members',       match: '/admin/members',          icon: '👥' },
-  { href: '/admin/box-plan',          label: 'Box plan',      match: '/admin/box-plan',         icon: '📦' },
   { href: '/admin/harvest',           label: 'Harvest',       match: '/admin/harvest',          icon: '🌾' },
   { href: '/admin/pack-sheet',        label: 'Pack sheet',    match: '/admin/pack-sheet',       icon: '📋' },
   { href: '/admin/labels',            label: 'Labels',        match: '/admin/labels',           icon: '🏷️' },
@@ -63,6 +63,7 @@ const navItems: NavItem[] = [
   { href: '/admin/host-sheets',       label: 'Host sheets',   match: '/admin/host-sheets',      icon: '📇' },
   { href: '/admin/text-stop',         label: 'Text a stop',   match: '/admin/text-stop',        icon: '📱' },
   { href: '/admin/market-checkout',   label: 'Market checkout', match: '/admin/market-checkout', icon: '💳' },
+  { href: '/admin/market',            label: 'Market list',   match: '/admin/market',           icon: '🛒' },
   { href: '/admin/vendor-orders',     label: 'Vendors',       match: '/admin/vendor-orders',    icon: '🤝' },
   { href: '/admin/wholesale/products', label: 'Wholesale',    match: '/admin/wholesale/products', icon: '🍽️' },
   { href: '/admin/flex-inventory',    label: 'Flex items',    match: '/admin/flex-inventory',   icon: '🌿' },
@@ -76,7 +77,6 @@ const navItems: NavItem[] = [
   { href: '/admin/health',            label: 'Health',        match: '/admin/health',           icon: '🩺' },
   { href: '/admin/notices',           label: 'Notices',       match: '/admin/notices',          icon: '📌' },
   { href: '/admin/stop-notes',        label: 'Notes',         match: '/admin/stop-notes',       icon: '📝' },
-  { href: '/admin/box-contents',      label: 'Box (legacy)',  match: '/admin/box-contents',     icon: '📦' },
   { href: '/admin/share-contents',    label: 'Share list',    match: '/admin/share-contents',   icon: '🥬' },
   { href: '/admin/reports',           label: 'Reports',       match: '/admin/reports',          icon: '📊' },
   { href: '/admin/sync',              label: 'Sync',          match: '/admin/sync',             icon: '🔄' },

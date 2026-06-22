@@ -60,7 +60,10 @@ type AccountMember = {
   notes: string | null;
   pickup_location: {
     name: string;
+    address: string | null;
     city: string | null;
+    state: string | null;
+    zip: string | null;
     day_of_week: string | null;
   } | null;
   member_preferences: {
@@ -108,7 +111,10 @@ if (account) {
       notes,
       pickup_location:pickup_locations (
         name,
+        address,
         city,
+        state,
+        zip,
         day_of_week
       ),
       member_preferences (
@@ -240,9 +246,12 @@ const pickupSummary: string = (() => {
     const day = primary.pickup_location.day_of_week
       ? dayLong[primary.pickup_location.day_of_week] ?? primary.pickup_location.day_of_week
       : null;
-    const where = primary.pickup_location.city
-      ? `${primary.pickup_location.name}, ${primary.pickup_location.city}`
-      : primary.pickup_location.name;
+    // Show the EXACT street address so members know precisely where to go
+    // (the card links to /account/pickup, which adds a "Get directions" link).
+    const loc = primary.pickup_location;
+    const where = loc.address
+      ? `${loc.name} — ${loc.address}${loc.city ? ', ' + loc.city : ''}`
+      : (loc.city ? `${loc.name}, ${loc.city}` : loc.name);
     return day ? `${where} · ${day}s` : where;
   }
   return 'No pickup location set';

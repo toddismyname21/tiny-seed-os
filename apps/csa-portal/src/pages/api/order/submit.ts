@@ -167,6 +167,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
     const orderRecipients = resolveOrderRecipients(contacts, acct?.email ?? null);
 
+    // Absolute link to THIS chef's account-settings page for the email P.S.
+    // (soft nudge to set delivery hours & instructions). Built server-side.
+    const accountUrl = `${PORTAL_ORIGIN}/order/${encodeURIComponent(token)}/account`;
+
     await sendWholesaleOrderConfirmation({
       to: orderRecipients,
       restaurantName: result.restaurant_name,
@@ -174,6 +178,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       totalCents: result.total_cents,
       deliveryLabel: prettyDeliveryDate(result.delivery_date),
       cutoffLabel: CUTOFF_LABEL,
+      accountUrl,
+      // Always capture the order at the farm — BCC (hidden from the chef).
+      // The owner copy (todd@…) is also added inside the helper; de-duped there.
+      bcc: ['tinyseedorders@gmail.com', 'todd@tinyseedfarmpgh.com'],
       resendApiKey: RESEND_API_KEY,
       resendFromEmail: RESEND_FROM_EMAIL,
     });

@@ -48,7 +48,10 @@ type MemberRow = {
   pickup_location: {
     id: string;
     name: string;
+    address: string | null;
     city: string | null;
+    state: string | null;
+    zip: string | null;
     day_of_week: string | null;
     time_start: string | null;
     time_end: string | null;
@@ -71,7 +74,7 @@ const { data: memberRows, error: memberErr } = await supabase
     home_delivery_requested_at,
     home_delivery_requested_address,
     pickup_location:pickup_locations (
-      id, name, city, day_of_week, time_start, time_end, is_delivery_zone, pickup_instructions, host_name, host_phone
+      id, name, address, city, state, zip, day_of_week, time_start, time_end, is_delivery_zone, pickup_instructions, host_name, host_phone
     )
   `
   )
@@ -307,6 +310,23 @@ const contactChangeHref = contactMailto(
                       </>
                     )}
                   </p>
+                  {primary.pickup_location.address && (
+                    <p class="mt-0.5 text-sm text-ts-text-secondary">
+                      {primary.pickup_location.address}
+                      <br />
+                      {`${[primary.pickup_location.city, primary.pickup_location.state].filter(Boolean).join(', ')} ${primary.pickup_location.zip ?? ''}`.trim()}
+                    </p>
+                  )}
+                  {primary.pickup_location.address && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([primary.pickup_location.name, primary.pickup_location.address, primary.pickup_location.city, primary.pickup_location.state, primary.pickup_location.zip].filter(Boolean).join(', '))}`}
+                      target="_blank"
+                      rel="noopener"
+                      class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                    >
+                      🧭 Get directions
+                    </a>
+                  )}
                 </div>
               </div>
             ) : (

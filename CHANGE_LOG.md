@@ -6,6 +6,138 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-22] CSA — Unified catalog roadmap #4 + #5: market price list + weekly setup reminders (PM_Architect + fullstack-builder)
+
+DEPLOYED + verified live. **#4 Printable market price list:** new `admin/market/price-list/[week].astro` (Letter print, mirrors route-sheet pattern), pulls `market_offerings` (is_active) for the week, grouped by category, "Product … $price/unit", text-only stall sheet; "🖨 Print price list" button added to `admin/market`. Verified: Farmers Market header + Beets + $4 + Print button render. **#5 Weekly setup reminders (email + in-app, NO SMS):** new `lib/week-setup.ts` shared readiness check (`upcomingSetupWeek()` = next future delivery Monday; `resolveWeekSetup()` HEAD-counts box_contents/flex_inventory/market_offerings for that week). (a) Banner at top of `admin/index.astro`: green "Next week is ready ✅" or warning "Set up next week" with ✅/☐ Box/Flex/Market + editor links. (b) Broadened the existing `api/cron/flex-list-reminder.ts` (Thu cron) from flex-only → box+flex+market, lists only missing surfaces, schedule + CRON_SECRET auth + Resend fail-soft + notification_log all unchanged. Verified live: banner renders Box/Flex/Market. **UNIFIED CATALOG ROADMAP COMPLETE (Phase 1, 2, #2, #3, #4, #5).** Remaining minor loose ends: link box_contents→product_library (31/97) for fully-merged per-product harvest totals; repoint dead /admin/box-plan in-page links → /admin/share-contents.
+
+## [2026-06-22] CSA — Unified catalog roadmap #3: unified harvest list (all channels) (PM_Architect + fullstack-builder)
+
+DEPLOYED + verified live. Extended `/admin/harvest/[week]` into the one-page "everything to pick" doc. Box + flex logic UNTOUCHED; ADDED: (1) WHOLESALE section — `wholesale_orders` (status=submitted) delivering in the week, items aggregated by product_name+unit, attributed to the Mon/Thu tab by delivery weekday (Wed→mon, Fri/Sat→thu), library-first photos. (2) MARKET section — `market_offerings` for the week (is_active), product+unit+price, "bring to market" (qty is farmer's judgment, not computed). (3) PHOTOS on flex rows (library-first) + box rows where a crop name matches a library photo. File: `admin/harvest/[...slug].astro` (+350/-6). VERIFIED live (admin session): box (Dill), flex (Sprouting Cauliflower), Wholesale + Market ("Selling at market", seeded Beets offering rendered), 19 photos on page; temp market offering cleaned up. NOTE: **3 real chef wholesale orders already came in** for Wed 6/24 delivery (today's outreach working). REMAINING: #4 printable market price list · #5 weekly reminders · loose end = link box_contents to library (only 31/97) for a fully-MERGED per-product cross-channel total + repoint dead /admin/box-plan in-page links → /admin/share-contents.
+
+## [2026-06-22] CSA — Unified catalog roadmap #2: weekly MARKET LIST editor (fullstack-builder)
+
+DEPLOYED + VERIFIED (PM 2026-06-22): live render OK; functional test added Beets/bunch ($4) AND Beets/lb ($3.50) as two offerings for the same product+week → both persisted (multi-offering confirmed), then cleaned up. (Note: live `market_offerings.library_id` is NULLABLE; the 0054 migration writes NOT NULL — harmless, won't re-run on live; code always sets library_id.) The farmers-market channel of the unified catalog. New files: `apps/csa-portal/src/pages/admin/market/index.astro` (page), `apps/csa-portal/src/pages/api/admin/market/save.ts` (API), `supabase/migrations/0054_market_offerings.sql` (version-controls the `market_offerings` table the PM said already exists live — idempotent `CREATE TABLE IF NOT EXISTS` + indexes + `market_offerings_staff` RLS = `is_admin_caller` FOR ALL). Modified: `src/lib/database.types.ts` (added hand-maintained `market_offerings` Row/Insert/Update type), `src/components/AdminShell.astro` (one nav line: `Market list 🛒` at `/admin/market`, placed right after `Market checkout 💳`).
+- **Page** mirrors the flex-inventory weekly-editor pattern: week selector (this Monday + next 4 + custom date, `upcomingMondayET`/`addWeeksYMD`/`prettyWeek` from lib/flex-order). "This week at market" list: each `market_offerings` row → library-first photo (`product_library.photo_url`), name (`offering.name ?? library.name`), inline editable **unit** (datalist: lb, bunch, each, pint, 1/2 pint, oz, head, bag) + **price** ($→cents), Active toggle, Remove. "➕ Add from your products": EVERY `product_library` row with instant client-side search (name/category, "Showing N of M"), each with its own inline unit+price and an "Add to market" button.
+- **KEY (multi-offering):** a product can have MULTIPLE offerings in one week (e.g. Beets by the bunch AND the pound). So the add list does NOT dedupe / hide products already on the week — each add creates its own row (own unit+price). A "N on this week" chip hints how many offerings already exist per product.
+- **API** (`POST`, requireAdmin + isSameOriginPost): ops `add` (insert library_id+week+unit+price_cents=dollarsToCents, is_active=true), `update` (set unit/price_cents/is_active by id), `remove` (delete by id). Zod-validated per op; 303 redirect back to `/admin/market?week=<wk>&ok=…|error=…` with flash copy — mirrors flex-inventory/save.ts.
+- Mobile-friendly, 44px+/min-h-11 targets, ts-* tokens only, hover/active/focus on all controls.
+- Out of scope (v1, per spec): price-list printing (roadmap #4), harvest wiring (#3).
+Verified: `npx astro check` = **0 errors / 0 warnings / 0 hints on all touched files** (page, API, database.types, AdminShell). The 1 repo-wide error is pre-existing in `src/lib/cycle.ts` (vacation_holds disposition fallback type mismatch — untouched, already `M` in the working tree before this session).
+NOTE for PM: there was NO `market_offerings` migration in the repo — only the live table per your note. I added migration 0054 to version-control it. Please confirm the live schema matches (esp. that `library_id` is NOT NULL and that there is NO unique constraint on (week_starting, library_id), which the multi-offering requirement depends on).
+
+## [2026-06-22] CSA admin — 3 P0 UX fixes (market-checkout + nav) (fullstack-builder)
+
+NOT yet deployed/committed — PM verifies + deploys. Files: `apps/csa-portal/src/components/AdminShell.astro`, `apps/csa-portal/src/pages/admin/market-checkout/index.astro`.
+(1) **Dead nav removed:** dropped the `/admin/box-plan` ('Box plan') and `/admin/box-contents` ('Box (legacy)') nav entries — both obsolete now that box_contents/Share list is the single source. Page files left intact; only the nav strip lost the entries. Confirmed no other nav navigates users there (remaining refs are in-page contextual links + the page files themselves).
+(2) **Market-checkout instant search:** Stage 1 was a `<form method=GET>` that reloaded the whole page per search. Now the full ACTIVE flex roster (capped 200, ~30 rows) is fetched server-side once and embedded as `<script type=application/json id=flex-members>`; a vanilla `input`-event filter (case-insensitive name OR email) shows/hides 56px-min tappable rows in place with a live "Showing N members" count + client empty-state. Each row still links to `?customer_id=<id>` → UNCHANGED server-side Stage 2 (live balance + deduct). No-JS fallback retained: GET form + server-side `?q=` filtering still work.
+(3) **Bottom-sheet confirmation:** replaced `window.confirm()` on the deduct submit with the existing design-system `BottomSheet` (slide-up, dimmed backdrop, Escape/backdrop dismiss, focus trap, body-lock). Shows "Deduct $X.XX from [Name]?" read from LIVE form values at submit time, ts-danger confirm button (≥48px) + ghost Cancel. Confirm → submits the real form (idem token + all fields preserved) and disables the trigger against double-charge; cancel → nothing charged. Native-confirm hard fallback if the sheet helper fails to load.
+Verified: `npm run build` passes; `npx astro check` = 0 errors/0 warnings/0 hints in both touched files (the 1 repo-wide error is pre-existing in `src/lib/cycle.ts`, untouched).
+
+## [2026-06-22] CSA — Unified product catalog Phase 2: master Products admin screen (PM_Architect + fullstack-builder)
+
+DEPLOYED + verified end-to-end. New `/admin/products` (master catalog): add/edit a product's identity (name, category, unit, description) + photo (uploads to flex-images → sets `product_library.photo_url`, propagates everywhere via Phase 1) once; inline "List in wholesale" toggle + price → upserts/deactivates the linked `wholesale_products` row (by library_id). Instant client-side search; wholesale chips show listing status. New APIs `api/admin/products/{save,image}.ts` (requireAdmin + isSameOriginPost; slug from DB-read name, no path traversal). Added "Products 📦" to AdminShell nav. NOTE: `product_library` has no `unit` column — unit currently lives on the wholesale listing (candidate to add to the master later). Weekly flex/box management stays in their editors (pull from master). VERIFIED live: render (catalog + add form + wholesale chips), create→product_library row, wholesale-toggle→linked wholesale_products row ($9.99/lb active), cleanup. REMAINING ROADMAP: #2 market channel · #3 unified harvest list (box+flex+wholesale+market w/ photos) · #4 printable market price list · #5 weekly setup reminders (email/in-app — NOT SMS, Twilio never worked).
+
+## [2026-06-22] CSA — Unified product catalog Phase 1: product_library = single photo source (PM_Architect + fullstack-builder)
+
+DEPLOYED + verified. (P0 UX fixes above also DEPLOYED this session.) Made `product_library` the single source for product photos across channels. DISPLAY library-first everywhere (coalesce `library.photo_url ?? own`): `account/flex-order.astro`, `admin/flex-inventory.astro`, `admin/wholesale/products`, + box surfaces (`box/index.astro`, `ItemCard.astro`, `dashboard.astro`). `order/[token].astro` already library-first. UPLOAD propagates UP: `flex-inventory/save.ts` + `wholesale/save.ts` write `product_library.photo_url` when linked → one upload shows everywhere. One-time consolidation SQL (22→23 library photos; library was already de-facto source). Verified: member flex page renders 14 library photos live. NEXT = Phase 2 (unified Products admin screen).
+
+## [2026-06-22] CSA — PERMANENT single-source box-plan fix + harvest flex-by-day (PM_Architect + fullstack-builder)
+
+Deployed + verified live. (1) **Single source:** repointed `resolveCycle()` (`src/lib/cycle.ts`) to read the box plan from **`box_contents`** (the table the member app + admin editors already use) instead of the orphan **`weekly_box_plan`** (written only by an unused `/admin/box-plan` editor, read only by the resolver). Now box_contents drives BOTH member-facing AND ops (harvest/pack-check/pack-sheet/pack-day/labels/route-sheet/stop-manifest) — they can't diverge. Swaps/flex/composition untouched. (2) **Harvest flex-by-day:** `/admin/harvest/[week]` now shows a "Flex à-la-carte (this day)" section, attributing each flex order to its member's pickup day (Tue+Wed→Monday harvest, Sat→Thursday harvest) so Saturday flex no longer lands in Monday. Verified live: Mon tab shows box + flex (Sprouting Cauliflower etc.); Thu tab shows box + "No flex orders for this day." resolveCycle output unchanged for boxes (Head Lettuce 102, Dill 79, Fennel 78, Beets 76 w/ swaps). NOTE: `/admin/box-plan` + `weekly_box_plan` are now dead — deprecate; edit boxes via `/admin/share-contents`.
+
+## [2026-06-22] CSA — box plan wiring fix: harvest/pack/route were reading an empty table (PM_Architect)
+
+**Root cause of "flying blind on CSA day":** `resolveCycle()` (which feeds `/admin/harvest`, pack sheets, labels, route-sheet) reads **`weekly_box_plan`** — but that table was EMPTY for week 2026-06-22 (and apparently never populated). The actual box plan lived only in **`box_contents`** (member-facing: large 8 items / small 6), which the resolver does not read. So the box was planned but every ops/harvest page showed nothing.
+
+**Fix (this week):** set the week's herb (`box_contents` "Herb (TBD)" → **Dill**), then populated `weekly_box_plan` for 2026-06-22 from box_contents (2 rows: share_size large/small, contents jsonb `[{crop,qty,unit}]`, cycle_code 'WEEKLY', published_at now). VERIFIED via resolveCycle (tsx): Monday harvest now populates — 79 boxes → Head Lettuce 102, Dill 79, Kale 79, Scallions 79, Fennel 78, Beets 76 (resolver applies member swaps), Fava Beans 23, Kohlrabi 23.
+
+**Prevention:** documented the two-table trap in `docs/CSA_GLOSSARY_OF_TRUTH.md` §5a + memory. **PERMANENT FIX STILL NEEDED:** repoint resolver to read `box_contents` (single source) OR auto-sync box_contents→weekly_box_plan on publish, so they can't diverge. New script: `apps/csa-portal/scripts/harvest_numbers.ts`.
+
+## [2026-06-21] CSA Wholesale — chef portal UX polish (PM_Architect + fullstack-builder)
+
+Deployed + verified on prod: (1) tap-photo-to-enlarge lightbox on the chef catalog; (2) SALE badge + struck compare price (new `wholesale_products.compare_at_cents` col; Little Gem 2400→2040, Farmers Choice 2600→2210); (3) prominent per-item "special" note (⭐ descriptions get amber emphasis — Fava "Special — this week only!"); (4) post-checkout prompt on `confirmed.astro` + P.S. link in the confirmation email steering chefs to complete delivery/bio info (`/order/<token>/account`) when contact_name/address/delivery_instructions are empty. Files: `order/[token].astro`, `order/[token]/confirmed.astro`, `api/order/submit.ts`, `lib/wholesale-order-email.ts`. Build + astro check clean; live markers verified (2 SALE badges, lightbox, fava note, struck price).
+
+## [2026-06-21] CSA Wholesale — GO-LIVE: chef order links sent (PM_Architect)
+
+Sent the wholesale ordering links to **16 restaurants** (10 set-up accounts + 6 new warm-lead accounts created with tokens). Each chef emailed their OWN order link (csa.tinyseedfarm.com/order/<token>), To: that account's receives_orders contacts only (invoices-only addresses excluded), BCC todd@tinyseedfarmpgh.com. All 16 accepted by Resend (IDs captured). Cutoff Tuesday 7 AM → Wednesday delivery. Templates: ① standard availability list (sale + fava special + organic line) → Mediterra/Butter Joint/Apteka/Fet Fisk/Black Radish/Cafe Verde; ② Driftwood standing-order win-back ($10/lb King Spring); ③ Morcilla/Eleven re-engage; ④ intro → Spirit + Duo/East End Co-op/Speckled Egg/Pigeon/Titus/Sprezzatura.
+
+Pre-send fixes deployed (see prior entry + this): cutoff label Sunday 8 PM → **Tuesday 7 AM** (`wholesale-order.ts`); every order confirmation now BCCs **tinyseedorders@gmail.com + todd@** (`submit.ts` + `wholesale-order-email.ts` gained `bcc?: string[]`). New warm-lead tokens use `secrets.token_urlsafe(18)`.
+
+STILL TO BUILD (portal polish, non-blocking — lands after send): tap-photo-to-enlarge; SALE badge + struck price on Little Gem/Farmers Choice; prominent fava "special this week only"; post-checkout prompt + persistent reminder for chefs to complete delivery/bio info. Catalog data done: Fava desc "⭐ Special — this week only!"; Head Mix renamed "Farmers Choice Head Lettuce" + description; Edible Flowers $8/8oz; King Spring $66/6# case + new $11.50/lb SKU.
+
+---
+
+## [2026-06-21] CSA Wholesale — pre-launch audit fixes (PM_Architect, audit by audit-claude)
+
+App: `apps/csa-portal` + Supabase. Full security/code audit of the wholesale chef portal before sending chef order links. Verdict: safe to send. Findings clean on server-side pricing, IDOR (reads + writes), secret exposure, RLS, SQL/formula injection, email routing/escaping, qty validation. Two real issues FIXED:
+- **paused-status not enforced server-side:** `place_wholesale_order` resolved the account by token but never checked status — a `paused` account's token could still place an order via direct POST (page only blocked paused at render). Added guard `IF v_account.status = 'paused' THEN RETURN invalid_token` (live, via programmatic CREATE OR REPLACE of the exact body). NOTE: audit suggested `IN ('active','invited')` which would have blocked ALL accounts (all 11 are `draft` for launch) — used the correct paused-only guard instead. Verified: draft orders succeed, paused blocked, test order cleaned up.
+- **order_token had no UNIQUE constraint/index:** added `uq_wholesale_accounts_order_token` unique index (prevents duplicate-token data corruption + indexes the lookup path). 0 nulls/dups confirmed first.
+P2 (noted, not blocking): CSRF guard uses Origin→Referer fallback (acceptable; token provides double-submit defense); token entropy min 14 chars (fine at this scale).
+
+---
+
+## [2026-06-21] CSA Wholesale — chef delivery details (hours + instructions) on account page (PM_Architect + fullstack-builder)
+
+App: `apps/csa-portal`. Migration applied live + page deployed to prod + verified end-to-end.
+
+**Why:** Todd wants chefs to record their delivery hours + instructions so the farm can deliver to spec and "hold ourselves accountable" (Phase 1 of a larger route-sheet effort — Phase 2 will surface these on the printable route sheet + merge wholesale stops + collect CSA host/home-delivery instructions).
+
+**What:**
+- Migration (live, additive/idempotent): `wholesale_accounts` + `delivery_hours text`, `delivery_instructions text` (`delivery_day` already existed).
+- `src/pages/order/[token]/account.astro` — new "Delivery details" section (delivery day / available hours / instructions), prefilled, native styling. AccountRow type + select extended.
+- `src/pages/api/order/account.ts` — FormSchema + parse + account update extended for the 3 fields (optionalText caps 80/120/500).
+- `src/lib/database.types.ts` — hand-added the 2 new columns to wholesale_accounts Row.
+
+**Verification (prod, empirical):** account page renders all 3 fields (curl grep 1/1/1/1); E2E POST to /api/order/account on a throwaway test account → HTTP 303 ok=saved, DB persisted delivery_day/hours/instructions exactly, test account deleted. `npm run build` clean.
+
+**Note:** kept the existing per-email ordering/billing routing (receives_orders/receives_invoices flags already separate ordering vs billing) rather than redesign — the "ordering vs billing with same-as checkbox" framing is already achievable via those flags.
+
+---
+
+## [2026-06-19] CSA — IDOR fix: ownership guards on 3 SECURITY DEFINER RPCs (PM_Architect)
+
+App: `apps/csa-portal` + Supabase. Live DB migration applied + empirically verified.
+
+**What (security P1, found in the empirical stress-audit dig):** `schedule_vacation_hold`, `cancel_vacation_hold`, and `change_pickup_location` are SECURITY DEFINER and EXECUTE-able by `authenticated`, but took a `p_member_id` with NO internal ownership check (migrations 0015/0016/0030 left it to the route). Any logged-in member could call them directly via PostgREST with **another member's id** and schedule/cancel a vacation hold or change a pickup location on an account they don't own (member→member IDOR). The `anon` grant was already revoked earlier in the audit; this closes the `authenticated` vector.
+
+**Fix:** added an ownership guard near the top of each function, mirroring the idiom `place_flex_order`/`cancel_flex_order` already use — `is_admin_caller()` (admins may act on any member) OR household-aware `current_customer_id()` ownership (`members.id = p_member_id AND customer_id = current_customer_id()`), else `RETURN json_build_object('error','forbidden')`. CREATE OR REPLACE preserves every line of existing logic; only the guard block was added. All 5 app call sites invoke via `locals.supabase` (caller's JWT), so no legitimate path breaks; no service-role caller exists.
+
+**Files changed:**
+- NEW `supabase/migrations/0053_rpc_ownership_guards.sql` — the three CREATE OR REPLACE statements (exact live bodies + guard).
+- NEW `apps/csa-portal/scripts/verify_rpc_guards.py` — empirical verifier (PostgREST RPC, the IDOR vector, non-destructive probes).
+- NEW `apps/csa-portal/scripts/test_flex_concurrency.py` — concurrent-submit double-debit test.
+
+**Verification (empirical, live):** 9/9 checks pass — member→own = guard-passed (hits later validation), member→other = `forbidden` (IDOR blocked), admin→other = guard-passed (admin retained). Member self-service + admin paths both still work. Migration applied to live DB (`[]` success). Separately, the flex double-debit P0 was DISPROVED: 6 simultaneous identical submits = single $3 debit, 1 ledger row (order RPC serializes).
+
+---
+
+## [2026-06-18] CSA — Flex inventory: "Add from archive" feature (fullstack-builder)
+
+App: `apps/csa-portal`. NOT deployed (build verified only, per task scope).
+
+**What:** Owner can now load a flex week by picking products from the master archive (`product_library`, ~51 rows) instead of typing each item by hand.
+
+**Files changed:**
+- NEW `src/pages/api/admin/flex-inventory/add-from-library.ts` — POST handler mirroring save.ts (requireAdmin + isSameOriginPost/PORTAL_ORIGIN CSRF, cookie-aware RLS client). Reads `week_starting` + `library_ids` (getAll). Per id: skips if a flex_inventory row already exists for (week, library_id); else INSERTs a ghost row (is_active=false, qty 0) with name/category/photo_url/description copied from product_library, and unit/price_cents carried forward from the MOST RECENT prior flex_inventory row for that library_id (ORDER BY week_starting DESC LIMIT 1; defaults each/0). Redirects `?ok=added_from_library` / `?error=add_failed`.
+- `src/pages/admin/flex-inventory.astro` — added OK_COPY/ERROR_COPY entries; added `library_id` to the week-items select + ItemRow type; fetch product_library (ordered category→name) and compute present library_ids; new collapsible `<details>` "➕ Add from your archive" section ABOVE the item list with a checkbox-per-archive-product form (hides products already in the week).
+- `src/lib/database.types.ts` — hand-added `library_id: string | null` to `flex_inventory` Row (column exists in DB via migration 0045 but was missing from the hand-maintained types file; required for typed queries to compile).
+
+**Verification:** `npm run build` (astro build) passes clean. `astro check` shows 0 errors in the three touched files (the 1 repo error is pre-existing in src/lib/cycle.ts from unrelated uncommitted vacation-rider work). Pre-flight check: no blockers.
+
+---
+
+## [2026-06-18] CSA — Add-on collapse recovery: restored 23 wrongly-inactivated paid add-ons + pack-sheet ×N display fix (PM_Architect + fullstack-builder)
+
+Deployed (commit 06f87f9, pushed csa-migration → Vercel). App: `apps/csa-portal`.
+
+**Root cause:** the one-off "DUPLICATE collapsed 2026-06-17" operation deduped a customer's add-on rows by CUSTOMER instead of CUSTOMER+TYPE, so any member who bought 2+ DISTINCT add-ons had all but one inactivated and silently dropped from pack sheets. Not a recurring job (no script in repo) — restore sticks. The separate "webhook double-fire 2026-05-11" inactivations are legit and were left untouched.
+
+**Data fix (Supabase, live):** Shopify-verified each affected customer's paid add-ons vs their active rows; reactivated exactly the collapsed row per missing type (clean 1:1, 23/23). 16 members restored: Christi Ptacek (+bread,cheese,mushroom), Cory Cope (+bread,mushroom), Elizabeth Sapp (+cheese,bread), Michelle Winkler (+cheese,mushroom), Katelynn Nardulli (+coffee,cheese), Ronelle Myers (+cheese,mushroom), Martina Hilldorfer, Stephanie Tomasic, Carla Nappi, Kelly Corrigan, Carly Lagoda, Maggie Debski, Heidi Weaver, Whitney, Denise Fazio, Karen. Reactivated rows aligned to the member's keeper biweekly_week + pickup; notes annotated "RESTORED 2026-06-18". Restored set verified == Shopify purchases for all 16.
+
+**Display fix (frontend):** `stop-manifest`, `pack-check`, `labels` ([...slug].astro) grouped each member's add-on chips by type with a count suffix (`Mushroom ×2`) instead of deduping to one chip — so duplicates/distinct add-ons always pack correctly (the Drew Gifford 2× mushroom bug). Stop-level totals already per-row. index.astro for all three now default to `currentDeliveryWeek`. Builder: `npm run build` + `npm run test:unit` (23) pass. Diff: 52 ins / 30 del.
+
+**Make-good policy (Todd):** restore-all so future boxes are correct; compensate only members who complain. Fishing email to the 16 to surface quiet shorts — drafted, awaiting Todd approval before send.
+
 ## [2026-06-17] CSA — Flex open day Friday→Thursday + weekly flex-list reminder cron (fullstack-builder)
 
 NOT committed/deployed — PM verifies + deploys. App: `apps/csa-portal`. Built on top of the prior uncommitted passes (nothing reverted), including the just-deployed Friday-open/Tuesday-8AM-close flex window.

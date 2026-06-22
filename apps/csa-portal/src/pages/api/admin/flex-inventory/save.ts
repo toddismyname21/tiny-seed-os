@@ -141,10 +141,15 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   // ── UPDATE ──────────────────────────────────────────────────────
   // Read the current row to derive how many units are already ordered, so
   // editing available_qty doesn't clobber that.
-  type Cur = { available_qty: number; remaining_qty: number; week_starting: string };
+  type Cur = {
+    available_qty: number;
+    remaining_qty: number;
+    week_starting: string;
+    library_id: string | null;
+  };
   const { data: cur, error: curErr } = await locals.supabase
     .from('flex_inventory')
-    .select('available_qty, remaining_qty, week_starting')
+    .select('available_qty, remaining_qty, week_starting, library_id')
     .eq('id', d.id)
     .maybeSingle()
     .overrideTypes<Cur, { merge: false }>();
@@ -184,5 +189,24 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     console.error('[api/admin/flex-inventory/save] update failed:', error.message);
     return redirect(backTo(d.week_starting, 'error', 'save_failed'), 303);
   }
+
+  // ── PROPAGATE the photo to the shared product_library (single source). ──
+  // product_library is the master photo store: wholesale, box, and flex all
+  // read library.photo_url first. So when this flex item carries a photo AND is
+  // linked to a library row, push the photo UP to the library so it shows on
+  // every channel for that product. Additive + best-effort: a failure here
+  // never fails the flex save (the item already saved its own photo_url as a
+  // fallback). Only runs when both a library link and a photo exist — we never
+  // null out the shared photo from the flex editor.
+  if (cur.library_id && d.photo_url) {
+    const { error: libErr } = await locals.supabase
+      .from('product_library')
+      .update({ photo_url: d.photo_url, updated_at: new Date().toISOString() })
+      .eq('id', cur.library_id);
+    if (libErr) {
+      console.error('[api/admin/flex-inventory/save] library photo propagate failed:', libErr.message);
+    }
+  }
+
   return redirect(backTo(d.week_starting, 'ok', 'saved'), 303);
 };

@@ -633,6 +633,9 @@ export interface Database {
           /** Week's featured extra (hero treatment on the ordering page). */
           is_featured: boolean;
           restock_alert_threshold: number;
+          /** FK → product_library.id — the shared archive product this week's
+           *  item was loaded from (photo + description source; migration 0045). */
+          library_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -674,6 +677,34 @@ export interface Database {
           total_cents: number;
         } & Partial<Database['public']['Tables']['flex_orders']['Row']>;
         Update: Partial<Database['public']['Tables']['flex_orders']['Row']>;
+        Relationships: [];
+      };
+      // MARKET OFFERINGS — the farmers-market channel of the unified
+      // catalog. Each week staff pick which product_library products are
+      // sold at the stall and set the retail unit + price. A product may
+      // have MULTIPLE offerings in one week (e.g. by the bunch AND the
+      // pound), so there is NO unique (week_starting, library_id) —
+      // every offering is its own row (migration 0054).
+      market_offerings: {
+        Row: {
+          id: string;
+          // FK → product_library.id (the shared master product).
+          library_id: string;
+          week_starting: string;
+          // Optional display override; falls back to product_library.name.
+          name: string | null;
+          unit: string;
+          price_cents: number;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          library_id: string;
+          week_starting: string;
+        } & Partial<Database['public']['Tables']['market_offerings']['Row']>;
+        Update: Partial<Database['public']['Tables']['market_offerings']['Row']>;
         Relationships: [];
       };
       // Wholesale (chef portal) catalog. Flex-style on/off board: Todd
@@ -739,6 +770,8 @@ export interface Database {
           pricing_tier_id: string | null;
           min_order_cents: number;
           delivery_day: string | null;
+          delivery_hours: string | null;
+          delivery_instructions: string | null;
           notes: string | null;
           order_token: string | null;
           created_at: string | null;

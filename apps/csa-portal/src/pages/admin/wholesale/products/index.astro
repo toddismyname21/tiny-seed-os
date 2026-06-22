@@ -73,12 +73,15 @@ type ProductRow = {
   available_qty: number | null;
   is_active: boolean;
   sort_order: number;
+  library_id: string | null;
+  library: { photo_url: string | null } | null;
 };
 
 const { data: productRows, error: fetchErr } = await supabase
   .from('wholesale_products')
   .select(
-    'id, name, category, unit, price_cents, description, photo_url, available_qty, is_active, sort_order'
+    'id, name, category, unit, price_cents, description, photo_url, available_qty, is_active, sort_order, library_id, ' +
+    'library:product_library ( photo_url )'
   )
   .order('is_active', { ascending: false })
   .order('sort_order', { ascending: true })
@@ -89,6 +92,16 @@ if (fetchErr) {
   console.error('[admin/wholesale/products] fetch failed:', fetchErr.message);
 }
 const products: ProductRow[] = productRows ?? [];
+
+// Resolve each product's DISPLAY thumbnail LIBRARY-FIRST (product_library
+// .photo_url ?? own photo_url) so the admin board shows the same shared photo
+// chefs see on /order/[token]. We DON'T mutate products[].photo_url — the
+// "Set product photo" form starts with an empty photo_url field (it's filled
+// only on a fresh upload), so the board's thumbnail is the only photo display
+// here and it should reflect the shared library photo.
+function displayPhotoUrl(p: ProductRow): string | null {
+  return p.library?.photo_url ?? p.photo_url ?? null;
+}
 
 // ─── Latest "today's quality" update per product (this week) ────────
 type UpdateRow = {
@@ -337,8 +350,8 @@ const INPUT =
               {/* ── Top row: thumb + identity + ON/OFF toggle ── */}
               <div class="flex items-start gap-4 p-4">
                 <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-3xl">
-                  {p.photo_url
-                    ? <img src={p.photo_url} alt={`${p.name} photo`} width="64" height="64" loading="lazy" class="h-full w-full object-cover" />
+                  {displayPhotoUrl(p)
+                    ? <img src={displayPhotoUrl(p)} alt={`${p.name} photo`} width="64" height="64" loading="lazy" class="h-full w-full object-cover" />
                     : <span aria-hidden="true">{categoryEmoji(p.category)}</span>}
                 </div>
 

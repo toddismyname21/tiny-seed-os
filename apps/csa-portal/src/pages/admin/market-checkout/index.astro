@@ -26,6 +26,7 @@
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
+import BottomSheet from '../../../components/BottomSheet.astro';
 import { getFlexBalance, formatFlexMoney } from '../../../lib/flex';
 
 export const prerender = false;
@@ -65,79 +66,79 @@ const errorMessage = errorCode ? (ERROR_COPY[errorCode] ?? ERROR_COPY.invalid_in
 // On error, re-open the selected member's form if we know who it was.
 const errorCustomerId = (params.get('customer_id') ?? '').trim();
 
-// ─── Stage 1: search for active flex members ─────────────────────────────
+// ─── Stage 1: ALL active flex members (client-side filtered) ─────────────
+// The full active-flex roster is small (~30, capped at 200), so we fetch the
+// WHOLE list once on the server and embed it as JSON. A client-side script
+// then filters it instantly on every keystroke — no page reload at the market
+// table. The legacy `?q=` server path still works as a no-JS fallback: when
+// JS is disabled the GET form reloads and we render only the matching rows.
 interface FlexMatch {
   customer_id: string;
   name: string;
   email: string;
   stop: string;
 }
-let matches: FlexMatch[] = [];
+/** Full active-flex roster (unfiltered) — embedded as JSON for client search. */
+let allFlexMembers: FlexMatch[] = [];
 let searchError = false;
 
-if (!selectedCustomerId && rawQ.length >= 2) {
-  // SEARCH. PostgREST cannot OR a base-table column with an EMBEDDED resource
-  // column in one logic tree, and a `referencedTable` .or() on an !inner join
-  // only NULLS non-matching embeds rather than dropping the parent member rows
-  // (so it would return every active flex member). The proven fix (mirrors
-  // admin/members/index.astro): resolve matching customer IDs FIRST on the
-  // customers table, then filter members by customer_id IN (…).
-  const safe = rawQ.replace(/[%,]/g, '\\$&');
-  const { data: matchedCustomers, error: custSearchError } = await supabase
-    .from('customers')
-    .select('id')
-    .or(`contact_name.ilike.%${safe}%,email.ilike.%${safe}%`)
-    .limit(100);
-  if (custSearchError) {
-    console.error('[admin/market-checkout] customer search failed:', custSearchError.message);
+if (!selectedCustomerId) {
+  const { data, error } = await supabase
+    .from('members')
+    .select(
+      `customer_id,
+       pickup_location:pickup_locations(name),
+       customer:customers!inner(id, contact_name, email)`
+    )
+    .eq('share_type', 'flex')
+    .eq('status', 'active')
+    .limit(200)
+    .overrideTypes<
+      {
+        customer_id: string;
+        pickup_location: { name: string } | { name: string }[] | null;
+        customer:
+          | { id: string; contact_name: string; email: string }
+          | { id: string; contact_name: string; email: string }[]
+          | null;
+      }[],
+      { merge: false }
+    >();
+
+  if (error) {
+    console.error('[admin/market-checkout] flex roster load failed:', error.message);
     searchError = true;
-  }
-
-  const matchedIds = (matchedCustomers ?? []).map((c) => c.id);
-  if (!searchError && matchedIds.length > 0) {
-    type Row = {
-      customer_id: string;
-      pickup_location: { name: string } | { name: string }[] | null;
-      customer:
-        | { id: string; contact_name: string; email: string }
-        | { id: string; contact_name: string; email: string }[]
-        | null;
-    };
-    const { data, error } = await supabase
-      .from('members')
-      .select(
-        `customer_id,
-         pickup_location:pickup_locations(name),
-         customer:customers!inner(id, contact_name, email)`
-      )
-      .eq('share_type', 'flex')
-      .eq('status', 'active')
-      .in('customer_id', matchedIds)
-      .limit(50)
-      .overrideTypes<Row[], { merge: false }>();
-
-    if (error) {
-      console.error('[admin/market-checkout] member search failed:', error.message);
-      searchError = true;
-    } else {
-      const seen = new Set<string>();
-      for (const r of data ?? []) {
-        const cust = Array.isArray(r.customer) ? r.customer[0] : r.customer;
-        if (!cust || !cust.email) continue;
-        if (seen.has(r.customer_id)) continue; // one row per customer
-        seen.add(r.customer_id);
-        const pl = Array.isArray(r.pickup_location) ? r.pickup_location[0] : r.pickup_location;
-        matches.push({
-          customer_id: r.customer_id,
-          name: cust.contact_name,
-          email: cust.email,
-          stop: pl?.name ?? 'No stop set',
-        });
-      }
-      matches.sort((a, b) => a.name.localeCompare(b.name));
+  } else {
+    const seen = new Set<string>();
+    for (const r of data ?? []) {
+      const cust = Array.isArray(r.customer) ? r.customer[0] : r.customer;
+      if (!cust || !cust.email) continue;
+      if (seen.has(r.customer_id)) continue; // one row per customer
+      seen.add(r.customer_id);
+      const pl = Array.isArray(r.pickup_location) ? r.pickup_location[0] : r.pickup_location;
+      allFlexMembers.push({
+        customer_id: r.customer_id,
+        name: cust.contact_name,
+        email: cust.email,
+        stop: pl?.name ?? 'No stop set',
+      });
     }
+    allFlexMembers.sort((a, b) => a.name.localeCompare(b.name));
   }
 }
+
+// No-JS fallback: if a ?q= came in, filter the roster server-side so the GET
+// form still narrows results without any client script. With JS on, the
+// client filters the full embedded list instead (this set is ignored).
+const noJsQuery = rawQ.toLowerCase();
+const matches: FlexMatch[] =
+  noJsQuery.length >= 1
+    ? allFlexMembers.filter(
+        (m) =>
+          m.name.toLowerCase().includes(noJsQuery) ||
+          m.email.toLowerCase().includes(noJsQuery)
+      )
+    : allFlexMembers;
 
 // ─── Stage 2: selected member — name + stop + LIVE balance + deduct form ──
 interface SelectedMember {
@@ -369,6 +370,49 @@ const idemToken = crypto.randomUUID();
           </p>
         ) : null}
       </Card>
+
+      {/* ── Confirmation bottom-sheet (replaces window.confirm) ──────────
+          Slides up from the bottom on submit. The $ amount + name are
+          injected from the live form values at submit time, so they're
+          always correct. Confirm → submits the real form (idem token +
+          all fields preserved). Cancel / backdrop / Escape → dismiss,
+          nothing charged. */}
+      {selected.balance !== null && selected.balance > 0 && (
+        <BottomSheet id="sheet-confirm-deduct" titleId="sheet-confirm-deduct-title" size="sm">
+          <h2
+            slot="title"
+            id="sheet-confirm-deduct-title"
+            class="font-display text-xl font-semibold text-ts-text"
+          >
+            Confirm deduction
+          </h2>
+          <p class="text-center text-lg leading-relaxed text-ts-text">
+            Deduct
+            {' '}<strong class="font-display text-3xl font-extrabold text-ts-danger tabular-nums" data-confirm-amount>$0.00</strong>
+            {' '}from
+            {' '}<strong class="text-ts-text" data-confirm-name>this member</strong>?
+          </p>
+          <p class="mt-2 text-center text-sm text-ts-text-secondary">
+            This moves real money from their Farm Flex balance.
+          </p>
+          <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex h-12 min-h-[48px] items-center justify-center rounded-ts-md px-5 text-base font-semibold text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+              data-bottom-sheet-close
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-12 min-h-[48px] min-w-[10rem] items-center justify-center gap-2 rounded-ts-md bg-ts-danger px-5 text-base font-extrabold text-white shadow-ts-sm transition-all duration-150 hover:brightness-95 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+              data-confirm-deduct
+            >
+              <span data-confirm-label>💳 Yes, deduct</span>
+            </button>
+          </div>
+        </BottomSheet>
+      )}
     </div>
   ) : selectedNotFound ? (
     /* Selected id didn't resolve to an active flex member. */
@@ -387,10 +431,16 @@ const idemToken = crypto.randomUUID();
       </div>
     </Card>
   ) : (
-    /* ════ STAGE 1: search for an active flex member ════ */
+    /* ════ STAGE 1: instant client-side search over the full flex roster ════ */
     <div class="flex flex-col gap-4">
+      {/* Full active-flex roster, embedded for the client filter script. */}
+      <script is:inline type="application/json" id="flex-members" set:html={JSON.stringify(allFlexMembers)} />
+
       <Card padding="lg" elevation="sm">
-        <form method="GET" action="/admin/market-checkout" class="flex flex-col gap-3" role="search">
+        {/* method=GET keeps a no-JS fallback working: submitting reloads the
+            page with ?q= and the server filters. With JS on, we filter the
+            embedded roster live on `input` and never reload. */}
+        <form method="GET" action="/admin/market-checkout" class="flex flex-col gap-3" role="search" data-search-form>
           <label for="q" class="text-sm font-semibold text-ts-text">
             Find a Flex member
           </label>
@@ -403,78 +453,196 @@ const idemToken = crypto.randomUUID();
               autocomplete="off"
               autofocus
               placeholder="Name or email…"
-              class="h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              class="h-14 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-lg text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              data-search-input
             />
-            <button
-              type="submit"
-              class="inline-flex h-12 min-h-[44px] shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-bold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-            >
-              Search
-            </button>
+            {/* Visible only without JS — the live filter makes it redundant. */}
+            <noscript>
+              <button
+                type="submit"
+                class="inline-flex h-14 min-h-[44px] shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-bold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                Search
+              </button>
+            </noscript>
           </div>
           <p class="text-xs text-ts-text-muted">
-            Only active Flex members appear here. Type at least 2 letters.
+            Only active Flex members appear here. <span data-search-count>Showing {matches.length} {matches.length === 1 ? 'member' : 'members'}</span>.
           </p>
         </form>
       </Card>
 
-      {/* Results / empty / prompt */}
       {searchError ? (
         <Card tone="danger" padding="md" elevation="sm">
           <p class="text-sm font-semibold text-ts-danger">
-            ⚠️ Couldn't run that search. Check your connection and try again.
+            ⚠️ Couldn't load the member list. Check your connection and try again.
           </p>
         </Card>
-      ) : rawQ.length >= 2 && matches.length === 0 ? (
-        <Card tone="muted" padding="lg" elevation="sm">
-          <div class="flex flex-col items-center gap-3 py-4 text-center">
-            <span class="text-4xl" aria-hidden="true">🔍</span>
-            <p class="text-sm text-ts-text-secondary">
-              No active Flex members match "<strong class="text-ts-text">{rawQ}</strong>".
-            </p>
-            <p class="text-xs text-ts-text-muted">
-              Try a different spelling, or search by email.
-            </p>
-          </div>
-        </Card>
-      ) : rawQ.length >= 2 ? (
-        <ul class="flex flex-col gap-3">
-          {matches.map((m) => (
-            <li>
-              <a
-                href={`/admin/market-checkout?customer_id=${encodeURIComponent(m.customer_id)}`}
-                class="flex items-center justify-between gap-3 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm transition-colors duration-150 hover:border-ts-primary/50 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-              >
-                <div class="min-w-0">
-                  <p class="font-display text-lg font-bold text-ts-text">{m.name}</p>
-                  <p class="mt-0.5 truncate text-xs text-ts-text-secondary">
-                    📍 {m.stop} · {m.email}
-                  </p>
-                </div>
-                <span class="shrink-0 text-2xl text-ts-text-muted" aria-hidden="true">›</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      ) : (
+      ) : allFlexMembers.length === 0 ? (
         <Card tone="muted" padding="lg" elevation="sm">
           <div class="flex flex-col items-center gap-3 py-4 text-center">
             <span class="text-4xl" aria-hidden="true">💳</span>
             <p class="text-sm text-ts-text-secondary">
-              Search a Flex member's name or email to see their balance and deduct a market purchase.
+              No active Flex members on file yet.
             </p>
           </div>
         </Card>
+      ) : (
+        <>
+          {/* Live results list (JS filters this in place). Server-rendered with
+              the no-JS `matches` so the page is useful even before the script
+              runs / when JS is off. */}
+          <ul class="flex flex-col gap-3" data-member-list>
+            {matches.map((m) => (
+              <li
+                data-member-row
+                data-name={m.name.toLowerCase()}
+                data-email={m.email.toLowerCase()}
+              >
+                <a
+                  href={`/admin/market-checkout?customer_id=${encodeURIComponent(m.customer_id)}`}
+                  class="flex min-h-[56px] items-center justify-between gap-3 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm transition-colors duration-150 hover:border-ts-primary/50 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  <div class="min-w-0">
+                    <p class="font-display text-lg font-bold text-ts-text">{m.name}</p>
+                    <p class="mt-0.5 truncate text-xs text-ts-text-secondary">
+                      📍 {m.stop} · {m.email}
+                    </p>
+                  </div>
+                  <span class="shrink-0 text-2xl text-ts-text-muted" aria-hidden="true">›</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+
+          {/* Empty state shown by the client script when a query matches nobody. */}
+          <div data-member-empty hidden>
+            <Card tone="muted" padding="lg" elevation="sm">
+              <div class="flex flex-col items-center gap-3 py-4 text-center">
+                <span class="text-4xl" aria-hidden="true">🔍</span>
+                <p class="text-sm text-ts-text-secondary">
+                  No active Flex members match "<strong class="text-ts-text" data-member-empty-q></strong>".
+                </p>
+                <p class="text-xs text-ts-text-muted">
+                  Try a different spelling, or search by email.
+                </p>
+              </div>
+            </Card>
+          </div>
+        </>
       )}
     </div>
   )}
 </AdminShell>
 
-{/* ── Double-submit protection + confirm() before charging ──────────────
-    The button disables on submit (prevents a second tap re-POSTing), and a
-    plain confirm() forces the staff to verify the amount before money moves.
-    The server ALSO enforces idempotency + balance re-check; this is the
-    client-side belt to the server's suspenders. */}
+{/* ── Stage 1: instant client-side member filter ───────────────────────
+    Reads the full active-flex roster embedded as JSON, filters it on every
+    keystroke (case-insensitive name OR email match), and shows/hides the
+    server-rendered rows in place — no page reload. The GET form's submit is
+    suppressed so Enter never triggers a reload. Falls back gracefully: if
+    this script never runs, the server-rendered list + ?q= GET form work. */}
+<script is:inline>
+  (function () {
+    var input = document.querySelector('[data-search-input]');
+    var list = document.querySelector('[data-member-list]');
+    if (!input || !list) return;
+
+    var searchForm = document.querySelector('[data-search-form]');
+    var countEl = document.querySelector('[data-search-count]');
+    var emptyWrap = document.querySelector('[data-member-empty]');
+    var emptyQ = document.querySelector('[data-member-empty-q]');
+
+    // Authoritative roster from the embedded JSON — used to render rows that
+    // the server may have omitted under a ?q= no-JS fallback. We re-render the
+    // full list from JSON so the live filter always has every member.
+    var members = [];
+    try {
+      var raw = document.getElementById('flex-members');
+      if (raw && raw.textContent) members = JSON.parse(raw.textContent) || [];
+    } catch (err) {
+      // If JSON is malformed, leave the server-rendered rows as-is.
+      members = null;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    // Rebuild the list from the authoritative JSON so every member is present
+    // even if the server pre-filtered (no-JS path). Skip if JSON failed.
+    if (members) {
+      var html = '';
+      for (var i = 0; i < members.length; i++) {
+        var m = members[i];
+        html +=
+          '<li data-member-row data-name="' +
+          escapeHtml((m.name || '').toLowerCase()) +
+          '" data-email="' +
+          escapeHtml((m.email || '').toLowerCase()) +
+          '">' +
+          '<a href="/admin/market-checkout?customer_id=' +
+          encodeURIComponent(m.customer_id) +
+          '" class="flex min-h-[56px] items-center justify-between gap-3 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm transition-colors duration-150 hover:border-ts-primary/50 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">' +
+          '<div class="min-w-0">' +
+          '<p class="font-display text-lg font-bold text-ts-text">' +
+          escapeHtml(m.name || '') +
+          '</p>' +
+          '<p class="mt-0.5 truncate text-xs text-ts-text-secondary">📍 ' +
+          escapeHtml(m.stop || 'No stop set') +
+          ' · ' +
+          escapeHtml(m.email || '') +
+          '</p></div>' +
+          '<span class="shrink-0 text-2xl text-ts-text-muted" aria-hidden="true">›</span>' +
+          '</a></li>';
+      }
+      list.innerHTML = html;
+    }
+
+    var rows = Array.prototype.slice.call(list.querySelectorAll('[data-member-row]'));
+
+    function applyFilter() {
+      var q = (input.value || '').trim().toLowerCase();
+      var shown = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var name = row.getAttribute('data-name') || '';
+        var email = row.getAttribute('data-email') || '';
+        var match = q === '' || name.indexOf(q) !== -1 || email.indexOf(q) !== -1;
+        row.hidden = !match;
+        if (match) shown++;
+      }
+      if (countEl) {
+        countEl.textContent = 'Showing ' + shown + (shown === 1 ? ' member' : ' members');
+      }
+      if (emptyWrap) {
+        var noMatches = shown === 0 && rows.length > 0;
+        emptyWrap.hidden = !noMatches;
+        if (noMatches && emptyQ) emptyQ.textContent = input.value.trim();
+      }
+    }
+
+    input.addEventListener('input', applyFilter);
+    // Suppress GET submit (Enter key) so we never reload while filtering.
+    if (searchForm) {
+      searchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+      });
+    }
+    // Run once so a server-prefilled ?q= reflows to the full client view.
+    applyFilter();
+  })();
+</script>
+
+{/* ── Stage 2: validation + bottom-sheet confirmation before charging ────
+    The button no longer submits directly. On submit we validate the amount,
+    then open a design-system bottom sheet (NOT window.confirm). The sheet's
+    $ amount + name are read from the LIVE form values at submit time. Confirm
+    → submits the real form (idem token + all fields preserved) and disables
+    the trigger so a second tap can't double-charge. Cancel / backdrop /
+    Escape → dismiss, nothing charged. The server ALSO enforces idempotency +
+    balance re-check; this is the client-side belt to the server's suspenders. */}
 <script is:inline>
   (function () {
     var form = document.querySelector('[data-checkout-form]');
@@ -485,24 +653,45 @@ const idemToken = crypto.randomUUID();
     var name = form.getAttribute('data-name') || 'this member';
     var CAP = 500;
 
+    var sheetId = 'sheet-confirm-deduct';
+    var amountSlot = document.querySelector('[data-confirm-amount]');
+    var nameSlot = document.querySelector('[data-confirm-name]');
+    var confirmBtn = document.querySelector('[data-confirm-deduct]');
+    var confirmLabel = document.querySelector('[data-confirm-label]');
+
+    var pendingSubmit = false;
+
+    function actuallySubmit() {
+      // Disable the trigger so a second tap can't double-charge, then submit
+      // the real form (idem token + all fields intact).
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Charging…';
+      }
+      pendingSubmit = true;
+      form.submit();
+    }
+
     form.addEventListener('submit', function (e) {
+      // Allow the programmatic submit from the confirm button to pass through.
+      if (pendingSubmit) return;
+
+      e.preventDefault();
+
       var raw = (amountEl && amountEl.value ? amountEl.value : '').trim();
       var amt = parseFloat(raw);
 
       if (!isFinite(amt) || amt <= 0) {
-        e.preventDefault();
         alert('Enter a dollar amount greater than $0.');
         return;
       }
       if (amt > CAP) {
-        e.preventDefault();
         alert('That is over the $500 limit per charge. Run two separate charges if needed.');
         return;
       }
       // Round to cents for the comparison + display.
       amt = Math.round(amt * 100) / 100;
       if (amt > balance + 0.001) {
-        e.preventDefault();
         alert(
           'That is more than the balance ($' +
             balance.toFixed(2) +
@@ -511,19 +700,29 @@ const idemToken = crypto.randomUUID();
         return;
       }
 
-      var ok = window.confirm(
-        'Deduct $' + amt.toFixed(2) + ' from ' + name + "'s Farm Flex balance?"
-      );
-      if (!ok) {
-        e.preventDefault();
-        return;
-      }
+      // Populate the sheet from the LIVE form values, then open it.
+      if (amountSlot) amountSlot.textContent = '$' + amt.toFixed(2);
+      if (nameSlot) nameSlot.textContent = name;
 
-      // Confirmed → disable the button so a second tap can't double-charge.
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Charging…';
+      var helper = window.BottomSheet;
+      if (helper && typeof helper.open === 'function') {
+        helper.open(sheetId, btn || undefined);
+      } else {
+        // Hard fallback if the sheet helper didn't load: native confirm.
+        if (window.confirm('Deduct $' + amt.toFixed(2) + ' from ' + name + "'s Farm Flex balance?")) {
+          actuallySubmit();
+        }
       }
     });
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', function () {
+        var helper = window.BottomSheet;
+        if (helper && typeof helper.close === 'function') helper.close(sheetId);
+        if (confirmLabel) confirmLabel.textContent = 'Charging…';
+        confirmBtn.disabled = true;
+        actuallySubmit();
+      });
+    }
   })();
 </script>

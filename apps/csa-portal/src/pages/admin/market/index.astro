@@ -1,0 +1,501 @@
+---
+/**
+ * /admin/market — the weekly MARKET LIST editor.
+ *
+ * The farmers-market channel of the unified catalog. Each week, staff pick
+ * which master products (product_library) are sold at the market stall and
+ * set the retail UNIT + PRICE. CRUD over `market_offerings` for a selected
+ * `week_starting` (the cycle Monday).
+ *
+ * KEY: a product can have MULTIPLE offerings in one week (e.g. Beets by the
+ * bunch AND by the pound). So we do NOT dedupe the "Add from your products"
+ * list by library_id, and we do NOT hide products already on the week —
+ * adding the same product again just creates a second offering with its own
+ * unit + price.
+ *
+ * Layout:
+ *   1. Week selector (this Monday + next 4 + custom date) — mirrors flex.
+ *   2. "➕ Add from your products" — every product_library row with an
+ *      instant client-side search; each row carries an inline unit + price
+ *      and an "Add to market" button that POSTs op=add for the week.
+ *   3. "This week at market" — each market_offerings row: photo
+ *      (library-first), name (offering.name ?? library name), editable unit
+ *      (datalist) + price, an active toggle, and a remove button. Each row
+ *      is its own op=update form; remove is a separate op=remove form.
+ *
+ * Reads with the cookie-aware admin RLS client (market_offerings_staff =
+ * is_admin_caller, FOR ALL). The save API re-checks via requireAdmin.
+ *
+ * This is the product/price LIST — distinct from /admin/market-checkout (the
+ * flex-spend point-of-sale tool). No price-list printing or harvest wiring
+ * yet (separate roadmap items).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import FormRow from '../../../components/FormRow.astro';
+import Badge from '../../../components/Badge.astro';
+import {
+  centsToDollars, formatCents,
+  upcomingMondayET, addWeeksYMD, prettyWeek, isYMD, categoryEmoji,
+} from '../../../lib/flex-order';
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+/** Common retail units offered at the market stall (datalist; free text in DB). */
+const MARKET_UNITS: ReadonlyArray<string> = [
+  'lb', 'bunch', 'each', 'pint', '1/2 pint', 'oz', 'head', 'bag',
+];
+
+// ─── Week resolution (mirrors flex-inventory) ───────────────────────
+const defaultWeek = upcomingMondayET();
+const weekParam = url.searchParams.get('week');
+const week = weekParam && isYMD(weekParam) ? weekParam : defaultWeek;
+
+const weekOptions = [
+  { value: defaultWeek, label: `${prettyWeek(defaultWeek)} (this week)` },
+  { value: addWeeksYMD(defaultWeek, 1), label: prettyWeek(addWeeksYMD(defaultWeek, 1)) },
+  { value: addWeeksYMD(defaultWeek, 2), label: prettyWeek(addWeeksYMD(defaultWeek, 2)) },
+  { value: addWeeksYMD(defaultWeek, 3), label: prettyWeek(addWeeksYMD(defaultWeek, 3)) },
+  { value: addWeeksYMD(defaultWeek, 4), label: prettyWeek(addWeeksYMD(defaultWeek, 4)) },
+];
+if (!weekOptions.some((o) => o.value === week)) {
+  weekOptions.unshift({ value: week, label: `${prettyWeek(week)} (selected)` });
+}
+
+// ─── This week's offerings (library-first photo + identity) ─────────
+type OfferingRow = {
+  id: string;
+  library_id: string;
+  week_starting: string;
+  name: string | null;
+  unit: string;
+  price_cents: number;
+  is_active: boolean;
+  sort_order: number;
+  library: { name: string; category: string | null; photo_url: string | null } | null;
+};
+
+const { data: offeringRows, error: offeringsErr } = await supabase
+  .from('market_offerings')
+  .select(
+    'id, library_id, week_starting, name, unit, price_cents, is_active, sort_order, ' +
+    'library:product_library ( name, category, photo_url )'
+  )
+  .eq('week_starting', week)
+  .order('sort_order', { ascending: true })
+  .order('price_cents', { ascending: true })
+  .overrideTypes<OfferingRow[], { merge: false }>();
+
+if (offeringsErr) {
+  console.error('[admin/market] offerings fetch failed:', offeringsErr.message);
+}
+const offerings: OfferingRow[] = offeringRows ?? [];
+
+/** Display name: offering override → library name → fallback. */
+function offeringName(o: OfferingRow): string {
+  return o.name ?? o.library?.name ?? 'Untitled product';
+}
+/** Display photo, library-first (the shared master photo). */
+function offeringPhoto(o: OfferingRow): string | null {
+  return o.library?.photo_url ?? null;
+}
+function offeringCategory(o: OfferingRow): string | null {
+  return o.library?.category ?? null;
+}
+
+// ─── Master products (for "Add from your products") ─────────────────
+// EVERY product is shown — a product can be added MULTIPLE times in one week
+// (by the bunch AND the pound), so we intentionally do NOT hide products that
+// are already on the week.
+type LibRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  photo_url: string | null;
+};
+
+const { data: libRows, error: libErr } = await supabase
+  .from('product_library')
+  .select('id, name, category, photo_url')
+  .order('category', { ascending: true, nullsFirst: false })
+  .order('name', { ascending: true })
+  .overrideTypes<LibRow[], { merge: false }>();
+
+if (libErr) {
+  console.error('[admin/market] product_library fetch failed:', libErr.message);
+}
+const products: LibRow[] = libRows ?? [];
+
+/** How many offerings already exist this week per library_id (a hint chip). */
+const offeringCountByLib = new Map<string, number>();
+for (const o of offerings) {
+  offeringCountByLib.set(o.library_id, (offeringCountByLib.get(o.library_id) ?? 0) + 1);
+}
+
+// ─── Flash ──────────────────────────────────────────────────────────
+const okFlag = url.searchParams.get('ok');
+const errorFlag = url.searchParams.get('error');
+const OK_COPY: Record<string, string> = {
+  added: 'Added to this week at market.',
+  saved: 'Offering updated.',
+  removed: 'Offering removed.',
+};
+const ERROR_COPY: Record<string, string> = {
+  invalid_input: 'Some fields were invalid — please check and try again.',
+  invalid_price: 'Enter a valid price in dollars (e.g. 4.50).',
+  add_failed: "Couldn't add that product to the week.",
+  save_failed: "Couldn't save that offering. Please try again.",
+  remove_failed: "Couldn't remove that offering.",
+};
+const okMessage = okFlag ? OK_COPY[okFlag] ?? null : null;
+const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
+---
+
+<AdminShell
+  title="Market list"
+  subtitle={prettyWeek(week)}
+  pageTitle="Market list — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/market"
+>
+  <Fragment slot="actions">
+    <a
+      href={`/admin/market/price-list/${week}`}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🖨 Print price list
+    </a>
+  </Fragment>
+
+  {okMessage && (
+    <div
+      role="status"
+      aria-live="polite"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Done.</span> {okMessage}
+    </div>
+  )}
+  {errorMessage && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-danger">Heads up.</span> {errorMessage}
+    </div>
+  )}
+
+  {/* Shared units datalist (used by add + every edit row). */}
+  <datalist id="market-units">
+    {MARKET_UNITS.map((u) => <option value={u}></option>)}
+  </datalist>
+
+  {/* ════ Week selector ════ */}
+  <Card padding="md" elevation="sm">
+    <form method="GET" action="/admin/market" class="flex flex-col gap-4 sm:flex-row sm:items-end">
+      <div class="flex-1">
+        <FormRow label="Market week (Monday)" htmlFor="week-select">
+          <select
+            id="week-select"
+            name="week"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          >
+            {weekOptions.map((o) => (
+              <option value={o.value} selected={o.value === week}>{o.label}</option>
+            ))}
+          </select>
+        </FormRow>
+      </div>
+      <div class="flex-1">
+        <FormRow label="Custom Monday" htmlFor="week-custom">
+          <input
+            id="week-custom"
+            type="date"
+            name="week"
+            value={week}
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          />
+        </FormRow>
+      </div>
+      <button
+        type="submit"
+        class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Switch week
+      </button>
+    </form>
+    <script>
+      // Custom date wins by disabling the dropdown when used.
+      const custom = document.querySelector<HTMLInputElement>('#week-custom');
+      const dropdown = document.querySelector<HTMLSelectElement>('#week-select');
+      if (custom && dropdown) {
+        custom.addEventListener('change', () => { dropdown.disabled = true; });
+      }
+    </script>
+  </Card>
+
+  {/* ════ This week at market ════ */}
+  <Card padding="none" elevation="sm">
+    <div class="flex items-center justify-between gap-3 border-b border-ts-border px-5 py-4">
+      <h2 class="font-display text-lg font-bold text-ts-text">
+        {offerings.length === 0
+          ? 'Nothing at market yet'
+          : `${offerings.length} ${offerings.length === 1 ? 'offering' : 'offerings'} this week`}
+      </h2>
+    </div>
+
+    {offerings.length === 0 ? (
+      <div class="px-5 py-10 text-center">
+        <p class="text-3xl" aria-hidden="true">🛒</p>
+        <p class="mt-2 text-sm font-medium text-ts-text">No market offerings for this week yet.</p>
+        <p class="mt-1 text-xs text-ts-text-muted">Add products below — set a unit and price for each.</p>
+      </div>
+    ) : (
+      <ul role="list" class="divide-y divide-ts-border">
+        {offerings.map((o) => {
+          const thumb = offeringPhoto(o);
+          const cat = offeringCategory(o);
+          return (
+            <li class={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center ${o.is_active ? '' : 'opacity-60'}`}>
+              <div class="flex min-w-0 flex-1 items-center gap-4">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-2xl">
+                  {thumb
+                    ? <img src={thumb} alt="" width="56" height="56" loading="lazy" class="h-full w-full object-cover" />
+                    : <span aria-hidden="true">{categoryEmoji(cat)}</span>}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-semibold text-ts-text">{offeringName(o)}</p>
+                    {!o.is_active && <Badge variant="gray" size="xs" uppercase>Off</Badge>}
+                  </div>
+                  <p class="mt-0.5 text-sm text-ts-text-secondary tabular-nums">
+                    {formatCents(o.price_cents)} · {o.unit}
+                    {cat && <span class="text-ts-text-muted"> · {cat}</span>}
+                  </p>
+                </div>
+              </div>
+
+              {/* Edit unit + price + active (op=update). */}
+              <form
+                method="POST"
+                action="/api/admin/market/save"
+                class="flex flex-wrap items-end gap-3 sm:shrink-0"
+              >
+                <input type="hidden" name="op" value="update" />
+                <input type="hidden" name="id" value={o.id} />
+                <input type="hidden" name="week_starting" value={week} />
+
+                <div class="w-28">
+                  <label for={`unit-${o.id}`} class="block text-xs font-medium text-ts-text-secondary">Unit</label>
+                  <input
+                    id={`unit-${o.id}`} type="text" name="unit" required list="market-units" maxlength="30"
+                    value={o.unit}
+                    class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                  />
+                </div>
+                <div class="w-28">
+                  <label for={`price-${o.id}`} class="block text-xs font-medium text-ts-text-secondary">Price</label>
+                  <div class="relative mt-1">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+                    <input
+                      id={`price-${o.id}`} type="text" inputmode="decimal" name="price_dollars" required
+                      value={centsToDollars(o.price_cents)}
+                      class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-3 py-2 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                    />
+                  </div>
+                </div>
+                <label class="flex h-11 items-center gap-2 self-end text-sm text-ts-text">
+                  <input type="checkbox" name="is_active" value="true" checked={o.is_active} class="h-4 w-4 rounded border-ts-border text-ts-primary focus:ring-ts-primary/30" />
+                  <span>Active</span>
+                </label>
+                <button
+                  type="submit"
+                  class="inline-flex h-11 items-center justify-center self-end rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  Save
+                </button>
+              </form>
+
+              {/* Remove (op=remove). */}
+              <form method="POST" action="/api/admin/market/save" class="self-end sm:shrink-0" data-remove-form>
+                <input type="hidden" name="op" value="remove" />
+                <input type="hidden" name="id" value={o.id} />
+                <input type="hidden" name="week_starting" value={week} />
+                <button
+                  type="submit"
+                  class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 text-sm font-medium text-ts-danger transition-colors duration-150 hover:bg-ts-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                  aria-label={`Remove ${offeringName(o)} from market`}
+                >
+                  Remove
+                </button>
+              </form>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </Card>
+
+  {/* ════ Add from your products ════ */}
+  <Card padding="none" elevation="sm">
+    <div class="border-b border-ts-border px-5 py-4">
+      <h2 class="font-display text-lg font-bold text-ts-text">➕ Add from your products</h2>
+      <p class="mt-1 text-sm text-ts-text-secondary">
+        Pick a product, set its market unit + price, and add it to <span class="font-semibold text-ts-text">{prettyWeek(week)}</span>.
+        Add the same product more than once for different units (e.g. by the bunch <span class="italic">and</span> the pound).
+      </p>
+    </div>
+
+    {products.length === 0 ? (
+      <div class="px-5 py-12 text-center">
+        <p class="text-4xl" aria-hidden="true">📦</p>
+        <p class="mt-3 text-sm font-medium text-ts-text">No products in the catalog yet.</p>
+        <p class="mt-1 text-xs text-ts-text-muted">
+          Add products in <a href="/admin/products" class="font-medium text-ts-primary underline-offset-2 hover:underline">Products</a> first — they'll appear here.
+        </p>
+      </div>
+    ) : (
+      <div>
+        {/* Instant search */}
+        <div class="border-b border-ts-border px-5 py-4">
+          <label for="market-product-search" class="text-sm font-semibold text-ts-text">Find a product</label>
+          <input
+            id="market-product-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Name or category…"
+            class="mt-2 block h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            data-market-search
+          />
+          <p class="mt-2 text-xs text-ts-text-muted">
+            <span data-market-count>{products.length} {products.length === 1 ? 'product' : 'products'}</span> in the master catalog.
+          </p>
+        </div>
+
+        <ul role="list" class="divide-y divide-ts-border" data-market-list>
+          {products.map((p) => {
+            const already = offeringCountByLib.get(p.id) ?? 0;
+            return (
+              <li
+                data-market-row
+                data-name={p.name.toLowerCase()}
+                data-category={(p.category ?? '').toLowerCase()}
+                class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"
+              >
+                <div class="flex min-w-0 flex-1 items-center gap-4">
+                  <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-xl">
+                    {p.photo_url
+                      ? <img src={p.photo_url} alt="" width="48" height="48" loading="lazy" class="h-full w-full object-cover" />
+                      : <span aria-hidden="true">{categoryEmoji(p.category)}</span>}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="truncate text-sm font-medium text-ts-text">{p.name}</p>
+                      {already > 0 && (
+                        <Badge variant="green" size="xs">{already} on this week</Badge>
+                      )}
+                    </div>
+                    {p.category && <p class="truncate text-xs text-ts-text-muted">{p.category}</p>}
+                  </div>
+                </div>
+
+                {/* Add this product to the week (op=add) with its own unit + price. */}
+                <form
+                  method="POST"
+                  action="/api/admin/market/save"
+                  class="flex flex-wrap items-end gap-3 sm:shrink-0"
+                >
+                  <input type="hidden" name="op" value="add" />
+                  <input type="hidden" name="library_id" value={p.id} />
+                  <input type="hidden" name="week_starting" value={week} />
+
+                  <div class="w-28">
+                    <label for={`add-unit-${p.id}`} class="block text-xs font-medium text-ts-text-secondary">Unit</label>
+                    <input
+                      id={`add-unit-${p.id}`} type="text" name="unit" required list="market-units" maxlength="30"
+                      value="each"
+                      class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                    />
+                  </div>
+                  <div class="w-28">
+                    <label for={`add-price-${p.id}`} class="block text-xs font-medium text-ts-text-secondary">Price</label>
+                    <div class="relative mt-1">
+                      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+                      <input
+                        id={`add-price-${p.id}`} type="text" inputmode="decimal" name="price_dollars"
+                        placeholder="0.00"
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-3 py-2 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    class="inline-flex h-11 items-center justify-center self-end rounded-ts-md border border-ts-primary bg-ts-primary/5 px-4 text-sm font-semibold text-ts-primary transition-all duration-150 hover:bg-ts-primary/10 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                  >
+                    Add to market
+                  </button>
+                </form>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Empty state shown by the client script when a search matches nobody. */}
+        <div class="px-5 py-10 text-center" data-market-empty hidden>
+          <p class="text-3xl" aria-hidden="true">🔍</p>
+          <p class="mt-2 text-sm font-medium text-ts-text">No products match "<strong class="text-ts-text" data-market-empty-q></strong>".</p>
+          <p class="mt-1 text-xs text-ts-text-muted">Try a different spelling, or search by category.</p>
+        </div>
+      </div>
+    )}
+  </Card>
+
+  {/* ════ Confirm remove ════ */}
+  <script>
+    document.querySelectorAll<HTMLFormElement>('[data-remove-form]').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        if (!window.confirm('Remove this offering from the market list?')) {
+          e.preventDefault();
+        }
+      });
+    });
+  </script>
+
+  {/* ════ Instant search over the master products ════ */}
+  <script is:inline>
+    (function () {
+      var input = document.querySelector('[data-market-search]');
+      var list = document.querySelector('[data-market-list]');
+      if (!input || !list) return;
+      var rows = Array.prototype.slice.call(list.querySelectorAll('[data-market-row]'));
+      var countEl = document.querySelector('[data-market-count]');
+      var emptyWrap = document.querySelector('[data-market-empty]');
+      var emptyQ = document.querySelector('[data-market-empty-q]');
+      var total = rows.length;
+
+      function applyFilter() {
+        var q = (input.value || '').trim().toLowerCase();
+        var shown = 0;
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var name = row.getAttribute('data-name') || '';
+          var cat = row.getAttribute('data-category') || '';
+          var match = q === '' || name.indexOf(q) !== -1 || cat.indexOf(q) !== -1;
+          row.hidden = !match;
+          if (match) shown++;
+        }
+        if (countEl) {
+          countEl.textContent = q === ''
+            ? total + (total === 1 ? ' product' : ' products')
+            : 'Showing ' + shown + ' of ' + total + (total === 1 ? ' product' : ' products');
+        }
+        if (emptyWrap) {
+          var noneShown = shown === 0 && total > 0;
+          emptyWrap.hidden = !noneShown;
+          if (noneShown && emptyQ) emptyQ.textContent = input.value.trim();
+        }
+      }
+      input.addEventListener('input', applyFilter);
+    })();
+  </script>
+</AdminShell>

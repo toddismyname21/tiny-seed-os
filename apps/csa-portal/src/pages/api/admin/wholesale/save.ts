@@ -109,10 +109,26 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   }
 
   // ── PHOTO (set catalog photo_url) ─────────────────────────────────
+  // This is the MAIN product photo path only. The separate "today's quality
+  // update" (→ wholesale_product_updates) lives in /api/admin/wholesale/update
+  // and is intentionally left untouched — it's a transient per-week note, not
+  // the canonical product photo.
   if (op === 'photo') {
     if (!id) return redirect(back('error', 'not_found'), 303);
     const urlParsed = z.url().max(2000).safeParse(strOrNull(form.get('photo_url')));
     if (!urlParsed.success) return redirect(back('error', 'invalid_input'), 303);
+
+    // Read the product's library link so we can propagate the photo UP to the
+    // shared product_library (the single source of truth that flex + box + the
+    // chef order page all read first).
+    type Cur = { library_id: string | null };
+    const { data: cur } = await supabase
+      .from('wholesale_products')
+      .select('library_id')
+      .eq('id', id)
+      .maybeSingle()
+      .overrideTypes<Cur, { merge: false }>();
+
     const { error } = await supabase
       .from('wholesale_products')
       .update({ photo_url: urlParsed.data, updated_at: new Date().toISOString() })
@@ -121,6 +137,20 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       console.error('[api/admin/wholesale/save] photo set failed:', error.message);
       return redirect(back('error', 'save_failed'), 303);
     }
+
+    // ── PROPAGATE to product_library (single source). Additive + best-effort:
+    // a failure here never fails the product photo save (the product already
+    // has its own photo_url as a fallback). Only when the product is linked. ──
+    if (cur?.library_id) {
+      const { error: libErr } = await supabase
+        .from('product_library')
+        .update({ photo_url: urlParsed.data, updated_at: new Date().toISOString() })
+        .eq('id', cur.library_id);
+      if (libErr) {
+        console.error('[api/admin/wholesale/save] library photo propagate failed:', libErr.message);
+      }
+    }
+
     return redirect(back('ok', 'photo_set', `p-${id}`), 303);
   }
 

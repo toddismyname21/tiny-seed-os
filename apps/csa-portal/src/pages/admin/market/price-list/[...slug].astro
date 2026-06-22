@@ -1,0 +1,237 @@
+---
+/**
+ * /admin/market/price-list/[week] — the printable FARMERS-MARKET PRICE LIST.
+ *
+ * ONE clean, print-friendly sheet for the stall team: every ACTIVE market
+ * offering for a week, grouped by category, each line "Product … $price/unit".
+ * It is the price sheet the team tapes to the stall — TEXT only, no photos.
+ *
+ * WEEK: comes from the slug (YYYY-MM-DD). We normalize it to the cycle MONDAY
+ * via mondayOfWeek/isMonday (lib/cycle) — the same Monday key market_offerings
+ * is stored under (week_starting). A missing/malformed slug redirects back to
+ * /admin/market so the team can pick a week.
+ *
+ * DATA: market_offerings WHERE week_starting = <Monday> AND is_active = true,
+ * joined to product_library for (name, category). Display name =
+ * offering.name ?? library.name. Rows are grouped by category and sorted by
+ * name within each category; price is formatCents(price_cents); unit prints
+ * as-is. Empty state points the team at /admin/market.
+ *
+ * PRINT: mirrors /admin/route-sheet/[...slug] — Letter portrait @page,
+ * AdminShell chrome stripped via its own print:hidden, a screen-only Print
+ * button + back link in the `actions` slot, and a screen-only instructions
+ * line. The list itself prints clean from the top of page 1 (two columns on
+ * screen; single clean column flow on print).
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import { mondayOfWeek, isMonday, addDays } from '../../../../lib/cycle';
+import { formatCents } from '../../../../lib/flex-order';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+// Missing slug → back to the market editor to pick a week.
+if (segments.length === 0) {
+  return Astro.redirect('/admin/market', 303);
+}
+
+const week_input = segments[0];
+// Bad date shape → back to the market editor (no silent wrong week).
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/market?error=bad_week', 303);
+}
+// Normalize to the cycle Monday — the key market_offerings is stored under.
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+// ─── Active offerings for the week (joined to the master product) ───
+type OfferingRow = {
+  id: string;
+  name: string | null;
+  unit: string;
+  price_cents: number;
+  library: { name: string; category: string | null } | null;
+};
+
+const { data: offeringRows, error: offeringsErr } = await supabase
+  .from('market_offerings')
+  .select('id, name, unit, price_cents, library:product_library ( name, category )')
+  .eq('week_starting', week_starting)
+  .eq('is_active', true)
+  .overrideTypes<OfferingRow[], { merge: false }>();
+
+if (offeringsErr) {
+  console.error('[admin/market/price-list] offerings fetch failed:', offeringsErr.message);
+}
+const offerings: OfferingRow[] = offeringRows ?? [];
+
+/** Display name: offering override → library name → fallback. */
+function offeringName(o: OfferingRow): string {
+  return o.name ?? o.library?.name ?? 'Untitled product';
+}
+
+// ─── Group by category, sort by name within each group ──────────────
+const UNCATEGORIZED = 'Other';
+const byCategory = new Map<string, OfferingRow[]>();
+for (const o of offerings) {
+  const cat = (o.library?.category ?? '').trim() || UNCATEGORIZED;
+  const arr = byCategory.get(cat);
+  if (arr) arr.push(o);
+  else byCategory.set(cat, [o]);
+}
+// Categories alphabetical, but "Other" (uncategorized) always last.
+const groups = Array.from(byCategory.entries())
+  .map(([category, items]) => ({
+    category,
+    items: items.slice().sort((a, b) => offeringName(a).localeCompare(offeringName(b))),
+  }))
+  .sort((a, b) => {
+    if (a.category === UNCATEGORIZED) return 1;
+    if (b.category === UNCATEGORIZED) return -1;
+    return a.category.localeCompare(b.category);
+  });
+
+// ─── Week date-range label (the delivery week Mon–Sun) ──────────────
+// market_offerings is keyed on the cycle Monday; the market stall runs that
+// week. Show the Monday→Sunday span so the sheet reads "June 29 – July 5".
+const sunday = addDays(week_starting, 6);
+const startLabel = new Intl.DateTimeFormat('en-US', {
+  month: 'long', day: 'numeric', timeZone: 'UTC',
+}).format(new Date(`${week_starting}T12:00:00Z`));
+// If the week spans two months show the month again on the end date.
+const startMonth = new Date(`${week_starting}T12:00:00Z`).getUTCMonth();
+const endMonth = new Date(`${sunday}T12:00:00Z`).getUTCMonth();
+const endLabel = new Intl.DateTimeFormat('en-US', {
+  month: startMonth === endMonth ? undefined : 'long',
+  day: 'numeric', timeZone: 'UTC',
+}).format(new Date(`${sunday}T12:00:00Z`));
+const yearLabel = new Date(`${week_starting}T12:00:00Z`).getUTCFullYear();
+const rangeLabel = `${startLabel} – ${endLabel}, ${yearLabel}`;
+
+const offeringCount = offerings.length;
+---
+
+<AdminShell
+  title="Market price list"
+  subtitle={rangeLabel}
+  pageTitle={`Market price list — ${rangeLabel} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🖨 Print price list
+    </button>
+    <a
+      href="/admin/market"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      ← Market list
+    </a>
+  </Fragment>
+
+  {/* Screen-only how-to-print note (hidden on the printed sheet). */}
+  <p class="screen-only text-sm text-ts-text-secondary">
+    This is the stall price sheet — tap <span class="font-semibold text-ts-text">Print price list</span>
+    {' '}(or ⌘P) and print on Letter paper. The list below prints clean from the top of the page.
+  </p>
+
+  <div class="print-doc">
+    {/* ── Sheet header ──────────────────────────────────────────────── */}
+    <header class="price-header rounded-ts-lg bg-ts-text px-5 py-4 text-white">
+      <p class="text-xs font-semibold uppercase tracking-wider text-white/80">
+        Tiny Seed Farm — Farmers Market
+      </p>
+      <h2 class="mt-1 font-display text-3xl font-extrabold leading-tight sm:text-4xl">
+        Price list
+      </h2>
+      <p class="mt-1 text-sm font-semibold text-white/90 tabular-nums">
+        {rangeLabel}
+        {offeringCount > 0 && (
+          <span> · {offeringCount} item{offeringCount === 1 ? '' : 's'}</span>
+        )}
+      </p>
+    </header>
+
+    {offerings.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-2 py-8 text-center">
+          <span class="text-4xl" aria-hidden="true">🛒</span>
+          <p class="text-base font-semibold text-ts-text">No market items set for this week.</p>
+          <p class="max-w-md text-sm text-ts-text-secondary">
+            Add them at{' '}
+            <a
+              href="/admin/market"
+              class="font-semibold text-ts-primary underline-offset-2 hover:underline"
+            >
+              /admin/market
+            </a>.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <div class="price-columns mt-4">
+        {groups.map((group) => (
+          <section class="price-group break-inside-avoid">
+            <h3 class="price-cat-heading border-b-2 border-ts-text pb-1 font-display text-lg font-bold uppercase tracking-wide text-ts-text">
+              {group.category}
+            </h3>
+            <ul class="mt-1">
+              {group.items.map((o) => (
+                <li class="price-row flex items-baseline gap-2 py-1.5">
+                  <span class="price-name text-base font-semibold text-ts-text sm:text-lg">
+                    {offeringName(o)}
+                  </span>
+                  <span class="price-dots flex-1 self-end border-b border-dotted border-ts-text/40" aria-hidden="true"></span>
+                  <span class="price-amount shrink-0 text-base font-bold tabular-nums text-ts-text sm:text-lg">
+                    {formatCents(o.price_cents)}<span class="text-ts-text-secondary">/{o.unit}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    )}
+  </div>
+</AdminShell>
+
+<style is:global>
+  /* Keep the dark header background through the print pipeline. */
+  .price-header {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Two-column masonry-ish layout (screen + print). CSS multicol keeps each
+     category block together (break-inside: avoid) and flows clean. */
+  .price-columns {
+    column-count: 2;
+    column-gap: 2rem;
+  }
+  .price-group {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (max-width: 768px) {
+    /* Single readable column on phones. */
+    .price-columns { column-count: 1; }
+  }
+
+  /* ── Print: one Letter-portrait sheet, no chrome ────────────────────
+   *  AdminShell strips its own chrome (header/nav/page-heading + the actions
+   *  slot) at print time via print:hidden. Anything else screen-only carries
+   *  `.screen-only`. The price list prints in normal flow from the top of
+   *  page 1. Mirrors /admin/route-sheet/[...slug].astro. */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+    body, html { background: white !important; }
+    .screen-only { display: none !important; }
+    .price-row, .price-group { break-inside: avoid; page-break-inside: avoid; }
+  }
+</style>

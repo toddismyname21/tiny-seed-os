@@ -30,8 +30,17 @@ import AdminShell from '../../components/AdminShell.astro';
 import Card from '../../components/Card.astro';
 import { DISPLAY_ORDER, countByBucket, type MemberShareRow } from '../../lib/share-buckets';
 import { todayET, todayWeekdayET } from '../../lib/delivery';
+import { resolveWeekSetup, upcomingSetupWeek } from '../../lib/week-setup';
 
 const supabase = Astro.locals.supabase;
+
+// ─── Next-week setup readiness (box / flex / market) ────────────────
+// The prominent card at the top of the home page: does the UPCOMING cycle
+// have its standard box, flex catalog, and market list set yet? Shares ONE
+// readiness check with /api/cron/flex-list-reminder (lib/week-setup) so the
+// banner and the reminder email can never disagree about what's missing.
+const setupWeek = upcomingSetupWeek();
+const weekSetup = await resolveWeekSetup(supabase, setupWeek);
 
 // Day 9 — today's delivery route (if a route exists for the current date)
 const todayDate = todayET();
@@ -258,6 +267,74 @@ const pendingTaskCount =
   pageTitle="Admin overview — Tiny Seed"
   canonical="https://csa.tinyseedfarm.com/admin"
 >
+  {/* ════ Set up next week (box · flex · market) ════ */}
+  <section aria-labelledby="setup-heading" class="flex flex-col gap-3">
+    <h2 id="setup-heading" class="sr-only">Next week setup</h2>
+    {weekSetup.allReady ? (
+      <Card tone="primary" padding="md" elevation="sm">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl" aria-hidden="true">✅</span>
+          <div class="min-w-0">
+            <p class="font-semibold text-ts-text">Next week is ready</p>
+            <p class="text-sm text-ts-text-secondary">
+              Box, Flex, and Market are all set for <span class="font-medium text-ts-text">{weekSetup.weekLabel}</span>.
+            </p>
+          </div>
+        </div>
+      </Card>
+    ) : (
+      <Card tone="warning" padding="md" elevation="md">
+        <div class="flex flex-col gap-4">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl" aria-hidden="true">🗓️</span>
+            <div class="min-w-0 flex-1">
+              <p class="font-display text-lg font-bold text-ts-text">
+                Set up next week
+              </p>
+              <p class="mt-0.5 text-sm text-ts-text-secondary">
+                {weekSetup.weekLabel} —{' '}
+                <span class="font-semibold text-ts-warning">
+                  {weekSetup.missing.length} of {weekSetup.items.length}
+                </span>{' '}
+                still need setting.
+              </p>
+            </div>
+          </div>
+
+          <ul class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {weekSetup.items.map((item) => (
+              <li>
+                <a
+                  href={`${item.href}?week=${weekSetup.week}`}
+                  class={[
+                    'flex min-h-11 items-center gap-3 rounded-ts-md border px-3 py-2.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+                    item.set
+                      ? 'border-ts-primary/30 bg-ts-primary/5 hover:bg-ts-primary/10'
+                      : 'border-ts-warning/40 bg-ts-warning-bg/40 hover:bg-ts-warning-bg/60',
+                  ].join(' ')}
+                >
+                  <span class="text-xl leading-none" aria-hidden="true">
+                    {item.set ? '✅' : '☐'}
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block font-semibold text-ts-text">{item.label}</span>
+                    <span class={[
+                      'block text-xs font-medium',
+                      item.set ? 'text-ts-primary' : 'text-ts-warning',
+                    ].join(' ')}>
+                      {item.set ? 'Set' : 'Not set — open editor'}
+                    </span>
+                  </span>
+                  <span class="shrink-0 text-ts-text-muted" aria-hidden="true">→</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Card>
+    )}
+  </section>
+
   {/* ════ Stat row ════ */}
   <section aria-labelledby="stats-heading" class="flex flex-col gap-3">
     <h2 id="stats-heading" class="sr-only">Stats</h2>

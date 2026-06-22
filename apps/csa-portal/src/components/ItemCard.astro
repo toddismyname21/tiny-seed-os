@@ -45,6 +45,14 @@ interface Props {
   variety?: string | null;
   quantity: number;
   unit: string;
+  /**
+   * Optional thumbnail. The box's single source of truth for photos is the
+   * linked product_library row (box_contents has no own photo column), so the
+   * caller passes the resolved library photo_url. When null/absent we render
+   * no thumbnail and the row stays text-only (its prior appearance) — nothing
+   * breaks for items with no library link or no library photo.
+   */
+  photoUrl?: string | null;
   swappable?: boolean;
   swapped?: string | null;
   swapDisabled?: boolean;
@@ -59,6 +67,7 @@ const {
   variety = null,
   quantity,
   unit,
+  photoUrl = null,
   swappable = false,
   swapped = null,
   swapDisabled = false,
@@ -87,7 +96,18 @@ const showUndoButton = !readOnly && isSwapped;
   data-swappable={swappable ? 'true' : 'false'}
   data-swapped={swapped ?? undefined}
 >
-  <div class="min-w-0 flex-1">
+  <div class="flex min-w-0 flex-1 items-center gap-3">
+    {photoUrl && (
+      <img
+        src={photoUrl}
+        alt=""
+        width="44"
+        height="44"
+        loading="lazy"
+        class="h-11 w-11 shrink-0 rounded-ts-md border border-ts-border object-cover"
+      />
+    )}
+    <div class="min-w-0 flex-1">
     <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
       <span class="font-medium text-ts-text">
         {displayProduct}
@@ -106,6 +126,7 @@ const showUndoButton = !readOnly && isSwapped;
           Swappable
         </Badge>
       )}
+    </div>
     </div>
   </div>
 

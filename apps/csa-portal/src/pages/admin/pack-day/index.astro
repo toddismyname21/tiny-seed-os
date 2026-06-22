@@ -5,7 +5,7 @@
  * Pack day is THE first thing Todd opens, so we skip the week-picker
  * landing and bounce straight to /admin/pack-day/<upcoming-mon>.
  */
-import { mondayOfWeek, upcomingMonday } from '../../../lib/cycle';
-return Astro.redirect(`/admin/pack-day/${mondayOfWeek(upcomingMonday())}`, 303);
+import { currentDeliveryWeek } from '../../../lib/cycle';
+return Astro.redirect(`/admin/pack-day/${currentDeliveryWeek()}`, 303);
 ---
 

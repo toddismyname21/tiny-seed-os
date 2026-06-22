@@ -42,6 +42,7 @@ import {
   resolveStopBySlug,
   slugStop,
   upcomingMonday,
+  currentDeliveryWeek,
   validMoveTargetWeeks,
   weekParity,
   type StopTotals,
@@ -380,6 +381,27 @@ test('upcomingMonday returns a Monday (any time the test runs)', () => {
   const m = upcomingMonday();
   assertTrue(/^\d{4}-\d{2}-\d{2}$/.test(m), 'looks like YYYY-MM-DD');
   assertTrue(isMonday(m), `${m} should be a Monday`);
+});
+
+// ═══ currentDeliveryWeek (the 2026-06-17 incident regression) ════════
+// On a delivery WEDNESDAY the driver/packer/text tools must stay on THIS
+// week, NOT roll forward to next week the way upcomingMonday() did.
+test('currentDeliveryWeek stays on the current week through the whole Mon–Sun week', () => {
+  const at = (iso: string) => currentDeliveryWeek(new Date(iso));
+  // Week of Mon 2026-06-15 (delivery Wed 6/17, Sat market 6/20).
+  assertEqual(at('2026-06-15T09:00:00-04:00'), '2026-06-15', 'Mon → this week');
+  assertEqual(at('2026-06-16T09:00:00-04:00'), '2026-06-15', 'Tue → this week');
+  // THE BUG: on delivery Wednesday it must be 6/15, not 6/22.
+  assertEqual(at('2026-06-17T09:00:00-04:00'), '2026-06-15', 'Wed (delivery) → THIS week');
+  assertEqual(at('2026-06-17T18:00:00-04:00'), '2026-06-15', 'Wed evening → THIS week');
+  assertEqual(at('2026-06-18T09:00:00-04:00'), '2026-06-15', 'Thu → still this week');
+  assertEqual(at('2026-06-20T09:00:00-04:00'), '2026-06-15', 'Sat market → still this week');
+  assertEqual(at('2026-06-21T22:00:00-04:00'), '2026-06-15', 'Sun night → still this week');
+  // Rolls to the next week on Monday, when the new cycle begins.
+  assertEqual(at('2026-06-22T06:00:00-04:00'), '2026-06-22', 'next Mon → next week');
+  // Contrast: upcomingMonday() WAS wrong on the delivery Wednesday.
+  assertEqual(upcomingMonday(new Date('2026-06-17T09:00:00-04:00')), '2026-06-22',
+    'upcomingMonday rolled to NEXT week on delivery Wed — the bug we are fixing');
 });
 
 // ═══ Hold overlap (proven indirectly via the integration of the rule) ══

@@ -155,6 +155,10 @@ const opensLabel = beforeOpen
   : '';
 
 // ─── Catalog for the week (service-role: includes coming-soon teasers). ─
+// Photo resolves LIBRARY-FIRST (product_library.photo_url ?? own photo_url) so
+// a photo set once on the shared library row shows here too — mirrors the
+// wholesale chef page (order/[token].astro). Unlinked items (library_id null)
+// keep their own photo_url, so nothing loses a photo.
 type CatalogRow = {
   id: string;
   name: string;
@@ -167,10 +171,15 @@ type CatalogRow = {
   is_active: boolean;
   coming_soon: boolean;
   is_featured: boolean;
+  library_id: string | null;
+  library: { photo_url: string | null } | null;
 };
 const { data: catalogRows, error: catErr } = await supabaseAdmin
   .from('flex_inventory')
-  .select('id, name, category, unit, price_cents, remaining_qty, photo_url, description, is_active, coming_soon, is_featured')
+  .select(
+    'id, name, category, unit, price_cents, remaining_qty, photo_url, description, is_active, coming_soon, is_featured, library_id, ' +
+    'library:product_library ( photo_url )'
+  )
   .eq('cycle_code', 'WEEKLY')
   .eq('week_starting', week)
   .order('price_cents', { ascending: true })
@@ -179,7 +188,11 @@ const { data: catalogRows, error: catErr } = await supabaseAdmin
 if (catErr) {
   console.error('[account/flex-order] catalog fetch failed:', catErr.message);
 }
-const allItems = catalogRows ?? [];
+// Resolve each item's display photo library-first, then own (coalesce).
+const allItems = (catalogRows ?? []).map((i) => ({
+  ...i,
+  photo_url: i.library?.photo_url ?? i.photo_url ?? null,
+}));
 // Orderable = active and NOT a coming-soon teaser.
 const orderable = allItems.filter((i) => i.is_active && !i.coming_soon);
 const comingSoon = allItems.filter((i) => i.coming_soon);
@@ -355,7 +368,7 @@ const pickupPhrase = isWeekendMarketMember
   ? `Pick up your box ${pickupDayLong ? `on ${pickupDayLong}` : 'at the market'} at your stop.`
   : 'Pick up your box on Wednesday at your stop.';
 // Empty-state window phrasing ("open Thursday and close <member cutoff>").
-const emptyStateCloseCopy = isWeekendMarketMember ? 'Wednesday midnight' : 'Tuesday 8 AM';
+const emptyStateCloseCopy = isWeekendMarketMember ? 'Thursday 6 AM' : 'Tuesday 6 AM';
 ---
 
 <MemberShell

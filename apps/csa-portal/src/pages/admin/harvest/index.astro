@@ -4,11 +4,11 @@
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
-import { mondayOfWeek, upcomingMonday } from '../../../lib/cycle';
+import { currentDeliveryWeek } from '../../../lib/cycle';
 import { weekOptions } from '../../../lib/cycle-ui';
 
 const options = weekOptions();
-const defaultWeek = mondayOfWeek(upcomingMonday());
+const defaultWeek = currentDeliveryWeek();
 ---
 
 <AdminShell

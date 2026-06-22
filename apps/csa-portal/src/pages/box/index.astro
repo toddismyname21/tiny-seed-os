@@ -179,6 +179,12 @@ type BoxItem = {
   unit: string;
   is_swappable: boolean;
   swap_options: string[] | null;
+  // box_contents has NO own photo column — the photo comes purely from the
+  // linked product_library row (the single source of truth). library_id is
+  // nullable; when null (or unlinked / no library photo) we render no photo
+  // and fall back to the existing text-only line.
+  library_id: string | null;
+  library: { photo_url: string | null } | null;
 };
 
 // box_contents is published by SIZE bucket for veg ('small'/'family'/'large'),
@@ -195,7 +201,10 @@ let boxItems: BoxItem[] = [];
 if (queryShareTypes.length > 0) {
   const { data: rows, error: boxErr } = await supabase
     .from('box_contents')
-    .select('share_type, product_name, variety, quantity, unit, is_swappable, swap_options')
+    .select(
+      'share_type, product_name, variety, quantity, unit, is_swappable, swap_options, library_id, ' +
+      'library:product_library ( photo_url )'
+    )
     .eq('week_date', boxContentsWeek)
     .in('share_type', queryShareTypes)
     .order('share_type', { ascending: true })
@@ -494,6 +503,7 @@ const boxNotPosted = !noShare && boxItems.length === 0;
                         variety={item.variety}
                         quantity={item.quantity}
                         unit={item.unit}
+                        photoUrl={item.library?.photo_url ?? null}
                         swappable={item.is_swappable}
                         swapped={swappedFor}
                         swapDisabled={disabled}

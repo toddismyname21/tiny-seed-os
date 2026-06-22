@@ -26,8 +26,8 @@
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
 import {
-  resolveCycle, mondayOfWeek, upcomingMonday, prettyWeekHeader,
-  HOME_DELIVERY_BUCKET_ID,
+  resolveCycle, mondayOfWeek, prettyWeekHeader,
+  HOME_DELIVERY_BUCKET_ID, currentDeliveryWeek,
 } from '../../../lib/cycle';
 import { weekOptions } from '../../../lib/cycle-ui';
 
@@ -36,7 +36,10 @@ const supabase = Astro.locals.supabase;
 const wkParam = Astro.url.searchParams.get('week') ?? '';
 const week_starting = wkParam && /^\d{4}-\d{2}-\d{2}$/.test(wkParam)
   ? mondayOfWeek(wkParam)
-  : mondayOfWeek(upcomingMonday());
+  // Default to the CURRENT delivery week (today's week), NOT the upcoming one.
+  // On a delivery Wednesday, upcomingMonday() rolled forward to NEXT week,
+  // which showed the driver next week's roster/numbers (Todd 2026-06-17 incident).
+  : currentDeliveryWeek();
 
 const cycle = await resolveCycle(supabase, week_starting);
 const options = weekOptions();

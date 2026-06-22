@@ -29,6 +29,16 @@ import { RESEND_API_KEY, RESEND_FROM_EMAIL } from 'astro:env/server';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { isYMD, isPastCutoff, isBeforeOpen, prettyWeek, closeLabel } from '../../../../lib/flex-order';
 import { getFlexBalance } from '../../../../lib/flex';
+import {
+  getCustomerGidByEmail,
+  getStoreCreditAccount,
+  debitStoreCredit,
+  issueStoreCreditDelta,
+} from '../../../../lib/shopify';
+// Service-role client for the flex_transactions ledger: RLS lets members READ
+// their own rows but only admins INSERT, so the debit/refund audit rows must be
+// written with the service role (the member-scoped client's insert is rejected).
+import { supabaseAdmin } from '../../../../lib/supabase';
 import { resolveMemberPickup, resolveFlexMemberPickupDay } from '../../../../lib/account';
 import { sendFlexOrderConfirmation, type FlexOrderEmailLine } from '../../../../lib/flex-order-email';
 
@@ -120,10 +130,23 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   if (!member) return redirect(back('error', 'forbidden'), 303);
   if (member.share_type !== 'flex') return redirect(back('error', 'not_flex'), 303);
 
-  // ── Live flex balance → cents (Phase-1 cap input). ──────────────────
-  // getFlexBalance returns dollars; null when Shopify has no customer/credit.
+  // ── Live flex balance → cents (cap input). ─────────────────────────
+  // getFlexBalance returns LIVE Shopify store-credit dollars. We DEBIT at order
+  // (below), so an EDIT must add back what was already charged for THIS
+  // (member, week) — otherwise editing UP would be wrongly capped. `priorNet`
+  // = net already debited for this order (debits − refunds), from our ledger.
+  const orderRef = `flexorder:${memberId}:${week}`;
   const balance = await getFlexBalance(user.email);
-  const balanceCents = balance ? Math.round(balance.total * 100) : 0;
+  const { data: priorTxns } = await supabaseAdmin
+    .from('flex_transactions')
+    .select('type, amount')
+    .eq('order_id', orderRef);
+  const priorNet = (priorTxns ?? []).reduce(
+    (s: number, t: { type: string; amount: number | string }) =>
+      s + (t.type === 'debit' ? Number(t.amount) : -Number(t.amount)),
+    0,
+  );
+  const balanceCents = Math.round(((balance ? balance.total : 0) + priorNet) * 100);
 
   // ── Place the order atomically. ─────────────────────────────────────
   const { data: rpcData, error: rpcErr } = await locals.supabase.rpc('place_flex_order', {
@@ -152,6 +175,43 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', known.has(code) ? code : 'submit_failed'), 303);
   }
 
+  // ── DEBIT store credit to match the cart total (Todd 2026-06-18) ────
+  // The order is placed PENDING (pending already packs — labels/manifest/
+  // pack-check all include it). Historically the balance was only CAPPED, never
+  // debited, so balances never dropped. We debit AT ORDER (assume fulfillment;
+  // unfulfilled → reverse). We do NOT lock — locking would break the RPC's
+  // pending-restock edit flow. RECONCILE to the current total so net charged
+  // for (member, week) always == the current cart → edits/re-submits are
+  // idempotent (no double-charge). Fail-soft: a Shopify hiccup must not turn a
+  // placed order into an error; the backfill/retry reconciles.
+  const targetDollars = Math.round((rpcData as { total_cents?: number }).total_cents ?? 0) / 100;
+  const delta = Math.round((targetDollars - priorNet) * 100) / 100;
+  if (Math.abs(delta) >= 0.01) {
+    try {
+      const gid = await getCustomerGidByEmail(user.email);
+      const account = gid ? await getStoreCreditAccount(gid) : null;
+      if (gid && account) {
+        if (delta > 0) {
+          await debitStoreCredit(account.accountId, delta);
+          await supabaseAdmin.from('flex_transactions').insert({
+            member_id: memberId, email: user.email, type: 'debit',
+            amount: delta, reason: `Flex order — week of ${week}`, order_id: orderRef,
+          });
+        } else {
+          await issueStoreCreditDelta(gid, -delta);
+          await supabaseAdmin.from('flex_transactions').insert({
+            member_id: memberId, email: user.email, type: 'refund',
+            amount: -delta, reason: `Flex order reduced — week of ${week}`, order_id: orderRef,
+          });
+        }
+      } else {
+        console.error('[flex submit] no store-credit account for', user.email, '— debit skipped');
+      }
+    } catch (e) {
+      console.error('[flex submit] store-credit reconcile failed:', e instanceof Error ? e.message : e);
+    }
+  }
+
   // ── Confirmation email (Tony 2026-06-12: "I didn't get a confirmation
   //    email"). Best-effort + fail-soft — the order is already placed; nothing
   //    below may block or change that. We re-query the now-PENDING order joined
@@ -168,7 +228,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       total_cents: number | null;
       flex_inventory: { name: string; price_cents: number } | null;
     };
-    const { data: placedRows } = await locals.supabase
+    const { data: placedRows } = await supabaseAdmin
       .from('flex_orders')
       .select('qty, unit_price_cents, total_cents, flex_inventory:flex_inventory ( name, price_cents )')
       .eq('member_id', memberId)

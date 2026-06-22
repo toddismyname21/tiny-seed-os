@@ -32,13 +32,14 @@ export function weekOptions(now: Date = new Date()): WeekOption[] {
   // -1 past week through +3 upcoming
   for (let offset = -1; offset <= 3; offset += 1) {
     const wk = addDays(thisMon, offset * 7);
-    let suffix = '';
-    if (offset === 0) suffix = ' (this week)';
-    else if (offset === 1) suffix = ' (next week)';
-    else if (offset === -1) suffix = ' (last week)';
+    // Date-RANGE label — no ambiguous "this/last/next week" (Todd 2026-06-18).
+    // A CSA week runs Mon–Sun and has FOUR pickup days (Tue Lawrenceville,
+    // Wed delivery, Sat markets, Sun South Side), so we name the whole range
+    // rather than implying a single Wednesday.
+    const sun = addDays(wk, 6);
     out.push({
       value: wk,
-      label: `Week of ${prettyShortDate(wk).replace(/^[A-Za-z]+, /, '')}${suffix}`,
+      label: `Week of ${prettyShortDate(wk).replace(/^[A-Za-z]+, /, '')} – ${prettyShortDate(sun).replace(/^[A-Za-z]+, /, '')}`,
     });
   }
   return out;

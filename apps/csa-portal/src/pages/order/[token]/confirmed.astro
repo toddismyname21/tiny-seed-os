@@ -18,12 +18,18 @@ const token = Astro.params.token ?? '';
 const orderId = Astro.url.searchParams.get('o') ?? '';
 
 // ─── Resolve the account by token (the gate) ────────────────────────
-type AccountRow = { id: string; restaurant_name: string };
+type AccountRow = {
+  id: string;
+  restaurant_name: string;
+  contact_name: string | null;
+  address: string | null;
+  delivery_instructions: string | null;
+};
 let account: AccountRow | null = null;
 if (token.trim() !== '') {
   const { data } = await supabaseAdmin
     .from('wholesale_accounts')
-    .select('id, restaurant_name')
+    .select('id, restaurant_name, contact_name, address, delivery_instructions')
     .eq('order_token', token)
     .maybeSingle()
     .overrideTypes<AccountRow, { merge: false }>();
@@ -61,6 +67,18 @@ if (order) {
 
 const ok = !!(account && order);
 const deliveryLabel = order ? prettyDeliveryDate(order.delivery_date) : '';
+
+// Profile-completeness nudge: if any of contact name / address / delivery
+// instructions is missing, prompt the chef to finish their delivery info so we
+// "get every drop right". Only shown on a successful confirmation.
+const isComplete = (v: string | null | undefined) => !!(v && v.trim() !== '');
+const profileIncomplete =
+  ok &&
+  !(
+    isComplete(account!.contact_name) &&
+    isComplete(account!.address) &&
+    isComplete(account!.delivery_instructions)
+  );
 ---
 
 <BaseLayout
@@ -70,6 +88,25 @@ const deliveryLabel = order ? prettyDeliveryDate(order.delivery_date) : '';
   <main class="mx-auto max-w-2xl px-4 py-10">
     {ok ? (
       <>
+        {profileIncomplete && (
+          <div class="mb-6 rounded-ts-lg border border-ts-warning/40 bg-ts-warning/10 px-5 py-5 shadow-ts-sm sm:flex sm:items-center sm:justify-between sm:gap-5">
+            <div class="min-w-0">
+              <h2 class="font-display text-lg font-bold text-ts-text">
+                <span aria-hidden="true">👋</span> One quick thing →
+              </h2>
+              <p class="mt-1 text-sm text-ts-text-secondary">
+                Add your delivery hours &amp; instructions so we get every drop right.
+              </p>
+            </div>
+            <a
+              href={`/order/${token}/account`}
+              class="mt-4 inline-flex h-12 w-full shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:mt-0 sm:w-auto"
+            >
+              Finish my delivery info
+            </a>
+          </div>
+        )}
+
         <div class="rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5 px-6 py-8 text-center shadow-ts-sm">
           <p class="text-5xl" aria-hidden="true">✅</p>
           <h1 class="mt-3 font-display text-3xl font-bold text-ts-text">Order in!</h1>

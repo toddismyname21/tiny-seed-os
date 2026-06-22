@@ -36,6 +36,12 @@ interface Props {
   timeRange?: string | null;
   /** City line (pickup mode), optional. */
   city?: string | null;
+  /** Street address (pickup mode), optional. */
+  address?: string | null;
+  /** State (pickup mode), optional. */
+  state?: string | null;
+  /** ZIP (pickup mode), optional. */
+  zip?: string | null;
   /** Delivery address (delivery mode). */
   deliveryAddress?: string | null;
   /**
@@ -60,6 +66,9 @@ const {
   dayLong = null,
   timeRange = null,
   city = null,
+  address = null,
+  state = null,
+  zip = null,
   deliveryAddress = null,
   pickupInstructions = null,
   hostName = null,
@@ -101,6 +110,23 @@ const {
               <p class="mt-0.5 text-sm text-ts-text-secondary">
                 {[city, timeRange].filter(Boolean).join(' · ')}
               </p>
+            )}
+            {address && (
+              <p class="mt-0.5 text-sm text-ts-text-secondary">
+                {address}
+                <br />
+                {`${[city, state].filter(Boolean).join(', ')} ${zip ?? ''}`.trim()}
+              </p>
+            )}
+            {address && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([locationName, address, city, state, zip].filter(Boolean).join(', '))}`}
+                target="_blank"
+                rel="noopener"
+                class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                🧭 Get directions
+              </a>
             )}
           </>
         )}

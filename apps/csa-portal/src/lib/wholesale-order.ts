@@ -12,7 +12,7 @@
  *     the week; otherwise next week's). We anchor on the UPCOMING Monday in ET
  *     and take +2 days, which lands on the correct Wednesday in both cases.
  *     (Note: through Jul 1 2026 delivery is Wednesday.)
- *   - Edit cutoff for that Wednesday delivery is the SUNDAY before, 8 PM ET.
+ *   - Edit cutoff for that Wednesday delivery is the TUESDAY before, 7 AM ET.
  */
 
 /* ──────────────────────────────────────────────────────────────────
@@ -74,14 +74,16 @@ export function nextDeliveryWednesday(now: Date = new Date()): string {
   return addDaysYMD(upcomingMondayET(now), 2);
 }
 
-/** The edit-cutoff calendar date ('YYYY-MM-DD') = the Sunday before delivery
- *  = upcoming Monday − 1 day. (The cutoff TIME is 8 PM ET — see CUTOFF_LABEL.) */
+/** The edit-cutoff calendar date ('YYYY-MM-DD') = the Tuesday before delivery,
+ *  7 AM ET cutoff = the Wednesday delivery date − 1 day. (The cutoff TIME is
+ *  7 AM ET — see CUTOFF_LABEL.) Name kept as `editCutoffSunday` for import
+ *  back-compat. */
 export function editCutoffSunday(now: Date = new Date()): string {
-  return addDaysYMD(upcomingMondayET(now), -1);
+  return addDaysYMD(nextDeliveryWednesday(now), -1);
 }
 
 /** Human edit-cutoff label for chef copy + the confirmation email. */
-export const CUTOFF_LABEL = 'Sunday 8 PM';
+export const CUTOFF_LABEL = 'Tuesday 7 AM';
 
 /** Validate a 'YYYY-MM-DD' string shape. */
 export function isYMD(s: string): boolean {

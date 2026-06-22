@@ -276,7 +276,7 @@ const movedInMembers: CycleMember[] = cycle.members
         { href: `/admin/harvest/${week_starting}?day=thu`,    label: 'Harvest list — Thu', icon: '🌾' },
         { href: `/admin/pack-sheet/${week_starting}?day=wed`, label: 'Pack sheet (Wed)', icon: '📋' },
         { href: `/admin/vendor-orders/${week_starting}`,      label: 'Vendor orders', icon: '🤝' },
-        { href: `/admin/box-plan/${week_starting}`,           label: 'Box plan editor', icon: '📦' },
+        { href: `/admin/box-contents?week=${week_starting}`,  label: 'Box editor', icon: '📦' },
       ].map((link) => (
         <a
           href={link.href}

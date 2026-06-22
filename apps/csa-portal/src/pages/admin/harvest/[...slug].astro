@@ -16,10 +16,11 @@
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
 import {
-  resolveCycle, prettyWeekHeader, prettyShortDate,
-  mondayOfWeek, isMonday,
-  type CycleMember, type BoxContentLine,
+  resolveCycle, prettyWeekHeader,
+  mondayOfWeek, isMonday, addDays,
+  type CycleMember,
 } from '../../../lib/cycle';
+import { formatCents, categoryEmoji } from '../../../lib/flex-order';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -91,6 +92,195 @@ const rows = Array.from(harvestMap.values()).sort((a, b) => {
   if (b.box_qty !== a.box_qty) return b.box_qty - a.box_qty;
   return a.crop.localeCompare(b.crop);
 });
+
+// ─── Flex à-la-carte to harvest FOR THE SELECTED DAY ONLY ──────────
+// Flex orders are placed per-member; a member's flex items must be picked on
+// the same harvest day as the member's box. Build member_id → harvest day:
+//   Tue + Wed distributions  → Mon harvest
+//   Sat distribution         → Thu harvest
+// Then keep only the flex orders whose member maps to the current dayTab.
+const memberHarvestDay = new Map<string, 'mon' | 'thu'>();
+for (const d of ['Tue', 'Wed'] as const) {
+  for (const m of cycle.byDistributionDay.get(d) ?? []) memberHarvestDay.set(m.id, 'mon');
+}
+for (const m of cycle.byDistributionDay.get('Sat') ?? []) memberHarvestDay.set(m.id, 'thu');
+
+interface FlexOrderRow {
+  member_id: string;
+  qty: number;
+  flex_inventory: {
+    name: string | null;
+    photo_url: string | null;
+    category: string | null;
+    library: { photo_url: string | null } | null;
+  } | null;
+}
+const { data: flexOrderRows, error: flexOrderErr } = await supabase
+  .from('flex_orders')
+  .select(
+    'member_id, qty, ' +
+    'flex_inventory:flex_inventory ( name, photo_url, category, library:product_library ( photo_url ) )',
+  )
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week_starting)
+  .in('status', ['pending', 'locked', 'fulfilled'])
+  .overrideTypes<FlexOrderRow[], { merge: false }>();
+if (flexOrderErr) {
+  throw new Error(`harvest: flex_orders fetch failed: ${flexOrderErr.message}`);
+}
+
+// Aggregate flex item → qty (+ library-first photo), scoped to this harvest
+// day. Skip the base share line ("…CSA Share…") — that's the box subscription,
+// not a crop to pick.
+interface FlexAggRow { qty: number; photo: string | null; category: string | null; }
+const flexMap = new Map<string, FlexAggRow>();
+for (const fo of flexOrderRows ?? []) {
+  if (memberHarvestDay.get(fo.member_id) !== dayTab) continue;
+  const name = fo.flex_inventory?.name?.trim();
+  if (!name) continue;
+  if (/CSA Share/i.test(name)) continue;
+  // Photo precedence: product_library.photo_url → flex_inventory.photo_url.
+  const photo = fo.flex_inventory?.library?.photo_url ?? fo.flex_inventory?.photo_url ?? null;
+  const existing = flexMap.get(name);
+  if (existing) {
+    existing.qty += Number(fo.qty) || 0;
+    if (!existing.photo && photo) existing.photo = photo;
+  } else {
+    flexMap.set(name, { qty: Number(fo.qty) || 0, photo, category: fo.flex_inventory?.category ?? null });
+  }
+}
+const flexRows = Array.from(flexMap.entries())
+  .map(([name, agg]) => ({ name, qty: agg.qty, photo: agg.photo, category: agg.category }))
+  .filter((r) => r.qty > 0)
+  .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name));
+
+// ─── Box-crop photos (best-effort) ─────────────────────────────────
+// Box crops are plain strings; only some are library-linked. Build a
+// lowercase product_library name → photo map and look up per box crop.
+// A miss is fine (no thumb) — most box crops won't resolve, by design.
+interface LibPhotoRow { name: string; photo_url: string | null; category: string | null; }
+const { data: libPhotoRows } = await supabase
+  .from('product_library')
+  .select('name, photo_url, category')
+  .not('photo_url', 'is', null)
+  .overrideTypes<LibPhotoRow[], { merge: false }>();
+const libPhotoByName = new Map<string, { photo: string; category: string | null }>();
+for (const lp of libPhotoRows ?? []) {
+  const key = lp.name?.trim().toLowerCase();
+  if (!key || !lp.photo_url) continue;
+  if (!libPhotoByName.has(key)) libPhotoByName.set(key, { photo: lp.photo_url, category: lp.category });
+}
+/** Library-first photo for a box crop name; null if it doesn't resolve. */
+function boxCropPhoto(crop: string): string | null {
+  return libPhotoByName.get(crop.trim().toLowerCase())?.photo ?? null;
+}
+
+// ─── Wholesale orders delivering THIS week (real ordered quantities) ─
+// Orders with delivery_date in [week_starting, week_starting+6d] and
+// status='submitted'. Attribute to a harvest-day tab by delivery DOW:
+//   Wed(3)        → Monday tab (wholesale rides the Wed CSA delivery)
+//   Fri(5)/Sat(6) → Thursday tab
+//   anything else → Monday tab (default)
+const weekEnd = addDays(week_starting, 6);
+/** DOW (0=Sun…6=Sat) of a YYYY-MM-DD date, parsed as UTC (TZ-safe). */
+function dowOfYMD(ymd: string): number {
+  const [y, mo, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, (mo || 1) - 1, d || 1)).getUTCDay();
+}
+function wholesaleTabFor(deliveryDate: string): 'mon' | 'thu' {
+  const dow = dowOfYMD(deliveryDate);
+  return dow === 5 || dow === 6 ? 'thu' : 'mon';
+}
+
+interface WholesaleItemRow {
+  product_name: string | null;
+  qty: number;
+  product: {
+    unit: string | null;
+    photo_url: string | null;
+    library: { photo_url: string | null } | null;
+  } | null;
+}
+interface WholesaleOrderRow {
+  id: string;
+  delivery_date: string;
+  items: WholesaleItemRow[] | null;
+}
+const { data: wholesaleOrderRows, error: wholesaleErr } = await supabase
+  .from('wholesale_orders')
+  .select(
+    'id, delivery_date, ' +
+    'items:wholesale_order_items ( product_name, qty, ' +
+      'product:wholesale_products ( unit, photo_url, library:product_library ( photo_url ) ) )',
+  )
+  .eq('status', 'submitted')
+  .gte('delivery_date', week_starting)
+  .lte('delivery_date', weekEnd)
+  .overrideTypes<WholesaleOrderRow[], { merge: false }>();
+if (wholesaleErr) {
+  throw new Error(`harvest: wholesale_orders fetch failed: ${wholesaleErr.message}`);
+}
+
+// Aggregate by product_name + unit → total qty, scoped to this harvest tab.
+interface WholesaleAggRow { product: string; unit: string; qty: number; photo: string | null; }
+const wholesaleMap = new Map<string, WholesaleAggRow>();
+let wholesaleHasOther = false; // any rows on the OTHER tab (drives note copy)
+for (const o of wholesaleOrderRows ?? []) {
+  const tab = wholesaleTabFor(o.delivery_date);
+  for (const it of o.items ?? []) {
+    const name = it.product_name?.trim();
+    if (!name) continue;
+    if (tab !== dayTab) { wholesaleHasOther = true; continue; }
+    const unit = it.product?.unit?.trim() || 'each';
+    const photo = it.product?.library?.photo_url ?? it.product?.photo_url ?? null;
+    const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
+    const existing = wholesaleMap.get(key);
+    if (existing) {
+      existing.qty += Number(it.qty) || 0;
+      if (!existing.photo && photo) existing.photo = photo;
+    } else {
+      wholesaleMap.set(key, { product: name, unit, qty: Number(it.qty) || 0, photo });
+    }
+  }
+}
+const wholesaleRows = Array.from(wholesaleMap.values())
+  .filter((r) => r.qty > 0)
+  .sort((a, b) => b.qty - a.qty || a.product.localeCompare(b.product));
+// Which delivery day this tab represents for wholesale (note copy).
+const wholesaleDayLabel = dayTab === 'mon' ? 'Wed' : 'Fri/Sat';
+
+// ─── Market offerings — what to bring to the stall this week ────────
+// No computed harvest qty (it's the farmer's estimate) — just list what's
+// going to market so the team harvests for it. Keyed on the cycle Monday.
+interface MarketOfferingRow {
+  id: string;
+  name: string | null;
+  unit: string;
+  price_cents: number;
+  library: { name: string | null; photo_url: string | null; category: string | null } | null;
+}
+const { data: marketOfferingRows, error: marketErr } = await supabase
+  .from('market_offerings')
+  .select(
+    'id, name, unit, price_cents, ' +
+    'library:product_library ( name, photo_url, category )',
+  )
+  .eq('week_starting', week_starting)
+  .eq('is_active', true)
+  .order('sort_order', { ascending: true })
+  .order('price_cents', { ascending: true })
+  .overrideTypes<MarketOfferingRow[], { merge: false }>();
+if (marketErr) {
+  throw new Error(`harvest: market_offerings fetch failed: ${marketErr.message}`);
+}
+const marketRows = (marketOfferingRows ?? []).map((o) => ({
+  id: o.id,
+  name: o.name ?? o.library?.name ?? 'Untitled product',
+  unit: o.unit,
+  price_cents: o.price_cents,
+  photo: o.library?.photo_url ?? null,
+  category: o.library?.category ?? null,
+}));
 
 const totalDistinctCrops = rows.length;
 const totalBoxesThisHarvest = membersForHarvest.filter((m) => m.share_type === 'summer_veg').length;
@@ -172,7 +362,7 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
       <Card tone="muted" padding="lg" elevation="sm">
         <p class="text-center text-sm text-ts-text-secondary">
           No box plan is published for this week yet — nothing to harvest.
-          Set this week's contents at <a href={`/admin/box-plan/${week_starting}`} class="font-semibold text-ts-primary hover:underline">Box plan</a>.
+          Set this week's contents at <a href={`/admin/box-contents?week=${week_starting}`} class="font-semibold text-ts-primary hover:underline">the box editor</a>.
         </p>
       </Card>
     ) : (
@@ -189,9 +379,19 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
           <tbody class="divide-y divide-ts-border/60">
             {rows.map((row) => {
               const total = row.box_qty + row.flex_qty;
+              const thumb = boxCropPhoto(row.crop);
               return (
                 <tr>
-                  <td class="px-5 py-3 text-sm font-medium text-ts-text">{row.crop}</td>
+                  <td class="px-5 py-3 text-sm font-medium text-ts-text">
+                    <span class="flex items-center gap-3">
+                      {thumb && (
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface">
+                          <img src={thumb} alt="" width="40" height="40" loading="lazy" class="h-full w-full object-cover" />
+                        </span>
+                      )}
+                      <span>{row.crop}</span>
+                    </span>
+                  </td>
                   <td class="px-5 py-3 text-right text-base font-bold tabular-nums text-ts-text">{total.toLocaleString()}</td>
                   <td class="px-5 py-3 text-sm text-ts-text-secondary">{row.unit}</td>
                   <td class="px-5 py-3 text-xs text-ts-text-secondary">
@@ -210,8 +410,152 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
 
     <p class="text-xs text-ts-text-muted">
       Box totals reflect each member's resolved composition (default plan + locked swaps + allergy subs).
-      Flex orders are tracked separately ({cycle.flexOrderTotals.order_count} flex lines this cycle —
-      Phase-1 caveat: flex inventory names aren't yet mapped to crops, so they're not split into the breakdown column).
+      Flex à-la-carte items are listed in their own section below, split by harvest day (this {dayTab === 'mon' ? 'Monday' : 'Thursday'} tab).
+      The base "CSA Share" flex line is excluded (it's the box subscription, not a crop to pick).
+    </p>
+  </section>
+
+  {/* ── Flex à-la-carte (this harvest day) ───────────────────────── */}
+  <section aria-labelledby="flex-table-heading" class="flex flex-col gap-3">
+    <h2 id="flex-table-heading" class="font-display text-xl font-bold text-ts-text">
+      Flex à-la-carte (this day)
+    </h2>
+    {flexRows.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <p class="text-center text-sm text-ts-text-secondary">No flex orders for this day.</p>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <table class="w-full text-left">
+          <thead class="border-b border-ts-border bg-ts-bg-muted/30">
+            <tr>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Item</th>
+              <th class="px-5 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Qty</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border/60">
+            {flexRows.map((row) => (
+              <tr>
+                <td class="px-5 py-3 text-sm font-medium text-ts-text">
+                  <span class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg">
+                      {row.photo
+                        ? <img src={row.photo} alt="" width="40" height="40" loading="lazy" class="h-full w-full object-cover" />
+                        : <span aria-hidden="true">{categoryEmoji(row.category)}</span>}
+                    </span>
+                    <span>{row.name}</span>
+                  </span>
+                </td>
+                <td class="px-5 py-3 text-right text-base font-bold tabular-nums text-ts-text">{row.qty.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    )}
+  </section>
+
+  {/* ── Wholesale orders (real ordered quantities, this delivery day) ─ */}
+  <section aria-labelledby="wholesale-table-heading" class="flex flex-col gap-3">
+    <h2 id="wholesale-table-heading" class="font-display text-xl font-bold text-ts-text">
+      Wholesale orders
+      <span class="ml-2 align-middle text-xs font-medium text-ts-text-muted">wholesale — {wholesaleDayLabel} delivery</span>
+    </h2>
+    {wholesaleRows.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <p class="text-center text-sm text-ts-text-secondary">
+          No wholesale orders for this week's {dayTab === 'mon' ? 'Wednesday' : 'Friday/Saturday'} delivery.
+          {wholesaleHasOther && (
+            <> Orders exist on the {dayTab === 'mon' ? 'Thursday' : 'Monday'} tab.</>
+          )}
+        </p>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <table class="w-full text-left">
+          <thead class="border-b border-ts-border bg-ts-bg-muted/30">
+            <tr>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Product</th>
+              <th class="px-5 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Total qty</th>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Unit</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border/60">
+            {wholesaleRows.map((row) => (
+              <tr>
+                <td class="px-5 py-3 text-sm font-medium text-ts-text">
+                  <span class="flex items-center gap-3">
+                    {row.photo ? (
+                      <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface">
+                        <img src={row.photo} alt="" width="40" height="40" loading="lazy" class="h-full w-full object-cover" />
+                      </span>
+                    ) : (
+                      <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg" aria-hidden="true">🍽️</span>
+                    )}
+                    <span>{row.product}</span>
+                  </span>
+                </td>
+                <td class="px-5 py-3 text-right text-base font-bold tabular-nums text-ts-text">{row.qty.toLocaleString()}</td>
+                <td class="px-5 py-3 text-sm text-ts-text-secondary">{row.unit}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    )}
+    <p class="text-xs text-ts-text-muted">
+      Real ordered quantities from chef wholesale orders delivering this week (status submitted).
+      Wednesday deliveries show on the Monday tab; Friday/Saturday deliveries on the Thursday tab.
+    </p>
+  </section>
+
+  {/* ── Selling at market (what to bring — qty is the farmer's call) ── */}
+  <section aria-labelledby="market-table-heading" class="flex flex-col gap-3">
+    <h2 id="market-table-heading" class="font-display text-xl font-bold text-ts-text">
+      Selling at market
+      <span class="ml-2 align-middle text-xs font-medium text-ts-text-muted">bring to market</span>
+    </h2>
+    {marketRows.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <p class="text-center text-sm text-ts-text-secondary">
+          Nothing is listed for market this week —
+          set the stall list at <a href={`/admin/market`} class="font-semibold text-ts-primary hover:underline">Market list</a>.
+        </p>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <table class="w-full text-left">
+          <thead class="border-b border-ts-border bg-ts-bg-muted/30">
+            <tr>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Product</th>
+              <th class="px-5 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Unit</th>
+              <th class="px-5 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Price</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border/60">
+            {marketRows.map((row) => (
+              <tr>
+                <td class="px-5 py-3 text-sm font-medium text-ts-text">
+                  <span class="flex items-center gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg">
+                      {row.photo
+                        ? <img src={row.photo} alt="" width="40" height="40" loading="lazy" class="h-full w-full object-cover" />
+                        : <span aria-hidden="true">{categoryEmoji(row.category)}</span>}
+                    </span>
+                    <span>{row.name}</span>
+                  </span>
+                </td>
+                <td class="px-5 py-3 text-sm text-ts-text-secondary">{row.unit}</td>
+                <td class="px-5 py-3 text-right text-sm font-semibold tabular-nums text-ts-text">{formatCents(row.price_cents)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    )}
+    <p class="text-xs text-ts-text-muted">
+      Listed for the farmers-market stall this week. No harvest quantity is shown —
+      bring what you judge the stall needs. Set the list at <a href={`/admin/market`} class="font-semibold text-ts-primary hover:underline">Market list</a>.
     </p>
   </section>
 </AdminShell>
