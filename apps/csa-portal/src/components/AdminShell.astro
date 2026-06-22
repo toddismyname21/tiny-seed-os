@@ -1,23 +1,35 @@
 ---
 /**
  * AdminShell — wraps every /admin/* page with a consistent top bar +
- * left/top nav.
+ * grouped navigation.
  *
- * Layout: full-bleed background, a sticky header with breadcrumbs +
- * sign-out, and a content container max-w-7xl. Admin views are
- * desktop-first (we showed Todd manages from his laptop), but the
- * shell still works on mobile via a horizontally scrolling nav strip.
+ * Layout: full-bleed background, a sticky top bar (logo, account, search,
+ * sign-out) and a sticky LEFT SIDEBAR with the 28 admin destinations
+ * organised into 6 task groups (plus a standalone Home link). The sidebar
+ * scrolls independently of the page body. On narrow screens the sidebar is
+ * hidden behind a hamburger button and slides in as a drawer over a dimmed
+ * backdrop (Escape / backdrop tap to close).
  *
- * Nav items: Home, Members, Share list, Pickup locations, Reports, etc.
- * The active item is highlighted by comparing `Astro.url.pathname`
- * against each nav entry's `match` prefix.
+ * Navigation:
+ *   - Every destination from the old flat strip is preserved (same href,
+ *     label, icon, match). Items are regrouped into labelled, collapsible
+ *     <details> sections. The group containing the active page is expanded
+ *     on load.
+ *   - A Cmd/Ctrl+K command palette (also reachable via the "Search…" button
+ *     in the top bar) fuzzy-filters every nav item by label, with arrow-key
+ *     + Enter navigation. Dependency-free vanilla JS.
  *
- * Sign-out is a POST to /logout (same pattern as the dashboard
- * header) so server-side session cookies actually clear.
+ * The active item is highlighted by comparing `Astro.url.pathname` against
+ * each nav entry's `match` prefix.
+ *
+ * Sign-out is a POST to /logout (same pattern as the dashboard header) so
+ * server-side session cookies actually clear.
  *
  * Props:
  *   - title      Page title (rendered in <h1> within the breadcrumb).
  *   - subtitle   Optional one-line description rendered below the h1.
+ *   - pageTitle  Optional override for the <title> / BaseLayout title.
+ *   - canonical  Optional canonical URL forwarded to BaseLayout.
  *
  * Slots:
  *   - default    Page body.
@@ -50,36 +62,82 @@ interface NavItem {
   icon: string;
 }
 
-const navItems: NavItem[] = [
-  { href: '/admin',                   label: 'Home',          match: '/admin',                  icon: '🏠' },
-  { href: '/admin/products',          label: 'Products',      match: '/admin/products',         icon: '📦' },
-  { href: '/admin/pack-day',          label: 'Pack day',      match: '/admin/pack-day',         icon: '⭐' },
-  { href: '/admin/members',           label: 'Members',       match: '/admin/members',          icon: '👥' },
-  { href: '/admin/harvest',           label: 'Harvest',       match: '/admin/harvest',          icon: '🌾' },
-  { href: '/admin/pack-sheet',        label: 'Pack sheet',    match: '/admin/pack-sheet',       icon: '📋' },
-  { href: '/admin/labels',            label: 'Labels',        match: '/admin/labels',           icon: '🏷️' },
-  { href: '/admin/stop-manifest',     label: 'Manifests',     match: '/admin/stop-manifest',    icon: '🚚' },
-  { href: '/admin/pack-check',        label: 'Pack check',    match: '/admin/pack-check',       icon: '✅' },
-  { href: '/admin/host-sheets',       label: 'Host sheets',   match: '/admin/host-sheets',      icon: '📇' },
-  { href: '/admin/text-stop',         label: 'Text a stop',   match: '/admin/text-stop',        icon: '📱' },
-  { href: '/admin/market-checkout',   label: 'Market checkout', match: '/admin/market-checkout', icon: '💳' },
-  { href: '/admin/market',            label: 'Market list',   match: '/admin/market',           icon: '🛒' },
-  { href: '/admin/vendor-orders',     label: 'Vendors',       match: '/admin/vendor-orders',    icon: '🤝' },
-  { href: '/admin/wholesale/products', label: 'Wholesale',    match: '/admin/wholesale/products', icon: '🍽️' },
-  { href: '/admin/flex-inventory',    label: 'Flex items',    match: '/admin/flex-inventory',   icon: '🌿' },
-  { href: '/admin/flex-orders',       label: 'Flex orders',   match: '/admin/flex-orders',      icon: '🧺' },
-  { href: '/admin/pickup-locations',  label: 'Pickups',       match: '/admin/pickup-locations', icon: '📍' },
-  { href: '/admin/route',             label: 'Route',         match: '/admin/route',            icon: '🛣️' },
-  { href: '/admin/route-sheet',       label: 'Route sheet',   match: '/admin/route-sheet',      icon: '🗺️' },
-  { href: '/admin/recipes',           label: 'Recipes',       match: '/admin/recipes',          icon: '🥬' },
-  { href: '/admin/weekly-email',      label: 'Email',         match: '/admin/weekly-email',     icon: '✉️' },
-  { href: '/admin/campaigns',         label: 'Campaigns',     match: '/admin/campaigns',        icon: '📣' },
-  { href: '/admin/health',            label: 'Health',        match: '/admin/health',           icon: '🩺' },
-  { href: '/admin/notices',           label: 'Notices',       match: '/admin/notices',          icon: '📌' },
-  { href: '/admin/stop-notes',        label: 'Notes',         match: '/admin/stop-notes',       icon: '📝' },
-  { href: '/admin/share-contents',    label: 'Share list',    match: '/admin/share-contents',   icon: '🥬' },
-  { href: '/admin/reports',           label: 'Reports',       match: '/admin/reports',          icon: '📊' },
-  { href: '/admin/sync',              label: 'Sync',          match: '/admin/sync',             icon: '🔄' },
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+/**
+ * Standalone Home link — rendered above all groups (not inside one).
+ */
+const homeItem: NavItem = {
+  href: '/admin', label: 'Home', match: '/admin', icon: '🏠',
+};
+
+/**
+ * Grouped navigation. Every item below maps 1:1 to an entry from the old
+ * flat `navItems` array — same href / label / match / icon — just regrouped
+ * into the six task groups. No destination was dropped or added.
+ */
+const navGroups: NavGroup[] = [
+  {
+    label: 'Pack Week',
+    items: [
+      { href: '/admin/pack-day',       label: 'Pack day',    match: '/admin/pack-day',       icon: '⭐' },
+      { href: '/admin/harvest',        label: 'Harvest',     match: '/admin/harvest',        icon: '🌾' },
+      { href: '/admin/pack-sheet',     label: 'Pack sheet',  match: '/admin/pack-sheet',     icon: '📋' },
+      { href: '/admin/pack-check',     label: 'Pack check',  match: '/admin/pack-check',     icon: '✅' },
+      { href: '/admin/labels',         label: 'Labels',      match: '/admin/labels',         icon: '🏷️' },
+      { href: '/admin/stop-manifest',  label: 'Manifests',   match: '/admin/stop-manifest',  icon: '🚚' },
+      { href: '/admin/host-sheets',    label: 'Host sheets', match: '/admin/host-sheets',    icon: '📇' },
+      { href: '/admin/share-contents', label: 'Share list',  match: '/admin/share-contents', icon: '🥬' },
+    ],
+  },
+  {
+    label: 'Members',
+    items: [
+      { href: '/admin/members',          label: 'Members', match: '/admin/members',          icon: '👥' },
+      { href: '/admin/pickup-locations', label: 'Pickups', match: '/admin/pickup-locations', icon: '📍' },
+      { href: '/admin/stop-notes',       label: 'Notes',   match: '/admin/stop-notes',       icon: '📝' },
+      { href: '/admin/notices',          label: 'Notices', match: '/admin/notices',          icon: '📌' },
+    ],
+  },
+  {
+    label: 'Market & Flex',
+    items: [
+      { href: '/admin/products',        label: 'Products',        match: '/admin/products',        icon: '📦' },
+      { href: '/admin/market',          label: 'Market list',     match: '/admin/market',          icon: '🛒' },
+      { href: '/admin/market-checkout', label: 'Market checkout', match: '/admin/market-checkout', icon: '💳' },
+      { href: '/admin/flex-inventory',  label: 'Flex items',      match: '/admin/flex-inventory',  icon: '🌿' },
+      { href: '/admin/flex-orders',     label: 'Flex orders',     match: '/admin/flex-orders',     icon: '🧺' },
+    ],
+  },
+  {
+    label: 'Deliveries',
+    items: [
+      { href: '/admin/route',       label: 'Route',       match: '/admin/route',       icon: '🛣️' },
+      { href: '/admin/route-sheet', label: 'Route sheet', match: '/admin/route-sheet', icon: '🗺️' },
+      { href: '/admin/text-stop',   label: 'Text a stop', match: '/admin/text-stop',   icon: '📱' },
+    ],
+  },
+  {
+    label: 'Comms & Content',
+    items: [
+      { href: '/admin/weekly-email', label: 'Email',     match: '/admin/weekly-email', icon: '✉️' },
+      { href: '/admin/campaigns',    label: 'Campaigns', match: '/admin/campaigns',    icon: '📣' },
+      { href: '/admin/recipes',      label: 'Recipes',   match: '/admin/recipes',      icon: '🥬' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { href: '/admin/vendor-orders',      label: 'Vendors',   match: '/admin/vendor-orders',      icon: '🤝' },
+      { href: '/admin/wholesale/products', label: 'Wholesale', match: '/admin/wholesale/products', icon: '🍽️' },
+      { href: '/admin/sync',               label: 'Sync',      match: '/admin/sync',               icon: '🔄' },
+      { href: '/admin/health',             label: 'Health',    match: '/admin/health',             icon: '🩺' },
+      { href: '/admin/reports',            label: 'Reports',   match: '/admin/reports',            icon: '📊' },
+    ],
+  },
 ];
 
 function isActive(match: string): boolean {
@@ -89,7 +147,30 @@ function isActive(match: string): boolean {
   return pathname === match || pathname.startsWith(`${match}/`);
 }
 
+// Pre-compute which group holds the active page so it renders <details open>.
+const homeActive = isActive(homeItem.match);
+const activeGroupLabel = navGroups.find((g) =>
+  g.items.some((i) => isActive(i.match)),
+)?.label;
+
+// Flat list for the command palette (Home + every grouped item, with its
+// group hint). Serialised into a data attribute the client script reads.
+const paletteItems = [
+  { href: homeItem.href, label: homeItem.label, icon: homeItem.icon, group: 'Home' },
+  ...navGroups.flatMap((g) =>
+    g.items.map((i) => ({ href: i.href, label: i.label, icon: i.icon, group: g.label })),
+  ),
+];
+
 const hasActions = Astro.slots.has('actions');
+
+// Shared class fragments so the sidebar + drawer render identical link styling.
+const activeLinkClass =
+  'bg-ts-primary/10 font-semibold text-ts-primary';
+const idleLinkClass =
+  'font-medium text-ts-text-secondary hover:bg-ts-bg-muted hover:text-ts-text';
+const baseLinkClass =
+  'flex min-h-11 items-center gap-3 rounded-ts-md px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
 ---
 
 <BaseLayout
@@ -106,22 +187,52 @@ const hasActions = Astro.slots.has('actions');
   <div class="min-h-screen bg-ts-bg-base">
     {/* ════ TOP BAR ════ */}
     <header
-      class="sticky top-0 z-10 border-b border-ts-border bg-ts-bg-surface/95 backdrop-blur-sm print:hidden"
+      class="sticky top-0 z-30 border-b border-ts-border bg-ts-bg-surface/95 backdrop-blur-sm print:hidden"
     >
-      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <a
-          href="/admin"
-          class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
-          aria-label="Tiny Seed admin home"
-        >
-          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
-          <span class="font-display text-base font-bold tracking-tight text-ts-text sm:text-lg">
-            Tiny Seed Admin
-          </span>
-        </a>
+      <div class="mx-auto flex max-w-[100rem] items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div class="flex items-center gap-2">
+          {/* Hamburger — opens the mobile nav drawer (hidden on lg+). */}
+          <button
+            type="button"
+            data-admin-drawer-open
+            class="inline-flex h-11 w-11 items-center justify-center rounded-ts-md text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary lg:hidden"
+            aria-label="Open navigation menu"
+            aria-controls="admin-nav-drawer"
+            aria-expanded="false"
+          >
+            <span class="text-xl leading-none" aria-hidden="true">☰</span>
+          </button>
 
-        <div class="flex items-center gap-3">
-          <span class="hidden text-xs text-ts-text-muted sm:inline">
+          <a
+            href="/admin"
+            class="flex items-center gap-2 rounded-ts-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ts-primary"
+            aria-label="Tiny Seed admin home"
+          >
+            <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-primary" aria-hidden="true"></span>
+            <span class="font-display text-base font-bold tracking-tight text-ts-text sm:text-lg">
+              Tiny Seed Admin
+            </span>
+          </a>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          {/* Command-palette trigger — visible everywhere for discoverability. */}
+          <button
+            type="button"
+            data-admin-palette-open
+            class="inline-flex items-center gap-2 rounded-ts-md border border-ts-border px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-border-strong hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            aria-label="Search admin pages"
+            aria-haspopup="dialog"
+          >
+            <span aria-hidden="true">🔍</span>
+            <span class="hidden sm:inline">Search…</span>
+            <kbd
+              class="hidden rounded-ts-sm border border-ts-border bg-ts-bg-muted px-1.5 py-0.5 font-sans text-[0.7rem] font-semibold text-ts-text-muted lg:inline"
+              aria-hidden="true"
+            >⌘K</kbd>
+          </button>
+
+          <span class="hidden text-xs text-ts-text-muted lg:inline">
             {adminEmail}
           </span>
           <a
@@ -141,64 +252,478 @@ const hasActions = Astro.slots.has('actions');
           </form>
         </div>
       </div>
-
-      {/* ════ NAV STRIP ════ */}
-      <nav
-        aria-label="Admin sections"
-        class="border-t border-ts-border bg-ts-bg-surface print:hidden"
-      >
-        <div class="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6">
-          <ul class="flex gap-1">
-            {navItems.map((item) => {
-              const active = isActive(item.match);
-              return (
-                <li>
-                  <a
-                    href={item.href}
-                    aria-current={active ? 'page' : undefined}
-                    class={[
-                      'inline-flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:px-4',
-                      active
-                        ? 'border-ts-primary text-ts-primary'
-                        : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
-                    ].join(' ')}
-                  >
-                    <span aria-hidden="true">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </nav>
     </header>
 
-    {/* ════ PAGE HEADING ════ */}
-    <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 sm:pt-8 print:hidden">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-        <div class="min-w-0">
-          <h1 class="font-display text-2xl font-bold tracking-tight text-ts-text sm:text-3xl">
-            {title}
-          </h1>
-          {subtitle && (
-            <p class="mt-1 text-sm text-ts-text-secondary sm:text-base">{subtitle}</p>
-          )}
-        </div>
-        {hasActions && (
-          <div class="flex flex-wrap items-center gap-2">
-            <slot name="actions" />
+    {/* ════ SHELL: SIDEBAR + CONTENT ════ */}
+    <div class="mx-auto flex w-full max-w-[100rem] gap-0 lg:gap-6 lg:px-6">
+      {/* ──── DESKTOP SIDEBAR (lg+) ──── */}
+      <aside
+        class="sticky top-[3.75rem] hidden h-[calc(100vh-3.75rem)] w-64 shrink-0 overflow-y-auto py-6 lg:block print:hidden"
+        aria-label="Admin sections"
+      >
+        <nav>
+          <a
+            href={homeItem.href}
+            aria-current={homeActive ? 'page' : undefined}
+            class:list={[baseLinkClass, homeActive ? activeLinkClass : idleLinkClass]}
+          >
+            <span aria-hidden="true">{homeItem.icon}</span>
+            <span>{homeItem.label}</span>
+          </a>
+
+          {navGroups.map((group) => {
+            const groupActive = group.label === activeGroupLabel;
+            return (
+              <details open={groupActive} class="group mt-2">
+                <summary
+                  class="flex cursor-pointer list-none items-center justify-between rounded-ts-md px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ts-text-muted transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  <span>{group.label}</span>
+                  <span
+                    class="text-ts-text-muted transition-transform duration-200 group-open:rotate-90"
+                    aria-hidden="true"
+                  >›</span>
+                </summary>
+                <ul class="mt-1 space-y-0.5">
+                  {group.items.map((item) => {
+                    const active = isActive(item.match);
+                    return (
+                      <li>
+                        <a
+                          href={item.href}
+                          aria-current={active ? 'page' : undefined}
+                          class:list={[baseLinkClass, active ? activeLinkClass : idleLinkClass]}
+                        >
+                          <span aria-hidden="true">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* ──── CONTENT COLUMN ──── */}
+      <div class="min-w-0 flex-1">
+        {/* ════ PAGE HEADING ════ */}
+        <div class="px-4 pt-6 sm:px-6 sm:pt-8 lg:px-0 print:hidden">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+            <div class="min-w-0">
+              <h1 class="font-display text-2xl font-bold tracking-tight text-ts-text sm:text-3xl">
+                {title}
+              </h1>
+              {subtitle && (
+                <p class="mt-1 text-sm text-ts-text-secondary sm:text-base">{subtitle}</p>
+              )}
+            </div>
+            {hasActions && (
+              <div class="flex flex-wrap items-center gap-2">
+                <slot name="actions" />
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* ════ MAIN ════ */}
+        <main
+          id="admin-main"
+          class="flex w-full flex-col gap-8 px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8 lg:px-0 print:mx-0 print:max-w-none print:gap-0 print:p-0 print:pt-0"
+        >
+          <slot />
+        </main>
       </div>
     </div>
 
-    {/* ════ MAIN ════ */}
-    <main
-      id="admin-main"
-      class="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8 print:mx-0 print:max-w-none print:gap-0 print:p-0 print:pt-0"
+    {/* ════ MOBILE NAV DRAWER ════ */}
+    <div
+      data-admin-drawer-root
+      class="fixed inset-0 z-40 hidden lg:!hidden print:hidden"
+      aria-hidden="true"
     >
-      <slot />
-    </main>
+      <div
+        data-admin-drawer-backdrop
+        class="absolute inset-0 bg-ts-text/40 opacity-0 transition-opacity duration-200"
+      ></div>
+      <div
+        id="admin-nav-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Admin sections"
+        class="absolute inset-y-0 left-0 flex w-[18rem] max-w-[85vw] -translate-x-full flex-col bg-ts-bg-surface shadow-ts-lg transition-transform duration-200 will-change-transform"
+      >
+        <div class="flex items-center justify-between border-b border-ts-border px-4 py-3">
+          <span class="font-display text-base font-bold tracking-tight text-ts-text">
+            Tiny Seed Admin
+          </span>
+          <button
+            type="button"
+            data-admin-drawer-close
+            class="inline-flex h-11 w-11 items-center justify-center rounded-ts-md text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            aria-label="Close navigation menu"
+          >
+            <span class="text-xl leading-none" aria-hidden="true">✕</span>
+          </button>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto p-3">
+          <a
+            href={homeItem.href}
+            aria-current={homeActive ? 'page' : undefined}
+            class:list={[baseLinkClass, homeActive ? activeLinkClass : idleLinkClass]}
+          >
+            <span aria-hidden="true">{homeItem.icon}</span>
+            <span>{homeItem.label}</span>
+          </a>
+
+          {navGroups.map((group) => {
+            const groupActive = group.label === activeGroupLabel;
+            return (
+              <details open={groupActive} class="group mt-2">
+                <summary
+                  class="flex cursor-pointer list-none items-center justify-between rounded-ts-md px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ts-text-muted transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  <span>{group.label}</span>
+                  <span
+                    class="text-ts-text-muted transition-transform duration-200 group-open:rotate-90"
+                    aria-hidden="true"
+                  >›</span>
+                </summary>
+                <ul class="mt-1 space-y-0.5">
+                  {group.items.map((item) => {
+                    const active = isActive(item.match);
+                    return (
+                      <li>
+                        <a
+                          href={item.href}
+                          aria-current={active ? 'page' : undefined}
+                          class:list={[baseLinkClass, active ? activeLinkClass : idleLinkClass]}
+                        >
+                          <span aria-hidden="true">{item.icon}</span>
+                          <span>{item.label}</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            );
+          })}
+        </nav>
+      </div>
+    </div>
+
+    {/* ════ COMMAND PALETTE ════ */}
+    <dialog
+      data-admin-palette
+      class="m-auto w-[min(36rem,92vw)] rounded-ts-lg border border-ts-border bg-ts-bg-surface p-0 text-ts-text shadow-ts-pop backdrop:bg-ts-text/40 print:hidden"
+      aria-label="Jump to admin page"
+    >
+      <div class="flex items-center gap-2 border-b border-ts-border px-4 py-3">
+        <span class="text-ts-text-muted" aria-hidden="true">🔍</span>
+        <input
+          type="text"
+          data-admin-palette-input
+          placeholder="Jump to a page…"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          class="min-w-0 flex-1 border-0 bg-transparent text-base text-ts-text outline-none placeholder:text-ts-text-muted"
+          aria-label="Search admin pages"
+          aria-controls="admin-palette-results"
+          role="combobox"
+          aria-expanded="true"
+          aria-autocomplete="list"
+        />
+        <kbd
+          class="rounded-ts-sm border border-ts-border bg-ts-bg-muted px-1.5 py-0.5 text-[0.7rem] font-semibold text-ts-text-muted"
+          aria-hidden="true"
+        >Esc</kbd>
+      </div>
+      <ul
+        id="admin-palette-results"
+        data-admin-palette-results
+        role="listbox"
+        class="max-h-[min(24rem,60vh)] overflow-y-auto p-2"
+      ></ul>
+      <p
+        data-admin-palette-empty
+        hidden
+        class="px-4 py-6 text-center text-sm text-ts-text-muted"
+      >
+        No pages match that search.
+      </p>
+    </dialog>
   </div>
+
+  <script
+    is:inline
+    type="application/json"
+    data-admin-palette-data
+    set:html={JSON.stringify(paletteItems)}
+  />
+
+  <script>
+    /* ════════════════════════════════════════════════════════════════
+       AdminShell client behaviour — dependency-free.
+       1. Mobile nav drawer (open/close, backdrop, Escape, focus return).
+       2. Cmd/Ctrl+K command palette (fuzzy filter, arrow keys, Enter).
+       Re-runs after Astro client-side view transitions via the
+       `astro:page-load` event so handlers survive navigation.
+       ════════════════════════════════════════════════════════════════ */
+
+    interface PaletteItem {
+      href: string;
+      label: string;
+      icon: string;
+      group: string;
+    }
+
+    function initAdminShell(): void {
+      /* ──── Mobile nav drawer ──── */
+      const drawerRoot = document.querySelector<HTMLElement>('[data-admin-drawer-root]');
+      const drawerPanel = document.getElementById('admin-nav-drawer');
+      const drawerBackdrop = document.querySelector<HTMLElement>('[data-admin-drawer-backdrop]');
+      const openBtn = document.querySelector<HTMLButtonElement>('[data-admin-drawer-open]');
+      const closeBtns = document.querySelectorAll<HTMLButtonElement>(
+        '[data-admin-drawer-close]',
+      );
+
+      let drawerOpen = false;
+
+      function openDrawer(): void {
+        if (!drawerRoot || !drawerPanel || !drawerBackdrop || drawerOpen) return;
+        drawerOpen = true;
+        drawerRoot.classList.remove('hidden');
+        drawerRoot.setAttribute('aria-hidden', 'false');
+        openBtn?.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+        // Next frame so the transition animates from the off-screen state.
+        requestAnimationFrame(() => {
+          drawerPanel.classList.remove('-translate-x-full');
+          drawerBackdrop.classList.remove('opacity-0');
+        });
+        // Focus the first focusable element in the drawer.
+        drawerPanel
+          .querySelector<HTMLElement>('a, button, [tabindex]')
+          ?.focus();
+      }
+
+      function closeDrawer(): void {
+        if (!drawerRoot || !drawerPanel || !drawerBackdrop || !drawerOpen) return;
+        drawerOpen = false;
+        drawerPanel.classList.add('-translate-x-full');
+        drawerBackdrop.classList.add('opacity-0');
+        drawerRoot.setAttribute('aria-hidden', 'true');
+        openBtn?.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        window.setTimeout(() => {
+          if (!drawerOpen) drawerRoot.classList.add('hidden');
+        }, 200);
+        openBtn?.focus();
+      }
+
+      openBtn?.addEventListener('click', openDrawer);
+      closeBtns.forEach((b) => b.addEventListener('click', closeDrawer));
+      drawerBackdrop?.addEventListener('click', closeDrawer);
+
+      /* ──── Command palette ──── */
+      const dialog = document.querySelector<HTMLDialogElement>('[data-admin-palette]');
+      const input = document.querySelector<HTMLInputElement>('[data-admin-palette-input]');
+      const results = document.querySelector<HTMLUListElement>('[data-admin-palette-results]');
+      const emptyMsg = document.querySelector<HTMLElement>('[data-admin-palette-empty]');
+      const paletteBtn = document.querySelector<HTMLButtonElement>('[data-admin-palette-open]');
+      const dataEl = document.querySelector<HTMLElement>('[data-admin-palette-data]');
+
+      let items: PaletteItem[] = [];
+      if (dataEl?.textContent) {
+        try {
+          items = JSON.parse(dataEl.textContent) as PaletteItem[];
+        } catch {
+          items = [];
+        }
+      }
+
+      let filtered: PaletteItem[] = items.slice();
+      let activeIndex = 0;
+
+      /**
+       * Subsequence fuzzy match — every char of the query appears in order
+       * within the label. Returns a small score (lower = better) so exact
+       * prefix matches and tighter matches float to the top.
+       */
+      function fuzzyScore(query: string, label: string): number | null {
+        if (!query) return 0;
+        const q = query.toLowerCase();
+        const l = label.toLowerCase();
+        let qi = 0;
+        let score = 0;
+        let lastMatch = -1;
+        for (let li = 0; li < l.length && qi < q.length; li++) {
+          if (l[li] === q[qi]) {
+            // Penalise gaps between matched characters.
+            if (lastMatch >= 0) score += li - lastMatch - 1;
+            lastMatch = li;
+            qi++;
+          }
+        }
+        if (qi < q.length) return null; // not all query chars matched
+        // Prefer matches that start earlier in the label.
+        return score + (lastMatch - q.length + 1);
+      }
+
+      function render(): void {
+        if (!results || !emptyMsg) return;
+        results.innerHTML = '';
+        if (filtered.length === 0) {
+          emptyMsg.hidden = false;
+          return;
+        }
+        emptyMsg.hidden = true;
+        filtered.forEach((item, idx) => {
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.setAttribute('aria-selected', idx === activeIndex ? 'true' : 'false');
+          li.dataset.href = item.href;
+          li.dataset.index = String(idx);
+          li.className = [
+            'flex cursor-pointer items-center gap-3 rounded-ts-md px-3 py-2 text-sm',
+            idx === activeIndex
+              ? 'bg-ts-primary/10 text-ts-primary'
+              : 'text-ts-text hover:bg-ts-bg-muted',
+          ].join(' ');
+
+          const icon = document.createElement('span');
+          icon.setAttribute('aria-hidden', 'true');
+          icon.textContent = item.icon;
+
+          const label = document.createElement('span');
+          label.className = 'flex-1 font-medium';
+          label.textContent = item.label;
+
+          const group = document.createElement('span');
+          group.className = 'text-xs text-ts-text-muted';
+          group.textContent = item.group;
+
+          li.append(icon, label, group);
+          li.addEventListener('mouseenter', () => {
+            activeIndex = idx;
+            highlight();
+          });
+          li.addEventListener('click', () => navigate(idx));
+          results.appendChild(li);
+        });
+        highlight();
+      }
+
+      function highlight(): void {
+        if (!results) return;
+        Array.from(results.children).forEach((node, idx) => {
+          const el = node as HTMLElement;
+          const on = idx === activeIndex;
+          el.setAttribute('aria-selected', on ? 'true' : 'false');
+          el.classList.toggle('bg-ts-primary/10', on);
+          el.classList.toggle('text-ts-primary', on);
+          el.classList.toggle('text-ts-text', !on);
+          el.classList.toggle('hover:bg-ts-bg-muted', !on);
+          if (on) el.scrollIntoView({ block: 'nearest' });
+        });
+      }
+
+      function filter(query: string): void {
+        const q = query.trim();
+        if (!q) {
+          filtered = items.slice();
+        } else {
+          filtered = items
+            .map((item) => ({ item, score: fuzzyScore(q, item.label) }))
+            .filter((r): r is { item: PaletteItem; score: number } => r.score !== null)
+            .sort((a, b) => a.score - b.score)
+            .map((r) => r.item);
+        }
+        activeIndex = 0;
+        render();
+      }
+
+      function navigate(idx: number): void {
+        const item = filtered[idx];
+        if (item) window.location.href = item.href;
+      }
+
+      function openPalette(): void {
+        if (!dialog || !input) return;
+        input.value = '';
+        filter('');
+        if (!dialog.open) dialog.showModal();
+        input.focus();
+      }
+
+      function closePalette(): void {
+        if (dialog?.open) dialog.close();
+      }
+
+      paletteBtn?.addEventListener('click', openPalette);
+
+      input?.addEventListener('input', () => filter(input.value));
+
+      input?.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (filtered.length) {
+            activeIndex = (activeIndex + 1) % filtered.length;
+            highlight();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (filtered.length) {
+            activeIndex = (activeIndex - 1 + filtered.length) % filtered.length;
+            highlight();
+          }
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          navigate(activeIndex);
+        }
+      });
+
+      // Native <dialog> already closes on Escape; ensure body scroll resets.
+      dialog?.addEventListener('close', () => {
+        document.body.style.overflow = '';
+      });
+
+      // Click on the backdrop (outside the dialog content) closes it.
+      dialog?.addEventListener('click', (e: MouseEvent) => {
+        if (e.target === dialog) closePalette();
+      });
+
+      /* ──── Global keyboard shortcuts ──── */
+      function onKeydown(e: KeyboardEvent): void {
+        // Cmd/Ctrl+K toggles the palette.
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          if (dialog?.open) {
+            closePalette();
+          } else {
+            openPalette();
+          }
+          return;
+        }
+        // Escape closes the drawer (palette handles its own Escape).
+        if (e.key === 'Escape' && drawerOpen) {
+          closeDrawer();
+        }
+      }
+
+      // Bind once per init; remove any prior binding to avoid stacking after
+      // view transitions.
+      document.removeEventListener('keydown', onKeydown);
+      document.addEventListener('keydown', onKeydown);
+    }
+
+    initAdminShell();
+    document.addEventListener('astro:page-load', initAdminShell);
+  </script>
 </BaseLayout>
