@@ -6,6 +6,44 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-23] CSA — Pack-check: flower counts in header + FLOWER ONLY labels (fullstack-builder)
+
+Updated the CSA admin Pack Check page so the pack floor can see and pack flower shares as a distinct share (flowers print their own labels, so the pack sheet must reflect them clearly). NO changes to `src/lib/cycle.ts` — flower counts are derived in the page from `cycle.byStop` (StopTotals has no flower field; flowers are tracked as members with `share_type === 'flower'`, the established pattern).
+
+FILES CHANGED:
+- `src/pages/admin/pack-check/[...slug].astro` —
+  - Added `flowerCountForStop(stop)` (counts `share_type === 'flower'` members in `cycle.byStop`) and a `FLOWER_CHIP` pink color (fixed hex for print).
+  - STOP HEADER (change 1): the color-coded band now shows a header tally line "📦 N boxes · ➕ N add-ons" plus, when flowers > 0, a pink "🌸 N flowers" chip.
+  - COVER COUNTS: added a tickable pink "🌸 N Flowers" chip in the box-sizes group (alongside the FLEX chip) so the pack line ticks flowers as a distinct count.
+  - BODY CHECKLIST (change 2): added `isFlowerOnlyRow(row)` (true when the row's primary box share is a `flower` — meaning the customer has no veg/flex box, so flowers only). Flower-only rows now show a loud "🌸 FLOWER ONLY" badge and a soft-pink row wash + pink left rule so packers can't confuse them with a veg box. Print-color-adjust:exact applied so the pink reproduces on paper.
+- `src/pages/admin/pack-check/index.astro` — the per-stop selector card now appends "🌸 N flowers" (same member-count derivation) to its counts line.
+
+Tested against week 2026-06-22 (30 flower shares across stops). `npm run build` passes; deployed to prod (Vercel dpl_CveoYzWLSRfTChcBgcES8f3yhpnS, READY).
+
+---
+
+## [2026-06-23] Grant Portal — Monthly Report feature (build-and-hold + send) (FULLSTACK_BUILDER)
+
+Added a Monthly Report feature to `apps/grant-portal` (Astro SSR). Todd picks a report type (AIG Grant Progress / FVPG Grant / FSA Loan Update) + month (YYYY-MM) and generates ONE self-contained PDF that EMBEDS that month's receipts, saved as a **draft** (build-and-hold) — emailing is a separate, confirmed click (never auto-sends). Installed `pdf-lib` (pure-JS, serverless-safe; no puppeteer/Chrome).
+
+NEW FILES:
+- `src/lib/reports.ts` — report-type registry (official recipients hard-coded: AIG→Michael Roth, FVPG→Neil Imes, FSA→Julie Metzler), `parsePeriod` (YYYY-MM → month bounds), `gatherReportData` (month-scoped eligible expenses, spent-to-date vs award, deliverables, FSA loan balance/annual payment + per-equipment fsa_2070_done, and the month's `documents` tied to the grant/loan).
+- `src/lib/report-pdf.ts` — `buildReportPdf` via pdf-lib: header page, summary tables, then a "Documents & Receipts" appendix that downloads each receipt from the `documents` bucket (service role) and embeds it — JPG/PNG via embedJpg/embedPng on a fitted page + caption; application/pdf via `PDFDocument.load`+`copyPages`; other types → a placeholder page.
+- `src/lib/email.ts` — Resend via direct REST `fetch` so it can send a browser `User-Agent` header (Cloudflare blocks default UAs with error 1010).
+- `src/pages/reports.astro` — generate form + reports table (type/period, draft/sent status, sent date, Download signed-URL link, Send button) + a confirm/review modal showing recipient + subject before send.
+- `src/pages/api/reports/generate.ts` — builds the PDF, uploads to `documents` bucket at `reports/<type>_<period>_<ts>.pdf`, inserts a `documents` row (kind='progress_report') + a `progress_reports` row (status='draft', report_doc_id, metrics_snapshot). Rolls back storage/rows on any failure.
+- `src/pages/api/reports/send.ts` — requires `confirm=yes`, downloads the report PDF, emails it (from "Tiny Seed Farm <csa@tinyseedfarm.com>", reply_to+bcc todd@tinyseedfarmpgh.com, base64 attachment) to the official recipient, then sets status='sent'/sent_date/sent_to. Refuses already-sent reports.
+
+CHANGED: `src/layouts/Layout.astro` (added "Monthly Reports" nav + active key), `src/env.d.ts` (RESEND_API_KEY).
+
+NO schema/seed changes. Reuses existing `getServiceClient`, auth middleware gate, `/api/download/[id]` signed-URL route, `format.ts`, and `app.css`.
+
+VERIFIED: `npm run build` passes. End-to-end against the LIVE DB — uploaded a test JPG + test PDF receipt (AIG, this month) → generated an AIG report → produced a valid **7-page** PDF (header + summary + appendix + JPG image page + PDF caption + 2 copied PDF pages), `embedded: 2`, `embedErrors: []`, re-parsed cleanly. Then DELETED all test data + storage objects (confirmed 0 documents / 0 expenses / 0 progress_reports / 0 `reports/` + `_verify_test/` storage objects remaining). Resend was NOT called during testing. Not deployed (PM deploys).
+
+## [2026-06-23] CSA — Verify + redeploy current working tree to prod (PM_Architect)
+
+Rebuilt + deployed `apps/csa-portal` from the current working tree to production (prod alias `csa.tinyseedfarm.com`, deploy `tiny-seed-bkymnvc00`, state READY). `npm run build` passes; PII guard intact (`.vercelignore` = `scripts/out/`). Re-verified the money-moving **Market Checkout** tool end-to-end before shipping (read all 3 source files): server-side live-balance re-fetch + cent-exact over-debit reject, $500 cap, idempotency guard (2-min `member_comms` match, fails CLOSED on read error), `requireAdmin` + `isSameOriginPost` CSRF, debit-failure → nothing deducted, fail-soft Resend receipt. Live checks: home `200`; `/admin/market-checkout` → `303` → `/login?next=%2Fadmin%2Fmarket-checkout` (admin gate working, not publicly exposed); `/api/admin/market-checkout` GET → `404` (POST-only, no 500). The 06-22 P0 market-checkout UX fixes (instant search + bottom-sheet confirm) confirmed carried. The stale "NOT committed/deployed" markers on the 2026-06-12 Market Checkout / flex entries are superseded — that code went live in the 06-22 deploys and is confirmed live now.
+
 ## [2026-06-23] CSA — Pre-pack audit: add-ons ride box stop on manifest (label↔manifest consistency) (PM_Architect)
 
 DEPLOYED+verified live. Audit of labels vs stop-manifest before Todd prints to pack. FOUND: 3 home-delivery customers' add-on rows (Martina Hilldorfer/bread, Stephanie Tomasic/mushroom, Carla Nappi/mushroom) have null pickup, so byStop bucketed them at the "No pickup set" sentinel while the LABELS correctly rode them on the home-delivery box — a label↔manifest mismatch. FIX in cycle.ts byStop: build customer→box-stop map; an add-on row with no pickup of its own now rides to its customer's box stop (matches the label's "add-on ships inside the box"). Verified: "No pickup set" gone; Home delivery add-ons 1/1/1→3/2/1; all 17 stops' boxes+add-ons tie out to member recount; grand totals unchanged (veg 89, flower 30, add-ons mushroom 20/bread 15/cheese 12/coffee 3). NOTE (by design, not a bug): StopTotals has no flower field — flowers are NOT on the veg stop-manifest; they're on the separate floral list + their own labels (30). Files: apps/csa-portal/src/lib/cycle.ts.

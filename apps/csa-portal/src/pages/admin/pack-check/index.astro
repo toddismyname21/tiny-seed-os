@@ -94,6 +94,11 @@ const DAY_LONG: Record<string, string> = {
         {cycle.activeStops.map((stop) => {
           const totalBoxesAtStop = stop.boxes_small + stop.boxes_large;
           const totalAddonsAtStop = Object.values(stop.addons).reduce((a, b) => a + b, 0);
+          // StopTotals has NO flower field — flowers are tracked as members, so
+          // count share_type 'flower' in cycle.byStop (same pattern as the
+          // printable checklist). Flowers are a distinct, separately-labeled share.
+          const flowersAtStop = (cycle.byStop.get(stop.stop_id) ?? [])
+            .filter((m) => m.share_type === 'flower').length;
           const stopSlug = slugStop(stop.stop_name);
           const stopUrl = `/admin/pack-check/${week_starting}/${stopSlug}`;
           return (
@@ -118,6 +123,7 @@ const DAY_LONG: Record<string, string> = {
                 {stop.boxes_small} Small · {stop.boxes_large} Large
                 {totalAddonsAtStop > 0 && ` · ${totalAddonsAtStop} add-ons`}
                 {stop.flex_orders > 0 && ` · ${stop.flex_orders} flex`}
+                {flowersAtStop > 0 && ` · 🌸 ${flowersAtStop} flowers`}
               </p>
               <a
                 href={stopUrl}

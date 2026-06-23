@@ -210,6 +210,21 @@ function addonCountsForStop(stop: StopTotals): { type: AddOnType; n: number }[] 
     .filter((t) => stop.addons[t] > 0)
     .map((t) => ({ type: t, n: stop.addons[t] }));
 }
+/** Count FLOWER shares at a stop. StopTotals has NO flower field — flowers are
+ *  tracked as members, so we count members with share_type 'flower' in
+ *  cycle.byStop (the established pattern; same member set as the size/flex
+ *  counts). Flowers are a DISTINCT share that prints its own label, so the pack
+ *  line gets a distinct flower count + clearly-labeled flower rows. */
+function flowerCountForStop(stop: StopTotals): number {
+  let n = 0;
+  for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+    if (m.share_type === 'flower') n += 1;
+  }
+  return n;
+}
+/* FLOWER count chip color — soft pink to read as a distinct, non-veg share and
+ * match the 🌸 flower motif. Fixed hex (this is a color-print document). */
+const FLOWER_CHIP = { bg: '#fce4ec', text: '#9c2860', border: '#e79cb9' };
 
 /* ── Add-on chips — same color code as the labels page ──────────────── */
 const ADDON_STYLE: Record<AddOnType, { bg: string; text: string; border: string; emoji: string; label: string }> = {
@@ -369,6 +384,14 @@ function packRowsForStop(stop: StopTotals): PackRow[] {
   return rows;
 }
 
+/** A pack row is FLOWER-ONLY when its primary box share is a flower share —
+ *  packRowsForStop picks the primary by SHARE_PRIORITY (summer_veg=0 … flower=2),
+ *  so a flower primary means the customer has NO veg/flex box at this stop, i.e.
+ *  they get flowers only. The packer must not mistake it for a veg box. */
+function isFlowerOnlyRow(row: PackRow): boolean {
+  return row.primary.share_type === 'flower';
+}
+
 function memberShareLabel(m: CycleMember): string {
   if (m.share_type === 'summer_veg') {
     const sz = m.size_bucket === 'large' ? 'Large' : 'Small';
@@ -411,6 +434,7 @@ function memberShareLabel(m: CycleMember): string {
       const distDate = distDateForStop(stop);
       const sizeCounts = sizeCountsForStop(stop);
       const flexCount = flexCountForStop(stop);
+      const flowerCount = flowerCountForStop(stop);
       // A flex member gets a physical box (their flex order) to pack, so the
       // band's box total = summer boxes + flex boxes. Matches the cover chips
       // (which separate summer sizes from flex) and the driver manifest total.
@@ -440,6 +464,23 @@ function memberShareLabel(m: CycleMember): string {
               <p class="mt-1 text-sm font-semibold opacity-95">
                 {stop.day_of_week ? DAY_LONG[stop.day_of_week] : ''} · {prettyShortDate(distDate)}
               </p>
+              {/* Header tallies — boxes, add-ons, and (when > 0) FLOWER shares.
+                  Flowers are a DISTINCT share (their own label) so the band
+                  surfaces their count up-front, alongside boxes/add-ons. */}
+              <p class="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold">
+                <span class="tabular-nums">📦 {totalBoxes} box{totalBoxes === 1 ? '' : 'es'}</span>
+                {totalAddons > 0 && (
+                  <span class="tabular-nums opacity-95">· ➕ {totalAddons} add-on{totalAddons === 1 ? '' : 's'}</span>
+                )}
+                {flowerCount > 0 && (
+                  <span
+                    class="count-chip inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-extrabold tabular-nums"
+                    style={`background:${FLOWER_CHIP.bg};color:${FLOWER_CHIP.text};border:2px solid ${FLOWER_CHIP.border};`}
+                  >
+                    🌸 {flowerCount} flower{flowerCount === 1 ? '' : 's'}
+                  </span>
+                )}
+              </p>
             </div>
             <div class="shrink-0 text-right">
               <div class="font-display text-4xl font-extrabold tabular-nums leading-none">
@@ -456,9 +497,9 @@ function memberShareLabel(m: CycleMember): string {
               share_size) so Family / Regular are distinct (boxes_small/large
               folds them into "large"). Each chip carries a real empty square
               the pack line ticks as it counts/packs that size. */}
-          {(sizeCounts.length > 0 || flexCount > 0 || addonCounts.length > 0) && (
+          {(sizeCounts.length > 0 || flexCount > 0 || flowerCount > 0 || addonCounts.length > 0) && (
             <div class="mt-4 flex flex-col gap-3 rounded-ts-lg border-2 border-ts-border bg-ts-bg-muted/60 p-4">
-              {(sizeCounts.length > 0 || flexCount > 0) && (
+              {(sizeCounts.length > 0 || flexCount > 0 || flowerCount > 0) && (
                 <div>
                   <p class="text-[11px] font-bold uppercase tracking-wide text-ts-text-secondary">
                     Box sizes — tick each as counted
@@ -495,6 +536,22 @@ function memberShareLabel(m: CycleMember): string {
                         ></span>
                         <span class="tabular-nums">{flexCount}</span>
                         Flex
+                      </span>
+                    )}
+                    {/* FLOWER shares — distinct from boxes, own pink chip + 🌸.
+                        The pack line ticks each flower share as it's assembled. */}
+                    {flowerCount > 0 && (
+                      <span
+                        class="count-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-extrabold"
+                        style={`background:${FLOWER_CHIP.bg};color:${FLOWER_CHIP.text};border:2px solid ${FLOWER_CHIP.border};`}
+                      >
+                        <span
+                          class="inline-block h-4 w-4 shrink-0 rounded-sm border-2 bg-white print:border-black"
+                          style={`border-color:${FLOWER_CHIP.text};`}
+                          aria-hidden="true"
+                        ></span>
+                        <span class="tabular-nums">{flowerCount}</span>
+                        🌸 Flower{flowerCount === 1 ? '' : 's'}
                       </span>
                     )}
                   </div>
@@ -572,10 +629,11 @@ function memberShareLabel(m: CycleMember): string {
               {rows.map((row) => {
                 const m = row.primary;
                 const badge = sizeBadgeFor(m);
+                const flowerOnly = isFlowerOnlyRow(row);
                 const isHomeMember = !m.pickup_location_id
                   && !!(m.delivery_address && m.delivery_address.trim());
                 return (
-                  <li class="pack-row flex items-start gap-4 px-1 py-3 sm:px-2">
+                  <li class:list={['pack-row flex items-start gap-4 px-1 py-3 sm:px-2', { 'flower-only-row': flowerOnly }]}>
                     {/* Real empty checkbox the packer ticks per member. */}
                     <span
                       class="pack-check mt-0.5 inline-block h-6 w-6 shrink-0 rounded border-2 border-ts-text bg-white print:border-black"
@@ -592,6 +650,14 @@ function memberShareLabel(m: CycleMember): string {
                             class="size-badge inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide"
                             style={`background:${badge.bg};color:${badge.text};border:1px solid ${badge.border};`}
                           >{badge.label}</span>
+                        )}
+                        {/* FLOWER ONLY — loud pink badge so the packer never
+                            mistakes a flower-only share for a veg box. */}
+                        {flowerOnly && (
+                          <span
+                            class="flower-only-badge size-badge inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide"
+                            style={`background:${FLOWER_CHIP.bg};color:${FLOWER_CHIP.text};border:1px solid ${FLOWER_CHIP.border};`}
+                          >🌸 Flower only</span>
                         )}
                         <span class="text-xs text-ts-text-secondary">
                           {memberShareLabel(m)}
@@ -675,7 +741,16 @@ function memberShareLabel(m: CycleMember): string {
 <style is:global>
   /* Colored stop bands, size badges, and add-on chips must keep their color
      through the print pipeline (browsers strip backgrounds in print). */
-  .stop-band, .size-badge, .addon-chip, .count-chip {
+  .stop-band, .size-badge, .addon-chip, .count-chip, .flower-only-badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* FLOWER-ONLY rows get a soft pink wash + pink left rule so a flower-only
+     share is unmistakable from a veg box at a glance, on screen and on paper. */
+  .flower-only-row {
+    background: #fdf2f6;
+    box-shadow: inset 3px 0 0 0 #e79cb9;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
