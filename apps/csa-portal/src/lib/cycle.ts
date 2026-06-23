@@ -1000,6 +1000,21 @@ export async function resolveCycle(
   byDistributionDay.set('Wed', []);
   byDistributionDay.set('Sat', []);
 
+  // Each customer → their BOX row's stop key. An add-on ships INSIDE the box,
+  // so an add-on row with no pickup of its own must ride to the SAME stop its
+  // box does — exactly like the labels attach add-ons to the box. Without this,
+  // a home-delivery customer's null-pickup add-on row landed in "no pickup set"
+  // on the manifest while the label correctly rode it on the home box — a
+  // label↔manifest mismatch (Todd 2026-06-23 audit: Martina/Stephanie/Carla).
+  const customerBoxStop = new Map<string, string>();
+  for (const m of included) {
+    if (m.share_type === 'add_on') continue;
+    let key: string | null = null;
+    if (m.delivery_address && !m.pickup_location_id) key = HOME_DELIVERY_STOP_ID;
+    else if (m.pickup_location_id) key = m.pickup_location_id;
+    if (key && !customerBoxStop.has(m.customer_id)) customerBoxStop.set(m.customer_id, key);
+  }
+
   for (const member of included) {
     // Stop bucket
     let stopKey: string;
@@ -1007,6 +1022,9 @@ export async function resolveCycle(
       stopKey = HOME_DELIVERY_STOP_ID;
     } else if (member.pickup_location_id) {
       stopKey = member.pickup_location_id;
+    } else if (member.share_type === 'add_on' && customerBoxStop.has(member.customer_id)) {
+      // Add-on with no pickup of its own → ride to its customer's box stop.
+      stopKey = customerBoxStop.get(member.customer_id)!;
     } else {
       // Active member with neither pickup nor delivery — typically the
       // 30 Allison Park TBD + test members per the 2026-05-25 reconciliation.
