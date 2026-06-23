@@ -89,6 +89,13 @@ const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_inpu
 const url = new URL(Astro.request.url);
 const stopFilter = (url.searchParams.get('stop') ?? '').trim() || null;
 const memberFilter = (url.searchParams.get('member') ?? '').trim() || null;
+// ?type=flower → ONLY the separate flower labels; ?type=other (alias box/veg)
+// → ONLY the veg/flex box labels; no param → everything (Todd 2026-06-23).
+const typeParam = (url.searchParams.get('type') ?? '').trim().toLowerCase();
+const typeFilter: 'flower' | 'box' | null =
+  typeParam === 'flower' ? 'flower'
+  : (typeParam === 'other' || typeParam === 'box' || typeParam === 'veg') ? 'box'
+  : null;
 
 const cycle = await resolveCycle(supabase, week_starting);
 
@@ -130,6 +137,12 @@ interface LabelData {
   /** Flex checklist lines for THIS customer (all their member rows), req 3. */
   flexLines: Array<{ name: string | null; qty: number }>;
   owes: boolean;
+  /** 'box' = the veg/flex/spring label; 'flower' = a SEPARATE Flower CSA label
+   *  (Todd 2026-06-23: flowers always print their own label). */
+  kind: 'box' | 'flower';
+  /** Box labels only: true when this customer ALSO has a flower share — we note
+   *  "🌸 Flower CSA" on the box label and print a separate flower label. */
+  hasFlower: boolean;
 }
 
 function getComposition(member: CycleMember) {
@@ -249,7 +262,10 @@ function sizeBadgeFor(m: CycleMember): SizeBadge {
   }
   // Non-veg primary: neutral badge carrying the share descriptor.
   let label = 'SHARE';
-  if (m.share_type === 'flower') label = 'FLOWER';
+  if (m.share_type === 'flower') {
+    const sz = (m.share_size ?? '').trim();
+    label = sz ? `FLOWER · ${sz.toUpperCase()}` : 'FLOWER';
+  }
   else if (m.share_type === 'flex') label = 'FLEX';
   else if (m.share_type === 'spring_veg') label = 'SPRING';
   else if (m.share_type === 'add_on') label = 'ADD-ON';
@@ -354,8 +370,14 @@ function sharePriority(m: CycleMember): number {
 }
 
 interface CustomerGroup {
-  primary: CycleMember;
+  /** Highest-priority NON-flower box share (summer_veg / spring_veg / flex), or
+   *  null when the customer has only flower(s) this cycle. Add-ons ride this. */
+  boxPrimary: CycleMember | null;
+  /** This customer's flower share rows — each prints its OWN flower label. */
+  flowerRows: CycleMember[];
   addons: CycleMember[];
+  /** Name to sort the stop's labels by (alphabetical pack order). */
+  sortName: string;
 }
 
 /* ── Add-ons ride on the customer's BOX label (Todd, 2026-06) ─────────
@@ -434,63 +456,93 @@ for (const stop of stopsOrdered) {
     else byCustomer.set(m.customer_id, [m]);
   }
 
-  // Collapse each customer's BOX rows into { primary, addons }. The add-ons
-  // come from the GLOBAL index (so a customer whose add-on row had a null or
-  // mismatched pickup still gets the chip on the box that prints here).
+  // Group each customer's BOX rows into { boxPrimary, flowerRows, addons }.
+  // FLOWER is pulled OUT of the primary collapse (Todd 2026-06-23): a flower
+  // share ALWAYS prints its own label, and is NOTED on the customer's veg/flex
+  // box label. boxPrimary = highest-priority NON-flower box share (or null when
+  // the customer has only flower this cycle). Add-ons come from the GLOBAL
+  // index so a null/mismatched add-on pickup still attaches to the box here.
   const groups: CustomerGroup[] = [];
   for (const [customerId, rows] of byCustomer) {
-    const sorted = rows.slice().sort((a, b) => sharePriority(a) - sharePriority(b));
-    // The lowest-priority box row is the primary box for this customer.
-    const primary = sorted[0];
+    const flowerRows = rows.filter((r) => r.share_type === 'flower');
+    const otherRows = rows
+      .filter((r) => r.share_type !== 'flower')
+      .sort((a, b) => sharePriority(a) - sharePriority(b));
+    const boxPrimary = otherRows[0] ?? null;
     const addons = addonRowsByCustomer.get(customerId) ?? [];
-    groups.push({ primary, addons });
+    const sortName = (boxPrimary ?? flowerRows[0]).contact_name;
+    groups.push({ boxPrimary, flowerRows, addons, sortName });
   }
 
-  // Existing pack order: alphabetical by member (contact) name within stop.
-  groups.sort((a, b) => a.primary.contact_name.localeCompare(b.primary.contact_name));
+  // Pack order: alphabetical by member (contact) name within stop.
+  groups.sort((a, b) => a.sortName.localeCompare(b.sortName));
 
   for (const g of groups) {
-    const { primary, addons } = g;
+    const { boxPrimary, flowerRows, addons } = g;
 
-    // Owe flag: a customer owes if ANY of their share rows is unpaid.
-    const owes = [primary, ...addons].some(
+    // Owe flag: a customer owes if ANY of their rows (box / flower / add-on) is
+    // unpaid — shown on every label they get.
+    const owes = [...(boxPrimary ? [boxPrimary] : []), ...flowerRows, ...addons].some(
       (m) => !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid'),
     );
 
-    // Add-on chips: GROUP by type and COUNT each, so two "mushroom" rows print
-    // ONE chip marked "×2" (packer packs 2) — never collapsed to one, never two
-    // ambiguous identical chips. Stable order by chip label.
-    const byType = new Map<AddOnType, { label: string; count: number }>();
-    for (const a of addons) {
-      const e = byType.get(a.addon_type);
-      if (e) e.count += 1;
-      else byType.set(a.addon_type, { label: addonChipLabel(a), count: 1 });
-    }
-    const addonChips: AddonChip[] = [];
-    for (const [type, { label, count }] of byType) {
-      addonChips.push({ type, label, count });
-    }
-    addonChips.sort((x, y) => x.label.localeCompare(y.label));
+    // Add-on chips: GROUP by type and COUNT each (two "mushroom" rows → one chip
+    // marked "×2"). Stable order by chip label.
+    const buildAddonChips = (): AddonChip[] => {
+      const byType = new Map<AddOnType, { label: string; count: number }>();
+      for (const a of addons) {
+        const e = byType.get(a.addon_type);
+        if (e) e.count += 1;
+        else byType.set(a.addon_type, { label: addonChipLabel(a), count: 1 });
+      }
+      const chips: AddonChip[] = [];
+      for (const [type, { label, count }] of byType) chips.push({ type, label, count });
+      chips.sort((x, y) => x.label.localeCompare(y.label));
+      return chips;
+    };
 
-    // Flex lines: union across ALL of this customer's member rows (flex is
-    // keyed by member_id; a customer's flex order sits on one of their rows).
+    // Flex lines: union across the box primary + add-on rows (flex sits on a
+    // member row). Flower labels never carry flex.
     const flexLines: Array<{ name: string | null; qty: number }> = [];
-    for (const m of [primary, ...addons]) {
-      const lines = flexByMember.get(m.id);
-      if (lines) flexLines.push(...lines);
+    if (boxPrimary) {
+      for (const m of [boxPrimary, ...addons]) {
+        const lines = flexByMember.get(m.id);
+        if (lines) flexLines.push(...lines);
+      }
     }
 
-    labels.push({
-      member: primary,
-      stop,
-      distDate: distDateForStop(stop),
-      // Box composition only exists for the box share — look it up by the
-      // primary's id (null for add-on-only / flower / flex primaries).
-      composition: getComposition(primary),
-      addonChips,
-      flexLines,
-      owes,
-    });
+    // 1) The veg/flex/spring BOX label. Add-ons ride here; note flowers if any.
+    if (boxPrimary) {
+      labels.push({
+        member: boxPrimary,
+        stop,
+        distDate: distDateForStop(stop),
+        composition: getComposition(boxPrimary),
+        addonChips: buildAddonChips(),
+        flexLines,
+        owes,
+        kind: 'box',
+        hasFlower: flowerRows.length > 0,
+      });
+    }
+
+    // 2) A SEPARATE flower label for EACH flower share (Todd 2026-06-23). When
+    //    the customer has NO box (flower-only), their add-ons ride the flower
+    //    label so an add-on never drops; otherwise the flower label is JUST
+    //    flowers (clean — no box contents, no flex).
+    for (const fr of flowerRows) {
+      labels.push({
+        member: fr,
+        stop,
+        distDate: distDateForStop(stop),
+        composition: null,
+        addonChips: boxPrimary ? [] : buildAddonChips(),
+        flexLines: [],
+        owes,
+        kind: 'flower',
+        hasFlower: false,
+      });
+    }
   }
 }
 
@@ -506,6 +558,9 @@ if (memberFilter) {
   visibleLabels = visibleLabels.filter(
     (l) => l.member.id === memberFilter || l.member.customer_id === memberFilter,
   );
+}
+if (typeFilter) {
+  visibleLabels = visibleLabels.filter((l) => l.kind === typeFilter);
 }
 
 const filterActive = !!(stopFilter || memberFilter);
@@ -759,6 +814,9 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                         ) : null;
                       })()}
                     </div>
+                    {label.kind === 'box' && label.hasFlower && (
+                      <div class="label-flower-note">🌸 Also gets FLOWER CSA — separate label</div>
+                    )}
                     {label.addonChips.length > 0 && (
                       <div class="label-chips">
                         {label.addonChips.map((chip) => (
@@ -908,6 +966,21 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
     color: #111827;
     white-space: nowrap;
     letter-spacing: 0.01em;
+  }
+
+  /* "Also gets Flower CSA" note on a veg/flex box label — the flowers print on
+     their OWN separate label; this tells the packer/host the customer also has
+     a flower share so it isn't forgotten (Todd 2026-06-23). */
+  .label-flower-note {
+    font-size: 9.5pt;
+    font-weight: 700;
+    color: #9d174d;
+    background: #fce7f3;
+    border: 0.5pt solid #f0a9c8;
+    border-radius: 0.05in;
+    padding: 0.02in 0.06in;
+    margin-top: 0.03in;
+    align-self: flex-start;
   }
 
   /* ── Zone 2: color-coded stop band ───────────────────────────────── */

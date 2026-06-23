@@ -90,12 +90,26 @@ try {
           ))}
         </select>
       </label>
-      <a
-        href={`/admin/labels/${week_starting}`}
-        class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
-      >
-        Open all labels →
-      </a>
+      <div class="flex flex-wrap gap-2">
+        <a
+          href={`/admin/labels/${week_starting}`}
+          class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+        >
+          Open all labels →
+        </a>
+        <a
+          href={`/admin/labels/${week_starting}?type=flower`}
+          class="inline-flex h-10 items-center justify-center rounded-ts-md border border-pink-300 bg-pink-50 px-4 text-sm font-semibold text-pink-700 transition-colors hover:bg-pink-100"
+        >
+          🌸 Flower labels only →
+        </a>
+        <a
+          href={`/admin/labels/${week_starting}?type=other`}
+          class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary"
+        >
+          Veg &amp; Flex only (no flowers) →
+        </a>
+      </div>
     </form>
   </section>
 
