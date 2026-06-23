@@ -295,6 +295,36 @@ const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>
   }
 }
 
+// ─── Pre-fetch customer phone numbers (one round trip) ──────────────
+// Printed at the TOP of each label so the farm — or the stop host — can call
+// a member who hasn't picked up (Todd, 2026-06-23). Read with the same admin
+// RLS client resolveCycle uses (it already joins customers for name/email).
+const phoneByCustomer = new Map<string, string>();
+{
+  const customerIds = Array.from(new Set(cycle.members.map((m) => m.customer_id)));
+  if (customerIds.length > 0) {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, phone')
+      .in('id', customerIds);
+    for (const c of (data ?? []) as Array<{ id: string; phone: string | null }>) {
+      if (c.phone && c.phone.trim()) phoneByCustomer.set(c.id, c.phone.trim());
+    }
+  }
+}
+
+/** Format a stored phone as "(717) 725-5177". Handles a leading US country
+ *  code (11 digits starting with 1). Falls back to the raw string if it isn't
+ *  a clean 10-digit number, so a non-standard entry still prints (never blank
+ *  when a value exists). */
+function formatPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, '');
+  const ten = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (ten.length === 10) return `(${ten.slice(0, 3)}) ${ten.slice(3, 6)}-${ten.slice(6)}`;
+  return raw.trim();
+}
+
 // ─── Build ONE label per CUSTOMER per stop (Todd req 2) ─────────────
 //
 // Each `CycleMember` row is a single SHARE (a customer with a Summer box +
@@ -680,6 +710,12 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                     <div class="label-hdr">
                       <img class="label-logo" src={LOGO_SRC} alt="" aria-hidden="true" width="630" height="840" />
                       <div class="label-hdr-csa">CSA</div>
+                      {(() => {
+                        const phone = formatPhone(phoneByCustomer.get(label.member.customer_id));
+                        return phone ? (
+                          <div class="label-hdr-phone">📞 {phone}</div>
+                        ) : null;
+                      })()}
                     </div>
                     <!-- Zone 2: stop band. Home-delivery labels get the
                          distinct HOME DELIVERY band + the full street address
@@ -860,6 +896,18 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
     letter-spacing: 0.08em;
     color: #166534;
     text-transform: uppercase;
+  }
+
+  /* Phone at the TOP of the label — pushed to the right edge of the header so
+     the farm or the stop host can call a member who hasn't picked up (Todd,
+     2026-06-23). Bold + 12pt so it's readable off the box at a glance. */
+  .label-hdr-phone {
+    margin-left: auto;
+    font-size: 12pt;
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
   }
 
   /* ── Zone 2: color-coded stop band ───────────────────────────────── */
