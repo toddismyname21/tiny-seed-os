@@ -170,6 +170,22 @@ function addonChipLabel(m: CycleMember): string {
   return 'Add-on';
 }
 
+/** Group a customer's add-on rows into color chips: one chip per addon_type,
+ *  COUNTED ("×2" for two mushroom rows). Stable order by chip label. Shared by
+ *  the box-label path AND the add-on-only-label path. */
+function buildAddonChips(addons: CycleMember[]): AddonChip[] {
+  const byType = new Map<AddOnType, { label: string; count: number }>();
+  for (const a of addons) {
+    const e = byType.get(a.addon_type);
+    if (e) e.count += 1;
+    else byType.set(a.addon_type, { label: addonChipLabel(a), count: 1 });
+  }
+  const chips: AddonChip[] = [];
+  for (const [type, { label, count }] of byType) chips.push({ type, label, count });
+  chips.sort((x, y) => x.label.localeCompare(y.label));
+  return chips;
+}
+
 /* ── STOP color band (label zone 2) ─────────────────────────────────
  * A curated palette of 15 well-separated, print-friendly band colors. Each
  * stop is mapped DETERMINISTICALLY by its index in the alphabetically-sorted
@@ -411,28 +427,18 @@ for (const m of cycle.members) {
   }
 }
 
-// Orphan add-ons: a customer with add-on rows but NO box share this cycle.
-// These DROP (no box this week ⇒ no add-on this week). Collected for the
-// audit report — they never become a label.
-const droppedOrphanAddons: CycleMember[] = [];
-for (const [customerId, addonRows] of addonRowsByCustomer) {
-  if (!boxRowsByCustomer.has(customerId)) {
-    droppedOrphanAddons.push(...addonRows);
-  }
+// Add-on-ONLY customers: have add-on rows but NO box share this cycle. Instead
+// of DROPPING them (old behavior — which silently lost Leah Rubenstein's market
+// mushrooms for weeks), each prints its OWN add-on label at the stop where the
+// add-on sits, with the add-ons as chips, so the host packs it (Todd 2026-06-23).
+// An add-on-only customer with NO active stop (nowhere to hand it over) still
+// can't be packed → listed in the screen-only notice after the loop.
+const addonOnlyCustomerIds = new Set<string>();
+for (const [customerId] of addonRowsByCustomer) {
+  if (!boxRowsByCustomer.has(customerId)) addonOnlyCustomerIds.add(customerId);
 }
-// One screen-only line per orphaned customer (e.g. "Jane Doe — Cheese, Bread")
-// so admin can see exactly whose add-on was dropped this week (their box is
-// excluded this cycle by season/biweekly, or they have no box at all).
-const droppedOrphanSummary = Array.from(
-  droppedOrphanAddons.reduce((acc, m) => {
-    const arr = acc.get(m.contact_name) ?? [];
-    arr.push(addonChipLabel(m));
-    acc.set(m.contact_name, arr);
-    return acc;
-  }, new Map<string, string[]>()),
-)
-  .map(([name, types]) => ({ name, types: Array.from(new Set(types)).sort() }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+// Filled by the stop loop as it prints each add-on-only label.
+const labeledAddonOnly = new Set<string>();
 
 const labels: LabelData[] = [];
 for (const stop of stopsOrdered) {
@@ -486,21 +492,6 @@ for (const stop of stopsOrdered) {
       (m) => !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid'),
     );
 
-    // Add-on chips: GROUP by type and COUNT each (two "mushroom" rows → one chip
-    // marked "×2"). Stable order by chip label.
-    const buildAddonChips = (): AddonChip[] => {
-      const byType = new Map<AddOnType, { label: string; count: number }>();
-      for (const a of addons) {
-        const e = byType.get(a.addon_type);
-        if (e) e.count += 1;
-        else byType.set(a.addon_type, { label: addonChipLabel(a), count: 1 });
-      }
-      const chips: AddonChip[] = [];
-      for (const [type, { label, count }] of byType) chips.push({ type, label, count });
-      chips.sort((x, y) => x.label.localeCompare(y.label));
-      return chips;
-    };
-
     // Flex lines: union across the box primary + add-on rows (flex sits on a
     // member row). Flower labels never carry flex.
     const flexLines: Array<{ name: string | null; qty: number }> = [];
@@ -518,7 +509,7 @@ for (const stop of stopsOrdered) {
         stop,
         distDate: distDateForStop(stop),
         composition: getComposition(boxPrimary),
-        addonChips: buildAddonChips(),
+        addonChips: buildAddonChips(addons),
         flexLines,
         owes,
         kind: 'box',
@@ -536,7 +527,7 @@ for (const stop of stopsOrdered) {
         stop,
         distDate: distDateForStop(stop),
         composition: null,
-        addonChips: boxPrimary ? [] : buildAddonChips(),
+        addonChips: boxPrimary ? [] : buildAddonChips(addons),
         flexLines: [],
         owes,
         kind: 'flower',
@@ -544,7 +535,58 @@ for (const stop of stopsOrdered) {
       });
     }
   }
+
+  // ── Add-on-ONLY customers WITH a stop here get their OWN add-on label ──
+  // (Todd 2026-06-23). An add-on-only customer has add-on rows but NO box this
+  // cycle (e.g. Leah Rubenstein's market mushrooms). Print one label at the stop
+  // their add-on sits, with the add-ons as chips, so the host packs it instead
+  // of it silently dropping.
+  const addonOnlyHere = new Map<string, CycleMember[]>();
+  for (const m of members) {
+    if (m.share_type !== 'add_on') continue;
+    if (!addonOnlyCustomerIds.has(m.customer_id)) continue; // has a box elsewhere → rides it
+    const arr = addonOnlyHere.get(m.customer_id);
+    if (arr) arr.push(m);
+    else addonOnlyHere.set(m.customer_id, [m]);
+  }
+  const addonOnlyOrdered = Array.from(addonOnlyHere.entries())
+    .map(([customerId, rowsHere]) => ({
+      customerId,
+      rowsHere,
+      addons: addonRowsByCustomer.get(customerId) ?? rowsHere,
+    }))
+    .sort((a, b) => a.rowsHere[0].contact_name.localeCompare(b.rowsHere[0].contact_name));
+  for (const c of addonOnlyOrdered) {
+    labeledAddonOnly.add(c.customerId);
+    const owes = c.addons.some(
+      (m) => !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid'),
+    );
+    labels.push({
+      member: c.rowsHere[0],
+      stop,
+      distDate: distDateForStop(stop),
+      composition: null,
+      addonChips: buildAddonChips(c.addons),
+      flexLines: [],
+      owes,
+      kind: 'box',
+      hasFlower: false,
+    });
+  }
 }
+
+// Add-on-only customers we could NOT place (no active stop for their add-on) —
+// screen-only notice so admin can chase them down (they otherwise can't pack).
+const droppedOrphanSummary = Array.from(addonOnlyCustomerIds)
+  .filter((cid) => !labeledAddonOnly.has(cid))
+  .map((cid) => {
+    const rows = addonRowsByCustomer.get(cid) ?? [];
+    return {
+      name: rows[0]?.contact_name ?? '(unknown)',
+      types: Array.from(new Set(rows.map((m) => addonChipLabel(m)))).sort(),
+    };
+  })
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 // ─── Apply optional filters (req 1) ──────────────────────────────────
 // Done AFTER grouping so the label set is identical to the full week, minus
