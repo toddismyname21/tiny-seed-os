@@ -25,7 +25,7 @@ import { z } from 'zod';
 import { RESEND_API_KEY, RESEND_FROM_EMAIL } from 'astro:env/server';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../lib/onboarding';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { nextDeliveryWednesday, prettyDeliveryDate, CUTOFF_LABEL } from '../../../lib/wholesale-order';
+import { nextDeliveryWednesday, nextDeliveryFriday, prettyDeliveryDate, CUTOFF_LABEL, CUTOFF_LABEL_FRIDAY } from '../../../lib/wholesale-order';
 import {
   sendWholesaleOrderConfirmation,
   type WholesaleOrderEmailLine,
@@ -62,6 +62,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   const token = String(form.get('token') ?? '').trim();
   const linesRaw = String(form.get('lines') ?? '').trim();
+  // Delivery mode posted by the page (fri | wed). We recompute the actual date
+  // server-side from this mode — never trust a client-supplied calendar date.
+  const isFriday = String(form.get('day') ?? 'wed').toLowerCase() === 'fri';
 
   if (!token) {
     return new Response('Bad Request', { status: 400 });
@@ -89,8 +92,9 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     return redirect(backToOrder(token, 'empty'), 303);
   }
 
-  // ── Server-computed delivery date (NEXT Wednesday) — never from client. ──
-  const deliveryDate = nextDeliveryWednesday();
+  // ── Server-computed delivery date — never from client. Friday push when the
+  //    form posted day=fri (Thursday 7 AM cutoff); otherwise next Wednesday. ──
+  const deliveryDate = isFriday ? nextDeliveryFriday() : nextDeliveryWednesday();
 
   // ── Place the order atomically with a SERVER-SIDE price lookup. The token
   //    is validated INSIDE the RPC (the gate). ──────────────────────────────
@@ -177,7 +181,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       lines: emailLines,
       totalCents: result.total_cents,
       deliveryLabel: prettyDeliveryDate(result.delivery_date),
-      cutoffLabel: CUTOFF_LABEL,
+      cutoffLabel: isFriday ? CUTOFF_LABEL_FRIDAY : CUTOFF_LABEL,
       accountUrl,
       // Always capture the order at the farm — BCC (hidden from the chef).
       // The owner copy (todd@…) is also added inside the helper; de-duped there.

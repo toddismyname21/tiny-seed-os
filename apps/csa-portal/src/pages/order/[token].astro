@@ -23,8 +23,8 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { groupByCategory } from '../../lib/wholesale-categories';
 import { categoryEmoji } from '../../lib/flex-order';
 import {
-  formatCents, effectiveUnitCents, nextDeliveryWednesday,
-  prettyDeliveryDate, CUTOFF_LABEL,
+  formatCents, effectiveUnitCents, nextDeliveryWednesday, nextDeliveryFriday,
+  prettyDeliveryDate, CUTOFF_LABEL, CUTOFF_LABEL_FRIDAY,
 } from '../../lib/wholesale-order';
 
 export const prerender = false;
@@ -83,8 +83,13 @@ const ERROR_COPY: Record<string, string> = {
 };
 
 // Everything below only renders when the account resolved.
-const deliveryDate = nextDeliveryWednesday();
+// Delivery mode: ?day=fri opens a FRIDAY-delivery order (Thursday 7 AM cutoff);
+// default is the regular Wednesday flow. The mode (not a raw date) is what the
+// submit form posts — the server recomputes the actual date, never trusting it.
+const isFriday = (url.searchParams.get('day') ?? '').toLowerCase() === 'fri';
+const deliveryDate = isFriday ? nextDeliveryFriday() : nextDeliveryWednesday();
 const deliveryLabel = prettyDeliveryDate(deliveryDate);
+const cutoffLabel = isFriday ? CUTOFF_LABEL_FRIDAY : CUTOFF_LABEL;
 
 // ─── Discount for this account's pricing tier (server-side; 0 = list) ───
 let discountPct = 0;
@@ -242,7 +247,7 @@ const minOrderCents = account?.min_order_cents ?? 0;
           <p class="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ts-text-secondary">
             <span>🚚 Delivery <strong class="text-ts-text">{deliveryLabel}</strong></span>
             <span aria-hidden="true" class="text-ts-text-muted">·</span>
-            <span>Edit until {CUTOFF_LABEL}</span>
+            <span>Edit until {cutoffLabel}</span>
           </p>
           <a
             href={`/order/${token}/account`}
@@ -406,6 +411,7 @@ const minOrderCents = account?.min_order_cents ?? 0;
         data-cart-bar
       >
         <input type="hidden" name="token" value={token} />
+        <input type="hidden" name="day" value={isFriday ? 'fri' : 'wed'} />
         <input type="hidden" name="lines" value="" data-lines-field />
         <div class="mx-auto flex max-w-2xl items-center gap-4 px-4 py-3" style="padding-bottom:max(0.75rem,env(safe-area-inset-bottom));">
           <div class="min-w-0 flex-1">

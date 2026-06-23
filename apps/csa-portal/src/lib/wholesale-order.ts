@@ -82,8 +82,26 @@ export function editCutoffSunday(now: Date = new Date()): string {
   return addDaysYMD(nextDeliveryWednesday(now), -1);
 }
 
+/** The upcoming Friday delivery date ('YYYY-MM-DD') in ET — THIS Friday when
+ *  today is Sun–Fri, else next Friday. Unlike the Wednesday flow this is NOT
+ *  Monday-anchored, so it stays on this week's Friday right up to the Thursday
+ *  cutoff. Used by the Friday wholesale push (?day=fri). */
+export function nextDeliveryFriday(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(now);
+  const get = (t: string): string => parts.find((p) => p.type === t)?.value ?? '';
+  const dayIndex: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const todayIdx = dayIndex[get('weekday')] ?? 0;
+  const daysUntilFri = (5 - todayIdx + 7) % 7;
+  return addDaysYMD(`${get('year')}-${get('month')}-${get('day')}`, daysUntilFri);
+}
+
 /** Human edit-cutoff label for chef copy + the confirmation email. */
 export const CUTOFF_LABEL = 'Tuesday 7 AM';
+/** Friday-delivery edit-cutoff label (Thursday 7 AM ET). */
+export const CUTOFF_LABEL_FRIDAY = 'Thursday 7 AM';
 
 /** Validate a 'YYYY-MM-DD' string shape. */
 export function isYMD(s: string): boolean {
