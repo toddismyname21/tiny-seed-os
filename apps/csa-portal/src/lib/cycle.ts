@@ -1060,7 +1060,10 @@ export async function resolveCycle(
     // for the broader filter, but we also need to count the weekly
     // add-ons of biweekly-off members (the override branch above let
     // them through). Use isAddonOnThisWeek to be explicit.
-    if (!isAddonOnThisWeek(member, member.addon_frequency, week_starting)) continue;
+    // EXCEPTION: a moved_in add-on (make-up / extra box on an off-parity
+    // week) is here on purpose — count it even though parity says "off",
+    // so the harvest aggregate matches what actually packs (Todd 2026-06-23).
+    if (!member.moved_in && !isAddonOnThisWeek(member, member.addon_frequency, week_starting)) continue;
     const bucket = addOnTotals[member.addon_type];
     if (member.addon_frequency === 'weekly') bucket.weekly += 1;
     else if (member.addon_frequency === 'biweekly') bucket.biweekly += 1;
