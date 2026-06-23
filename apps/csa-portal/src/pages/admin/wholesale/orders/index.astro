@@ -1,0 +1,289 @@
+---
+/**
+ * /admin/wholesale/orders — Chef wholesale orders + engagement.
+ *
+ * WHY (Todd 2026-06-23): chef orders previously landed only in the
+ * tinyseedorders@ inbox + the DB — there was no screen to see "who ordered,
+ * what, how much" or "which chefs even opened their portal". This view answers
+ * both, scoped to a delivery date:
+ *
+ *   - ORDERS for the date: each restaurant's items, qty, line totals, order
+ *     total, status, and when it came in. Feeds the harvest list's wholesale
+ *     section, so this is the source of truth Todd eyeballs before pack day.
+ *   - ENGAGEMENT funnel across ALL chef accounts we emailed links to:
+ *     Emailed (everyone with a token) → Visited (opened /order/<token>) →
+ *     Ordered. Visit data accrues from when 0056 shipped (no retro data);
+ *     order data is fully accurate all-time.
+ *
+ * Reads are service-role (page is middleware-guarded to admin/staff). No
+ * writes here — purely a read/observe screen.
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import Badge from '../../../../components/Badge.astro';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import {
+  formatCents, nextDeliveryWednesday, prettyDeliveryDate, isYMD, CUTOFF_LABEL,
+} from '../../../../lib/wholesale-order';
+
+export const prerender = false;
+
+const url = Astro.url;
+
+// ─── Which delivery date are we looking at? ─────────────────────────
+const dateParam = url.searchParams.get('date') ?? '';
+const deliveryDate = isYMD(dateParam) ? dateParam : nextDeliveryWednesday();
+
+// ─── All chef accounts we've emailed links to (token = emailed) ─────
+type AccountRow = {
+  id: string;
+  restaurant_name: string;
+  contact_name: string | null;
+  email: string | null;
+  status: string | null;
+  portal_visit_count: number | null;
+  first_portal_visit_at: string | null;
+  last_portal_visit_at: string | null;
+  order_token: string | null;
+};
+const { data: accountsData } = await supabaseAdmin
+  .from('wholesale_accounts')
+  .select('id, restaurant_name, contact_name, email, status, portal_visit_count, first_portal_visit_at, last_portal_visit_at, order_token')
+  .order('restaurant_name', { ascending: true });
+const accounts = (accountsData ?? []) as AccountRow[];
+
+// ─── Orders for this delivery date ──────────────────────────────────
+type OrderRow = {
+  id: string;
+  account_id: string | null;
+  status: string | null;
+  total_amount: number | null;
+  total_lbs: number | null;
+  notes: string | null;
+  created_at: string;
+};
+const { data: ordersData } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select('id, account_id, status, total_amount, total_lbs, notes, created_at')
+  .eq('delivery_date', deliveryDate)
+  .order('created_at', { ascending: true });
+const orders = (ordersData ?? []) as OrderRow[];
+
+// ─── Line items for those orders ────────────────────────────────────
+type ItemRow = {
+  order_id: string;
+  product_name: string | null;
+  qty: number | null;
+  unit_price_cents: number | null;
+  line_total_cents: number | null;
+};
+const orderIds = orders.map((o) => o.id);
+let items: ItemRow[] = [];
+if (orderIds.length) {
+  const { data: itemsData } = await supabaseAdmin
+    .from('wholesale_order_items')
+    .select('order_id, product_name, qty, unit_price_cents, line_total_cents')
+    .in('order_id', orderIds);
+  items = (itemsData ?? []) as ItemRow[];
+}
+const itemsByOrder = new Map<string, ItemRow[]>();
+for (const it of items) {
+  const arr = itemsByOrder.get(it.order_id) ?? [];
+  arr.push(it);
+  itemsByOrder.set(it.order_id, arr);
+}
+
+// ─── Distinct delivery dates (for the date picker) ──────────────────
+const { data: dateRows } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select('delivery_date')
+  .order('delivery_date', { ascending: false });
+const deliveryDates = Array.from(
+  new Set([deliveryDate, ...((dateRows ?? []).map((r: any) => r.delivery_date as string))]),
+).filter(Boolean).sort().reverse();
+
+// ─── Stitch accounts ↔ orders ───────────────────────────────────────
+const orderByAccount = new Map<string, OrderRow>();
+for (const o of orders) if (o.account_id) orderByAccount.set(o.account_id, o);
+
+type Stitched = AccountRow & { order: OrderRow | null; lineItems: ItemRow[] };
+const stitched: Stitched[] = accounts.map((a) => {
+  const order = orderByAccount.get(a.id) ?? null;
+  return { ...a, order, lineItems: order ? (itemsByOrder.get(order.id) ?? []) : [] };
+});
+
+// Orphan orders (an order whose account isn't in the accounts list — shouldn't
+// happen, but surface it rather than silently drop revenue).
+const accountIds = new Set(accounts.map((a) => a.id));
+const orphanOrders = orders.filter((o) => !o.account_id || !accountIds.has(o.account_id));
+
+// ─── Buckets ────────────────────────────────────────────────────────
+const ordered = stitched.filter((s) => s.order);
+const visitedNoOrder = stitched.filter((s) => !s.order && (s.portal_visit_count ?? 0) > 0);
+const notOpened = stitched.filter((s) => !s.order && (s.portal_visit_count ?? 0) === 0);
+
+ordered.sort((a, b) => (b.order!.total_amount ?? 0) - (a.order!.total_amount ?? 0));
+visitedNoOrder.sort((a, b) => (b.last_portal_visit_at ?? '').localeCompare(a.last_portal_visit_at ?? ''));
+
+const totalRevenue = orders.reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
+const totalLbs = orders.reduce((s, o) => s + (Number(o.total_lbs) || 0), 0);
+
+const money = (dollars: number | null | undefined) => `$${(Number(dollars) || 0).toFixed(2)}`;
+const fmtTime = (iso: string | null) =>
+  iso
+    ? new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      }).format(new Date(iso))
+    : '—';
+
+const deliveryPretty = prettyDeliveryDate(deliveryDate);
+---
+
+<AdminShell
+  title="Chef orders"
+  subtitle={`Delivery ${deliveryPretty} · cutoff ${CUTOFF_LABEL} · ${accounts.length} chef accounts`}
+>
+  {/* Delivery-date picker */}
+  {deliveryDates.length > 1 && (
+    <Card padding="md" elevation="sm" as="section" class="mb-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-gray-500">Delivery date:</span>
+        {deliveryDates.map((d) => (
+          <a
+            href={`/admin/wholesale/orders?date=${d}`}
+            class={`rounded-full px-3 py-1 text-sm font-medium ${
+              d === deliveryDate
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >{prettyDeliveryDate(d)}</a>
+        ))}
+      </div>
+    </Card>
+  )}
+
+  {/* Engagement summary */}
+  <section class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <Card padding="md" elevation="sm">
+      <div class="text-2xl font-bold text-emerald-600">{ordered.length}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Ordered</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-2xl font-bold text-gray-900">{money(totalRevenue)}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Revenue {totalLbs > 0 ? `· ${totalLbs.toFixed(0)} lbs` : ''}</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-2xl font-bold text-amber-600">{visitedNoOrder.length}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Visited, no order</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-2xl font-bold text-gray-400">{notOpened.length}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Haven't opened</div>
+    </Card>
+  </section>
+
+  {/* Orders */}
+  <h2 class="mb-2 text-lg font-semibold text-gray-900">Orders · {ordered.length}</h2>
+  {ordered.length === 0 && (
+    <Card padding="lg" elevation="sm" class="mb-5">
+      <p class="text-sm text-gray-500">No orders for {deliveryPretty} yet.</p>
+    </Card>
+  )}
+  {ordered.length > 0 && (
+    <div class="mb-6 space-y-3">
+      {ordered.map((s) => (
+        <Card padding="md" elevation="sm" as="article">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div class="font-semibold text-gray-900">{s.restaurant_name}</div>
+              <div class="text-xs text-gray-500">
+                {s.contact_name ? `${s.contact_name} · ` : ''}{s.email ?? ''}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-bold text-emerald-600">{money(s.order!.total_amount)}</div>
+              <div class="text-xs text-gray-500">
+                <Badge variant={s.order!.status === 'submitted' ? 'green' : 'gray'} size="xs" uppercase>
+                  {s.order!.status ?? 'order'}
+                </Badge>
+                <span class="ml-1">{fmtTime(s.order!.created_at)}</span>
+              </div>
+            </div>
+          </div>
+          {s.lineItems.length > 0 && (
+            <ul class="mt-3 divide-y divide-gray-100 border-t border-gray-100 pt-1 text-sm">
+              {s.lineItems.map((it) => (
+                <li class="flex items-center justify-between py-1.5">
+                  <span class="text-gray-800">
+                    <span class="font-medium">{it.qty}×</span> {it.product_name}
+                  </span>
+                  <span class="text-gray-500">
+                    {formatCents(it.unit_price_cents ?? 0)} ea ·{' '}
+                    <span class="font-medium text-gray-700">{formatCents(it.line_total_cents ?? 0)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {s.order!.notes && (
+            <p class="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-800">📝 {s.order!.notes}</p>
+          )}
+        </Card>
+      ))}
+    </div>
+  )}
+
+  {orphanOrders.length > 0 && (
+    <Card padding="md" elevation="sm" class="mb-6 border border-red-200 bg-red-50">
+      <p class="text-sm font-medium text-red-700">
+        ⚠️ {orphanOrders.length} order(s) for this date aren't linked to a chef account
+        (total {money(orphanOrders.reduce((s, o) => s + (Number(o.total_amount) || 0), 0))}). Check the data.
+      </p>
+    </Card>
+  )}
+
+  {/* Visited, no order */}
+  <h2 class="mb-2 text-lg font-semibold text-gray-900">Visited the portal, no order yet · {visitedNoOrder.length}</h2>
+  {visitedNoOrder.length === 0 ? (
+    <Card padding="md" elevation="sm" class="mb-5"><p class="text-sm text-gray-500">None.</p></Card>
+  ) : (
+    <Card padding="none" elevation="sm" as="section" class="mb-6">
+      <ul class="divide-y divide-gray-100">
+        {visitedNoOrder.map((s) => (
+          <li class="flex items-center justify-between px-4 py-2.5 text-sm">
+            <div>
+              <span class="font-medium text-gray-900">{s.restaurant_name}</span>
+              <span class="ml-2 text-xs text-gray-400">{s.email ?? ''}</span>
+            </div>
+            <div class="text-right text-xs text-gray-500">
+              {s.portal_visit_count} visit{(s.portal_visit_count ?? 0) === 1 ? '' : 's'} · last {fmtTime(s.last_portal_visit_at)}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )}
+
+  {/* Haven't opened */}
+  <h2 class="mb-2 text-lg font-semibold text-gray-900">Haven't opened their link · {notOpened.length}</h2>
+  {notOpened.length === 0 ? (
+    <Card padding="md" elevation="sm" class="mb-3"><p class="text-sm text-gray-500">None.</p></Card>
+  ) : (
+    <Card padding="none" elevation="sm" as="section" class="mb-3">
+      <ul class="grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-y-0">
+        {notOpened.map((s) => (
+          <li class="flex items-center justify-between px-4 py-2 text-sm">
+            <span class="font-medium text-gray-700">{s.restaurant_name}</span>
+            <span class="text-xs text-gray-400">{s.email ?? '—'}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )}
+
+  <p class="mt-4 text-xs text-gray-400">
+    Order data is accurate all-time. Portal-visit tracking began when it shipped (2026-06-23) —
+    a chef who opened the link before then shows as “Haven't opened” until their next visit.
+  </p>
+</AdminShell>

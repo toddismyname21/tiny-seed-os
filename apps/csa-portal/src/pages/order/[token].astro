@@ -59,6 +59,18 @@ if (token && token.trim() !== '') {
 // Friendly 404 when the token doesn't resolve (or is paused/draft → no link).
 const notFound = !account || account.status === 'paused';
 
+// ─── Engagement tracking ────────────────────────────────────────────
+// Record that this chef opened their portal, so the admin Orders view can
+// show "Emailed → Visited → Ordered". Atomic increment via RPC; best-effort
+// (never let a tracking hiccup break the chef's ordering page).
+if (account && !notFound) {
+  try {
+    await supabaseAdmin.rpc('bump_wholesale_visit', { p_account: account.id });
+  } catch (e) {
+    console.error('[order/[token]] visit tracking failed:', (e as Error)?.message);
+  }
+}
+
 // Pretty flash codes (post-submit can also land here on a soft error).
 const url = Astro.url;
 const errorFlag = url.searchParams.get('error');
