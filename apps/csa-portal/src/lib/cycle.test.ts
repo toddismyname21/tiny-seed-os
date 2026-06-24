@@ -305,13 +305,18 @@ test('applyComposition: allergy substitution does NOT consume a swap credit', ()
     allergies: ['strawberry'],
     dislikes: [],
   });
-  // Strawberries gone; lettuce stays.
-  assertEqual(res.items.map((i) => i.crop), ['Lettuce']);
+  // Strawberries gone; lettuce stays; a "Farmer's choice" sub REPLACES the
+  // removed item so the box stays full (Todd 2026-06-24).
+  assertEqual(res.items.map((i) => i.crop), ['Lettuce', "Farmer's choice"]);
   assertEqual(res.swapped_in,  [], 'no swap_in for allergy');
   assertEqual(res.swapped_out, [], 'no swap_out for allergy');
   assertEqual(res.allergy_subs.length, 1, 'one allergy sub recorded');
   assertEqual(res.allergy_subs[0].removed, 'Strawberries');
   assertTrue(res.allergy_subs[0].reason.includes('allergy'), 'reason flagged as allergy');
+  // The sub carries the removed item's qty/unit and notes which item it replaced.
+  const sub = res.items.find((i) => i.crop === "Farmer's choice")!;
+  assertEqual(sub.unit, 'pint');
+  assertTrue((sub.notes ?? '').includes('Strawberries'), 'sub notes which item it replaced');
 });
 
 test('applyComposition: dislike removes the item even when allergy doesn\'t', () => {
@@ -320,7 +325,8 @@ test('applyComposition: dislike removes the item even when allergy doesn\'t', ()
     { crop: 'Chard', qty: 1, unit: 'bunch' },
   ];
   const res = applyComposition(base, [], { allergies: [], dislikes: ['beet'] });
-  assertEqual(res.items.map((i) => i.crop), ['Chard']);
+  // Beets removed and REPLACED with a Farmer's choice sub (box stays full).
+  assertEqual(res.items.map((i) => i.crop), ['Chard', "Farmer's choice"]);
   assertEqual(res.allergy_subs.length, 1);
   assertTrue(res.allergy_subs[0].reason.includes('dislike'));
 });

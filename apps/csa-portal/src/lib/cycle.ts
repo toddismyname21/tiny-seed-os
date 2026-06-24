@@ -1286,15 +1286,31 @@ export function applyComposition(
   // matching breaks on the s/ies plural ("strawberries".includes
   // ("strawberry") = false), so we use a small prefix-match instead.
   const flagSet = new Set<string>();
+  // When an item is pulled for an allergy/dislike we REPLACE it with a
+  // "Farmer's choice" line (Todd 2026-06-24) so the member still gets a full
+  // box — the crew adds any abundant item in its place — instead of a short
+  // box. One sub per removed item, carrying the removed item's qty/unit. The
+  // label/pack box-contents footer renders these in the item list.
+  const farmersChoiceSubs: BoxContentLine[] = [];
+  const queueSub = (removed: BoxContentLine): void => {
+    farmersChoiceSubs.push({
+      crop: "Farmer's choice",
+      qty: removed.qty,
+      unit: removed.unit,
+      notes: `sub for ${removed.crop}`,
+    });
+  };
   for (const allergy of member.allergies ?? []) {
     const a = allergy.trim().toLowerCase();
     if (!a) continue;
     for (let i = items.length - 1; i >= 0; i -= 1) {
       const crop = items[i].crop.toLowerCase();
       if (cropMatches(crop, a)) {
-        allergy_subs.push({ removed: items[i].crop, reason: `allergy: ${allergy}` });
-        flagSet.add(items[i].crop.toLowerCase());
+        const removed = items[i];
+        allergy_subs.push({ removed: removed.crop, reason: `allergy: ${allergy}` });
+        flagSet.add(crop);
         items.splice(i, 1);
+        queueSub(removed);
       }
     }
   }
@@ -1304,11 +1320,14 @@ export function applyComposition(
     for (let i = items.length - 1; i >= 0; i -= 1) {
       const crop = items[i].crop.toLowerCase();
       if (!flagSet.has(crop) && cropMatches(crop, d)) {
-        allergy_subs.push({ removed: items[i].crop, reason: `dislike: ${dislike}` });
+        const removed = items[i];
+        allergy_subs.push({ removed: removed.crop, reason: `dislike: ${dislike}` });
         items.splice(i, 1);
+        queueSub(removed);
       }
     }
   }
+  for (const sub of farmersChoiceSubs) items.push(sub);
 
   return { items, swapped_in, swapped_out, allergy_subs };
 }
