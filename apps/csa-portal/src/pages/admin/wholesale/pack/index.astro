@@ -1,0 +1,137 @@
+---
+/**
+ * /admin/wholesale/pack — Wholesale Pick & Pack (printable).
+ *
+ * For a delivery date: (1) PICK TOTALS — every product aggregated across all
+ * chef orders (what to harvest/pull), and (2) PACK BY CUSTOMER — each
+ * restaurant's order to assemble. The web version of the pick-pack PDF, so the
+ * crew prints it straight from the portal. Service-role reads (middleware
+ * admin-gated).
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import { nextDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
+
+export const prerender = false;
+
+const url = Astro.url;
+const dateParam = url.searchParams.get('date') ?? '';
+const deliveryDate = isYMD(dateParam) ? dateParam : nextDeliveryWednesday();
+
+// Orders for the date + their account names.
+const { data: orderRows } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select('id, account_id, total_amount')
+  .eq('delivery_date', deliveryDate)
+  .order('created_at', { ascending: true });
+const orders = (orderRows ?? []) as Array<{ id: string; account_id: string | null; total_amount: number | null }>;
+
+const acctIds = Array.from(new Set(orders.map((o) => o.account_id).filter(Boolean))) as string[];
+const acctName = new Map<string, string>();
+if (acctIds.length) {
+  const { data: accts } = await supabaseAdmin.from('wholesale_accounts').select('id, restaurant_name').in('id', acctIds);
+  for (const a of accts ?? []) acctName.set((a as any).id, (a as any).restaurant_name);
+}
+
+const orderIds = orders.map((o) => o.id);
+type Item = { order_id: string; product_name: string | null; qty: number | null; product: { unit: string } | null };
+let items: Item[] = [];
+if (orderIds.length) {
+  const { data: itemRows } = await supabaseAdmin
+    .from('wholesale_order_items')
+    .select('order_id, product_name, qty, product:wholesale_products ( unit )')
+    .in('order_id', orderIds)
+    .overrideTypes<Item[], { merge: false }>();
+  items = itemRows ?? [];
+}
+const itemsByOrder = new Map<string, Item[]>();
+for (const it of items) { const a = itemsByOrder.get(it.order_id) ?? []; a.push(it); itemsByOrder.set(it.order_id, a); }
+
+// PICK totals: aggregate qty by product_name.
+const pick = new Map<string, { qty: number; unit: string }>();
+for (const it of items) {
+  const name = it.product_name ?? 'Item';
+  const e = pick.get(name) ?? { qty: 0, unit: it.product?.unit ?? '' };
+  e.qty += Number(it.qty) || 0;
+  if (!e.unit && it.product?.unit) e.unit = it.product.unit;
+  pick.set(name, e);
+}
+const pickRows = Array.from(pick.entries()).map(([name, v]) => ({ name, ...v })).sort((a, b) => a.name.localeCompare(b.name));
+
+// Date picker options.
+const { data: dateRows } = await supabaseAdmin.from('wholesale_orders').select('delivery_date').order('delivery_date', { ascending: false });
+const dates = Array.from(new Set([deliveryDate, ...((dateRows ?? []).map((r: any) => r.delivery_date as string))])).filter(Boolean).sort().reverse();
+
+const packCustomers = orders
+  .map((o) => ({ name: o.account_id ? (acctName.get(o.account_id) ?? '(unknown)') : '(no account)', items: itemsByOrder.get(o.id) ?? [] }))
+  .filter((c) => c.items.length)
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const pretty = prettyDeliveryDate(deliveryDate);
+---
+
+<AdminShell title="Wholesale — Pick & Pack" subtitle={`Delivery ${pretty} · ${packCustomers.length} orders`} pageTitle="Wholesale Pick & Pack — Tiny Seed Admin">
+  <Fragment slot="actions">
+    <button type="button" onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">🖨 Print</button>
+  </Fragment>
+
+  {dates.length > 1 && (
+    <Card padding="md" elevation="sm" class="mb-4 no-print">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-gray-500">Delivery date:</span>
+        {dates.map((d) => (
+          <a href={`/admin/wholesale/pack?date=${d}`} class={`rounded-full px-3 py-1 text-sm font-medium ${d === deliveryDate ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{prettyDeliveryDate(d)}</a>
+        ))}
+      </div>
+    </Card>
+  )}
+
+  {pickRows.length === 0 ? (
+    <Card padding="lg" elevation="sm"><p class="text-sm text-gray-500">No wholesale orders for {pretty}.</p></Card>
+  ) : (
+    <div class="print-doc">
+      <h2 class="mb-2 text-lg font-semibold text-gray-900">① Pick / Harvest totals</h2>
+      <Card padding="none" elevation="sm" class="mb-6">
+        <table class="w-full text-sm">
+          <thead><tr class="bg-emerald-50 text-left"><th class="w-10 px-3 py-2"></th><th class="px-3 py-2 font-semibold">Product</th><th class="px-3 py-2 font-semibold">Total to pull</th></tr></thead>
+          <tbody>
+            {pickRows.map((r) => (
+              <tr class="border-t border-gray-100">
+                <td class="px-3 py-2 text-gray-400">▢</td>
+                <td class="px-3 py-2 font-medium text-gray-900">{r.name}</td>
+                <td class="px-3 py-2 text-gray-700"><span class="font-bold">{r.qty}</span>{r.unit ? ` × ${r.unit}` : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <h2 class="mb-2 text-lg font-semibold text-gray-900">② Pack by customer</h2>
+      <div class="space-y-3">
+        {packCustomers.map((c) => (
+          <Card padding="md" elevation="sm" as="article" class="break-inside-avoid">
+            <div class="mb-1 font-semibold text-gray-900">{c.name}</div>
+            <ul class="divide-y divide-gray-100 text-sm">
+              {c.items.map((it) => (
+                <li class="flex items-center gap-2 py-1.5">
+                  <span class="text-gray-400">▢</span>
+                  <span class="font-bold text-gray-800">{it.qty}×</span>
+                  <span class="text-gray-800">{it.product_name}</span>
+                  {it.product?.unit && <span class="text-xs text-gray-400">({it.product.unit})</span>}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )}
+</AdminShell>
+
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    .break-inside-avoid { break-inside: avoid; }
+  }
+</style>

@@ -1,0 +1,109 @@
+---
+/**
+ * /admin/wholesale/labels — printable crate labels for wholesale (chef) orders.
+ *
+ * One label per restaurant order for a delivery date: restaurant name (big),
+ * delivery date, and the item list, so the crew sticks it on the crate and the
+ * driver knows what's inside. Two-up printable card grid. Service-role reads
+ * (middleware admin-gated).
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import { nextDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
+
+export const prerender = false;
+
+const url = Astro.url;
+const dateParam = url.searchParams.get('date') ?? '';
+const deliveryDate = isYMD(dateParam) ? dateParam : nextDeliveryWednesday();
+
+const { data: orderRows } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select('id, account_id')
+  .eq('delivery_date', deliveryDate)
+  .order('created_at', { ascending: true });
+const orders = (orderRows ?? []) as Array<{ id: string; account_id: string | null }>;
+
+const acctIds = Array.from(new Set(orders.map((o) => o.account_id).filter(Boolean))) as string[];
+const acctName = new Map<string, string>();
+if (acctIds.length) {
+  const { data: accts } = await supabaseAdmin.from('wholesale_accounts').select('id, restaurant_name').in('id', acctIds);
+  for (const a of accts ?? []) acctName.set((a as any).id, (a as any).restaurant_name);
+}
+
+const orderIds = orders.map((o) => o.id);
+type Item = { order_id: string; product_name: string | null; qty: number | null };
+let items: Item[] = [];
+if (orderIds.length) {
+  const { data: r } = await supabaseAdmin.from('wholesale_order_items').select('order_id, product_name, qty').in('order_id', orderIds);
+  items = (r ?? []) as Item[];
+}
+const itemsByOrder = new Map<string, Item[]>();
+for (const it of items) { const a = itemsByOrder.get(it.order_id) ?? []; a.push(it); itemsByOrder.set(it.order_id, a); }
+
+const { data: dateRows } = await supabaseAdmin.from('wholesale_orders').select('delivery_date').order('delivery_date', { ascending: false });
+const dates = Array.from(new Set([deliveryDate, ...((dateRows ?? []).map((r: any) => r.delivery_date as string))])).filter(Boolean).sort().reverse();
+
+const labels = orders
+  .map((o) => ({ name: o.account_id ? (acctName.get(o.account_id) ?? '(unknown)') : '(no account)', items: itemsByOrder.get(o.id) ?? [] }))
+  .filter((l) => l.items.length)
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const pretty = prettyDeliveryDate(deliveryDate);
+---
+
+<AdminShell title="Wholesale — Crate labels" subtitle={`Delivery ${pretty} · ${labels.length} labels`} pageTitle="Wholesale labels — Tiny Seed Admin">
+  <Fragment slot="actions">
+    <button type="button" onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">🖨 Print labels</button>
+  </Fragment>
+
+  {dates.length > 1 && (
+    <Card padding="md" elevation="sm" class="mb-4 no-print">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-gray-500">Delivery date:</span>
+        {dates.map((d) => (
+          <a href={`/admin/wholesale/labels?date=${d}`} class={`rounded-full px-3 py-1 text-sm font-medium ${d === deliveryDate ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{prettyDeliveryDate(d)}</a>
+        ))}
+      </div>
+    </Card>
+  )}
+
+  {labels.length === 0 ? (
+    <Card padding="lg" elevation="sm"><p class="text-sm text-gray-500">No wholesale orders for {pretty}.</p></Card>
+  ) : (
+    <div class="label-grid">
+      {labels.map((l) => (
+        <div class="wlabel">
+          <div class="wlabel-top">
+            <span class="wlabel-brand">TINY SEED FARM</span>
+            <span class="wlabel-date">{pretty}</span>
+          </div>
+          <div class="wlabel-name">{l.name}</div>
+          <ul class="wlabel-items">
+            {l.items.map((it) => (<li><b>{it.qty}×</b> {it.product_name}</li>))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )}
+</AdminShell>
+
+<style>
+  .label-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2in; }
+  .wlabel {
+    border: 1.5px solid #1b4332; border-radius: 8px; padding: 0.18in 0.22in;
+    min-height: 2.6in; break-inside: avoid; display: flex; flex-direction: column;
+  }
+  .wlabel-top { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #d8f3dc; padding-bottom: 4px; margin-bottom: 6px; }
+  .wlabel-brand { font-size: 10pt; font-weight: 800; letter-spacing: 0.05em; color: #2d6a4f; }
+  .wlabel-date { font-size: 11pt; font-weight: 700; color: #1b4332; }
+  .wlabel-name { font-size: 20pt; font-weight: 800; color: #111827; line-height: 1.05; margin-bottom: 8px; }
+  .wlabel-items { list-style: none; margin: 0; padding: 0; font-size: 12pt; color: #1b1b1b; }
+  .wlabel-items li { padding: 2px 0; border-bottom: 0.5px solid #f0f0f0; }
+  @media print {
+    .no-print { display: none !important; }
+    .label-grid { gap: 0.15in; }
+    .wlabel { page-break-inside: avoid; }
+  }
+</style>
