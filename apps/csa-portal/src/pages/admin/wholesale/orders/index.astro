@@ -23,16 +23,21 @@ import Card from '../../../../components/Card.astro';
 import Badge from '../../../../components/Badge.astro';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import {
-  formatCents, nextDeliveryWednesday, prettyDeliveryDate, isYMD, CUTOFF_LABEL,
+  formatCents, currentDeliveryWednesday, prettyDeliveryDate, isYMD, CUTOFF_LABEL,
 } from '../../../../lib/wholesale-order';
 
 export const prerender = false;
 
 const url = Astro.url;
+const SITE_ORIGIN = url.origin;
 
 // ─── Which delivery date are we looking at? ─────────────────────────
+// Default to the CURRENT delivery week's Wednesday (Mon–Sun), NOT
+// nextDeliveryWednesday — that rolled to next week after the Tue cutoff, so on
+// delivery day this screen showed an empty next-week date and chefs who DID
+// order looked like they hadn't (Todd 2026-06-24).
 const dateParam = url.searchParams.get('date') ?? '';
-const deliveryDate = isYMD(dateParam) ? dateParam : nextDeliveryWednesday();
+const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
 
 // ─── All chef accounts we've emailed links to (token = emailed) ─────
 type AccountRow = {
@@ -144,6 +149,12 @@ const deliveryPretty = prettyDeliveryDate(deliveryDate);
   title="Chef orders"
   subtitle={`Delivery ${deliveryPretty} · cutoff ${CUTOFF_LABEL} · ${accounts.length} chef accounts`}
 >
+  <Fragment slot="actions">
+    <a href={`/admin/wholesale/pack?date=${deliveryDate}`} class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">📦 Pack this date</a>
+    <a href={`/admin/wholesale/labels?date=${deliveryDate}`} class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">🏷️ Labels</a>
+    <a href="/admin/wholesale" class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">← Hub</a>
+  </Fragment>
+
   {/* Delivery-date picker */}
   {deliveryDates.length > 1 && (
     <Card padding="md" elevation="sm" as="section" class="mb-4">
@@ -244,20 +255,25 @@ const deliveryPretty = prettyDeliveryDate(deliveryDate);
   )}
 
   {/* Visited, no order */}
-  <h2 class="mb-2 text-lg font-semibold text-gray-900">Visited the portal, no order yet · {visitedNoOrder.length}</h2>
+  <h2 class="mb-2 text-lg font-semibold text-gray-900">Visited the portal — no order for {deliveryPretty} · {visitedNoOrder.length}</h2>
   {visitedNoOrder.length === 0 ? (
     <Card padding="md" elevation="sm" class="mb-5"><p class="text-sm text-gray-500">None.</p></Card>
   ) : (
     <Card padding="none" elevation="sm" as="section" class="mb-6">
       <ul class="divide-y divide-gray-100">
         {visitedNoOrder.map((s) => (
-          <li class="flex items-center justify-between px-4 py-2.5 text-sm">
+          <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
             <div>
               <span class="font-medium text-gray-900">{s.restaurant_name}</span>
               <span class="ml-2 text-xs text-gray-400">{s.email ?? ''}</span>
             </div>
-            <div class="text-right text-xs text-gray-500">
-              {s.portal_visit_count} visit{(s.portal_visit_count ?? 0) === 1 ? '' : 's'} · last {fmtTime(s.last_portal_visit_at)}
+            <div class="flex items-center gap-3">
+              <span class="text-right text-xs text-gray-500">
+                {s.portal_visit_count} visit{(s.portal_visit_count ?? 0) === 1 ? '' : 's'} · last {fmtTime(s.last_portal_visit_at)}
+              </span>
+              {s.order_token && (
+                <button type="button" data-copy-link={`${SITE_ORIGIN}/order/${s.order_token}`} class="copy-link rounded border border-ts-border bg-white px-2 py-1 text-xs font-medium text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">Copy order link</button>
+              )}
             </div>
           </li>
         ))}
@@ -271,16 +287,31 @@ const deliveryPretty = prettyDeliveryDate(deliveryDate);
     <Card padding="md" elevation="sm" class="mb-3"><p class="text-sm text-gray-500">None.</p></Card>
   ) : (
     <Card padding="none" elevation="sm" as="section" class="mb-3">
-      <ul class="grid grid-cols-1 divide-y divide-gray-100 sm:grid-cols-2 sm:divide-y-0">
+      <ul class="divide-y divide-gray-100">
         {notOpened.map((s) => (
-          <li class="flex items-center justify-between px-4 py-2 text-sm">
-            <span class="font-medium text-gray-700">{s.restaurant_name}</span>
-            <span class="text-xs text-gray-400">{s.email ?? '—'}</span>
+          <li class="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+            <div>
+              <span class="font-medium text-gray-700">{s.restaurant_name}</span>
+              <span class="ml-2 text-xs text-gray-400">{s.email ?? '—'}</span>
+            </div>
+            {s.order_token && (
+              <button type="button" data-copy-link={`${SITE_ORIGIN}/order/${s.order_token}`} class="copy-link rounded border border-ts-border bg-white px-2 py-1 text-xs font-medium text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">Copy order link</button>
+            )}
           </li>
         ))}
       </ul>
     </Card>
   )}
+
+  <script is:inline>
+    document.querySelectorAll('.copy-link').forEach((b) => b.addEventListener('click', () => {
+      const link = b.getAttribute('data-copy-link');
+      navigator.clipboard?.writeText(link).then(() => {
+        const t = b.textContent; b.textContent = 'Copied!';
+        setTimeout(() => { b.textContent = t; }, 1500);
+      });
+    }));
+  </script>
 
   <p class="mt-4 text-xs text-gray-400">
     Order data is accurate all-time. Portal-visit tracking began when it shipped (2026-06-23) —

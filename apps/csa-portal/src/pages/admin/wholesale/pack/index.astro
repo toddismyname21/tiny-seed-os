@@ -11,13 +11,13 @@
 import AdminShell from '../../../../components/AdminShell.astro';
 import Card from '../../../../components/Card.astro';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { nextDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
+import { currentDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
 
 export const prerender = false;
 
 const url = Astro.url;
 const dateParam = url.searchParams.get('date') ?? '';
-const deliveryDate = isYMD(dateParam) ? dateParam : nextDeliveryWednesday();
+const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
 
 // Orders for the date + their account names.
 const { data: orderRows } = await supabaseAdmin
@@ -73,6 +73,8 @@ const pretty = prettyDeliveryDate(deliveryDate);
 
 <AdminShell title="Wholesale — Pick & Pack" subtitle={`Delivery ${pretty} · ${packCustomers.length} orders`} pageTitle="Wholesale Pick & Pack — Tiny Seed Admin">
   <Fragment slot="actions">
+    <a href={`/admin/wholesale/labels?date=${deliveryDate}`} class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">🏷️ Labels</a>
+    <a href="/admin/wholesale" class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">← Hub</a>
     <button type="button" onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">🖨 Print</button>
   </Fragment>
 

@@ -1,0 +1,125 @@
+---
+/**
+ * /admin/wholesale — the WHOLESALE HUB (landing/dashboard).
+ *
+ * WHY: there was no /admin/wholesale page (typing it 404'd), and the four tools
+ * — Chef orders, Pick & pack, Crate labels, Products — were only reachable from
+ * the nav. This hub is the front door: a snapshot of the CURRENT delivery's
+ * orders + a quick-action grid into each tool (carrying the active date).
+ *
+ * Defaults to the CURRENT delivery week's Wednesday so on delivery day it
+ * reflects today, not next week. Service-role reads (middleware admin-gated).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+import {
+  currentDeliveryWednesday, prettyDeliveryDate, isYMD, CUTOFF_LABEL,
+} from '../../../lib/wholesale-order';
+
+export const prerender = false;
+
+const url = Astro.url;
+const dateParam = url.searchParams.get('date') ?? '';
+const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
+
+// All chef accounts (token = we've emailed them a link).
+const { data: accountsData } = await supabaseAdmin
+  .from('wholesale_accounts')
+  .select('id, restaurant_name, portal_visit_count, last_portal_visit_at, status')
+  .order('restaurant_name', { ascending: true });
+const accounts = (accountsData ?? []) as Array<{
+  id: string; restaurant_name: string; portal_visit_count: number | null;
+  last_portal_visit_at: string | null; status: string | null;
+}>;
+
+// Orders for the active delivery date.
+const { data: ordersData } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select('id, account_id, total_amount, total_lbs')
+  .eq('delivery_date', deliveryDate);
+const orders = (ordersData ?? []) as Array<{ id: string; account_id: string | null; total_amount: number | null; total_lbs: number | null }>;
+const orderedAccountIds = new Set(orders.map((o) => o.account_id).filter(Boolean) as string[]);
+
+const orderedCount = orderedAccountIds.size;
+const totalRevenue = orders.reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
+const totalLbs = orders.reduce((s, o) => s + (Number(o.total_lbs) || 0), 0);
+const visitedNoOrder = accounts.filter((a) => !orderedAccountIds.has(a.id) && (a.portal_visit_count ?? 0) > 0);
+const notOpened = accounts.filter((a) => !orderedAccountIds.has(a.id) && (a.portal_visit_count ?? 0) === 0);
+
+// Distinct delivery dates (for the picker).
+const { data: dateRows } = await supabaseAdmin.from('wholesale_orders').select('delivery_date').order('delivery_date', { ascending: false });
+const dates = Array.from(new Set([deliveryDate, ...((dateRows ?? []).map((r: any) => r.delivery_date as string))])).filter(Boolean).sort().reverse();
+
+const money = (d: number | null | undefined) => `$${(Number(d) || 0).toFixed(2)}`;
+const pretty = prettyDeliveryDate(deliveryDate);
+const q = `?date=${deliveryDate}`;
+
+const tools = [
+  { href: `/admin/wholesale/orders${q}`,  icon: '📥', label: 'Chef orders',  desc: 'Who ordered, what, totals + who hasn’t ordered yet.' },
+  { href: `/admin/wholesale/pack${q}`,    icon: '📦', label: 'Pick & pack',  desc: 'Harvest totals + each restaurant’s pack list.' },
+  { href: `/admin/wholesale/labels${q}`,  icon: '🏷️', label: 'Crate labels', desc: 'Avery 5164 labels — name, phone, items, USDA seal.' },
+  { href: `/admin/wholesale/products`,    icon: '🥬', label: 'Products',     desc: 'Manage the catalog, pricing + availability chefs see.' },
+];
+---
+
+<AdminShell
+  title="Wholesale"
+  subtitle={`Delivery ${pretty} · order cutoff ${CUTOFF_LABEL}`}
+  pageTitle="Wholesale — Tiny Seed Admin"
+>
+  {dates.length > 1 && (
+    <Card padding="md" elevation="sm" class="mb-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-gray-500">Delivery date:</span>
+        {dates.map((d) => (
+          <a href={`/admin/wholesale?date=${d}`} class={`rounded-full px-3 py-1 text-sm font-medium ${d === deliveryDate ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{prettyDeliveryDate(d)}</a>
+        ))}
+      </div>
+    </Card>
+  )}
+
+  {/* Snapshot for the active delivery date */}
+  <section class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <Card padding="md" elevation="sm">
+      <div class="text-3xl font-bold text-emerald-600">{orderedCount}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Ordered</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-3xl font-bold text-gray-900">{money(totalRevenue)}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Revenue{totalLbs > 0 ? ` · ${totalLbs.toFixed(0)} lbs` : ''}</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-3xl font-bold text-amber-600">{visitedNoOrder.length}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Visited, no order</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-3xl font-bold text-gray-400">{notOpened.length}</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500">Haven’t opened</div>
+    </Card>
+  </section>
+
+  {/* Quick actions */}
+  <h2 class="mb-2 text-lg font-semibold text-gray-900">Tools</h2>
+  <section class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    {tools.map((t) => (
+      <a href={t.href} class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 transition-colors hover:border-ts-primary/50 hover:bg-ts-primary/5">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl" aria-hidden="true">{t.icon}</span>
+          <span class="text-base font-semibold text-gray-900 group-hover:text-ts-primary">{t.label}</span>
+          <span class="ml-auto text-ts-text-muted group-hover:text-ts-primary" aria-hidden="true">→</span>
+        </div>
+        <p class="mt-1 text-sm text-gray-500">{t.desc}</p>
+      </a>
+    ))}
+  </section>
+
+  {orderedCount === 0 && (
+    <Card padding="md" elevation="sm" class="mt-5 border border-amber-200 bg-amber-50">
+      <p class="text-sm text-amber-800">
+        No orders yet for {pretty}. If chefs should have ordered for this date, check the
+        <a href={`/admin/wholesale/orders${q}`} class="font-semibold underline"> Chef orders</a> page — or pick another delivery date above.
+      </p>
+    </Card>
+  )}
+</AdminShell>

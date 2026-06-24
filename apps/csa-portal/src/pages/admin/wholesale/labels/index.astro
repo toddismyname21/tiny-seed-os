@@ -1,22 +1,35 @@
 ---
 /**
- * /admin/wholesale/labels — printable crate labels for wholesale (chef) orders.
+ * /admin/wholesale/labels — printable WHOLESALE CRATE LABELS on Avery 5164.
  *
- * One label per restaurant order for a delivery date: restaurant name (big),
- * delivery date, and the item list, so the crew sticks it on the crate and the
- * driver knows what's inside. Two-up printable card grid. Service-role reads
- * (middleware admin-gated).
+ * Same label stock + layout as the CSA box labels (/admin/labels) so the crew
+ * prints both on the identical sheet: US Letter portrait, 6 labels per sheet
+ * (2 cols × 3 rows), each 4" × 3.33", side margin 0.156", top margin 0.5",
+ * col-gap 0.188" (Avery 5164 spec, verified on the CSA page).
+ *
+ * One label per restaurant order for a delivery date. Each label shows:
+ *   - Tiny Seed Farm logo + USDA Organic seal (header)
+ *   - Restaurant NAME (big) on a green band + delivery date
+ *   - Restaurant PHONE (so the driver can call on arrival)
+ *   - The item list (qty × product) the crew packs into that crate
+ *
+ * Service-role reads (middleware admin-gated). Defaults to the CURRENT delivery
+ * week's Wednesday so on delivery day it shows today's crates, not next week's.
  */
 import AdminShell from '../../../../components/AdminShell.astro';
 import Card from '../../../../components/Card.astro';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { nextDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
+import { currentDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
+import { formatUSPhone } from '../../../../lib/phone';
 
 export const prerender = false;
 
+const LOGO_SRC = '/tiny-seed-logo-bw.png';
+const USDA_SRC = '/usda-organic-seal.svg';
+
 const url = Astro.url;
 const dateParam = url.searchParams.get('date') ?? '';
-const deliveryDate = isYMD(dateParam) ? dateParam : nextDeliveryWednesday();
+const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
 
 const { data: orderRows } = await supabaseAdmin
   .from('wholesale_orders')
@@ -25,37 +38,63 @@ const { data: orderRows } = await supabaseAdmin
   .order('created_at', { ascending: true });
 const orders = (orderRows ?? []) as Array<{ id: string; account_id: string | null }>;
 
+// Account name + phone for the crate header.
 const acctIds = Array.from(new Set(orders.map((o) => o.account_id).filter(Boolean))) as string[];
-const acctName = new Map<string, string>();
+const acctById = new Map<string, { restaurant_name: string; phone: string | null }>();
 if (acctIds.length) {
-  const { data: accts } = await supabaseAdmin.from('wholesale_accounts').select('id, restaurant_name').in('id', acctIds);
-  for (const a of accts ?? []) acctName.set((a as any).id, (a as any).restaurant_name);
+  const { data: accts } = await supabaseAdmin
+    .from('wholesale_accounts')
+    .select('id, restaurant_name, phone')
+    .in('id', acctIds);
+  for (const a of accts ?? []) acctById.set((a as any).id, { restaurant_name: (a as any).restaurant_name, phone: (a as any).phone });
 }
 
 const orderIds = orders.map((o) => o.id);
 type Item = { order_id: string; product_name: string | null; qty: number | null };
 let items: Item[] = [];
 if (orderIds.length) {
-  const { data: r } = await supabaseAdmin.from('wholesale_order_items').select('order_id, product_name, qty').in('order_id', orderIds);
+  const { data: r } = await supabaseAdmin
+    .from('wholesale_order_items')
+    .select('order_id, product_name, qty')
+    .in('order_id', orderIds);
   items = (r ?? []) as Item[];
 }
 const itemsByOrder = new Map<string, Item[]>();
 for (const it of items) { const a = itemsByOrder.get(it.order_id) ?? []; a.push(it); itemsByOrder.set(it.order_id, a); }
 
+// Date picker options (every date that has orders, current first).
 const { data: dateRows } = await supabaseAdmin.from('wholesale_orders').select('delivery_date').order('delivery_date', { ascending: false });
 const dates = Array.from(new Set([deliveryDate, ...((dateRows ?? []).map((r: any) => r.delivery_date as string))])).filter(Boolean).sort().reverse();
 
-const labels = orders
-  .map((o) => ({ name: o.account_id ? (acctName.get(o.account_id) ?? '(unknown)') : '(no account)', items: itemsByOrder.get(o.id) ?? [] }))
+interface WLabel { name: string; phone: string | null; items: Array<{ qty: number | null; name: string | null }>; }
+const labels: WLabel[] = orders
+  .map((o) => {
+    const acct = o.account_id ? acctById.get(o.account_id) : undefined;
+    return {
+      name: acct?.restaurant_name ?? '(no account)',
+      phone: acct?.phone ?? null,
+      items: (itemsByOrder.get(o.id) ?? []).map((it) => ({ qty: it.qty, name: it.product_name })),
+    };
+  })
   .filter((l) => l.items.length)
   .sort((a, b) => a.name.localeCompare(b.name));
+
+// Pad to whole sheets of 6 so each Avery sheet stays aligned.
+const totalSheets = Math.max(1, Math.ceil(labels.length / 6));
+const padded: (WLabel | null)[] = [...labels];
+while (padded.length < totalSheets * 6) padded.push(null);
 
 const pretty = prettyDeliveryDate(deliveryDate);
 ---
 
-<AdminShell title="Wholesale — Crate labels" subtitle={`Delivery ${pretty} · ${labels.length} labels`} pageTitle="Wholesale labels — Tiny Seed Admin">
+<AdminShell
+  title="Wholesale — Crate labels"
+  subtitle={`Avery 5164 · Delivery ${pretty} · ${labels.length} label${labels.length === 1 ? '' : 's'} (${totalSheets} sheet${totalSheets === 1 ? '' : 's'})`}
+  pageTitle="Wholesale labels — Tiny Seed Admin"
+>
   <Fragment slot="actions">
     <button type="button" onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">🖨 Print labels</button>
+    <a href="/admin/wholesale" class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">← Wholesale hub</a>
   </Fragment>
 
   {dates.length > 1 && (
@@ -72,38 +111,116 @@ const pretty = prettyDeliveryDate(deliveryDate);
   {labels.length === 0 ? (
     <Card padding="lg" elevation="sm"><p class="text-sm text-gray-500">No wholesale orders for {pretty}.</p></Card>
   ) : (
-    <div class="label-grid">
-      {labels.map((l) => (
-        <div class="wlabel">
-          <div class="wlabel-top">
-            <span class="wlabel-brand">TINY SEED FARM</span>
-            <span class="wlabel-date">{pretty}</span>
-          </div>
-          <div class="wlabel-name">{l.name}</div>
-          <ul class="wlabel-items">
-            {l.items.map((it) => (<li><b>{it.qty}×</b> {it.product_name}</li>))}
-          </ul>
-        </div>
-      ))}
-    </div>
+    <Fragment>
+      <p class="screen-only mb-3 text-xs text-ts-text-muted">Avery 5164 — print at <em>100% scale</em> on a blank Avery 5164 sheet (6 labels per page).</p>
+      <div class="label-doc">
+        {Array.from({ length: totalSheets }, (_, sheetIdx) => {
+          const slice = padded.slice(sheetIdx * 6, sheetIdx * 6 + 6);
+          return (
+            <section class="label-sheet" aria-label={`Sheet ${sheetIdx + 1} of ${totalSheets}`}>
+              {slice.map((l) => (
+                <div class="label">
+                  {l ? (
+                    <div class="label-body">
+                      <div class="label-hdr">
+                        <img class="label-logo" src={LOGO_SRC} alt="" aria-hidden="true" width="630" height="840" />
+                        <span class="label-wholesale-mark">WHOLESALE</span>
+                        <img class="label-seal" src={USDA_SRC} alt="USDA Organic" width="600" height="620" />
+                      </div>
+                      <div class="label-name-band">
+                        <span class="label-name">{l.name}</span>
+                        <span class="label-date">{pretty}</span>
+                      </div>
+                      {l.phone && <div class="label-phone">📞 {formatUSPhone(l.phone)}</div>}
+                      <ul class={`label-items${l.items.length >= 6 ? ' is-two-col' : ''}`}>
+                        {l.items.map((it) => (
+                          <li class="label-item"><b>{it.qty}×</b> {it.name}</li>
+                        ))}
+                      </ul>
+                      <div class="label-foot">Tiny Seed Farm · 257 Zeigler Rd, Rochester PA · Certified Organic</div>
+                    </div>
+                  ) : (
+                    <div class="label-blank"></div>
+                  )}
+                </div>
+              ))}
+            </section>
+          );
+        })}
+      </div>
+    </Fragment>
   )}
 </AdminShell>
 
-<style>
-  .label-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2in; }
-  .wlabel {
-    border: 1.5px solid #1b4332; border-radius: 8px; padding: 0.18in 0.22in;
-    min-height: 2.6in; break-inside: avoid; display: flex; flex-direction: column;
+<style is:global>
+  .label-logo, .label-seal, .label-name-band { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .label-doc {
+    --label-w: 4in;
+    --label-h: 3.33in;
+    --sheet-w: 8.5in;
+    --sheet-h: 11in;
+    --margin-top: 0.5in;
+    --margin-side: 0.156in;
+    --col-gap: 0.188in;
   }
-  .wlabel-top { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #d8f3dc; padding-bottom: 4px; margin-bottom: 6px; }
-  .wlabel-brand { font-size: 10pt; font-weight: 800; letter-spacing: 0.05em; color: #2d6a4f; }
-  .wlabel-date { font-size: 11pt; font-weight: 700; color: #1b4332; }
-  .wlabel-name { font-size: 20pt; font-weight: 800; color: #111827; line-height: 1.05; margin-bottom: 8px; }
-  .wlabel-items { list-style: none; margin: 0; padding: 0; font-size: 12pt; color: #1b1b1b; }
-  .wlabel-items li { padding: 2px 0; border-bottom: 0.5px solid #f0f0f0; }
+  .label-sheet {
+    box-sizing: border-box;
+    width: var(--sheet-w);
+    height: var(--sheet-h);
+    margin: 0 auto 0.25in;
+    padding: var(--margin-top) var(--margin-side) 0;
+    display: grid;
+    grid-template-columns: var(--label-w) var(--label-w);
+    grid-template-rows: repeat(3, var(--label-h));
+    column-gap: var(--col-gap);
+    background: #fff;
+  }
+  .label {
+    box-sizing: border-box;
+    width: var(--label-w);
+    height: var(--label-h);
+    padding: 0.14in;
+    border: 1px dashed #d8d8d8;
+    overflow: hidden;
+  }
+  @media print { .label { border: none; } }
+  .label-blank { width: 100%; height: 100%; }
+  .label-body { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+
+  .label-hdr { display: flex; align-items: center; justify-content: space-between; gap: 0.08in; }
+  .label-logo { height: 0.5in; width: auto; }
+  .label-seal { height: 0.62in; width: auto; }
+  .label-wholesale-mark { font-size: 8pt; font-weight: 800; letter-spacing: 0.14em; color: #2d6a4f; }
+
+  .label-name-band {
+    margin-top: 0.06in;
+    background: #1b4332; color: #fff;
+    border-radius: 5px;
+    padding: 0.05in 0.1in;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 0.1in;
+  }
+  .label-name { font-size: 18pt; font-weight: 800; line-height: 1.05; }
+  .label-date { font-size: 10pt; font-weight: 700; white-space: nowrap; }
+
+  .label-phone { margin-top: 0.05in; font-size: 12pt; font-weight: 700; color: #111827; }
+
+  .label-items {
+    list-style: none; margin: 0.06in 0 0; padding: 0;
+    font-size: 10.5pt; color: #1b1b1b; line-height: 1.25;
+    overflow: hidden; flex: 1 1 auto;
+  }
+  .label-items.is-two-col { columns: 2; column-gap: 0.16in; font-size: 9.5pt; }
+  .label-item { break-inside: avoid; padding: 1px 0; }
+  .label-item b { font-weight: 800; }
+
+  .label-foot { font-size: 6.5pt; color: #6b7280; letter-spacing: 0.02em; padding-top: 0.03in; }
+
   @media print {
-    .no-print { display: none !important; }
-    .label-grid { gap: 0.15in; }
-    .wlabel { page-break-inside: avoid; }
+    @page { size: Letter portrait; margin: 0; }
+    body, html { background: #fff !important; }
+    .no-print, .screen-only { display: none !important; }
+    .label-sheet { margin: 0 auto; page-break-after: always; }
+    .label-sheet:last-child { page-break-after: auto; }
   }
 </style>

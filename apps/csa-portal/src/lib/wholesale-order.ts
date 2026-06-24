@@ -74,6 +74,26 @@ export function nextDeliveryWednesday(now: Date = new Date()): string {
   return addDaysYMD(upcomingMondayET(now), 2);
 }
 
+/** The CURRENT delivery week's Wednesday ('YYYY-MM-DD' in ET). Unlike
+ *  nextDeliveryWednesday (which rolls to NEXT week the moment the Tuesday 7 AM
+ *  order cutoff passes), this stays on THIS week's Wednesday from Monday through
+ *  Sunday, then rolls on Monday. It's the right default for the ADMIN wholesale
+ *  views: on/around delivery day they must show TODAY's orders, not next week's
+ *  (empty) date — otherwise chefs who ordered look like they "haven't ordered".
+ *  (Todd 2026-06-24.) */
+export function currentDeliveryWednesday(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(now);
+  const get = (t: string): string => parts.find((p) => p.type === t)?.value ?? '';
+  const dayIndex: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const todayIdx = dayIndex[get('weekday')] ?? 0;
+  const daysSinceMonday = (todayIdx + 6) % 7; // Mon=0, Tue=1, … Sun=6
+  const thisMonday = addDaysYMD(`${get('year')}-${get('month')}-${get('day')}`, -daysSinceMonday);
+  return addDaysYMD(thisMonday, 2);
+}
+
 /** The edit-cutoff calendar date ('YYYY-MM-DD') = the Tuesday before delivery,
  *  7 AM ET cutoff = the Wednesday delivery date − 1 day. (The cutoff TIME is
  *  7 AM ET — see CUTOFF_LABEL.) Name kept as `editCutoffSunday` for import
