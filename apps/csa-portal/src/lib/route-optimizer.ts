@@ -227,22 +227,38 @@ export async function gatherDayStops(
   //    pseudo-stop on Wed). One waypoint per household.
   if (day === 'Wed') {
     const hd: any[] = cycle.byStop.get('home_delivery') ?? [];
-    const seen = new Set<string>();
+    // A household can have SEVERAL rows in the home_delivery bucket: the box
+    // (summer_veg) row that carries the delivery_address, PLUS any add-ons that
+    // ride to the same stop. Add-on rows carry a null delivery_address. So we
+    // must NOT dedupe by "first row seen per customer" — if a null-address
+    // add-on came first, the whole household was wrongly skipped as "(home, no
+    // address)" even though the box row has the address (Todd 2026-06-24:
+    // Martina/Stephanie/Carla). Group by customer and pick the row that
+    // actually HAS an address (prefer the box row), only reporting "no address"
+    // when NO row for that household carries one.
+    const rowsByCustomer = new Map<string, any[]>();
     for (const m of hd) {
-      if (seen.has(m.customer_id)) continue;
-      seen.add(m.customer_id);
-      if (!m.delivery_address) { skipped.push(`${m.contact_name} (home, no address)`); continue; }
-      const g = await geocode(m.delivery_address, key);
-      if (!g) { skipped.push(`${m.contact_name} (home, geocode failed)`); continue; }
+      const arr = rowsByCustomer.get(m.customer_id);
+      if (arr) arr.push(m);
+      else rowsByCustomer.set(m.customer_id, [m]);
+    }
+    for (const [customer_id, rows] of rowsByCustomer) {
+      const rep =
+        rows.find((r) => r.delivery_address && r.share_type === 'summer_veg') ??
+        rows.find((r) => r.delivery_address) ??
+        rows[0];
+      if (!rep.delivery_address) { skipped.push(`${rep.contact_name} (home, no address)`); continue; }
+      const g = await geocode(rep.delivery_address, key);
+      if (!g) { skipped.push(`${rep.contact_name} (home, geocode failed)`); continue; }
       stops.push({
-        key: m.customer_id,
-        name: `🏠 ${m.contact_name}`,
+        key: customer_id,
+        name: `🏠 ${rep.contact_name}`,
         lat: g.lat,
         lng: g.lng,
         kind: 'home',
         serviceSec: SERVICE.home,
         detail: 'home delivery',
-        ref: { col: 'member_id', id: m.id },
+        ref: { col: 'member_id', id: rep.id },
       });
     }
   }
