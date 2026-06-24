@@ -313,6 +313,37 @@ const marketGroups: MarketGroup[] = Array.from(marketGroupMap.values()).sort(
   (a, b) => a.marketName.localeCompare(b.marketName),
 );
 
+// ─── COMBINED HARVEST — pull everything once (Todd: "the pick combined,
+//     market + CSA + wholesale, packs separate") ────────────────────────
+// Merge all four channels into ONE per-crop pick list. Crops are matched on a
+// normalized name (lowercased, parentheticals/units stripped) so e.g.
+// "King Spring Mix (per lb)" (wholesale) folds into "King Spring Mix" (box).
+// Each channel keeps its own qty + unit (a crop can be lbs wholesale + bunches
+// in the box), shown side by side; the crew reads across one row per crop.
+function normCrop(s: string): string {
+  return s.toLowerCase().replace(/\([^)]*\)/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+type Chan = 'box' | 'flex' | 'wholesale' | 'market';
+interface ChanQty { qty: number; unit: string }
+interface CombinedRow { crop: string; photo: string | null; box: ChanQty | null; flex: ChanQty | null; wholesale: ChanQty | null; market: ChanQty | null; demand: number }
+const combinedMap = new Map<string, CombinedRow>();
+function bumpCombined(name: string, chan: Chan, qty: number, unit: string, photo: string | null) {
+  const key = normCrop(name);
+  if (!key || qty <= 0) return;
+  let r = combinedMap.get(key);
+  if (!r) { r = { crop: name, photo: null, box: null, flex: null, wholesale: null, market: null, demand: 0 }; combinedMap.set(key, r); }
+  if (!r.photo && photo) r.photo = photo;
+  const cur = r[chan];
+  if (cur) cur.qty += qty; else r[chan] = { qty, unit };
+  r.demand += qty;
+}
+for (const r of rows) bumpCombined(r.crop, 'box', r.box_qty, r.unit, boxCropPhoto(r.crop));
+for (const r of flexRows) bumpCombined(r.name, 'flex', r.qty, 'ea', r.photo);
+for (const r of wholesaleRows) bumpCombined(r.product, 'wholesale', r.qty, r.unit, r.photo);
+for (const g of marketGroups) for (const it of g.items) bumpCombined(it.name, 'market', Number(it.planned_qty) || 0, it.unit, it.photo);
+const combinedRows = Array.from(combinedMap.values()).sort((a, b) => b.demand - a.demand || a.crop.localeCompare(b.crop));
+const combinedChannelCount = (r: CombinedRow) => [r.box, r.flex, r.wholesale, r.market].filter(Boolean).length;
+
 const totalDistinctCrops = rows.length;
 const totalBoxesThisHarvest = membersForHarvest.filter((m) => m.share_type === 'summer_veg').length;
 const totalBiweeklyExcluded = cycle.excluded_biweekly.length;
@@ -384,10 +415,68 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
     </Card>
   </section>
 
-  {/* ── Harvest table ────────────────────────────────────────────── */}
+  {/* ── COMBINED HARVEST — the unified pick across ALL channels ──── */}
+  <section aria-labelledby="combined-heading" class="flex flex-col gap-3">
+    <h2 id="combined-heading" class="font-display text-xl font-bold text-ts-text">
+      🌾 Combined harvest — pull everything once
+      <span class="ml-2 align-middle text-xs font-medium text-ts-text-muted">box + flex + wholesale + market · {combinedRows.length} crops</span>
+    </h2>
+    {combinedRows.length === 0 ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <p class="text-center text-sm text-ts-text-secondary">Nothing to harvest on this day yet.</p>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <table class="w-full text-left">
+          <thead class="border-b border-ts-border bg-ts-bg-muted/30">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Crop</th>
+              <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">🥬 Box</th>
+              <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">🌿 Flex</th>
+              <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">🍽 Wsale</th>
+              <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-ts-text-muted">🛒 Market</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border/60">
+            {combinedRows.map((r) => {
+              const multi = combinedChannelCount(r) > 1;
+              const cell = (c: { qty: number; unit: string } | null) =>
+                c
+                  ? <span><strong class="tabular-nums text-ts-text">{c.qty}</strong> <span class="text-[10px] text-ts-text-muted">{c.unit}</span></span>
+                  : <span class="text-ts-text-muted">—</span>;
+              return (
+                <tr class={multi ? 'bg-ts-primary/5' : ''}>
+                  <td class="px-4 py-3 text-sm font-medium text-ts-text">
+                    <span class="flex items-center gap-3">
+                      {r.photo && (
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface">
+                          <img src={r.photo} alt="" width="36" height="36" loading="lazy" class="h-full w-full object-cover" />
+                        </span>
+                      )}
+                      <span>{r.crop}{multi && <span class="ml-1 align-middle text-[10px] font-bold text-ts-primary">×{combinedChannelCount(r)} channels</span>}</span>
+                    </span>
+                  </td>
+                  <td class="px-3 py-3 text-right text-sm">{cell(r.box)}</td>
+                  <td class="px-3 py-3 text-right text-sm">{cell(r.flex)}</td>
+                  <td class="px-3 py-3 text-right text-sm">{cell(r.wholesale)}</td>
+                  <td class="px-3 py-3 text-right text-sm">{cell(r.market)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+    )}
+    <p class="text-xs text-ts-text-muted">
+      One row per crop across <strong>all channels</strong> — harvest each crop once for everyone, then split it to the box / flex / wholesale / market packs.
+      Highlighted rows feed more than one channel. Units can differ per channel (the box may want bunches while wholesale wants pounds). The per-channel sections below have the detail (member counts, photos, per-market, per-restaurant).
+    </p>
+  </section>
+
+  {/* ── CSA box detail (per crop) ────────────────────────────────── */}
   <section aria-labelledby="harvest-table-heading" class="flex flex-col gap-3">
     <h2 id="harvest-table-heading" class="font-display text-xl font-bold text-ts-text">
-      Pick list
+      CSA box — by crop
     </h2>
     {rows.length === 0 ? (
       <Card tone="muted" padding="lg" elevation="sm">
