@@ -69,6 +69,7 @@ import {
   resolveCycle, prettyWeekHeader, mondayOfWeek, isMonday,
   type CycleMember, type StopTotals, type AddOnType,
 } from '../../../lib/cycle';
+import { loadWeekRoutes } from '../../../lib/saved-route';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -98,6 +99,11 @@ const typeFilter: 'flower' | 'box' | null =
   : null;
 
 const cycle = await resolveCycle(supabase, week_starting);
+
+// PACK ORDER TIED TO ROUTE: the saved, optimized route (planner → "Save & send
+// to driver") sets the delivery sequence; labels print in that order so the
+// stack matches the truck. Empty map → falls back to day→stop→name below.
+const weekRoutes = await loadWeekRoutes(supabase, week_starting);
 
 // ─── Build the LABEL list in pack order ─────────────────────────────
 // One label per BOX. summer_veg members get a box; add_on, flex, etc.
@@ -616,12 +622,28 @@ const filterMemberName = memberFilter
 const totalLabels = visibleLabels.length;
 const totalSheets = Math.ceil(totalLabels / 6);
 
+// PACK ORDER TIED TO ROUTE: when an optimized route is SAVED for this week,
+// reorder labels into that delivery sequence first (pickup stop → 'pl:'+id,
+// home delivery → 'cust:'+customer_id). Labels with no saved-route position
+// keep their relative order at the end. Falls back to the day→stop→name order.
+const packOrderedByRoute = weekRoutes.hasSavedRoute;
+function labelRouteKey(l: LabelData): string {
+  return isHomeDeliveryLabel(l) ? `cust:${l.member.customer_id}` : `pl:${l.stop.stop_id}`;
+}
+let routeOrdered = visibleLabels;
+if (packOrderedByRoute) {
+  routeOrdered = visibleLabels
+    .map((l, i) => ({ l, i, k: weekRoutes.orderOf.get(labelRouteKey(l)) ?? Number.POSITIVE_INFINITY }))
+    .sort((a, b) => (a.k - b.k) || (a.i - b.i))
+    .map((x) => x.l);
+}
+
 // REVERSE delivery order for printing (Todd 2026-06-10): the list above is in
-// forward delivery order (stops Tue→Wed→Sat, alphabetical within stop). We
-// print it REVERSED so that as boxes are labeled top-to-bottom and stacked,
-// the FIRST delivery ends up ON TOP of the stack — load the van in this order
-// and the first stop is the first box out. Blanks stay on the final sheet.
-const orderedForPrint = visibleLabels.slice().reverse();
+// forward delivery order. We print it REVERSED so that as boxes are labeled
+// top-to-bottom and stacked, the FIRST delivery ends up ON TOP of the stack —
+// load the van in this order and the first stop is the first box out. Blanks
+// stay on the final sheet.
+const orderedForPrint = routeOrdered.slice().reverse();
 
 // Pad to a multiple of 6 with blank slots so each sheet stays whole.
 const PADDED_LENGTH = totalSheets * 6;

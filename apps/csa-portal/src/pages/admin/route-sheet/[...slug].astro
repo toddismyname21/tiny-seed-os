@@ -58,6 +58,7 @@ import {
 import { TEST_EXCLUDES } from '../../../lib/campaign';
 import { formatUSPhone } from '../../../lib/phone';
 import { isFarmPickup } from '../../../lib/delivery';
+import { loadWeekRoutes, fmtPhone } from '../../../lib/saved-route';
 import { extractZip, sortByRouteOrder } from '../../../lib/route-order';
 import {
   buildStopBandMap, bandForStop, HOME_DELIVERY_BAND,
@@ -82,6 +83,18 @@ const week_starting = isMonday(week_starting_input)
   : mondayOfWeek(week_starting_input);
 
 const cycle = await resolveCycle(supabase, week_starting);
+
+// SAVED OPTIMIZED ROUTE (planner → "Save & send to driver"). When present, the
+// printable sheet IS the optimized route (all legs, incl. wholesale, in true
+// drive order); the curated zip list below becomes screen-only reference.
+const weekRoutes = await loadWeekRoutes(supabase, week_starting);
+function fmtClockHMS(t: string | null): string {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ap = (h ?? 0) >= 12 ? 'PM' : 'AM';
+  const h12 = (((h ?? 0) + 11) % 12) + 1;
+  return `${h12}:${String(m ?? 0).padStart(2, '0')} ${ap}`;
+}
 
 // The Wednesday distribution date — this sheet is the Wednesday run.
 const wedDate = cycle.distribution_dates.Wed;
@@ -394,6 +407,45 @@ const prettyDate = new Intl.DateTimeFormat('en-US', {
   </Fragment>
 
   <div class="print-doc">
+    {/* ══ SAVED OPTIMIZED ROUTE (prints when a route is saved) ══════════ */}
+    {weekRoutes.hasSavedRoute && (
+      <div class="saved-route-doc">
+        <div class="reverse-banner mb-3 flex items-start gap-3 rounded-ts-lg border-2 border-ts-accent bg-ts-accent/15 px-4 py-3">
+          <span class="text-2xl leading-none" aria-hidden="true">🔁</span>
+          <p class="text-sm font-bold text-ts-text sm:text-base">
+            OPTIMIZED ROUTE — load in REVERSE (last stop on the bottom, stop&nbsp;#1 on top → first out).
+          </p>
+        </div>
+        {weekRoutes.legs.map((leg) => (
+          <section class="mb-6">
+            <header class="route-header rounded-ts-lg bg-ts-text px-5 py-3 text-white">
+              <p class="text-xs font-semibold uppercase tracking-wider text-white/80">Route {leg.leg} · {prettyShortDate(leg.route_date)}</p>
+              <h2 class="mt-1 font-display text-2xl font-extrabold">{leg.driver_name} · {leg.stops.length} stop{leg.stops.length === 1 ? '' : 's'}</h2>
+            </header>
+            <ol class="route-list mt-2 divide-y-2 divide-ts-border">
+              {leg.stops.map((s, i) => (
+                <li class="flex items-start gap-3 py-2">
+                  <span class="route-num flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ts-primary text-sm font-extrabold text-white">{i + 1}</span>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-bold text-ts-text">
+                      {s.kind === 'home' ? '🏠 ' : s.kind === 'wholesale' ? '🍽 ' : '📦 '}{s.name}
+                      {s.scheduledTime && <span class="ml-2 text-xs font-medium text-ts-text-secondary">~{fmtClockHMS(s.scheduledTime)}</span>}
+                    </div>
+                    {s.address && <div class="text-sm text-ts-text-secondary">{s.address}</div>}
+                    {s.phone && <div class="text-sm font-semibold text-ts-text">📞 {fmtPhone(s.phone)}</div>}
+                  </div>
+                  <span class="route-num mt-1 h-6 w-6 shrink-0 rounded border-2 border-ts-border bg-white" aria-hidden="true"></span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+        <p class="screen-only mt-1 text-xs text-ts-text-muted">↓ The curated zip-order sheet below is reference only — this optimized route prints instead.</p>
+      </div>
+    )}
+
+    {/* ══ Curated zip-order sheet (fallback; screen-only when a route is saved) ══ */}
+    <div class={weekRoutes.hasSavedRoute ? 'print:hidden' : ''}>
     {/* ── Sheet header ──────────────────────────────────────────────── */}
     <header class="route-header rounded-ts-lg bg-ts-text px-5 py-4 text-white">
       <p class="text-xs font-semibold uppercase tracking-wider text-white/80">
@@ -511,6 +563,7 @@ const prettyDate = new Intl.DateTimeFormat('en-US', {
         </div>
       </div>
     )}
+    </div>
   </div>
 </AdminShell>
 
