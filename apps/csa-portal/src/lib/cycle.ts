@@ -1007,12 +1007,35 @@ export async function resolveCycle(
   // on the manifest while the label correctly rode it on the home box — a
   // label↔manifest mismatch (Todd 2026-06-23 audit: Martina/Stephanie/Carla).
   const customerBoxStop = new Map<string, string>();
+  // Each home-delivery customer → their delivery address (taken from the BOX
+  // row, which always carries it). The address lives PER member row, but a
+  // household has several rows (box + each add-on) and the add-on rows are
+  // frequently created/migrated with a NULL delivery_address. We make the
+  // resolver the single source of truth: stamp the household address onto any
+  // home-riding row that's missing it, so NO downstream consumer (route planner,
+  // labels, manifest, driver) can read a null for a household we deliver to.
+  // Root cause of Todd 2026-06-24: the route planner picked a null-address
+  // add-on row and reported "no home address" for Martina/Stephanie/Carla/
+  // Ronelle even though each box row had the address.
+  const customerHomeAddress = new Map<string, string>();
   for (const m of included) {
     if (m.share_type === 'add_on') continue;
     let key: string | null = null;
     if (m.delivery_address && !m.pickup_location_id) key = HOME_DELIVERY_STOP_ID;
     else if (m.pickup_location_id) key = m.pickup_location_id;
     if (key && !customerBoxStop.has(m.customer_id)) customerBoxStop.set(m.customer_id, key);
+    if (m.delivery_address && !m.pickup_location_id && !customerHomeAddress.has(m.customer_id)) {
+      customerHomeAddress.set(m.customer_id, m.delivery_address);
+    }
+  }
+  // Stamp the household address onto any home-bound row missing it (add-ons that
+  // ride the home box). Only for households whose BOX goes home — never touch a
+  // row whose box ships to a pickup location. Display-only: changes no count.
+  for (const m of included) {
+    if (m.delivery_address) continue;
+    if (customerBoxStop.get(m.customer_id) !== HOME_DELIVERY_STOP_ID) continue;
+    const addr = customerHomeAddress.get(m.customer_id);
+    if (addr) m.delivery_address = addr;
   }
 
   for (const member of included) {
