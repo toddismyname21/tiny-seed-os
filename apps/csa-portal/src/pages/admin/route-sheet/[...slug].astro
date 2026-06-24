@@ -96,6 +96,14 @@ function fmtClockHMS(t: string | null): string {
   return `${h12}:${String(m ?? 0).padStart(2, '0')} ${ap}`;
 }
 
+// Combined load/pack checklist — every stop across BOTH routes (all legs) in one
+// checkbox list, tagged with its route letter. Built FROM the saved legs so it
+// matches the per-route pages exactly (incl. wholesale). Prints on its own page
+// after the routes (Todd 2026-06-24). Empty when no route is saved.
+const combinedRouteStops = weekRoutes.hasSavedRoute
+  ? weekRoutes.legs.flatMap((leg) => leg.stops.map((s) => ({ ...s, legLetter: leg.leg })))
+  : [];
+
 // The Wednesday distribution date — this sheet is the Wednesday run.
 const wedDate = cycle.distribution_dates.Wed;
 
@@ -417,7 +425,7 @@ const prettyDate = new Intl.DateTimeFormat('en-US', {
           </p>
         </div>
         {weekRoutes.legs.map((leg) => (
-          <section class="mb-6">
+          <section class="route-leg mb-6">
             <header class="route-header rounded-ts-lg bg-ts-text px-5 py-3 text-white">
               <p class="text-xs font-semibold uppercase tracking-wider text-white/80">Route {leg.leg} · {prettyShortDate(leg.route_date)}</p>
               <h2 class="mt-1 font-display text-2xl font-extrabold">{leg.driver_name} · {leg.stops.length} stop{leg.stops.length === 1 ? '' : 's'}</h2>
@@ -440,6 +448,39 @@ const prettyDate = new Intl.DateTimeFormat('en-US', {
             </ol>
           </section>
         ))}
+
+        {/* ══ COMBINED CHECKLIST — both routes merged, own page ══════════ */}
+        {combinedRouteStops.length > 0 && (
+          <section class="combined-checklist">
+            <header class="route-header rounded-ts-lg bg-ts-text px-5 py-3 text-white">
+              <p class="text-xs font-semibold uppercase tracking-wider text-white/80">Combined checklist · all routes</p>
+              <h2 class="mt-1 font-display text-2xl font-extrabold">
+                {combinedRouteStops.length} stop{combinedRouteStops.length === 1 ? '' : 's'} total
+                {weekRoutes.legs.length > 1 && (
+                  <span class="ml-2 text-sm font-semibold text-white/80">
+                    ({weekRoutes.legs.map((l) => `${l.stops.length} on ${l.leg}`).join(' · ')})
+                  </span>
+                )}
+              </h2>
+              <p class="mt-1 text-sm font-semibold text-white/90">Check off every stop as it's packed &amp; loaded.</p>
+            </header>
+            <ol class="route-list mt-2 divide-y-2 divide-ts-border">
+              {combinedRouteStops.map((s) => (
+                <li class="combined-li flex items-start gap-3 py-2">
+                  <span class="route-check mt-0.5 inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                  <span class="route-num mt-0.5 flex h-6 shrink-0 items-center justify-center rounded bg-ts-primary px-1.5 text-xs font-extrabold text-white">{s.legLetter}</span>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-bold text-ts-text">
+                      {s.kind === 'home' ? '🏠 ' : s.kind === 'wholesale' ? '🍽 ' : '📦 '}{s.name}
+                    </div>
+                    {s.address && <div class="text-sm text-ts-text-secondary">{s.address}</div>}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         <p class="screen-only mt-1 text-xs text-ts-text-muted">↓ The curated zip-order sheet below is reference only — this optimized route prints instead.</p>
       </div>
     )}
@@ -593,5 +634,14 @@ const prettyDate = new Intl.DateTimeFormat('en-US', {
     /* Keep a stop's whole row together on one page. */
     .route-row { break-inside: avoid; page-break-inside: avoid; }
     .route-terminus { break-inside: avoid; page-break-inside: avoid; }
+    .saved-route-doc li,
+    .combined-li { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Each saved route prints on its OWN page; the combined checklist gets its
+       own page after them (Todd 2026-06-24). Route A stays on page 1 with the
+       reverse-load banner (no break before the first leg). */
+    .route-leg { break-before: page; page-break-before: always; }
+    .route-leg:first-of-type { break-before: auto; page-break-before: auto; }
+    .combined-checklist { break-before: page; page-break-before: always; }
   }
 </style>
