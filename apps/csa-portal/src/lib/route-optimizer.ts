@@ -39,6 +39,9 @@ export interface RouteStop {
   windowEndSec?: number;
   /** Short detail for the UI (box counts, etc.). */
   detail?: string;
+  /** The delivery_stops target FK this stop saves to (for "Save & send to
+   *  driver"). Exactly one column per the delivery_stops_target_xor CHECK. */
+  ref?: { col: 'pickup_location_id' | 'member_id' | 'wholesale_customer_id'; id: string };
 }
 
 export interface OptimizedStop extends RouteStop {
@@ -216,6 +219,7 @@ export async function gatherDayStops(
       kind: 'csa',
       serviceSec: SERVICE.csa,
       detail: `${s.boxes_small + s.boxes_large} boxes`,
+      ref: { col: 'pickup_location_id', id: s.stop_id },
     });
   }
 
@@ -238,6 +242,7 @@ export async function gatherDayStops(
         kind: 'home',
         serviceSec: SERVICE.home,
         detail: 'home delivery',
+        ref: { col: 'member_id', id: m.id },
       });
     }
   }
@@ -251,7 +256,7 @@ export async function gatherDayStops(
   if (acctIds.length) {
     const { data: accts } = await supabase
       .from('wholesale_accounts')
-      .select('id, restaurant_name, address')
+      .select('id, restaurant_name, address, customer_id')
       .in('id', acctIds);
     for (const a of accts ?? []) {
       if (!a.address) { skipped.push(`${a.restaurant_name} (wholesale, no address)`); continue; }
@@ -267,6 +272,10 @@ export async function gatherDayStops(
         serviceSec: SERVICE.wholesale,
         windowEndSec: isBlackRadish ? 15 * 3600 : undefined, // 3 PM hard for Black Radish
         detail: 'wholesale' + (isBlackRadish ? ' · by 3 PM' : ''),
+        // Driver-route stops reference customers.id (the wholesale account's
+        // linked customer). Skip the FK if unlinked (still routable, just not
+        // saveable to a driver route).
+        ref: a.customer_id ? { col: 'wholesale_customer_id', id: a.customer_id } : undefined,
       });
     }
   }

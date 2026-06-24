@@ -17,6 +17,7 @@ import { GOOGLE_MAPS_API_KEY } from 'astro:env/server';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { mondayOfWeek, currentDeliveryWeek, isMonday, prettyWeekHeader } from '../../../lib/cycle';
 import { weekOptions } from '../../../lib/cycle-ui';
+import { addDaysYMD } from '../../../lib/wholesale-order';
 import { gatherDayStops, DEPOT } from '../../../lib/route-optimizer';
 
 export const prerender = false;
@@ -28,6 +29,8 @@ const week_starting = /^\d{4}-\d{2}-\d{2}$/.test(weekParam)
   : currentDeliveryWeek();
 const dayRaw = url.searchParams.get('day') ?? 'Wed';
 const day = (['Tue', 'Wed', 'Sat'].includes(dayRaw) ? dayRaw : 'Wed') as 'Tue' | 'Wed' | 'Sat';
+// Delivery date for this day = the week's Monday + offset (Tue+1, Wed+2, Sat+5).
+const route_date = addDaysYMD(week_starting, ({ Tue: 1, Wed: 2, Sat: 5 } as const)[day]);
 
 let stops: any[] = [];
 let skipped: string[] = [];
@@ -142,7 +145,7 @@ const groups = [
   )}
 </AdminShell>
 
-<script is:inline define:vars={{ allStops: stops, depot: DEPOT }}>
+<script is:inline define:vars={{ allStops: stops, depot: DEPOT, routeDate: route_date }}>
   const byKey = new Map(allStops.map((s) => [s.key, s]));
   const assign = new Map(allStops.map((s) => [s.key, 'A'])); // default everyone on A
   const state = { A: null, B: null }; // per-route { order:[keys], matrix, keys, startSec }
@@ -209,8 +212,11 @@ const groups = [
         <li class="py-1 text-xs font-semibold uppercase tracking-wide text-gray-400">RETURN · Farm</li>
       </ol>
       <p class="mb-2 text-[11px] text-gray-400">Drag rows or use ▲▼ to reorder — ETAs update live.</p>
-      <a href="${mapsUrl(st.order.map((k)=>byKey.get(k)))}" target="_blank" rel="noopener" class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-blue-600 px-4 text-base font-semibold text-white hover:bg-blue-700">🗺️ Open Route ${letter} in Google Maps</a>`;
+      <a href="${mapsUrl(st.order.map((k)=>byKey.get(k)))}" target="_blank" rel="noopener" class="mb-2 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-blue-600 px-4 text-base font-semibold text-white hover:bg-blue-700">🗺️ Open Route ${letter} in Google Maps</a>
+      <button data-save="${letter}" class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-gray-800 px-4 text-base font-semibold text-white hover:bg-gray-900">💾 Save &amp; send to driver</button>
+      <div data-saveresult="${letter}" class="mt-2 text-sm"></div>`;
     wireReorder(letter);
+    el.querySelector(`[data-save="${letter}"]`)?.addEventListener('click', () => saveRoute(letter));
   }
 
   function wireReorder(letter) {
@@ -235,6 +241,30 @@ const groups = [
         st.order.splice(from, 1); st.order.splice(to, 0, dragKey); render(letter);
       });
     });
+  }
+
+  async function saveRoute(letter) {
+    const st = state[letter];
+    const out = document.querySelector(`[data-saveresult="${letter}"]`);
+    if (!st || !st.order.length) { out.innerHTML = '<span class="text-red-600">Nothing to save.</span>'; return; }
+    const idx = {}; st.keys.forEach((k, i) => (idx[k] = i));
+    let t = st.startSec, prev = 0; const stops = []; let missing = 0;
+    for (const k of st.order) {
+      const i = idx[k]; t += st.matrix[prev][i]; const s = byKey.get(k);
+      if (!s.ref) { missing++; }
+      else { const hh = Math.floor(t / 3600) % 24, mm = Math.floor((t % 3600) / 60); stops.push({ ref: s.ref, scheduledTime: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00` }); }
+      t += s.serviceSec; prev = i;
+    }
+    if (!stops.length) { out.innerHTML = '<span class="text-red-600">No saveable stops on this route.</span>'; return; }
+    out.innerHTML = '<span class="text-gray-500">Saving…</span>';
+    try {
+      const res = await fetch('/api/admin/route/save-optimized', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ route_date: routeDate, leg: letter, stops }) });
+      const d = await res.json();
+      if (!res.ok || d.error) { out.innerHTML = `<span class="text-red-600">Save failed: ${d.detail || d.error || res.status}</span>`; return; }
+      const link = location.origin + d.url;
+      out.innerHTML = `<div class="rounded bg-green-50 px-3 py-2 text-green-800">✅ Saved Route ${letter} (${d.stops} stops)${missing ? ` · ${missing} skipped (no link)` : ''}. The driver opens this — it auto-updates when you re-save.<br><a href="${d.url}" target="_blank" class="font-semibold underline">Open driver view →</a> <button data-copy="${link}" class="ml-2 rounded border bg-white px-2 py-0.5 text-xs">Copy link</button></div>`;
+      out.querySelector('[data-copy]')?.addEventListener('click', (e) => { navigator.clipboard?.writeText(e.target.getAttribute('data-copy')); e.target.textContent = 'Copied!'; });
+    } catch (e) { out.innerHTML = `<span class="text-red-600">Error: ${e?.message || e}</span>`; }
   }
 
   async function optimizeRoute(letter, stops, startSec) {
