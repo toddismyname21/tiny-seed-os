@@ -1,0 +1,161 @@
+---
+/**
+ * /admin/wholesale/accounts — edit chef (wholesale) ACCOUNT details.
+ *
+ * WHY: the crate labels print the restaurant PHONE, and most accounts had none
+ * on file — and there was no UI to fix that. This editor maintains each chef
+ * account's contact + delivery info: name, contact, email, phone, address,
+ * delivery day, min order, status, delivery hours/instructions, notes.
+ *
+ * One collapsible row per account; the form POSTs to
+ * /api/admin/wholesale/account-save (service-role write, admin-gated). Accounts
+ * missing a phone are flagged so the gap is obvious. Service-role reads.
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import Badge from '../../../../components/Badge.astro';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import { formatUSPhone } from '../../../../lib/phone';
+
+export const prerender = false;
+
+const url = Astro.url;
+const ok = url.searchParams.get('ok');
+const errCode = url.searchParams.get('error');
+
+type Account = {
+  id: string;
+  restaurant_name: string;
+  contact_name: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  delivery_day: string | null;
+  min_order_cents: number | null;
+  status: string | null;
+  delivery_hours: string | null;
+  delivery_instructions: string | null;
+  notes: string | null;
+};
+const { data } = await supabaseAdmin
+  .from('wholesale_accounts')
+  .select('id, restaurant_name, contact_name, email, phone, address, delivery_day, min_order_cents, status, delivery_hours, delivery_instructions, notes')
+  .order('restaurant_name', { ascending: true });
+const accounts = (data ?? []) as Account[];
+
+const missingPhone = accounts.filter((a) => !a.phone || !a.phone.trim()).length;
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const dollars = (cents: number | null) => (cents == null ? '' : (cents / 100).toFixed(2));
+const errText: Record<string, string> = {
+  invalid_input: 'Some fields were invalid — check and try again.',
+  bad_min_order: 'Min order must be a number ≥ 0.',
+  save_failed: 'Save failed — please retry.',
+};
+---
+
+<AdminShell title="Wholesale — Accounts" subtitle={`${accounts.length} chef accounts · ${missingPhone} missing a phone`} pageTitle="Wholesale accounts — Tiny Seed Admin">
+  <Fragment slot="actions">
+    <a href="/admin/wholesale" class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">← Wholesale hub</a>
+  </Fragment>
+
+  {ok === 'saved' && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-emerald-200 bg-emerald-50"><p class="text-sm font-medium text-emerald-700">✓ Account saved.</p></Card>
+  )}
+  {errCode && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-red-200 bg-red-50"><p class="text-sm font-medium text-red-700">{errText[errCode] ?? 'Something went wrong.'}</p></Card>
+  )}
+  {missingPhone > 0 && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-amber-200 bg-amber-50">
+      <p class="text-sm text-amber-800"><b>{missingPhone}</b> account{missingPhone === 1 ? '' : 's'} have no phone on file — those won't show a phone on the crate label. Add them below.</p>
+    </Card>
+  )}
+
+  <div class="space-y-2">
+    {accounts.map((a) => (
+      <details id={`a-${a.id}`} class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface">
+        <summary class="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
+          <span class="flex items-center gap-2">
+            <span class="font-semibold text-gray-900">{a.restaurant_name}</span>
+            {a.status !== 'active' && <Badge variant="gray" size="xs" uppercase>{a.status ?? 'inactive'}</Badge>}
+          </span>
+          <span class="flex items-center gap-3 text-sm">
+            {a.phone ? (
+              <span class="text-gray-600 tabular-nums">📞 {formatUSPhone(a.phone)}</span>
+            ) : (
+              <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">No phone</span>
+            )}
+            <span class="text-ts-text-muted group-open:hidden" aria-hidden="true">Edit ▾</span>
+          </span>
+        </summary>
+
+        <form method="POST" action="/api/admin/wholesale/account-save" class="grid grid-cols-1 gap-3 border-t border-ts-border p-4 sm:grid-cols-2">
+          <input type="hidden" name="id" value={a.id} />
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Restaurant name</span>
+            <input name="restaurant_name" value={a.restaurant_name} required class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone</span>
+            <input name="phone" value={a.phone ?? ''} placeholder="(412) 555-1212" class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Contact name</span>
+            <input name="contact_name" value={a.contact_name ?? ''} class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Email</span>
+            <input name="email" type="email" value={a.email ?? ''} class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Delivery day</span>
+            <select name="delivery_day" class="h-10 rounded-ts-md border border-ts-border bg-white px-3 text-sm">
+              <option value="" selected={!a.delivery_day}>—</option>
+              {DAYS.map((d) => (<option value={d} selected={a.delivery_day === d}>{d}</option>))}
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Address</span>
+            <input name="address" value={a.address ?? ''} class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Min order ($)</span>
+            <input name="min_order_dollars" inputmode="decimal" value={dollars(a.min_order_cents)} placeholder="0.00" class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</span>
+            <select name="status" class="h-10 rounded-ts-md border border-ts-border bg-white px-3 text-sm">
+              {(() => {
+                const cur = a.status ?? 'draft';
+                const opts = Array.from(new Set([cur, 'draft', 'active', 'inactive']));
+                return opts.map((o) => (<option value={o} selected={o === cur}>{o}</option>));
+              })()}
+            </select>
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Delivery hours</span>
+            <input name="delivery_hours" value={a.delivery_hours ?? ''} placeholder="e.g. before 3 PM" class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Delivery instructions</span>
+            <input name="delivery_instructions" value={a.delivery_instructions ?? ''} placeholder="back door, ring bell…" class="h-10 rounded-ts-md border border-ts-border px-3 text-sm" />
+          </label>
+          <label class="flex flex-col gap-1 sm:col-span-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Notes (internal)</span>
+            <textarea name="notes" rows="2" class="rounded-ts-md border border-ts-border px-3 py-2 text-sm">{a.notes ?? ''}</textarea>
+          </label>
+          <div class="sm:col-span-2">
+            <button type="submit" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">Save</button>
+          </div>
+        </form>
+      </details>
+    ))}
+  </div>
+
+  <script is:inline>
+    // Auto-open the account that was just saved (anchor #a-<id>).
+    if (location.hash && location.hash.startsWith('#a-')) {
+      const el = document.querySelector(location.hash);
+      if (el && el.tagName === 'DETAILS') { el.open = true; el.scrollIntoView({ block: 'center' }); }
+    }
+  </script>
+</AdminShell>
