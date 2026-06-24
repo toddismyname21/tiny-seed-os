@@ -33,6 +33,7 @@ import {
   fetchDueNoticesForStops, groupNoticesByHint, HOME_DELIVERY_HINT,
   type MemberNotice,
 } from '../../../lib/notices';
+import { loadWeekRoutes } from '../../../lib/saved-route';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -55,6 +56,37 @@ const printAll = Astro.url.searchParams.get('all') === '1';
 
 const cycle = await resolveCycle(supabase, week_starting);
 
+// ─── Home-delivery stop identity (incl. the per-truck split ids) ─────
+// When we split the one home-delivery sheet into Route A / Route B, the
+// synthetic stops get ids "home_delivery__A" / "home_delivery__B" /
+// "home_delivery__unassigned". `isHomeStop` treats all of them as home so the
+// band color, the 🏠 prefix, and the home-delivery notices keep working.
+const HOME_SPLIT_PREFIX = `${HOME_DELIVERY_BUCKET_ID}__`;
+const isHomeStop = (id: string): boolean =>
+  id === HOME_DELIVERY_BUCKET_ID || id.startsWith(HOME_SPLIT_PREFIX);
+
+/** Build a StopTotals for a subset of members — mirrors resolveCycle's per-stop
+ *  tally (boxes by size_bucket, add-ons by type, owes). Used for the split
+ *  home-delivery sheets. flex_orders is left 0; the header's flex count comes
+ *  from flexCountForStop (which reads cycle.byStop) so it stays accurate. */
+function buildSubsetTotals(stop_id: string, stop_name: string, members: CycleMember[]): StopTotals {
+  const totals: StopTotals = {
+    stop_id, stop_name, day_of_week: 'Wed',
+    boxes_small: 0, boxes_large: 0,
+    addons: { mushroom: 0, bread: 0, cheese: 0, coffee: 0, eggs: 0, unknown: 0 },
+    flex_orders: 0, owes_count: 0,
+  };
+  for (const m of members) {
+    if (m.share_type === 'summer_veg') {
+      if (m.size_bucket === 'large') totals.boxes_large += 1;
+      else totals.boxes_small += 1;
+    }
+    if (m.share_type === 'add_on') totals.addons[m.addon_type] += 1;
+    if (m.payment_status && m.payment_status.toLowerCase() !== 'paid') totals.owes_count += 1;
+  }
+  return totals;
+}
+
 // ─── Decide which stop(s) to render ──────────────────────────────────
 let stopsToRender: StopTotals[] = [];
 let title = '';
@@ -70,6 +102,82 @@ if (printAll) {
   title = `${found.stop_name} · ${prettyWeekHeader(week_starting)}`;
 } else {
   return Astro.redirect(`/admin/pack-check?week=${week_starting}`, 303);
+}
+
+// ─── A/B-truck order + home-delivery split (Todd 2026-06-24) ─────────
+// After the route is optimized + saved, the pack-all sheets print in
+// truck-loading order: ALL of Route A's stops (in route sequence) first, then
+// Route B's. The single Home-delivery sheet is split into a per-truck sheet
+// (🏠 Route A / 🏠 Route B), plus a "not on a saved route" sheet so a home
+// member added after the route was saved is never silently dropped. Only the
+// print-all view changes; single-stop and no-saved-route views are untouched.
+const weekRoutes = await loadWeekRoutes(supabase, week_starting);
+if (printAll && weekRoutes.hasSavedRoute) {
+  const legLetterByCustomer = new Map<string, string>();
+  for (const leg of weekRoutes.legs) {
+    for (const s of leg.stops) {
+      if (s.orderKey.startsWith('cust:')) legLetterByCustomer.set(s.orderKey.slice(5), leg.leg);
+    }
+  }
+  // orderOf encodes route_date → leg → stop_order, so a lower index = packed/
+  // loaded earlier and Route A (leg sorts before B) comes before Route B.
+  const INF = Number.POSITIVE_INFINITY;
+  const routeIndexOf = (key: string): number =>
+    weekRoutes.orderOf.has(key) ? (weekRoutes.orderOf.get(key) as number) : INF;
+
+  // 1. Split the home-delivery bucket into per-truck subsets.
+  const homeMembers = cycle.byStop.get(HOME_DELIVERY_BUCKET_ID) ?? [];
+  if (homeMembers.length > 0) {
+    const byLeg = new Map<string, CycleMember[]>();
+    for (const m of homeMembers) {
+      const leg = legLetterByCustomer.get(m.customer_id) ?? 'unassigned';
+      const arr = byLeg.get(leg);
+      if (arr) arr.push(m); else byLeg.set(leg, [m]);
+    }
+    const legKeys = Array.from(byLeg.keys()).sort((a, b) => {
+      if (a === 'unassigned') return 1;
+      if (b === 'unassigned') return -1;
+      return a.localeCompare(b);
+    });
+    const homeSplitStops: StopTotals[] = [];
+    for (const leg of legKeys) {
+      const subset = byLeg.get(leg) as CycleMember[];
+      const sid = `${HOME_SPLIT_PREFIX}${leg}`;
+      cycle.byStop.set(sid, subset); // so the per-stop helpers work unchanged
+      const name = leg === 'unassigned'
+        ? 'Home delivery · not on a saved route'
+        : `Home delivery · Route ${leg}`;
+      homeSplitStops.push(buildSubsetTotals(sid, name, subset));
+    }
+    stopsToRender = stopsToRender
+      .filter((s) => s.stop_id !== HOME_DELIVERY_BUCKET_ID)
+      .concat(homeSplitStops);
+  }
+
+  // 2. Order: routed stops by global route index (Route A then B, in route
+  //    sequence); a split home sheet by its members' EARLIEST route index;
+  //    anything not on the route keeps its current relative order, after.
+  const sortKeyFor = (stop: StopTotals): number => {
+    if (stop.stop_id.startsWith(HOME_SPLIT_PREFIX)) {
+      let min = INF;
+      for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+        min = Math.min(min, routeIndexOf(`cust:${m.customer_id}`));
+      }
+      return min;
+    }
+    return routeIndexOf(`pl:${stop.stop_id}`);
+  };
+  stopsToRender = stopsToRender
+    .map((s, i) => ({ s, i, k: sortKeyFor(s) }))
+    .sort((a, b) => {
+      if (a.k !== b.k) {
+        if (a.k === INF) return 1;
+        if (b.k === INF) return -1;
+        return a.k - b.k;
+      }
+      return a.i - b.i; // stable for equal/Infinity keys
+    })
+    .map((x) => x.s);
 }
 
 const DAY_LONG: Record<string, string> = {
@@ -120,7 +228,7 @@ const stopBandById = new Map<string, BandColor>();
   });
 }
 function bandForStop(stop: StopTotals): BandColor {
-  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) return HOME_DELIVERY_BAND;
+  if (isHomeStop(stop.stop_id)) return HOME_DELIVERY_BAND;
   return stopBandById.get(stop.stop_id) ?? NO_STOP_BAND;
 }
 
@@ -305,13 +413,13 @@ const flexOrderedMemberIds = new Set<string>(flexByMember.keys());
 // notices (stop_hint NULL) are never fetched here — they live only on
 // /admin/notices. A fetch failure returns [] (the sheet still prints).
 const noticeHints: string[] = stopsToRender.map((s) =>
-  s.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : s.stop_name,
+  isHomeStop(s.stop_id) ? HOME_DELIVERY_HINT : s.stop_name,
 );
 const dueNotices = await fetchDueNoticesForStops(supabase, noticeHints, week_starting);
 const noticesByHint = groupNoticesByHint(dueNotices);
 /** The notices to print on a stop's sheet (by its hint). */
 function noticesForStop(stop: StopTotals): MemberNotice[] {
-  const hint = stop.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : stop.stop_name;
+  const hint = isHomeStop(stop.stop_id) ? HOME_DELIVERY_HINT : stop.stop_name;
   return noticesByHint.get(hint) ?? [];
 }
 
@@ -442,7 +550,7 @@ function memberShareLabel(m: CycleMember): string {
       const addonCounts = addonCountsForStop(stop);
       const totalAddons = addonCounts.reduce((a, x) => a + x.n, 0);
       const band = bandForStop(stop);
-      const isHomeDelivery = stop.stop_id === HOME_DELIVERY_BUCKET_ID;
+      const isHomeDelivery = isHomeStop(stop.stop_id);
       const stopNotices = noticesForStop(stop);
       return (
         <section class="page-break" aria-labelledby={`pc-stop-${stop.stop_id}`}>
