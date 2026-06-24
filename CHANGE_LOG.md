@@ -6,6 +6,10 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-06-24] CSA — PRODUCTION DEPLOY of the three route-planner fixes + verified live (PM_Architect)
+
+Todd reported the same home deliveries STILL showed "not routable" after the three fixes below. ROOT CAUSE: a `git push origin csa-migration` only makes a Vercel PREVIEW — production (csa.tinyseedfarm.com) requires an explicit prod deploy (per .claude/agent-memory/pm-coordinator/reference_csa_portal_prod_deploy.md). The fixes were correct but sitting in preview; prod still ran old code. FIX: `cd apps/csa-portal && vercel deploy --prod --yes --token=$VERCEL_TOKEN` (token from .env.csa) → READY, aliased csa.tinyseedfarm.com (dpl_ZhHfnt4AEyaRT76TcS9eBnx2b6p6). VERIFIED LIVE via scripts/admin_fetch.py /admin/route-plan/?day=Wed (authenticated as todd@): "Not routable" box is EMPTY; "Home deliveries (8)" all routable; Hilldorfer/Tomasic/Nappi present with addresses (8870 Duncan / 110 Scott Ridge / 2224 Jane); Myers correctly absent (biweekly-B on an A week). LESSON (already in memory): push ≠ prod deploy for the CSA portal.
+
 ## [2026-06-24] CSA — Route planner shows stop addresses (decide A vs B by location) (PM_Architect)
 
 DEPLOYED. Todd: "make it so we can see the addresses of the home deliveries in the route planner so I can decide if they are route a or b." Added an optional `address` field to RouteStop (src/lib/route-optimizer.ts) and populated it for every kind: HOME = the member's delivery_address, WHOLESALE = the restaurant address, CSA pickup = address+city from pickup_locations (added address,city to that select). The planner's assign list (/admin/route-plan) now renders "📍 {address}" under each stop name so A/B/Off can be decided by location; the optimized Route A / Route B lists show it too. No API change needed — the client render() reads the original gathered stops via byKey, so address survives optimize/drag-reorder. Verified: build clean; pickup_locations + home delivery_address are populated in DB. Files: src/lib/route-optimizer.ts, src/pages/admin/route-plan/index.astro.
