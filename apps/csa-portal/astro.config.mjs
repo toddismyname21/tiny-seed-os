@@ -69,6 +69,17 @@ export default defineConfig({
         optional: true,
       }),
 
+      // ── Google Maps Platform (route optimizer) ──
+      // Geocoding API + Routes API (computeRouteMatrix), used server-side by
+      // /api/admin/optimize-route. Lives as a Vercel env var; optional so a
+      // local build/check (where it's absent) still succeeds — the endpoint
+      // returns 500 if it's missing at runtime.
+      GOOGLE_MAPS_API_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+
       // ── Transactional email (Resend) — household-share invites ──
       // Live as Vercel env vars. `optional` so a local build/check (where
       // they're absent) still succeeds; the invite send is best-effort and
