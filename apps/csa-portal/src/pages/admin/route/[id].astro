@@ -20,7 +20,7 @@ import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { signProofUrl } from '../../../lib/delivery-proof';
-import { mondayOfWeek } from '../../../lib/cycle';
+import { normalizeUSPhone } from '../../../lib/phone';
 
 const supabase = Astro.locals.supabase;
 const routeId = String(Astro.params.id ?? '').trim();
@@ -59,6 +59,7 @@ type StopRow = {
   id: string;
   pickup_location_id: string | null;
   member_id: string | null;
+  wholesale_customer_id: string | null;
   stop_order: number;
   status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
   scheduled_time: string | null;
@@ -73,7 +74,7 @@ type StopRow = {
 const { data: stops, error: stopsErr } = await supabase
   .from('delivery_stops')
   .select(`
-    id, pickup_location_id, member_id, stop_order, status,
+    id, pickup_location_id, member_id, wholesale_customer_id, stop_order, status,
     scheduled_time, eta, arrived_at, completed_at, proof_photo_url, exception_notes,
     pickup_location:pickup_locations(name, address, city, host_name),
     member:members(id, delivery_address, customer:customers(contact_name, email, phone))
@@ -88,13 +89,96 @@ if (stopsErr) {
 
 const stopList = stops ?? [];
 
-// ─── Cycle week for the "Text this stop" deep links ─────────────────
-// The driver texts a pickup stop's members ("your share has arrived") while
-// delivering. /admin/text-stop/<week>/<stop_id> resolves recipients from the
-// cycle keyed by the Monday week_starting. delivery_routes.route_date is the
-// distribution day (usually Wednesday), so snap it back to that week's Monday
-// — mondayOfWeek returns the date unchanged when it's already a Monday.
-const routeWeekStarting = mondayOfWeek(route.route_date);
+// ─── Resolve WHOLESALE (restaurant) stops ────────────────────────────
+// A wholesale stop carries wholesale_customer_id (FK → customers.id) with
+// pickup_location_id + member_id both NULL. Its display name/address/phone
+// come from wholesale_accounts WHERE customer_id = the stop's
+// wholesale_customer_id. One bounded query keyed by the set of customer ids
+// on this route. RLS: wholesale_accounts is admin/staff-only; the admin
+// already passed admin RLS to read these stops. We map customer_id →
+// account so the template helpers can resolve each wholesale stop.
+type WholesaleAcct = { restaurant_name: string; address: string | null; phone: string | null };
+const wholesaleByCustomerId = new Map<string, WholesaleAcct>();
+const wholesaleCustomerIds = Array.from(
+  new Set(stopList.map((s) => s.wholesale_customer_id).filter((v): v is string => !!v))
+);
+if (wholesaleCustomerIds.length > 0) {
+  type WAcctRow = { customer_id: string | null; restaurant_name: string; address: string | null; phone: string | null };
+  const { data: waccts, error: waErr } = await supabase
+    .from('wholesale_accounts')
+    .select('customer_id, restaurant_name, address, phone')
+    .in('customer_id', wholesaleCustomerIds)
+    .overrideTypes<WAcctRow[], { merge: false }>();
+  if (waErr) {
+    console.error('[admin/route/[id]] wholesale_accounts fetch failed:', waErr.message);
+  }
+  for (const a of (waccts ?? [])) {
+    if (a.customer_id) {
+      wholesaleByCustomerId.set(a.customer_id, {
+        restaurant_name: a.restaurant_name,
+        address: a.address,
+        phone: a.phone,
+      });
+    }
+  }
+}
+
+// ─── Group-SMS deep link per pickup-location stop ────────────────────
+// "📣 Text all N here" — one tap opens the device SMS app with EVERY member
+// at this pickup location addressed (iOS sms:/open?addresses=...). Reuses the
+// exact group-link format from /admin/text-stop. We fetch member phones keyed
+// by pickup_location_id for the stops on THIS route (active members only), so
+// the driver doesn't have to load a second page to text a host stop.
+//
+// NOTE: this resolves recipients directly from members.pickup_location_id
+// rather than the cycle resolver (the cycle/text-stop path is owned by another
+// stream). It addresses the members currently assigned to the location with a
+// valid phone — sufficient for the driver's one-tap "your share arrived" text.
+type GroupSms = { href: string; count: number };
+const groupSmsByPickupId = new Map<string, GroupSms>();
+const pickupLocationIds = Array.from(
+  new Set(stopList.map((s) => s.pickup_location_id).filter((v): v is string => !!v))
+);
+if (pickupLocationIds.length > 0) {
+  type MemberPhoneRow = {
+    pickup_location_id: string | null;
+    status: string;
+    customer: { phone: string | null } | null;
+  };
+  const { data: memberRows, error: mpErr } = await supabase
+    .from('members')
+    .select('pickup_location_id, status, customer:customers(phone)')
+    .in('pickup_location_id', pickupLocationIds)
+    .eq('status', 'active')
+    .overrideTypes<MemberPhoneRow[], { merge: false }>();
+  if (mpErr) {
+    console.error('[admin/route/[id]] member phones fetch failed:', mpErr.message);
+  }
+  // Collect valid E.164 numbers per pickup location (dedupe per stop).
+  const phonesByPickup = new Map<string, Set<string>>();
+  for (const m of (memberRows ?? [])) {
+    if (!m.pickup_location_id) continue;
+    const digits = normalizeUSPhone(m.customer?.phone ?? null);
+    if (!digits) continue;
+    const e164 = `+1${digits}`;
+    let set = phonesByPickup.get(m.pickup_location_id);
+    if (!set) { set = new Set<string>(); phonesByPickup.set(m.pickup_location_id, set); }
+    set.add(e164);
+  }
+  // Build the group sms: link the same way /admin/text-stop does:
+  //   sms:/open?addresses=+1NUM,+1NUM&body=ENCODED  (iOS group compose).
+  for (const [pickupId, phoneSet] of phonesByPickup) {
+    if (phoneSet.size === 0) continue;
+    const loc = stopList.find((s) => s.pickup_location_id === pickupId)?.pickup_location;
+    const stopLabel = loc?.name ?? 'your pickup';
+    const groupBody = `Your Tiny Seed Farm CSA share has arrived at ${stopLabel} 🌱`;
+    const addresses = Array.from(phoneSet).join(',');
+    groupSmsByPickupId.set(pickupId, {
+      href: `sms:/open?addresses=${encodeURIComponent(addresses)}&body=${encodeURIComponent(groupBody)}`,
+      count: phoneSet.size,
+    });
+  }
+}
 
 // ─── Sign proof-photo paths → short-lived signed URLs ───────────────
 // The delivery-proofs bucket is PRIVATE (migration 0025); proof_photo_url
@@ -164,7 +248,17 @@ function prettyDate(yyyymmdd: string): string {
   }).format(new Date(`${yyyymmdd}T12:00:00-04:00`));
 }
 
+/** The resolved wholesale account for a wholesale stop, or null. */
+function wholesaleAcct(stop: StopRow): WholesaleAcct | null {
+  if (!stop.wholesale_customer_id) return null;
+  return wholesaleByCustomerId.get(stop.wholesale_customer_id) ?? null;
+}
+
 function stopHeading(stop: StopRow): string {
+  const wa = wholesaleAcct(stop);
+  if (wa) {
+    return wa.restaurant_name;
+  }
   if (stop.pickup_location) {
     return stop.pickup_location.name;
   }
@@ -175,6 +269,10 @@ function stopHeading(stop: StopRow): string {
 }
 
 function stopSubtitle(stop: StopRow): string {
+  const wa = wholesaleAcct(stop);
+  if (wa) {
+    return wa.address ?? '';
+  }
   if (stop.pickup_location) {
     const parts = [stop.pickup_location.host_name, stop.pickup_location.address, stop.pickup_location.city].filter(Boolean);
     return parts.join(' · ');
@@ -192,6 +290,10 @@ function stopSubtitle(stop: StopRow): string {
  * Returns '' when no usable address exists → caller hides the Navigate button.
  */
 function stopAddress(stop: StopRow): string {
+  const wa = wholesaleAcct(stop);
+  if (wa) {
+    return (wa.address ?? '').trim();
+  }
   if (stop.pickup_location) {
     const parts = [stop.pickup_location.address, stop.pickup_location.city]
       .map((p) => (p ?? '').trim())
@@ -215,6 +317,25 @@ function mapsDirUrl(address: string): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
 }
 
+/** Classify a stop for marker + text-link branching. */
+type StopKind = 'wholesale' | 'host' | 'home';
+function stopKind(stop: StopRow): StopKind {
+  if (stop.wholesale_customer_id) return 'wholesale';
+  if (stop.pickup_location_id) return 'host';
+  return 'home';
+}
+
+/** Emoji marker for a stop: 🍽 wholesale · 📦 host pickup · 🏠 home delivery. */
+function stopMarker(stop: StopRow): string {
+  const k = stopKind(stop);
+  return k === 'wholesale' ? '🍽 ' : k === 'host' ? '📦 ' : '🏠 ';
+}
+
+/** Bare digits/+ from a stored phone for an sms: deep link, or '' when none. */
+function smsDigits(phone: string | null | undefined): string {
+  return (phone ?? '').replace(/[^\d+]/g, '');
+}
+
 const routeReady = stopList.length > 0;
 const allDone = route.total_stops > 0 && route.completed_stops === route.total_stops;
 
@@ -225,19 +346,37 @@ const allDone = route.total_stops > 0 && route.completed_stops === route.total_s
 const nextStop = stopList.find((s) => s.status !== 'completed' && s.status !== 'exception');
 const nextStopAddress = nextStop ? stopAddress(nextStop) : '';
 const nextStopMapsUrl = mapsDirUrl(nextStopAddress);
-// SMS deep link for the next stop when it's a home-delivery member with a
-// phone. Pickup stops use the /admin/text-stop tool (linked from the card).
-const nextStopIsHost = nextStop ? !!nextStop.pickup_location_id : false;
-const nextStopMemberPhone = (!nextStopIsHost && nextStop?.member?.customer?.phone)
-  ? nextStop.member.customer.phone.replace(/[^\d+]/g, '')
+const nextStopKind: StopKind | null = nextStop ? stopKind(nextStop) : null;
+const nextStopMarker = nextStop ? stopMarker(nextStop) : '';
+// SMS deep link for the next stop:
+//   - host  → one-tap group SMS to everyone at the pickup (computed above).
+//   - home  → direct sms: to the single member's phone.
+//   - wholesale → direct sms: to the restaurant's phone with an arrival body.
+const nextStopGroupSms = (nextStop?.pickup_location_id)
+  ? groupSmsByPickupId.get(nextStop.pickup_location_id) ?? null
+  : null;
+const nextStopMemberPhone = (nextStopKind === 'home')
+  ? smsDigits(nextStop?.member?.customer?.phone)
   : '';
-const nextStopTextHref = nextStop
-  ? (nextStopIsHost && nextStop.pickup_location_id
-      ? `/admin/text-stop/${routeWeekStarting}/${encodeURIComponent(nextStop.pickup_location_id)}`
-      : nextStopMemberPhone
-        ? `sms:${nextStopMemberPhone}`
-        : '')
+const WHOLESALE_SMS_BODY = 'Tiny Seed Farm — your delivery is arriving.';
+const nextStopWholesalePhone = (nextStopKind === 'wholesale' && nextStop)
+  ? smsDigits(wholesaleAcct(nextStop)?.phone)
   : '';
+const nextStopTextHref = (() => {
+  if (!nextStop) return '';
+  if (nextStopKind === 'host') return nextStopGroupSms?.href ?? '';
+  if (nextStopKind === 'wholesale') {
+    return nextStopWholesalePhone
+      ? `sms:${nextStopWholesalePhone}?&body=${encodeURIComponent(WHOLESALE_SMS_BODY)}`
+      : '';
+  }
+  return nextStopMemberPhone ? `sms:${nextStopMemberPhone}` : '';
+})();
+// host group-SMS opens the device Messages app directly (sms:), so it should
+// NOT open in a new tab — only the legacy text-stop page link would have.
+const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
+  ? `Text all ${nextStopGroupSms.count}`
+  : 'Text';
 ---
 
 <AdminShell
@@ -323,16 +462,21 @@ const nextStopTextHref = nextStop
           </div>
 
           <p class="mt-2 font-display text-xl font-extrabold leading-tight text-ts-text">
-            {nextStopIsHost ? '📦 ' : '🏠 '}{stopHeading(nextStop)}
+            {nextStopMarker}{stopHeading(nextStop)}
           </p>
           {nextStopAddress && (
             <p class="mt-0.5 text-sm font-medium text-ts-text-secondary">
               {nextStopAddress}
             </p>
           )}
-          {!nextStopIsHost && (
+          {nextStopKind === 'home' && (
             <p class="mt-0.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
               Home delivery
+            </p>
+          )}
+          {nextStopKind === 'wholesale' && (
+            <p class="mt-0.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              Wholesale
             </p>
           )}
 
@@ -354,15 +498,15 @@ const nextStopTextHref = nextStop
               </span>
             )}
 
-            {/* Text — pickup stop tool OR member SMS deep link. */}
+            {/* Text — one-tap sms: deep link (host group / home member /
+                wholesale restaurant). Opens the device Messages app directly. */}
             {nextStopTextHref ? (
               <a
                 href={nextStopTextHref}
-                {...(nextStopIsHost ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
                 class="inline-flex h-14 items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-bg-surface px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
               >
-                <span aria-hidden="true">📱</span>
-                Text
+                <span aria-hidden="true">{nextStopKind === 'host' ? '📣' : '📱'}</span>
+                {nextStopTextLabel}
               </a>
             ) : (
               <span class="inline-flex h-14 items-center justify-center gap-2 rounded-ts-md border-2 border-dashed border-ts-border px-4 text-base font-medium text-ts-text-muted">
@@ -409,7 +553,8 @@ const nextStopTextHref = nextStop
     ) : (
       <ul class="flex flex-col gap-3">
         {stopList.map((stop) => {
-          const isHost = !!stop.pickup_location_id;
+          const kind = stopKind(stop);
+          const marker = stopMarker(stop);
           const heading = stopHeading(stop);
           const subtitle = stopSubtitle(stop);
           const cardAddress = stopAddress(stop);
@@ -417,6 +562,16 @@ const nextStopTextHref = nextStop
           const scheduled = stop.scheduled_time ? prettyTime(stop.scheduled_time) : '';
           const arrived = stop.arrived_at ? prettyTime(stop.arrived_at) : '';
           const completed = stop.completed_at ? prettyTime(stop.completed_at) : '';
+
+          // ── Per-stop Text deep link ────────────────────────────────
+          //   host      → one-tap group SMS to everyone at the pickup.
+          //   home      → direct sms: to the single member's phone.
+          //   wholesale → direct sms: to the restaurant's phone.
+          const cardGroupSms = stop.pickup_location_id
+            ? groupSmsByPickupId.get(stop.pickup_location_id) ?? null
+            : null;
+          const cardMemberPhone = kind === 'home' ? smsDigits(stop.member?.customer?.phone) : '';
+          const cardWholesalePhone = kind === 'wholesale' ? smsDigits(wholesaleAcct(stop)?.phone) : '';
 
           return (
             <li
@@ -441,7 +596,7 @@ const nextStopTextHref = nextStop
                 </span>
                 <div class="min-w-0 flex-1">
                   <p class="font-display text-base font-semibold text-ts-text sm:text-lg">
-                    {heading}
+                    {marker}{heading}
                   </p>
                   {subtitle && (
                     <p class="mt-0.5 text-sm text-ts-text-secondary">
@@ -453,8 +608,11 @@ const nextStopTextHref = nextStop
                       Scheduled {scheduled}
                     </p>
                   )}
-                  {isHost ? null : (
+                  {kind === 'home' && (
                     <p class="mt-0.5 text-xs text-ts-text-muted">Home delivery</p>
+                  )}
+                  {kind === 'wholesale' && (
+                    <p class="mt-0.5 text-xs text-ts-text-muted">Wholesale</p>
                   )}
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
@@ -497,59 +655,18 @@ const nextStopTextHref = nextStop
                 </div>
               )}
 
-              {/* Navigate — universal Google Maps directions deep link.
-                  Opens the maps app on iOS + Android (or maps.google.com on
-                  desktop) routing from the driver's current location to this
-                  stop's address. Pickup stops use the location address + city;
-                  home stops use the member's delivery_address. Hidden when no
-                  address is on file. Same visual weight as the Text link. */}
-              {cardMapsUrl && (
-                <a
-                  href={cardMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="mb-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
-                >
-                  <span aria-hidden="true">🧭</span>
-                  Navigate
-                </a>
-              )}
-
-              {/* Text-a-stop deep link — pickup-location stops only.
-                  Opens the existing per-stop texting tool for THIS stop +
-                  THIS cycle week so the driver can text "your share arrived"
-                  to everyone at the stop while delivering. Home-delivery stops
-                  (no pickup_location_id) get the direct member text below. */}
-              {isHost && stop.pickup_location_id && (
-                <a
-                  href={`/admin/text-stop/${routeWeekStarting}/${encodeURIComponent(stop.pickup_location_id)}`}
-                  class="mb-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
-                >
-                  <span aria-hidden="true">📱</span>
-                  Text this stop
-                </a>
-              )}
-
-              {/* Home-delivery stop — text the single member directly (sms:
-                  deep link opens Messages pre-addressed; no body, the driver
-                  types it). Only shown when we have a valid-looking number. */}
-              {!isHost && stop.member?.customer?.phone && (
-                <a
-                  href={`sms:${stop.member.customer.phone.replace(/[^\d+]/g, '')}`}
-                  class="mb-2 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
-                >
-                  <span aria-hidden="true">📱</span>
-                  Text this member
-                </a>
-              )}
-
-              {/* Actions */}
+              {/* ── PRIMARY ACTION (first interactive element) ──────────
+                  UX audit fix: the status-advance button is the driver's #1
+                  job at a stop, so it leads — BEFORE Navigate + Text. Buttons
+                  are h-16 (64px) for gloved one-thumb taps in bright sun; no
+                  sm: shrink (a bigger phone in the field still needs big
+                  targets). Re-open / Clear issue are admin recovery taps. */}
               <div class="mt-4 flex flex-wrap gap-2" data-stop-actions>
                 {stop.status === 'out_for_delivery' && (
                   <button
                     type="button"
                     data-action="arrived"
-                    class="inline-flex h-14 flex-1 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none sm:h-12"
+                    class="inline-flex h-16 flex-1 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     Mark arrived
                   </button>
@@ -557,7 +674,7 @@ const nextStopTextHref = nextStop
 
                 {stop.status === 'arrived' && (
                   <label
-                    class="inline-flex h-14 flex-1 cursor-pointer items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ts-primary sm:flex-none sm:h-12"
+                    class="inline-flex h-16 flex-1 cursor-pointer items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ts-primary active:scale-[0.99]"
                   >
                     <span data-photo-label>📷 Take photo + deliver</span>
                     <input
@@ -580,7 +697,7 @@ const nextStopTextHref = nextStop
                   <button
                     type="button"
                     data-action="out_for_delivery"
-                    class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-warning/40 hover:text-ts-warning focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-warning"
+                    class="inline-flex h-14 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-warning/40 hover:text-ts-warning focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-warning active:scale-[0.99]"
                   >
                     Re-open
                   </button>
@@ -590,7 +707,7 @@ const nextStopTextHref = nextStop
                   <button
                     type="button"
                     data-open-issue
-                    class="inline-flex h-14 items-center justify-center rounded-ts-md border border-ts-danger/40 bg-ts-bg-surface px-4 text-base font-semibold text-ts-danger transition-colors duration-150 hover:bg-ts-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger sm:h-12 sm:text-sm"
+                    class="inline-flex h-16 items-center justify-center rounded-ts-md border border-ts-danger/40 bg-ts-bg-surface px-4 text-base font-semibold text-ts-danger transition-colors duration-150 hover:bg-ts-danger/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger active:scale-[0.99]"
                   >
                     Report issue
                   </button>
@@ -600,12 +717,68 @@ const nextStopTextHref = nextStop
                   <button
                     type="button"
                     data-action="out_for_delivery"
-                    class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                    class="inline-flex h-14 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
                   >
                     Clear issue
                   </button>
                 )}
               </div>
+
+              {/* Navigate — universal Google Maps directions deep link.
+                  Opens the maps app on iOS + Android (or maps.google.com on
+                  desktop) routing from the driver's current location to this
+                  stop's address. Host stops use the location address + city;
+                  home stops use the member's delivery_address; wholesale stops
+                  use the restaurant's address. Hidden when no address on file.
+                  Sits AFTER the primary action (per the UX audit). */}
+              {cardMapsUrl && (
+                <a
+                  href={cardMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-2 inline-flex h-16 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                >
+                  <span aria-hidden="true">🧭</span>
+                  Navigate
+                </a>
+              )}
+
+              {/* Text — ONE TAP. Opens the device Messages app directly:
+                    host      → group SMS to everyone at the pickup (no second
+                                page load — addresses + body pre-filled).
+                    home      → direct sms: to the single member's phone.
+                    wholesale → direct sms: to the restaurant's phone, with an
+                                "your delivery is arriving" body.
+                  Hidden when there's no valid number to text. */}
+              {kind === 'host' && cardGroupSms && (
+                <a
+                  href={cardGroupSms.href}
+                  class="mt-2 inline-flex h-16 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                >
+                  <span aria-hidden="true">📣</span>
+                  Text all {cardGroupSms.count} here
+                </a>
+              )}
+
+              {kind === 'home' && cardMemberPhone && (
+                <a
+                  href={`sms:${cardMemberPhone}`}
+                  class="mt-2 inline-flex h-16 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                >
+                  <span aria-hidden="true">📱</span>
+                  Text this member
+                </a>
+              )}
+
+              {kind === 'wholesale' && cardWholesalePhone && (
+                <a
+                  href={`sms:${cardWholesalePhone}?&body=${encodeURIComponent('Tiny Seed Farm — your delivery is arriving.')}`}
+                  class="mt-2 inline-flex h-16 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                >
+                  <span aria-hidden="true">📱</span>
+                  Text restaurant
+                </a>
+              )}
 
               <p class="mt-2 hidden text-xs text-ts-danger" data-stop-error role="alert" aria-live="polite"></p>
             </li>
@@ -642,19 +815,19 @@ const nextStopTextHref = nextStop
       <fieldset class="mt-4">
         <legend class="text-sm font-medium text-ts-text">What happened?</legend>
         <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+          <label class="flex h-14 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
             <input type="radio" name="issue_reason" value="No one home" data-issue-quick class="accent-ts-primary" />
             <span>No one home</span>
           </label>
-          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+          <label class="flex h-14 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
             <input type="radio" name="issue_reason" value="Wrong address" data-issue-quick class="accent-ts-primary" />
             <span>Wrong address</span>
           </label>
-          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+          <label class="flex h-14 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
             <input type="radio" name="issue_reason" value="Damaged box" data-issue-quick class="accent-ts-primary" />
             <span>Damaged box</span>
           </label>
-          <label class="flex h-12 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
+          <label class="flex h-14 cursor-pointer items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text transition-colors hover:border-ts-primary/40 has-checked:border-ts-primary has-checked:bg-ts-primary/5">
             <input type="radio" name="issue_reason" value="Other" data-issue-quick class="accent-ts-primary" />
             <span>Other</span>
           </label>
@@ -662,11 +835,10 @@ const nextStopTextHref = nextStop
       </fieldset>
 
       <label class="mt-4 block">
-        <span class="text-sm font-medium text-ts-text">Details</span>
+        <span class="text-sm font-medium text-ts-text">Details <span class="font-normal text-ts-text-muted">(optional)</span></span>
         <textarea
           data-issue-notes
           rows="3"
-          required
           class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary"
           placeholder="e.g. Boxes left in entryway, member texted to confirm"
         ></textarea>
@@ -706,6 +878,25 @@ const nextStopTextHref = nextStop
   // matches what the member's Realtime subscription is going to do
   // anyway. If we ever need optimistic UI, the constants for status
   // labels/dots/card classes live above in the SSR section.
+
+  // ─── Scroll preservation across the post-mutation reload ─────────────
+  // window.location.reload() jumps to the top, forcing the driver to scroll
+  // back down to where they were. Before reloading after a per-stop action we
+  // stash the stop id; on the next load we scroll that stop back into view
+  // (the <li> already carries scroll-margin-top to clear the sticky header).
+  const SCROLL_KEY = 'route-scroll-stop-id';
+  function reloadKeepingStop(stopId: string): void {
+    try { sessionStorage.setItem(SCROLL_KEY, stopId); } catch { /* private mode — ignore */ }
+    window.location.reload();
+  }
+  (function restoreScrollPosition() {
+    let savedStopId: string | null = null;
+    try { savedStopId = sessionStorage.getItem(SCROLL_KEY); } catch { /* ignore */ }
+    if (!savedStopId) return;
+    try { sessionStorage.removeItem(SCROLL_KEY); } catch { /* ignore */ }
+    const target = document.getElementById(`stop-${savedStopId}`);
+    if (target) target.scrollIntoView({ block: 'start' });
+  })();
 
   // ─── "Jump to stop" — smooth-scroll the Next Stop card to the full
   //     stop card (scroll-margin-top on the <li> clears the sticky header). ──
@@ -900,8 +1091,9 @@ const nextStopTextHref = nextStop
           btn.disabled = false;
           return;
         }
-        // Reload to pick up the new status + cascading buttons.
-        window.location.reload();
+        // Reload to pick up the new status + cascading buttons, keeping this
+        // stop in view so the driver doesn't lose their place.
+        reloadKeepingStop(stopId);
       });
     }
 
@@ -940,7 +1132,7 @@ const nextStopTextHref = nextStop
           photoInput.disabled = false;
           return;
         }
-        window.location.reload();
+        reloadKeepingStop(stopId);
       });
     }
 
@@ -1003,10 +1195,14 @@ const nextStopTextHref = nextStop
   if (issueSubmit && issueSubmitLabel) {
     issueSubmit.addEventListener('click', async () => {
       if (!issueContext || !issueNotes) return;
-      const notes = issueNotes.value.trim();
+      // Notes are OPTIONAL now (a gloved driver can't reliably type) — the
+      // quick-pick radios are enough. Use the typed note if present, else the
+      // selected radio's reason. Only block when neither is provided.
+      const typed = issueNotes.value.trim();
+      const checkedRadio = issueQuickRadios.find((r) => r.checked) ?? null;
+      const notes = typed.length > 0 ? typed : (checkedRadio?.value ?? '');
       if (notes.length === 0) {
-        setIssueError('Please describe what happened.');
-        issueNotes.focus();
+        setIssueError('Pick a reason or add a note.');
         return;
       }
       issueSubmit.disabled = true;
@@ -1021,6 +1217,7 @@ const nextStopTextHref = nextStop
         payload.gps_lat = gps.lat;
         payload.gps_lng = gps.lng;
       }
+      const stopIdForReload = issueContext.stopId;
       const r = await postStatus(issueContext.routeId, issueContext.stopId, payload);
       if (!r.ok) {
         setIssueError(r.error || 'Could not report.');
@@ -1029,7 +1226,7 @@ const nextStopTextHref = nextStop
         return;
       }
       closeIssueModal();
-      window.location.reload();
+      reloadKeepingStop(stopIdForReload);
     });
   }
 </script>

@@ -325,6 +325,13 @@ export interface Database {
           route_id: string;
           pickup_location_id: string | null;
           member_id: string | null;
+          // Wholesale (restaurant) stop FK → customers.id. Set when this stop
+          // is a wholesale delivery; pickup_location_id + member_id are both
+          // NULL in that case. The restaurant's display (name/address/phone)
+          // is resolved via wholesale_accounts WHERE customer_id = this value.
+          // The migration that adds this column is owned by the route-save
+          // stream; declared here so the driver view's SELECT typechecks.
+          wholesale_customer_id: string | null;
           stop_order: number;
           status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
           scheduled_time: string | null;
