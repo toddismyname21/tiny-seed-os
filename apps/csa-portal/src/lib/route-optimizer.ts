@@ -39,6 +39,9 @@ export interface RouteStop {
   windowEndSec?: number;
   /** Short detail for the UI (box counts, etc.). */
   detail?: string;
+  /** Street address for the UI — lets the planner SEE where a stop is when
+   *  deciding Route A vs B (Todd 2026-06-24). Home + wholesale + pickup. */
+  address?: string;
   /** The delivery_stops target FK this stop saves to (for "Save & send to
    *  driver"). Exactly one column per the delivery_stops_target_xor CHECK. */
   ref?: { col: 'pickup_location_id' | 'member_id' | 'wholesale_customer_id'; id: string };
@@ -204,7 +207,7 @@ export async function gatherDayStops(
   // 1) CSA pickup locations (coords already in the table).
   const { data: locs } = await supabase
     .from('pickup_locations')
-    .select('id, name, coordinates_lat, coordinates_lng');
+    .select('id, name, address, city, coordinates_lat, coordinates_lng');
   const locById = new Map((locs ?? []).map((l: any) => [l.id, l]));
   for (const s of cycle.activeStops) {
     if (s.day_of_week !== day) continue;
@@ -219,6 +222,7 @@ export async function gatherDayStops(
       kind: 'csa',
       serviceSec: SERVICE.csa,
       detail: `${s.boxes_small + s.boxes_large} boxes`,
+      address: [L.address, L.city].filter(Boolean).join(', ') || undefined,
       ref: { col: 'pickup_location_id', id: s.stop_id },
     });
   }
@@ -258,6 +262,7 @@ export async function gatherDayStops(
         kind: 'home',
         serviceSec: SERVICE.home,
         detail: 'home delivery',
+        address: rep.delivery_address,
         ref: { col: 'member_id', id: rep.id },
       });
     }
@@ -288,6 +293,7 @@ export async function gatherDayStops(
         serviceSec: SERVICE.wholesale,
         windowEndSec: isBlackRadish ? 15 * 3600 : undefined, // 3 PM hard for Black Radish
         detail: 'wholesale' + (isBlackRadish ? ' · by 3 PM' : ''),
+        address: a.address,
         // Driver-route stops reference customers.id (the wholesale account's
         // linked customer). Skip the FK if unlinked (still routable, just not
         // saveable to a driver route).

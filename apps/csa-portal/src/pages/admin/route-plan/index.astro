@@ -115,6 +115,7 @@ const groups = [
                     </div>
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-sm font-medium text-gray-900">{s.name}</div>
+                      {s.address && <div class="truncate text-xs text-gray-600">📍 {s.address}</div>}
                       {s.detail && <div class="text-xs text-gray-400">{s.detail}</div>}
                     </div>
                   </li>
@@ -195,7 +196,8 @@ const groups = [
         <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style="background:${color}">${i+1}</span>
         <div class="min-w-0 flex-1">
           <div class="text-sm font-medium text-gray-900 truncate">${r.s.name}</div>
-          <div class="text-xs text-gray-500">~${fmtClock(r.arrival)} · +${mins(r.leg)}m drive${r.s.detail?' · '+r.s.detail:''}${r.violated?' · ⚠️ AFTER CUTOFF':''}</div>
+          ${r.s.address?`<div class="text-xs text-gray-500 truncate">📍 ${r.s.address}</div>`:''}
+          <div class="text-xs text-gray-400">~${fmtClock(r.arrival)} · +${mins(r.leg)}m drive${r.s.detail?' · '+r.s.detail:''}${r.violated?' · ⚠️ AFTER CUTOFF':''}</div>
         </div>
         <div class="flex shrink-0 flex-col">
           <button data-mv="up" class="px-1 text-gray-400 hover:text-gray-700 leading-none">▲</button>
