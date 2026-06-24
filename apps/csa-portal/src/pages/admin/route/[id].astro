@@ -345,8 +345,14 @@ function stopMarker(stop: StopRow): string {
 }
 
 /** Bare digits/+ from a stored phone for an sms: deep link, or '' when none. */
+// Build a VALIDATED E.164 sms target (+1XXXXXXXXXX) from a stored phone, or ''
+// when it doesn't normalize to a valid US number. Same rule as the pickup group
+// links + /admin/text-stop (normalizeUSPhone is the single phone source of
+// truth), so EVERY driver text link is validated + consistently formatted and a
+// malformed number renders NO button instead of a broken sms: link.
 function smsDigits(phone: string | null | undefined): string {
-  return (phone ?? '').replace(/[^\d+]/g, '');
+  const d = normalizeUSPhone(phone);
+  return d ? `+1${d}` : '';
 }
 
 const routeReady = stopList.length > 0;
