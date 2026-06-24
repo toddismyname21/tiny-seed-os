@@ -21,6 +21,7 @@ import Card from '../../../components/Card.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { signProofUrl } from '../../../lib/delivery-proof';
 import { normalizeUSPhone } from '../../../lib/phone';
+import { resolveCycle, mondayOfWeek, isMonday, type CycleMember } from '../../../lib/cycle';
 
 const supabase = Astro.locals.supabase;
 const routeId = String(Astro.params.id ?? '').trim();
@@ -124,58 +125,70 @@ if (wholesaleCustomerIds.length > 0) {
 }
 
 // ─── Group-SMS deep link per pickup-location stop ────────────────────
-// "📣 Text all N here" — one tap opens the device SMS app with EVERY member
-// at this pickup location addressed (iOS sms:/open?addresses=...). Reuses the
-// exact group-link format from /admin/text-stop. We fetch member phones keyed
-// by pickup_location_id for the stops on THIS route (active members only), so
-// the driver doesn't have to load a second page to text a host stop.
+// "📣 Text all N here" — one tap opens the device SMS app with the members
+// receiving a box at this pickup location THIS week addressed (iOS
+// sms:/open?addresses=...). Same group-link format as /admin/text-stop.
 //
-// NOTE: this resolves recipients directly from members.pickup_location_id
-// rather than the cycle resolver (the cycle/text-stop path is owned by another
-// stream). It addresses the members currently assigned to the location with a
-// valid phone — sufficient for the driver's one-tap "your share arrived" text.
-type GroupSms = { href: string; count: number };
+// SOURCE OF TRUTH: recipients come from resolveCycle (cycle.byStop) for the
+// route's delivery week — the SAME biweekly + holds + season + home-delivery
+// resolved set the labels / pack-check / manifest / route-sheet use — so the
+// text recipients MATCH the box recipients. (Before 2026-06-24 this page
+// queried members.pickup_location_id raw, which texted biweekly-off / on-hold
+// / stale-pickup members who get NO box this week → count mismatch.) We dedupe
+// by phone so one household = one number ≈ one box.
+type GroupSms = { href: string; count: number; boxes: number; missingPhones: number };
 const groupSmsByPickupId = new Map<string, GroupSms>();
 const pickupLocationIds = Array.from(
   new Set(stopList.map((s) => s.pickup_location_id).filter((v): v is string => !!v))
 );
 if (pickupLocationIds.length > 0) {
-  type MemberPhoneRow = {
-    pickup_location_id: string | null;
-    status: string;
-    customer: { phone: string | null } | null;
-  };
-  const { data: memberRows, error: mpErr } = await supabase
-    .from('members')
-    .select('pickup_location_id, status, customer:customers(phone)')
-    .in('pickup_location_id', pickupLocationIds)
-    .eq('status', 'active')
-    .overrideTypes<MemberPhoneRow[], { merge: false }>();
-  if (mpErr) {
-    console.error('[admin/route/[id]] member phones fetch failed:', mpErr.message);
+  const routeWeek = isMonday(route.route_date) ? route.route_date : mondayOfWeek(route.route_date);
+  const cycle = await resolveCycle(supabase, routeWeek);
+
+  // Recipients per stop = this week's resolved box-bearers at the stop.
+  const recipientsByStop = new Map<string, CycleMember[]>();
+  const custIds = new Set<string>();
+  for (const pid of pickupLocationIds) {
+    const members = cycle.byStop.get(pid) ?? [];
+    recipientsByStop.set(pid, members);
+    for (const m of members) if (m.customer_id) custIds.add(m.customer_id);
   }
-  // Collect valid E.164 numbers per pickup location (dedupe per stop).
-  const phonesByPickup = new Map<string, Set<string>>();
-  for (const m of (memberRows ?? [])) {
-    if (!m.pickup_location_id) continue;
-    const digits = normalizeUSPhone(m.customer?.phone ?? null);
-    if (!digits) continue;
-    const e164 = `+1${digits}`;
-    let set = phonesByPickup.get(m.pickup_location_id);
-    if (!set) { set = new Set<string>(); phonesByPickup.set(m.pickup_location_id, set); }
-    set.add(e164);
+
+  // One bounded query for phones (CycleMember carries customer_id, not phone).
+  const phoneByCustomer = new Map<string, string | null>();
+  if (custIds.size > 0) {
+    type PhoneRow = { id: string; phone: string | null };
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id, phone')
+      .in('id', Array.from(custIds))
+      .overrideTypes<PhoneRow[], { merge: false }>();
+    if (error) console.error('[admin/route/[id]] customer phones fetch failed:', error.message);
+    for (const r of (data ?? []) as PhoneRow[]) phoneByCustomer.set(r.id, r.phone);
   }
-  // Build the group sms: link the same way /admin/text-stop does:
-  //   sms:/open?addresses=+1NUM,+1NUM&body=ENCODED  (iOS group compose).
-  for (const [pickupId, phoneSet] of phonesByPickup) {
+
+  for (const pid of pickupLocationIds) {
+    const members = recipientsByStop.get(pid) ?? [];
+    // distinct households (by customer) = the box count we compare against
+    const customersAtStop = new Set(members.map((m) => m.customer_id).filter(Boolean) as string[]);
+    const phoneSet = new Set<string>();
+    const customersWithPhone = new Set<string>();
+    for (const m of members) {
+      const digits = normalizeUSPhone(phoneByCustomer.get(m.customer_id) ?? null);
+      if (!digits) continue;
+      phoneSet.add(`+1${digits}`);
+      customersWithPhone.add(m.customer_id);
+    }
     if (phoneSet.size === 0) continue;
-    const loc = stopList.find((s) => s.pickup_location_id === pickupId)?.pickup_location;
+    const loc = stopList.find((s) => s.pickup_location_id === pid)?.pickup_location;
     const stopLabel = loc?.name ?? 'your pickup';
     const groupBody = `Your Tiny Seed Farm CSA share has arrived at ${stopLabel} 🌱`;
     const addresses = Array.from(phoneSet).join(',');
-    groupSmsByPickupId.set(pickupId, {
+    groupSmsByPickupId.set(pid, {
       href: `sms:/open?addresses=${encodeURIComponent(addresses)}&body=${encodeURIComponent(groupBody)}`,
       count: phoneSet.size,
+      boxes: customersAtStop.size,
+      missingPhones: customersAtStop.size - customersWithPhone.size,
     });
   }
 }
@@ -751,13 +764,21 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
                                 "your delivery is arriving" body.
                   Hidden when there's no valid number to text. */}
               {kind === 'host' && cardGroupSms && (
-                <a
-                  href={cardGroupSms.href}
-                  class="mt-2 inline-flex h-16 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
-                >
-                  <span aria-hidden="true">📣</span>
-                  Text all {cardGroupSms.count} here
-                </a>
+                <Fragment>
+                  <a
+                    href={cardGroupSms.href}
+                    class="mt-2 inline-flex h-16 w-full items-center justify-center gap-2 rounded-ts-md border-2 border-ts-primary/40 bg-ts-primary/5 px-4 text-base font-semibold text-ts-primary transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+                  >
+                    <span aria-hidden="true">📣</span>
+                    Text all {cardGroupSms.count} here
+                  </a>
+                  <p class="mt-1 text-center text-xs text-ts-text-muted">
+                    {cardGroupSms.boxes} box{cardGroupSms.boxes === 1 ? '' : 'es'} this week
+                    {cardGroupSms.missingPhones > 0
+                      ? ` · ${cardGroupSms.missingPhones} ${cardGroupSms.missingPhones === 1 ? 'has' : 'have'} no phone on file`
+                      : ' · all textable'}
+                  </p>
+                </Fragment>
               )}
 
               {kind === 'home' && cardMemberPhone && (
