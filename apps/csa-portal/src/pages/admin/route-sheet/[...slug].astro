@@ -481,12 +481,15 @@ const prettyDate = new Intl.DateTimeFormat('en-US', {
           </section>
         )}
 
-        <p class="screen-only mt-1 text-xs text-ts-text-muted">↓ The curated zip-order sheet below is reference only — this optimized route prints instead.</p>
       </div>
     )}
 
-    {/* ══ Curated zip-order sheet (fallback; screen-only when a route is saved) ══ */}
-    <div class={weekRoutes.hasSavedRoute ? 'print:hidden' : ''}>
+    {/* ══ Curated zip-order sheet — ONLY when NO optimized route is saved ══
+        When a route IS saved, the optimized route + combined checklist above
+        fully replace this, so we don't render it at all. (It used to linger
+        here as a screen-only "old route" and was confusing — Todd 2026-06-24.) */}
+    {!weekRoutes.hasSavedRoute && (
+    <div>
     {/* ── Sheet header ──────────────────────────────────────────────── */}
     <header class="route-header rounded-ts-lg bg-ts-text px-5 py-4 text-white">
       <p class="text-xs font-semibold uppercase tracking-wider text-white/80">
@@ -605,6 +608,7 @@ const prettyDate = new Intl.DateTimeFormat('en-US', {
       </div>
     )}
     </div>
+    )}
   </div>
 </AdminShell>
 
