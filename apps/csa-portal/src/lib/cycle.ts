@@ -814,6 +814,32 @@ export async function resolveCycle(
     });
   }
 
+  // ─── Household preference UNION (Todd 2026-06-24) ─────────────────
+  // Preferences are stored PER member row, but a customer has several rows
+  // (veg box + each add-on). A dislike/allergy set on ANY of a household's
+  // rows must apply to their BOX — otherwise a preference filed on an add-on
+  // row (as the portal sometimes does) is silently ignored. 17 members were
+  // hit by this; e.g. Kelly Corrigan's "Beets" skip landed on her mushroom
+  // add-on row, so her veg box never dropped beets. We union dislikes +
+  // allergies (case-insensitive) across each customer's member rows and stamp
+  // the union onto every CycleMember below, so applyComposition + the
+  // label/pack allergy flags honor the full household preference set.
+  const customerIdByMember = new Map<string, string>();
+  for (const m of memberRows) customerIdByMember.set(m.id, m.customer_id);
+  const prefsByCustomer = new Map<string, { allergies: string[]; dislikes: string[] }>();
+  for (const [memberId, pref] of prefsByMember) {
+    const custId = customerIdByMember.get(memberId);
+    if (!custId) continue;
+    const agg = prefsByCustomer.get(custId) ?? { allergies: [], dislikes: [] };
+    for (const a of pref.allergies) {
+      if (a && !agg.allergies.some((x) => x.toLowerCase() === a.toLowerCase())) agg.allergies.push(a);
+    }
+    for (const d of pref.dislikes) {
+      if (d && !agg.dislikes.some((x) => x.toLowerCase() === d.toLowerCase())) agg.dislikes.push(d);
+    }
+    prefsByCustomer.set(custId, agg);
+  }
+
   // share_type ('large'/'small') → { contents, published_at }. Built from
   // box_contents: group the per-product rows by share_type, mapping each row
   // to a BoxContentLine. published_at is null (box_contents has no publish
@@ -860,8 +886,10 @@ export async function resolveCycle(
       addon_type,
       addon_frequency,
       pickup_location: m.pickup_location ?? null,
-      allergies: pref?.allergies ?? [],
-      dislikes: pref?.dislikes ?? [],
+      // Household UNION (not just this row's prefs) so a dislike/allergy filed
+      // on any of the customer's member rows is honored on the box.
+      allergies: prefsByCustomer.get(m.customer_id)?.allergies ?? pref?.allergies ?? [],
+      dislikes: prefsByCustomer.get(m.customer_id)?.dislikes ?? pref?.dislikes ?? [],
       delivery_notes: pref?.delivery_notes ?? null,
       moved_in: false,
       moved_from: null,
