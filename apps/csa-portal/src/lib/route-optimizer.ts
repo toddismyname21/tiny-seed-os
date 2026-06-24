@@ -57,6 +57,11 @@ export interface OptimizeResult {
   /** A Google Maps directions URL covering the whole loop (one-tap nav). */
   mapsUrl: string;
   warnings: string[];
+  /** Drive-time matrix (seconds) over [depot, ...inputStops] so the client can
+   *  recompute ETAs/totals instantly on a MANUAL drag-reorder — no re-call. */
+  matrix: number[][];
+  /** keys[0] = '__depot__'; keys[i] = the stop.key at matrix index i. */
+  keys: string[];
 }
 
 const SERVICE = { csa: 300, home: 60, wholesale: 300 }; // 5 min / 1 min / 5 min
@@ -277,7 +282,7 @@ export async function optimizeStops(
 ): Promise<OptimizeResult> {
   const warnings: string[] = [];
   if (stops.length === 0) {
-    return { stops: [], totalDriveSec: 0, totalServiceSec: 0, mapsUrl: googleMapsRouteUrl([]), warnings: ['No stops selected.'] };
+    return { stops: [], totalDriveSec: 0, totalServiceSec: 0, mapsUrl: googleMapsRouteUrl([]), warnings: ['No stops selected.'], matrix: [], keys: [] };
   }
   const pts = [DEPOT, ...stops];
   const m = await computeMatrix(pts, key);
@@ -308,6 +313,8 @@ export async function optimizeStops(
     totalServiceSec: totalService,
     mapsUrl: googleMapsRouteUrl(out.map((s) => ({ lat: s.lat, lng: s.lng }))),
     warnings,
+    matrix: m,
+    keys: ['__depot__', ...stops.map((s) => s.key)],
   };
 }
 

@@ -3,11 +3,13 @@
  * /admin/route-plan — automatic delivery-route optimizer (Todd 2026-06-23).
  *
  * Pick a week + day. The page gathers that day's candidate stops (CSA pickups +
- * home deliveries + wholesale, all geocoded) and lists them with ON/OFF toggles
- * so Todd can pull any stop out of the truck. "Optimize" posts the SELECTED
- * stops to /api/admin/optimize-route, which returns the least-drive-time depot
- * loop (farm → stops → farm), time-window aware (Black Radish by 3 PM), with
- * ETAs + a one-tap full-route Google Maps link. Admin-gated by middleware.
+ * home deliveries + wholesale, all geocoded). Each stop is assigned to Route A,
+ * Route B, or Off — so Todd can split into two trucks/runs and pull stops off.
+ * "Optimize routes" optimizes A and B independently into least-drive-time depot
+ * loops (farm → stops → farm), time-window aware (Black Radish by 3 PM). Each
+ * result list is DRAG / arrow reorderable — a manual reorder recomputes ETAs +
+ * the nav link instantly from the returned drive-time matrix (no re-call).
+ * One-tap full-route Google Maps nav per route. Admin-gated by middleware.
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
@@ -55,27 +57,23 @@ const groups = [
   subtitle={`${prettyWeekHeader(week_starting)} · ${day} delivery · starts + ends at ${DEPOT.name}`}
   pageTitle="Route planner — Tiny Seed Admin"
 >
-  {/* Week + day picker */}
   <Card padding="md" elevation="sm" class="mb-4">
     <form method="GET" action="/admin/route-plan/" class="flex flex-wrap items-end gap-3">
       <label class="flex flex-col gap-1">
         <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Week</span>
-        <select name="week" onchange="this.form.submit()"
-          class="h-10 min-w-[240px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm">
+        <select name="week" onchange="this.form.submit()" class="h-10 min-w-[240px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm">
           {options.map((o) => (<option value={o.value} selected={o.value === week_starting}>{o.label}</option>))}
         </select>
       </label>
       <label class="flex flex-col gap-1">
         <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Day</span>
-        <select name="day" onchange="this.form.submit()"
-          class="h-10 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm">
+        <select name="day" onchange="this.form.submit()" class="h-10 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm">
           {['Tue', 'Wed', 'Sat'].map((d) => (<option value={d} selected={d === day}>{d}</option>))}
         </select>
       </label>
       <label class="flex flex-col gap-1">
         <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Leave farm at</span>
-        <input id="start-time" type="time" value="09:00"
-          class="h-10 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm" />
+        <input id="start-time" type="time" value="09:00" class="h-10 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm" />
       </label>
     </form>
   </Card>
@@ -88,16 +86,16 @@ const groups = [
 
   {!gatherError && (
     <div class="grid gap-4 lg:grid-cols-2">
-      {/* LEFT: stop toggles */}
       <Card padding="md" elevation="sm" as="section">
-        <div class="mb-2 flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-gray-900">Stops on the truck</h2>
-          <div class="flex gap-2 text-xs">
-            <button type="button" data-all="on" class="rounded bg-gray-100 px-2 py-1 hover:bg-gray-200">All on</button>
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-lg font-semibold text-gray-900">Assign stops · A / B / Off</h2>
+          <div class="flex gap-1 text-xs">
+            <button type="button" data-all="A" class="rounded bg-emerald-100 px-2 py-1 font-medium text-emerald-700 hover:bg-emerald-200">All → A</button>
+            <button type="button" data-all="B" class="rounded bg-indigo-100 px-2 py-1 font-medium text-indigo-700 hover:bg-indigo-200">All → B</button>
             <button type="button" data-all="off" class="rounded bg-gray-100 px-2 py-1 hover:bg-gray-200">All off</button>
           </div>
         </div>
-        <p class="mb-3 text-xs text-gray-500">Untick any stop to pull it off this route, then Optimize.</p>
+        <p class="mb-3 text-xs text-gray-500">Put each stop on Route <b class="text-emerald-700">A</b>, Route <b class="text-indigo-700">B</b>, or <b>Off</b> (off the truck). Then optimize.</p>
         {stops.length === 0 ? (
           <p class="text-sm text-gray-500">No stops for {day}. Pick a different day/week.</p>
         ) : (
@@ -107,7 +105,11 @@ const groups = [
               <ul class="divide-y divide-gray-100">
                 {g.items.map((s) => (
                   <li class="flex items-center gap-3 py-2">
-                    <input type="checkbox" class="stop-toggle h-5 w-5 rounded accent-emerald-600" data-key={s.key} checked />
+                    <div class="route-pick inline-flex overflow-hidden rounded-md border border-gray-200" data-key={s.key}>
+                      <button type="button" data-r="off" class="px-2 py-1 text-xs font-medium">Off</button>
+                      <button type="button" data-r="A" class="px-2 py-1 text-xs font-bold">A</button>
+                      <button type="button" data-r="B" class="px-2 py-1 text-xs font-bold">B</button>
+                    </div>
                     <div class="min-w-0 flex-1">
                       <div class="truncate text-sm font-medium text-gray-900">{s.name}</div>
                       {s.detail && <div class="text-xs text-gray-400">{s.detail}</div>}
@@ -119,93 +121,141 @@ const groups = [
           ))
         )}
         {skipped.length > 0 && (
-          <div class="mt-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            ⚠️ Not routable (no coordinates): {skipped.join(' · ')}
-          </div>
+          <div class="mt-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">⚠️ Not routable: {skipped.join(' · ')}</div>
         )}
-        <button id="optimize-btn" type="button"
-          class="mt-3 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark disabled:opacity-60">
-          🧭 Optimize route
+        <button id="optimize-btn" type="button" class="mt-3 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark disabled:opacity-60">
+          🧭 Optimize routes
         </button>
       </Card>
 
-      {/* RIGHT: results */}
-      <Card padding="md" elevation="sm" as="section">
-        <h2 class="mb-2 text-lg font-semibold text-gray-900">Optimized route</h2>
-        <div id="route-result" class="text-sm text-gray-500">Pick your stops and tap <strong>Optimize route</strong>.</div>
-      </Card>
+      <div class="flex flex-col gap-4">
+        <Card padding="md" elevation="sm" as="section">
+          <h2 class="mb-2 text-lg font-semibold text-emerald-700">Route A</h2>
+          <div id="route-A" class="text-sm text-gray-500">Assign stops to A and tap Optimize.</div>
+        </Card>
+        <Card padding="md" elevation="sm" as="section">
+          <h2 class="mb-2 text-lg font-semibold text-indigo-700">Route B</h2>
+          <div id="route-B" class="text-sm text-gray-500">Optional second truck/run.</div>
+        </Card>
+      </div>
     </div>
   )}
 </AdminShell>
 
-<script is:inline define:vars={{ allStops: stops }}>
+<script is:inline define:vars={{ allStops: stops, depot: DEPOT }}>
   const byKey = new Map(allStops.map((s) => [s.key, s]));
+  const assign = new Map(allStops.map((s) => [s.key, 'A'])); // default everyone on A
+  const state = { A: null, B: null }; // per-route { order:[keys], matrix, keys, startSec }
 
-  document.querySelectorAll('[data-all]').forEach((b) =>
-    b.addEventListener('click', () => {
-      const on = b.getAttribute('data-all') === 'on';
-      document.querySelectorAll('.stop-toggle').forEach((c) => { c.checked = on; });
-    }),
-  );
+  const fmtClock = (sec) => { const h=Math.floor(sec/3600)%24,m=Math.floor((sec%3600)/60),ap=h>=12?'PM':'AM',h12=((h+11)%12)+1; return `${h12}:${String(m).padStart(2,'0')} ${ap}`; };
+  const mins = (s) => Math.round(s/60);
 
-  function fmtClock(sec) {
-    const h24 = Math.floor(sec / 3600) % 24, mm = Math.floor((sec % 3600) / 60);
-    const ampm = h24 >= 12 ? 'PM' : 'AM', h12 = ((h24 + 11) % 12) + 1;
-    return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
+  // paint the A/B/Off segmented control for a stop
+  function paint(key) {
+    const r = assign.get(key);
+    document.querySelectorAll(`.route-pick[data-key="${CSS.escape(key)}"] button`).forEach((b) => {
+      const on = b.getAttribute('data-r') === r;
+      b.style.background = on ? (r==='A'?'#059669':r==='B'?'#4f46e5':'#6b7280') : '#fff';
+      b.style.color = on ? '#fff' : '#374151';
+    });
   }
-  function mins(sec) { return Math.round(sec / 60); }
+  document.querySelectorAll('.route-pick').forEach((pick) => {
+    const key = pick.getAttribute('data-key');
+    pick.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { assign.set(key, b.getAttribute('data-r')); paint(key); }));
+    paint(key);
+  });
+  document.querySelectorAll('[data-all]').forEach((b) => b.addEventListener('click', () => {
+    const v = b.getAttribute('data-all'); allStops.forEach((s) => { assign.set(s.key, v); paint(s.key); });
+  }));
 
-  const btn = document.getElementById('optimize-btn');
-  const out = document.getElementById('route-result');
+  function mapsUrl(orderedStops) {
+    const o = `${depot.lat},${depot.lng}`;
+    const wp = orderedStops.map((s) => `${s.lat},${s.lng}`).join('|');
+    return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${o}&travelmode=driving&waypoints=${encodeURIComponent(wp)}`;
+  }
 
-  btn?.addEventListener('click', async () => {
-    const selected = [...document.querySelectorAll('.stop-toggle')]
-      .filter((c) => c.checked)
-      .map((c) => byKey.get(c.getAttribute('data-key')))
-      .filter(Boolean);
-    if (selected.length === 0) { out.innerHTML = '<p class="text-red-600">Select at least one stop.</p>'; return; }
+  // recompute ETAs/total for a route's CURRENT order (from its matrix) + render
+  function render(letter) {
+    const st = state[letter]; const el = document.getElementById('route-' + letter);
+    if (!st || st.order.length === 0) { el.innerHTML = '<p class="text-gray-400 text-sm">No stops on this route.</p>'; return; }
+    const idx = {}; st.keys.forEach((k, i) => (idx[k] = i));
+    let t = st.startSec, prev = 0, drive = 0; const rows = [];
+    for (const k of st.order) {
+      const i = idx[k]; const leg = st.matrix[prev][i]; drive += leg; t += leg;
+      const s = byKey.get(k); const violated = s.windowEndSec != null && t > s.windowEndSec;
+      rows.push({ s, leg, arrival: t, violated }); t += s.serviceSec; prev = i;
+    }
+    drive += st.matrix[prev][0];
+    const color = letter === 'A' ? '#059669' : '#4f46e5';
+    const li = rows.map((r, i) => `
+      <li draggable="true" data-key="${r.s.key}" class="route-row flex items-center gap-2 py-2 ${r.violated?'bg-red-50':''}" style="cursor:grab">
+        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style="background:${color}">${i+1}</span>
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-medium text-gray-900 truncate">${r.s.name}</div>
+          <div class="text-xs text-gray-500">~${fmtClock(r.arrival)} · +${mins(r.leg)}m drive${r.s.detail?' · '+r.s.detail:''}${r.violated?' · ⚠️ AFTER CUTOFF':''}</div>
+        </div>
+        <div class="flex shrink-0 flex-col">
+          <button data-mv="up" class="px-1 text-gray-400 hover:text-gray-700 leading-none">▲</button>
+          <button data-mv="dn" class="px-1 text-gray-400 hover:text-gray-700 leading-none">▼</button>
+        </div>
+      </li>`).join('');
+    el.innerHTML = `
+      <div class="mb-2 rounded-ts-md px-3 py-2 text-sm" style="background:${color}1a;color:${color}">
+        <strong>${mins(drive)} min drive</strong> (${(drive/3600).toFixed(1)} hr) · ${st.order.length} stops
+      </div>
+      <ol class="mb-2 divide-y divide-gray-100">
+        <li class="py-1 text-xs font-semibold uppercase tracking-wide text-gray-400">START · Farm</li>
+        ${li}
+        <li class="py-1 text-xs font-semibold uppercase tracking-wide text-gray-400">RETURN · Farm</li>
+      </ol>
+      <p class="mb-2 text-[11px] text-gray-400">Drag rows or use ▲▼ to reorder — ETAs update live.</p>
+      <a href="${mapsUrl(st.order.map((k)=>byKey.get(k)))}" target="_blank" rel="noopener" class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-blue-600 px-4 text-base font-semibold text-white hover:bg-blue-700">🗺️ Open Route ${letter} in Google Maps</a>`;
+    wireReorder(letter);
+  }
 
+  function wireReorder(letter) {
+    const el = document.getElementById('route-' + letter);
+    const st = state[letter];
+    el.querySelectorAll('[data-mv]').forEach((btn) => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const key = btn.closest('.route-row').getAttribute('data-key');
+      const i = st.order.indexOf(key); const dir = btn.getAttribute('data-mv') === 'up' ? -1 : 1; const j = i + dir;
+      if (j < 0 || j >= st.order.length) return;
+      [st.order[i], st.order[j]] = [st.order[j], st.order[i]]; render(letter);
+    }));
+    let dragKey = null;
+    el.querySelectorAll('.route-row').forEach((row) => {
+      row.addEventListener('dragstart', () => { dragKey = row.getAttribute('data-key'); row.style.opacity = '0.4'; });
+      row.addEventListener('dragend', () => { row.style.opacity = '1'; });
+      row.addEventListener('dragover', (e) => e.preventDefault());
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const overKey = row.getAttribute('data-key'); if (!dragKey || dragKey === overKey) return;
+        const from = st.order.indexOf(dragKey); const to = st.order.indexOf(overKey);
+        st.order.splice(from, 1); st.order.splice(to, 0, dragKey); render(letter);
+      });
+    });
+  }
+
+  async function optimizeRoute(letter, stops, startSec) {
+    const el = document.getElementById('route-' + letter);
+    if (stops.length === 0) { state[letter] = null; el.innerHTML = '<p class="text-gray-400 text-sm">No stops on this route.</p>'; return; }
+    el.innerHTML = '<p class="text-gray-500 text-sm">Optimizing…</p>';
+    const res = await fetch('/api/admin/optimize-route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stops, startSec }) });
+    const d = await res.json();
+    if (!res.ok || d.error) { el.innerHTML = `<p class="text-red-600 text-sm">Couldn't optimize: ${d.detail || d.error || res.status}</p>`; return; }
+    state[letter] = { order: d.stops.map((s) => s.key), matrix: d.matrix, keys: d.keys, startSec };
+    render(letter);
+    if (d.warnings && d.warnings.length) el.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">${d.warnings.join('<br>')}</div>`);
+  }
+
+  document.getElementById('optimize-btn')?.addEventListener('click', async () => {
     const [hh, mm] = (document.getElementById('start-time').value || '09:00').split(':').map(Number);
     const startSec = (hh || 9) * 3600 + (mm || 0) * 60;
-
-    btn.disabled = true; btn.textContent = '⏳ Optimizing…';
-    out.innerHTML = '<p class="text-gray-500">Calculating the best loop…</p>';
-    try {
-      const res = await fetch('/api/admin/optimize-route', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ stops: selected, startSec }),
-      });
-      const d = await res.json();
-      if (!res.ok || d.error) { out.innerHTML = `<p class="text-red-600">Couldn't optimize: ${d.detail || d.error || res.status}</p>`; return; }
-
-      const rows = d.stops.map((s, i) => `
-        <li class="flex items-start gap-3 py-2 ${s.windowViolated ? 'bg-red-50' : ''}">
-          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ts-primary text-xs font-bold text-white">${i + 1}</span>
-          <div class="min-w-0 flex-1">
-            <div class="text-sm font-medium text-gray-900">${s.name}</div>
-            <div class="text-xs text-gray-500">arrive ~${fmtClock(s.arrivalSec)} · +${mins(s.legSec)} min drive${s.detail ? ' · ' + s.detail : ''}${s.windowViolated ? ' · ⚠️ AFTER CUTOFF' : ''}</div>
-          </div>
-        </li>`).join('');
-
-      out.innerHTML = `
-        <div class="mb-2 rounded-ts-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          <strong>${mins(d.totalDriveSec)} min drive</strong> (${(d.totalDriveSec/3600).toFixed(1)} hrs) · ${d.stops.length} stops · ~${mins(d.totalServiceSec)} min unloading
-        </div>
-        ${d.warnings && d.warnings.length ? `<div class="mb-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">${d.warnings.join('<br>')}</div>` : ''}
-        <ol class="mb-3 divide-y divide-gray-100">
-          <li class="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">START · Farm</li>
-          ${rows}
-          <li class="py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">RETURN · Farm</li>
-        </ol>
-        <a href="${d.mapsUrl}" target="_blank" rel="noopener"
-           class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-blue-600 px-4 text-base font-semibold text-white hover:bg-blue-700">
-          🗺️ Open full route in Google Maps
-        </a>`;
-    } catch (e) {
-      out.innerHTML = `<p class="text-red-600">Error: ${e?.message || e}</p>`;
-    } finally {
-      btn.disabled = false; btn.textContent = '🧭 Optimize route';
-    }
+    const A = allStops.filter((s) => assign.get(s.key) === 'A');
+    const B = allStops.filter((s) => assign.get(s.key) === 'B');
+    const btn = document.getElementById('optimize-btn'); btn.disabled = true; btn.textContent = '⏳ Optimizing…';
+    try { await Promise.all([optimizeRoute('A', A, startSec), optimizeRoute('B', B, startSec)]); }
+    finally { btn.disabled = false; btn.textContent = '🧭 Optimize routes'; }
   });
 </script>
