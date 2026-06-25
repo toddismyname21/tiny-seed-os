@@ -1,0 +1,205 @@
+---
+/**
+ * /admin/pick-pack — landing page (week picker) for the printable
+ * PICK & PACK harvest generator.
+ *
+ * The printable views live at /admin/pick-pack/[week] (overall harvest, with
+ * ?view= and ?lang= variants). This page lets the pack lead pick the cycle
+ * week and jump straight to the document they want:
+ *   • Overall harvest (tender greens first) — English + Spanish (?lang=es)
+ *   • Per-market checklists (one card per active farmers-market)
+ *   • CSA checklist
+ *   • Wholesale checklist
+ *
+ * Default week is the CURRENT delivery week (matches the other pack pages).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, mondayOfWeek, currentDeliveryWeek, prettyWeekHeader, addDays,
+} from '../../../lib/cycle';
+import { weekOptions } from '../../../lib/cycle-ui';
+
+const supabase = Astro.locals.supabase;
+
+const wkParam = Astro.url.searchParams.get('week') ?? '';
+const week_starting = wkParam && /^\d{4}-\d{2}-\d{2}$/.test(wkParam)
+  ? mondayOfWeek(wkParam)
+  : currentDeliveryWeek();
+
+const cycle = await resolveCycle(supabase, week_starting);
+const options = weekOptions();
+if (!options.some((o) => o.value === week_starting)) {
+  options.unshift({ value: week_starting, label: `Week of ${week_starting} (selected)` });
+}
+
+// Active farmers-markets THIS week = markets that have ≥1 active offering.
+// We read market_offerings joined to its market location so the per-market
+// cards only show markets actually selling this week.
+interface MarketCardRow {
+  market: { id: string; name: string; day_of_week: string | null } | null;
+}
+const { data: offeringMarketRows } = await supabase
+  .from('market_offerings')
+  .select('market:pickup_locations ( id, name, day_of_week )')
+  .eq('week_starting', week_starting)
+  .eq('is_active', true)
+  .overrideTypes<MarketCardRow[], { merge: false }>();
+
+interface MarketCard { id: string; name: string; day: string | null }
+const marketCardMap = new Map<string, MarketCard>();
+for (const r of offeringMarketRows ?? []) {
+  const m = r.market;
+  if (!m?.id) continue;
+  if (!marketCardMap.has(m.id)) {
+    marketCardMap.set(m.id, { id: m.id, name: m.name, day: m.day_of_week ?? null });
+  }
+}
+const DAY_ORDER: Record<string, number> = { Tue: 0, Sat: 1, Sun: 2 };
+const marketCards = Array.from(marketCardMap.values()).sort((a, b) => {
+  const da = DAY_ORDER[a.day ?? ''] ?? 99;
+  const db = DAY_ORDER[b.day ?? ''] ?? 99;
+  if (da !== db) return da - db;
+  return a.name.localeCompare(b.name);
+});
+
+// Submitted wholesale orders delivering this week → does the wholesale card
+// have anything to show?
+const weekEnd = addDays(week_starting, 6);
+const { count: wholesaleCount } = await supabase
+  .from('wholesale_orders')
+  .select('id', { count: 'exact', head: true })
+  .eq('status', 'submitted')
+  .gte('delivery_date', week_starting)
+  .lte('delivery_date', weekEnd);
+
+const csaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg').length;
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+const cardBtnClass =
+  'mt-3 inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-3 text-xs font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark';
+const cardBtnGhostClass =
+  'mt-3 inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary';
+---
+
+<AdminShell
+  title="Pick & Pack"
+  subtitle={prettyWeekHeader(week_starting)}
+  pageTitle="Pick & Pack — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <a
+      href={`/admin/pick-pack/${week_starting}`}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      Open overall harvest →
+    </a>
+  </Fragment>
+
+  {/* ── Week selector ─────────────────────────────────────────────── */}
+  <section aria-label="Week selector">
+    <form method="GET" action="/admin/pick-pack" class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+      <label class="flex flex-col gap-1">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Week</span>
+        <select
+          name="week"
+          class="h-10 min-w-[220px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {options.map((opt) => (
+            <option value={opt.value} selected={opt.value === week_starting}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="submit"
+        class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Load week
+      </button>
+    </form>
+  </section>
+
+  {/* ── Overall harvest ───────────────────────────────────────────── */}
+  <section aria-labelledby="pp-overall-heading" class="flex flex-col gap-3">
+    <h2 id="pp-overall-heading" class="font-display text-xl font-bold text-ts-text">Overall harvest</h2>
+    <Card padding="md" elevation="sm">
+      <p class="text-sm text-ts-text-secondary">
+        The whole pick across <strong class="text-ts-text">all channels</strong> — CSA + market + wholesale —
+        in one list, <strong class="text-ts-text">tender greens first</strong>, with tickable boxes.
+      </p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a href={`/admin/pick-pack/${week_starting}`} class={cardBtnClass}>Overall harvest →</a>
+        <a href={`/admin/pick-pack/${week_starting}?lang=es`} class={cardBtnGhostClass}>Español →</a>
+      </div>
+    </Card>
+  </section>
+
+  {/* ── Per-channel checklists ────────────────────────────────────── */}
+  <section aria-labelledby="pp-channels-heading" class="flex flex-col gap-4">
+    <h2 id="pp-channels-heading" class="font-display text-xl font-bold text-ts-text">Per-channel checklists</h2>
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {/* CSA */}
+      <Card padding="md" elevation="sm" hover>
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-ts-text">🥬 CSA boxes</p>
+            <p class="mt-0.5 text-xs text-ts-text-muted">Box demand by crop (from resolveCycle).</p>
+          </div>
+          <span class="shrink-0 rounded-ts-md bg-ts-primary/10 px-3 py-1 text-base font-bold tabular-nums text-ts-primary">{csaBoxes}</span>
+        </div>
+        <a href={`/admin/pick-pack/${week_starting}?view=csa`} class={cardBtnClass}>CSA checklist →</a>
+      </Card>
+
+      {/* Wholesale */}
+      <Card padding="md" elevation="sm" hover>
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-ts-text">🍽 Wholesale</p>
+            <p class="mt-0.5 text-xs text-ts-text-muted">Restaurant orders delivering this week.</p>
+          </div>
+          <span class="shrink-0 rounded-ts-md bg-ts-primary/10 px-3 py-1 text-base font-bold tabular-nums text-ts-primary">{wholesaleCount ?? 0}</span>
+        </div>
+        <a href={`/admin/pick-pack/${week_starting}?view=wholesale`} class={cardBtnClass}>Wholesale checklist →</a>
+      </Card>
+
+      {/* Per-market cards */}
+      {marketCards.map((mk) => (
+        <Card padding="md" elevation="sm" hover>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold text-ts-text">🛒 {mk.name}</p>
+              <p class="mt-0.5 text-xs text-ts-text-muted">{mk.day ? DAY_LONG[mk.day] ?? mk.day : 'Market'}</p>
+            </div>
+          </div>
+          <a href={`/admin/pick-pack/${week_starting}?view=market&market=${mk.id}`} class={cardBtnClass}>Market checklist →</a>
+        </Card>
+      ))}
+    </div>
+    {marketCards.length === 0 && (
+      <Card tone="muted" padding="md" elevation="sm">
+        <p class="text-center text-sm text-ts-text-secondary">
+          No active market offerings this week — set the stall list at
+          <a href="/admin/market" class="ml-1 font-semibold text-ts-primary hover:underline">Market list</a>.
+        </p>
+      </Card>
+    )}
+  </section>
+
+  <Card padding="md" elevation="sm">
+    <h2 class="font-display text-lg font-bold text-ts-text">How Pick & Pack works</h2>
+    <ul class="mt-3 space-y-1.5 text-sm text-ts-text-secondary">
+      <li>• <strong class="text-ts-text">Overall harvest</strong> folds CSA + market + wholesale into one per-crop pick list, tender greens first.</li>
+      <li>• <strong class="text-ts-text">CSA demand</strong> comes strictly from the cycle resolver (default plan + locked swaps + allergy subs).</li>
+      <li>• <strong class="text-ts-text">Market demand</strong> is the planned harvest qty you set per offering on the Market list.</li>
+      <li>• <strong class="text-ts-text">Wholesale demand</strong> is the real ordered qty from submitted chef orders delivering this week.</li>
+      <li>• Every list prints big, clean, one column, with tickable boxes — Letter portrait, 100% scale.</li>
+    </ul>
+  </Card>
+</AdminShell>
+</content>

@@ -1,0 +1,533 @@
+---
+/**
+ * /admin/pick-pack/[week]            → OVERALL harvest (tender greens first).
+ * /admin/pick-pack/[week]?lang=es    → OVERALL harvest in Spanish.
+ * /admin/pick-pack/[week]?view=csa        → CSA box checklist by crop.
+ * /admin/pick-pack/[week]?view=wholesale  → Wholesale order checklist by crop.
+ * /admin/pick-pack/[week]?view=market&market=<id> → one market's checklist.
+ *
+ * The Pick & Pack generator. ONE cycle resolution + the market_offerings and
+ * wholesale_order_items reads feed a single per-crop demand merge (see
+ * lib/pick-pack.ts). Each view is a printable, big, clean, ONE-COLUMN document
+ * with tickable "[   ]" boxes — built for the pack floor, not the screen.
+ *
+ * CSA demand is STRICTLY from resolveCycle (sum of each summer_veg member's
+ * resolved box composition). Sum per crop = CSA box demand + market planned_qty
+ * (across that crop's offerings) + wholesale order item qty.
+ *
+ * Print CSS pattern mirrors /admin/pack-check + /admin/route-sheet: AdminShell
+ * hides its own chrome via print:hidden, and the @page block forces Letter
+ * portrait + keeps each row whole.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyWeekHeader, mondayOfWeek, isMonday, addDays,
+} from '../../../lib/cycle';
+import {
+  mergeCropDemand, channelCount, parseLang, PICK_PACK_STRINGS,
+  type CropDemandInput,
+} from '../../../lib/pick-pack';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+const week_input = segments[0] ?? '';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
+  return Astro.redirect('/admin/pick-pack', 303);
+}
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+const viewRaw = Astro.url.searchParams.get('view') ?? 'overall';
+const view: 'overall' | 'csa' | 'wholesale' | 'market' =
+  viewRaw === 'csa' || viewRaw === 'wholesale' || viewRaw === 'market' ? viewRaw : 'overall';
+const marketIdParam = Astro.url.searchParams.get('market') ?? '';
+const lang = parseLang(Astro.url.searchParams.get('lang'));
+const t = PICK_PACK_STRINGS[lang];
+
+const cycle = await resolveCycle(supabase, week_starting);
+const weekEnd = addDays(week_starting, 6);
+
+/* ──────────────────────────────────────────────────────────────────
+ * 1. CSA box demand by crop — STRICTLY from resolveCycle.
+ *    Sum each summer_veg member's resolved composition (default plan +
+ *    locked swaps + allergy subs) per crop+unit.
+ * ────────────────────────────────────────────────────────────────── */
+interface CropAgg { crop: string; unit: string; qty: number; }
+const csaMap = new Map<string, CropAgg>(); // key = crop|unit
+for (const m of cycle.members) {
+  if (m.share_type !== 'summer_veg') continue;
+  const comp = cycle.boxCompositionByMember.get(m.id);
+  if (!comp) continue;
+  for (const line of comp.items) {
+    const key = `${line.crop.toLowerCase()}|${line.unit.toLowerCase()}`;
+    const e = csaMap.get(key);
+    if (e) e.qty += line.qty;
+    else csaMap.set(key, { crop: line.crop, unit: line.unit, qty: line.qty });
+  }
+}
+const csaRows = Array.from(csaMap.values())
+  .filter((r) => r.qty > 0)
+  .sort((a, b) => b.qty - a.qty || a.crop.localeCompare(b.crop));
+
+/* ──────────────────────────────────────────────────────────────────
+ * 2. Library category + photo lookup (for tender-green ordering + thumbs).
+ * ────────────────────────────────────────────────────────────────── */
+interface LibRow { name: string; photo_url: string | null; category: string | null; }
+const { data: libRows } = await supabase
+  .from('product_library')
+  .select('name, photo_url, category')
+  .overrideTypes<LibRow[], { merge: false }>();
+const libByName = new Map<string, { photo: string | null; category: string | null }>();
+for (const lp of libRows ?? []) {
+  const key = lp.name?.trim().toLowerCase();
+  if (!key) continue;
+  if (!libByName.has(key)) libByName.set(key, { photo: lp.photo_url, category: lp.category });
+}
+function libLookup(crop: string): { photo: string | null; category: string | null } {
+  return libByName.get(crop.trim().toLowerCase()) ?? { photo: null, category: null };
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * 3. Market planned_qty by crop — from market_offerings, tagged per market.
+ * ────────────────────────────────────────────────────────────────── */
+interface MarketOfferingRow {
+  id: string;
+  name: string | null;
+  unit: string;
+  planned_qty: number | null;
+  market: { id: string; name: string; day_of_week: string | null } | null;
+  library: { name: string | null; photo_url: string | null; category: string | null } | null;
+}
+const { data: offeringRows, error: offeringsErr } = await supabase
+  .from('market_offerings')
+  .select(
+    'id, name, unit, planned_qty, ' +
+    'market:pickup_locations ( id, name, day_of_week ), ' +
+    'library:product_library ( name, photo_url, category )',
+  )
+  .eq('week_starting', week_starting)
+  .eq('is_active', true)
+  .order('sort_order', { ascending: true })
+  .overrideTypes<MarketOfferingRow[], { merge: false }>();
+if (offeringsErr) {
+  throw new Error(`pick-pack: market_offerings fetch failed: ${offeringsErr.message}`);
+}
+
+interface MarketItem { name: string; unit: string; qty: number; photo: string | null; category: string | null; }
+interface MarketGroup { id: string; name: string; day: string | null; items: MarketItem[]; }
+const marketGroupMap = new Map<string, MarketGroup>();
+// Aggregate ALL markets' planned_qty per crop for the overall list.
+const marketAllMap = new Map<string, CropAgg & { category: string | null }>(); // key = crop|unit
+for (const o of offeringRows ?? []) {
+  const name = (o.name ?? o.library?.name ?? 'Untitled product').trim();
+  const qty = Number(o.planned_qty) || 0;
+  const unit = o.unit || 'each';
+  const category = o.library?.category ?? null;
+  const photo = o.library?.photo_url ?? null;
+  // Per-market grouping (for the per-market checklist).
+  const mid = o.market?.id ?? 'untagged';
+  let group = marketGroupMap.get(mid);
+  if (!group) {
+    group = { id: mid, name: o.market?.name ?? 'Untagged', day: o.market?.day_of_week ?? null, items: [] };
+    marketGroupMap.set(mid, group);
+  }
+  group.items.push({ name, unit, qty, photo, category });
+  // All-markets aggregate (for the overall harvest list).
+  if (qty > 0) {
+    const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
+    const e = marketAllMap.get(key);
+    if (e) e.qty += qty;
+    else marketAllMap.set(key, { crop: name, unit, qty, category });
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * 4. Wholesale order demand by crop — submitted orders delivering this week.
+ * ────────────────────────────────────────────────────────────────── */
+interface WholesaleItemRow {
+  product_name: string | null;
+  qty: number;
+  product: { unit: string | null; photo_url: string | null; library: { photo_url: string | null; category: string | null } | null } | null;
+}
+interface WholesaleOrderRow { id: string; delivery_date: string; items: WholesaleItemRow[] | null; }
+const { data: wholesaleOrderRows, error: wholesaleErr } = await supabase
+  .from('wholesale_orders')
+  .select(
+    'id, delivery_date, ' +
+    'items:wholesale_order_items ( product_name, qty, ' +
+      'product:wholesale_products ( unit, photo_url, library:product_library ( photo_url, category ) ) )',
+  )
+  .eq('status', 'submitted')
+  .gte('delivery_date', week_starting)
+  .lte('delivery_date', weekEnd)
+  .overrideTypes<WholesaleOrderRow[], { merge: false }>();
+if (wholesaleErr) {
+  throw new Error(`pick-pack: wholesale_orders fetch failed: ${wholesaleErr.message}`);
+}
+interface WsaleAgg { crop: string; unit: string; qty: number; photo: string | null; category: string | null; }
+const wholesaleMap = new Map<string, WsaleAgg>(); // key = crop|unit
+for (const o of wholesaleOrderRows ?? []) {
+  for (const it of o.items ?? []) {
+    const name = it.product_name?.trim();
+    if (!name) continue;
+    const unit = it.product?.unit?.trim() || 'each';
+    const qty = Number(it.qty) || 0;
+    if (qty <= 0) continue;
+    const photo = it.product?.library?.photo_url ?? it.product?.photo_url ?? null;
+    const category = it.product?.library?.category ?? null;
+    const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
+    const e = wholesaleMap.get(key);
+    if (e) { e.qty += qty; if (!e.photo && photo) e.photo = photo; }
+    else wholesaleMap.set(key, { crop: name, unit, qty, photo, category });
+  }
+}
+const wholesaleRows = Array.from(wholesaleMap.values())
+  .sort((a, b) => b.qty - a.qty || a.crop.localeCompare(b.crop));
+
+/* ──────────────────────────────────────────────────────────────────
+ * 5. The MERGE — overall per-crop demand across all three channels.
+ * ────────────────────────────────────────────────────────────────── */
+const csaDemand: CropDemandInput[] = csaRows.map((r) => ({
+  crop: r.crop, qty: r.qty, unit: r.unit, category: libLookup(r.crop).category,
+}));
+const marketDemand: CropDemandInput[] = Array.from(marketAllMap.values()).map((r) => ({
+  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
+}));
+const wholesaleDemand: CropDemandInput[] = wholesaleRows.map((r) => ({
+  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
+}));
+const merged = mergeCropDemand(csaDemand, marketDemand, wholesaleDemand);
+const tenderRows = merged.filter((r) => r.tender);
+const otherRows = merged.filter((r) => !r.tender);
+
+/** Best photo for a merged/overall crop row. */
+function cropPhoto(crop: string): string | null {
+  return libLookup(crop).photo;
+}
+
+// Resolve the selected market group for the per-market view.
+const DAY_ORDER: Record<string, number> = { Tue: 0, Sat: 1, Sun: 2 };
+const marketGroupsSorted = Array.from(marketGroupMap.values()).sort((a, b) => {
+  const da = DAY_ORDER[a.day ?? ''] ?? 99;
+  const db = DAY_ORDER[b.day ?? ''] ?? 99;
+  if (da !== db) return da - db;
+  return a.name.localeCompare(b.name);
+});
+const selectedMarket = view === 'market'
+  ? marketGroupsSorted.find((g) => g.id === marketIdParam) ?? marketGroupsSorted[0] ?? null
+  : null;
+// Order a market's items: tender greens first, then biggest qty.
+function orderMarketItems(items: MarketItem[]): MarketItem[] {
+  return items.slice().sort((a, b) => {
+    const ta = mergeTender(a.name, a.category);
+    const tb = mergeTender(b.name, b.category);
+    if (ta !== tb) return ta ? -1 : 1;
+    return (b.qty || 0) - (a.qty || 0) || a.name.localeCompare(b.name);
+  });
+}
+// Local tender check reusing the lib's classifier via a merged row of one.
+function mergeTender(name: string, category: string | null): boolean {
+  return mergeCropDemand([{ crop: name, qty: 1, unit: 'x', category }], [], [])[0]?.tender ?? false;
+}
+
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+
+// Page title + subtitle per view.
+let docTitle: string;
+if (view === 'csa') docTitle = 'CSA harvest';
+else if (view === 'wholesale') docTitle = 'Wholesale harvest';
+else if (view === 'market') docTitle = `Market — ${selectedMarket?.name ?? 'market'}`;
+else docTitle = t.overallTitle;
+
+const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg').length;
+---
+
+<AdminShell
+  title="Pick & Pack"
+  subtitle={`${docTitle} · ${prettyWeekHeader(week_starting)}`}
+  pageTitle={`Pick & Pack — ${docTitle} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    {view === 'overall' && (
+      <a
+        href={`/admin/pick-pack/${week_starting}?lang=${lang === 'es' ? 'en' : 'es'}`}
+        class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary"
+      >
+        🌐 {t.langToggle}
+      </a>
+    )}
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
+    >
+      🖨 Print
+    </button>
+    <a
+      href={`/admin/pick-pack?week=${week_starting}`}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      ← Pick &amp; Pack
+    </a>
+  </Fragment>
+
+  {/* ── Screen-only view switcher ──────────────────────────────────── */}
+  <nav aria-label="Pick & Pack views" class="screen-only flex flex-wrap gap-2 border-b border-ts-border pb-3">
+    {[
+      { key: 'overall', label: '🌾 Overall', href: `/admin/pick-pack/${week_starting}` },
+      { key: 'csa', label: '🥬 CSA', href: `/admin/pick-pack/${week_starting}?view=csa` },
+      { key: 'wholesale', label: '🍽 Wholesale', href: `/admin/pick-pack/${week_starting}?view=wholesale` },
+    ].map((tab) => (
+      <a
+        href={tab.href}
+        aria-current={view === tab.key ? 'page' : undefined}
+        class={[
+          'inline-flex h-9 items-center rounded-ts-md px-3 text-sm font-semibold transition-colors',
+          view === tab.key ? 'bg-ts-primary/10 text-ts-primary' : 'text-ts-text-secondary hover:bg-ts-bg-muted hover:text-ts-text',
+        ].join(' ')}
+      >{tab.label}</a>
+    ))}
+    {marketGroupsSorted.filter((g) => g.id !== 'untagged').map((g) => (
+      <a
+        href={`/admin/pick-pack/${week_starting}?view=market&market=${g.id}`}
+        aria-current={view === 'market' && selectedMarket?.id === g.id ? 'page' : undefined}
+        class={[
+          'inline-flex h-9 items-center rounded-ts-md px-3 text-sm font-semibold transition-colors',
+          view === 'market' && selectedMarket?.id === g.id ? 'bg-ts-primary/10 text-ts-primary' : 'text-ts-text-secondary hover:bg-ts-bg-muted hover:text-ts-text',
+        ].join(' ')}
+      >🛒 {g.name}</a>
+    ))}
+  </nav>
+
+  <div class="print-doc">
+    {/* ═══════════════ OVERALL HARVEST ═══════════════ */}
+    {view === 'overall' && (
+      <section aria-labelledby="pp-heading" class="harvest-doc">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">
+            {t.overallTitle} · {prettyWeekHeader(week_starting)}
+          </p>
+          <h2 id="pp-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🌾 {t.overallTitle}</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">{t.overallSubtitle}</p>
+        </header>
+
+        {merged.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">{t.nothing}</p>
+          </Card>
+        ) : (
+          <div class="mt-4 flex flex-col gap-6">
+            {[
+              { label: t.tenderGroup, rows: tenderRows, tender: true },
+              { label: t.otherGroup, rows: otherRows, tender: false },
+            ].filter((g) => g.rows.length > 0).map((group) => (
+              <section class="harvest-group" aria-label={group.label}>
+                <h3 class={[
+                  'group-head rounded-ts-md px-4 py-2 font-display text-lg font-bold',
+                  group.tender ? 'tender-head' : '',
+                ].join(' ')}>{group.label}</h3>
+                <ol class="mt-2 flex flex-col">
+                  {group.rows.map((r) => {
+                    const cc = channelCount(r);
+                    const photo = cropPhoto(r.crop);
+                    const cell = (c: { qty: number; unit: string } | null, label: string) =>
+                      c ? `${label} ${c.qty} ${c.unit}` : '';
+                    const parts = [
+                      cell(r.csa, t.csaCol), cell(r.market, t.marketCol), cell(r.wholesale, t.wholesaleCol),
+                    ].filter(Boolean);
+                    return (
+                      <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                        <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                        {photo && (
+                          <span class="hidden h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface sm:flex print:hidden">
+                            <img src={photo} alt="" width="44" height="44" loading="lazy" class="h-full w-full object-cover" />
+                          </span>
+                        )}
+                        <div class="min-w-0 flex-1">
+                          <p class="text-xl font-bold leading-tight text-ts-text">
+                            {r.crop}
+                            {cc > 1 && <span class="ml-2 align-middle text-xs font-bold text-ts-primary">×{cc}</span>}
+                          </p>
+                          <p class="mt-0.5 text-sm font-medium text-ts-text-secondary tabular-nums">{parts.join('  ·  ')}</p>
+                        </div>
+                        <div class="shrink-0 text-right">
+                          {(() => {
+                            const units = new Set([r.csa?.unit, r.market?.unit, r.wholesale?.unit].filter(Boolean) as string[]);
+                            const oneUnit = units.size === 1 ? [...units][0] : null;
+                            return oneUnit
+                              ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.totalQty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{oneUnit}</span></>
+                              : <span class="text-xs font-semibold text-ts-text-muted">{t.total}: {r.totalQty.toLocaleString()}<span class="ml-0.5">*</span></span>;
+                          })()}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            ))}
+          </div>
+        )}
+        <p class="mt-4 text-xs text-ts-text-muted">{t.pickOnce}</p>
+      </section>
+    )}
+
+    {/* ═══════════════ CSA CHECKLIST ═══════════════ */}
+    {view === 'csa' && (
+      <section aria-labelledby="pp-csa-heading" class="harvest-doc">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">CSA harvest · {prettyWeekHeader(week_starting)}</p>
+          <h2 id="pp-csa-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🥬 CSA boxes — by crop</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">{totalCsaBoxes} boxes · box demand from the cycle resolver</p>
+        </header>
+        {csaRows.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">
+              No box plan published for this week — set it at
+              <a href={`/admin/box-contents?week=${week_starting}`} class="ml-1 font-semibold text-ts-primary hover:underline">the box editor</a>.
+            </p>
+          </Card>
+        ) : (
+          <ol class="mt-4 flex flex-col">
+            {csaRows.map((r) => (
+              <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
+                <div class="shrink-0 text-right">
+                  <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
+                  <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        <p class="mt-4 text-xs text-ts-text-muted">
+          Box totals reflect each member's resolved composition (default plan + locked swaps + allergy substitutions).
+        </p>
+      </section>
+    )}
+
+    {/* ═══════════════ WHOLESALE CHECKLIST ═══════════════ */}
+    {view === 'wholesale' && (
+      <section aria-labelledby="pp-wsale-heading" class="harvest-doc">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Wholesale harvest · {prettyWeekHeader(week_starting)}</p>
+          <h2 id="pp-wsale-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🍽 Wholesale — by crop</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">Submitted chef orders delivering this week</p>
+        </header>
+        {wholesaleRows.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">No submitted wholesale orders delivering this week.</p>
+          </Card>
+        ) : (
+          <ol class="mt-4 flex flex-col">
+            {wholesaleRows.map((r) => (
+              <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
+                <div class="shrink-0 text-right">
+                  <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
+                  <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        <p class="mt-4 text-xs text-ts-text-muted">Real ordered quantities from chef wholesale orders (status submitted) delivering this week.</p>
+      </section>
+    )}
+
+    {/* ═══════════════ PER-MARKET CHECKLIST ═══════════════ */}
+    {view === 'market' && (
+      <section aria-labelledby="pp-mkt-heading" class="harvest-doc">
+        {selectedMarket ? (
+          <>
+            <header class="doc-band rounded-ts-lg px-5 py-4">
+              <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Market harvest · {prettyWeekHeader(week_starting)}</p>
+              <h2 id="pp-mkt-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🛒 {selectedMarket.name}</h2>
+              <p class="mt-1 text-sm font-semibold opacity-95">
+                {selectedMarket.day ? DAY_LONG[selectedMarket.day] ?? selectedMarket.day : 'Market'} · what to bring (planned qty)
+              </p>
+            </header>
+            {(() => {
+              const items = orderMarketItems(selectedMarket.items);
+              return items.length === 0 ? (
+                <Card tone="muted" padding="lg" elevation="sm">
+                  <p class="text-center text-sm text-ts-text-secondary">
+                    Nothing listed for this market — set the stall list at
+                    <a href="/admin/market" class="ml-1 font-semibold text-ts-primary hover:underline">Market list</a>.
+                  </p>
+                </Card>
+              ) : (
+                <ol class="mt-4 flex flex-col">
+                  {items.map((it) => (
+                    <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                      <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                      <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{it.name}</p>
+                      <div class="shrink-0 text-right">
+                        {it.qty > 0
+                          ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{it.qty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{it.unit}</span></>
+                          : <span class="text-sm font-semibold text-ts-text-muted">{it.unit}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              );
+            })()}
+            <p class="mt-4 text-xs text-ts-text-muted">
+              Planned qty is the farmer's estimate of what to bring to the {selectedMarket.name} stall this week. Tender greens listed first.
+              Set the list at <a href="/admin/market" class="font-semibold text-ts-primary hover:underline">Market list</a>.
+            </p>
+          </>
+        ) : (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">
+              No active market offerings this week — set the stall list at
+              <a href="/admin/market" class="ml-1 font-semibold text-ts-primary hover:underline">Market list</a>.
+            </p>
+          </Card>
+        )}
+      </section>
+    )}
+  </div>
+</AdminShell>
+
+<style is:global>
+  /* Doc band keeps its color through print (browsers strip backgrounds). */
+  .doc-band {
+    background: #1f6f54;            /* pine green — matches the pack-day motif */
+    color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Group heads: tender = warm alert; other = muted. Print in color. */
+  .group-head {
+    background: #e6eaef;
+    color: #1a2230;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .group-head.tender-head {
+    background: #fde68a;           /* amber — pick these FIRST */
+    color: #5b3d00;
+  }
+
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+    body, html { background: white !important; }
+
+    /* Hide on-screen-only chrome (view switcher). */
+    .screen-only { display: none !important; }
+
+    /* Keep a crop row whole on one page. */
+    .harvest-row { break-inside: avoid; page-break-inside: avoid; }
+    .harvest-group { break-inside: auto; }
+
+    /* Big, legible print type for the pick list. */
+    .harvest-row p { font-size: 14pt; }
+  }
+</style>
+</content>
