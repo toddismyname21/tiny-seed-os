@@ -600,6 +600,34 @@ function memberShareLabel(m: CycleMember): string {
             </div>
           </header>
 
+          {/* ⚠ MAKE-GOODS / NOTICES — pinned at the TOP of the stop so the
+              pack line CANNOT skim past them. (Todd 2026-06-25: notices were
+              rendering but getting missed mid-page — Whitney/Kelly's double
+              add-ons went unpacked even though they printed.) Loud red alert,
+              a real checkbox each; the stop isn't done until every one is
+              ticked. Prints in color (.stop-notices-top). */}
+          {stopNotices.length > 0 && (
+            <div class="stop-notices-top mt-3 rounded-ts-lg border-[3px] px-4 py-3">
+              <p class="notices-head-top flex items-center gap-2 text-base font-extrabold uppercase tracking-wide">
+                <span aria-hidden="true">⚠️</span>
+                {stopNotices.length} make-good{stopNotices.length === 1 ? '' : 's'} here — DON'T finish this stop without {stopNotices.length === 1 ? 'it' : 'them'}
+              </p>
+              <ul class="mt-2 flex flex-col gap-2">
+                {stopNotices.map((n) => (
+                  <li class="flex items-start gap-3">
+                    <span class="notice-check-top mt-0.5 inline-block h-7 w-7 shrink-0 rounded border-2 bg-white" aria-hidden="true"></span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-base font-extrabold leading-snug">{n.title}</p>
+                      {n.detail && (
+                        <p class="mt-0.5 whitespace-pre-wrap break-words text-sm font-medium leading-snug">{n.detail}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* COVER COUNTS — tickable per-size + per-add-on chips ─────────
               Per-size counts come from the actual summer_veg members (raw
               share_size) so Family / Regular are distinct (boxes_small/large
@@ -701,29 +729,6 @@ function memberShareLabel(m: CycleMember): string {
               isn't done until they're all ticked. Warm-yellow band, color
               forced through print (print-color-adjust:exact), kept whole on a
               page (break-inside:avoid). */}
-          {stopNotices.length > 0 && (
-            <div class="stop-notices mt-4 rounded-ts-lg border-2 px-4 py-3">
-              <p class="notices-head flex items-center gap-2 text-sm font-extrabold uppercase tracking-wide">
-                <span aria-hidden="true">📌</span>
-                Notices — don't close this stop until these are done
-              </p>
-              <ul class="mt-2 flex flex-col gap-2">
-                {stopNotices.map((n) => (
-                  <li class="notice-row flex items-start gap-3">
-                    <span class="notice-check mt-0.5 inline-block h-6 w-6 shrink-0 rounded border-2 bg-white" aria-hidden="true"></span>
-                    <div class="min-w-0 flex-1">
-                      <p class="text-base font-bold leading-snug">{n.title}</p>
-                      {n.detail && (
-                        <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug">
-                          {n.detail}
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {/* CHECKBOX ROWS — one per member ─────────────────────────── */}
           {rows.length === 0 ? (
@@ -877,6 +882,22 @@ function memberShareLabel(m: CycleMember): string {
   .stop-notices .notices-head { color: #92400e; }
   .stop-notices .notice-check {
     border-color: #78350f;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── ⚠ MAKE-GOODS top alert — LOUD red so the pack line can't miss it.
+   *    Printed in color; checkbox ticked by hand. */
+  .stop-notices-top {
+    background: #fee2e2;          /* red-100 band */
+    border-color: #dc2626;        /* red-600 frame */
+    color: #7f1d1d;               /* red-900 text */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .stop-notices-top .notices-head-top { color: #b91c1c; }
+  .stop-notices-top .notice-check-top {
+    border-color: #7f1d1d;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

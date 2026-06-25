@@ -166,6 +166,37 @@ const titleDisplayPretty = prettyDateET(titleDisplayDate);
 // banner for active members who never chose a pickup, until they set one.
 const needsPickup = await memberNeedsPickupChoice(supabase);
 
+// ─── Vacation-hold display (source-of-truth fix, Todd 2026-06-25) ────
+// The portal showed this week's box even when the member had an active
+// vacation hold/skip — so a member who correctly skipped (and IS excluded by
+// resolveCycle) still saw a box and thought their skip didn't take (Jacqueline
+// Weaver-Agostoni). Detect an active hold OVERLAPPING the upcoming box week and
+// surface a clear "no box this week" banner. (A box moved INTO this week has its
+// hold dates on the ORIGINAL week, so it won't overlap and the member correctly
+// still sees their box.)
+function ymdPlus(ymd: string, n: number): string {
+  const [yy, mm, dd] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(yy, (mm || 1) - 1, dd || 1));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+const weekEndYMD = ymdPlus(boxContentsWeek, 6);
+let holdThisWeek: { disposition: 'skip' | 'move' | 'donate'; start: string; end: string; moveTo: string | null } | null = null;
+if (activeMembers.length > 0) {
+  const { data: holdRows, error: holdErr } = await supabase
+    .from('vacation_holds')
+    .select('member_id, start_date, end_date, status, disposition, move_to_week')
+    .in('member_id', activeMembers.map((m) => m.id))
+    .in('status', ['active', 'paused', 'onboarding']);
+  if (holdErr) console.error('[/box] vacation_holds fetch failed:', holdErr.message);
+  for (const h of (holdRows ?? []) as Array<{ start_date: string; end_date: string; disposition: 'skip' | 'move' | 'donate' | null; move_to_week: string | null }>) {
+    if (h.start_date <= weekEndYMD && h.end_date >= boxContentsWeek) {
+      holdThisWeek = { disposition: h.disposition ?? 'skip', start: h.start_date, end: h.end_date, moveTo: h.move_to_week ?? null };
+      break;
+    }
+  }
+}
+
 const firstName = (customer?.contact_name ?? user.email!.split('@')[0])
   .trim()
   .split(/\s+/)[0];
@@ -362,6 +393,25 @@ const boxNotPosted = !noShare && boxItems.length === 0;
           </a>
         )}
       </section>
+
+      {/* ═════════════════════════════════════════════════════════════
+          VACATION HOLD — this week is skipped/moved/donated (source of truth)
+          ═════════════════════════════════════════════════════════════ */}
+      {holdThisWeek && (
+        <div class="mt-5 rounded-ts-lg border-2 border-ts-accent bg-ts-accent/10 px-4 py-4">
+          <p class="text-lg font-bold text-ts-text">
+            {holdThisWeek.disposition === 'move'
+              ? `🌴 You moved this week's box${holdThisWeek.moveTo ? ` to the week of ${prettyDateET(holdThisWeek.moveTo)}` : ''}.`
+              : holdThisWeek.disposition === 'donate'
+                ? `💚 You donated this week's box — thank you!`
+                : `🌴 You're on a hold this week — no box, and you won't be charged.`}
+          </p>
+          <p class="mt-1 text-sm text-ts-text-secondary">
+            Hold: {prettyDateET(holdThisWeek.start)} – {prettyDateET(holdThisWeek.end)}. Anything shown below is just a preview of the week's share — nothing will be packed for you. Manage your holds on the
+            {' '}<a href="/account/vacation" class="font-semibold text-ts-primary underline underline-offset-2">vacation page</a>.
+          </p>
+        </div>
+      )}
 
       {/* ═════════════════════════════════════════════════════════════
           STATE: NO SHARE
