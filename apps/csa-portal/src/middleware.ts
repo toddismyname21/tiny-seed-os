@@ -65,7 +65,13 @@ const PROTECTED_PREFIXES = [
 // are listed here only for documentation + a fast pass-through. The actual
 // access control is the token check inside the page + the place_wholesale_order
 // RPC (the token is validated server-side on every read AND submit).
-const PUBLIC_TOKEN_PREFIXES = ['/order', '/api/order'];
+// `/api/track` (Todd 2026-06-30 — Gmail open-tracking pixel) is ALSO public:
+// the pixel endpoint /api/track/o/<token>.gif is hit directly by recipients'
+// EMAIL CLIENTS, which carry no auth cookie and no same-origin context. The
+// opaque per-recipient token IS the access — it's validated server-side
+// (service-role) inside the endpoint, which always returns a 1×1 GIF (never
+// 404/500) so it never leaks token existence. Must NEVER redirect to /login.
+const PUBLIC_TOKEN_PREFIXES = ['/order', '/api/order', '/api/track'];
 
 function isPublicTokenRoute(pathname: string): boolean {
   return PUBLIC_TOKEN_PREFIXES.some(

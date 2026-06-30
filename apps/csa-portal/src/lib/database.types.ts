@@ -848,6 +848,7 @@ export interface Database {
           total_amount: number | null;
           invoice_number: string | null;
           source: string | null;
+          external_ref: string | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -867,14 +868,34 @@ export interface Database {
           order_id: string | null;
           product_id: string | null;
           product_name: string | null;
-          qty: number;
-          unit_price_cents: number;
-          line_total_cents: number;
+          qty: number | null;
+          unit_price_cents: number | null;
+          line_total_cents: number | null;
         };
         Insert: {
           order_id: string;
         } & Partial<Database['public']['Tables']['wholesale_order_items']['Row']>;
         Update: Partial<Database['public']['Tables']['wholesale_order_items']['Row']>;
+        Relationships: [];
+      };
+      // Maps a vendor's own product key (Harvie SKU, or normalized Market Wagon
+      // product name) onto our wholesale_products catalog, so the PDF importer
+      // (migration 0059) auto-resolves products on re-import. product_id is
+      // NULLABLE — an unmapped vendor item still remembers its display name.
+      vendor_product_map: {
+        Row: {
+          id: string;
+          vendor: string;
+          vendor_key: string;
+          product_id: string | null;
+          product_name: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          vendor: string;
+          vendor_key: string;
+        } & Partial<Database['public']['Tables']['vendor_product_map']['Row']>;
+        Update: Partial<Database['public']['Tables']['vendor_product_map']['Row']>;
         Relationships: [];
       };
       // Todd's differentiator: a real-time quality photo + note per
@@ -1094,6 +1115,45 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['campaign_templates']['Row']>;
         Relationships: [];
       };
+      // ── Pixel-based open tracking for 1:1 Gmail sends (migration 0060) ──
+      tracked_email_sends: {
+        Row: {
+          id: string;
+          label: string;
+          subject: string | null;
+          channel: string | null;
+          sent_by: string | null;
+          recipient_count: number | null;
+          created_at: string | null;
+        };
+        Insert: Partial<Database['public']['Tables']['tracked_email_sends']['Row']> & {
+          label: string;
+        };
+        Update: Partial<Database['public']['Tables']['tracked_email_sends']['Row']>;
+        Relationships: [];
+      };
+      tracked_email_recipients: {
+        Row: {
+          id: string;
+          send_id: string;
+          token: string;
+          email: string;
+          name: string | null;
+          account_id: string | null;
+          sent_at: string | null;
+          first_opened_at: string | null;
+          last_opened_at: string | null;
+          open_count: number | null;
+          user_agent: string | null;
+        };
+        Insert: Partial<Database['public']['Tables']['tracked_email_recipients']['Row']> & {
+          send_id: string;
+          token: string;
+          email: string;
+        };
+        Update: Partial<Database['public']['Tables']['tracked_email_recipients']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {
@@ -1225,6 +1285,16 @@ export interface Database {
           p_delivery_date: string; // YYYY-MM-DD
         };
         Returns: Json;
+      };
+      // Atomic open-stamp for the pixel endpoint (migration 0060). Sets
+      // first/last_opened_at + increments open_count + records UA for the
+      // recipient whose token matches. Returns true iff a row matched.
+      stamp_email_open: {
+        Args: {
+          p_token: string;
+          p_user_agent: string | null;
+        };
+        Returns: boolean;
       };
     };
     Enums: { [_: string]: never };

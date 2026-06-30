@@ -1,0 +1,314 @@
+---
+/**
+ * /admin/email-tracking/[id] — per-send detail for a tracked Gmail batch.
+ *
+ * Shows:
+ *   - Header: label, subject, sent date, channel
+ *   - Stat cards: Recipients, Opened, Didn't open, Open rate %
+ *   - A "Didn't open" toggle (client-side filter) so Todd can isolate the
+ *     contacts worth a nudge.
+ *   - Recipient table: name, email, opened? (first_opened_at), open count,
+ *     last opened. Sorted opened-first. If a recipient is linked to a
+ *     wholesale_accounts row (account_id), we cross-reference whether they
+ *     placed a wholesale_orders order ("Ordered" badge) — the real signal
+ *     that an open converted.
+ *
+ * Auth: middleware-gated (admin/staff). Cookie-aware admin client; RLS
+ * admin-bypass on tracked_email_* (migration 0060) + wholesale_orders.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+
+export const prerender = false;
+
+const id = Astro.params.id;
+const supabase = Astro.locals.supabase;
+
+if (
+  !id ||
+  !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+) {
+  return Astro.redirect('/admin/email-tracking?error=invalid_id');
+}
+
+type SendRow = {
+  id: string;
+  label: string;
+  subject: string | null;
+  channel: string | null;
+  sent_by: string | null;
+  recipient_count: number | null;
+  created_at: string | null;
+};
+
+const { data: send, error: sendErr } = await supabase
+  .from('tracked_email_sends')
+  .select('id, label, subject, channel, sent_by, recipient_count, created_at')
+  .eq('id', id)
+  .maybeSingle()
+  .overrideTypes<SendRow, { merge: false }>();
+
+if (sendErr) {
+  console.error('[admin/email-tracking/[id]] send load failed:', sendErr.message);
+}
+if (!send) {
+  return Astro.redirect('/admin/email-tracking?error=not_found');
+}
+
+type RecRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  account_id: string | null;
+  first_opened_at: string | null;
+  last_opened_at: string | null;
+  open_count: number | null;
+};
+
+const { data: recRows, error: recErr } = await supabase
+  .from('tracked_email_recipients')
+  .select('id, email, name, account_id, first_opened_at, last_opened_at, open_count')
+  .eq('send_id', id)
+  .limit(1000)
+  .overrideTypes<RecRow[], { merge: false }>();
+
+if (recErr) {
+  console.error('[admin/email-tracking/[id]] recipients load failed:', recErr.message);
+}
+const recipients = recRows ?? [];
+
+// ── Engagement cross-reference ──────────────────────────────────────────
+// For every recipient linked to a wholesale account, did they later PLACE an
+// order? "Placed" = any wholesale_orders row for that account that isn't a
+// throwaway draft or a cancellation (submitted/confirmed/packed/delivered).
+const accountIds = Array.from(
+  new Set(recipients.map((r) => r.account_id).filter((x): x is string => !!x)),
+);
+const orderedAccounts = new Set<string>();
+if (accountIds.length > 0) {
+  const { data: orderRows, error: orderErr } = await supabase
+    .from('wholesale_orders')
+    .select('account_id, status')
+    .in('account_id', accountIds)
+    .in('status', ['submitted', 'confirmed', 'packed', 'delivered'])
+    .overrideTypes<Array<{ account_id: string | null; status: string }>, { merge: false }>();
+  if (orderErr) {
+    console.error('[admin/email-tracking/[id]] order cross-ref failed:', orderErr.message);
+  }
+  for (const o of orderRows ?? []) {
+    if (o.account_id) orderedAccounts.add(o.account_id);
+  }
+}
+
+// Sort opened-first, then by most opens, then name/email for stability.
+const sorted = [...recipients].sort((a, b) => {
+  const aOpened = a.first_opened_at ? 1 : 0;
+  const bOpened = b.first_opened_at ? 1 : 0;
+  if (aOpened !== bOpened) return bOpened - aOpened;
+  const ao = a.open_count ?? 0;
+  const bo = b.open_count ?? 0;
+  if (ao !== bo) return bo - ao;
+  return (a.name ?? a.email).localeCompare(b.name ?? b.email);
+});
+
+const total = recipients.length;
+const openedCount = recipients.filter((r) => r.first_opened_at).length;
+const notOpenedCount = total - openedCount;
+const rate = total > 0 ? Math.round((openedCount / total) * 100) : 0;
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+const stats = [
+  { label: 'Recipients', value: total },
+  { label: 'Opened', value: openedCount },
+  { label: "Didn't open", value: notOpenedCount },
+  { label: 'Open rate', value: `${rate}%` },
+];
+---
+
+<AdminShell
+  title={send.label}
+  subtitle={send.subject ?? undefined}
+  pageTitle={`${send.label} — Email tracking`}
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/email-tracking"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border px-4 text-sm font-semibold text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      ← All sends
+    </a>
+  </Fragment>
+
+  {/* Meta line. */}
+  <p class="text-sm text-ts-text-secondary">
+    Sent {fmtDate(send.created_at)}
+    {send.channel && <> · via {send.channel === 'gmail' ? 'Gmail' : send.channel}</>}
+    {send.sent_by && <> · from {send.sent_by}</>}
+  </p>
+
+  {/* Stat cards. */}
+  <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    {stats.map((s) => (
+      <Card padding="md" elevation="sm">
+        <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+          {s.label}
+        </div>
+        <div class="mt-1 font-display text-2xl font-bold tabular-nums text-ts-text">
+          {s.value}
+        </div>
+      </Card>
+    ))}
+  </div>
+
+  {/* Accuracy caveat. */}
+  <div
+    role="note"
+    class="rounded-ts-md border border-ts-border bg-ts-bg-muted/30 px-4 py-3 text-sm text-ts-text-secondary"
+  >
+    <strong class="font-semibold text-ts-text">Directional, not exact.</strong>
+    Apple Mail Privacy can pre-load the pixel (false open); image blockers can
+    hide it (false "didn't open"). The <strong class="font-semibold text-ts-text">Ordered</strong>
+    badge — when a contact is linked to a wholesale account — is the hard signal.
+  </div>
+
+  {recErr && (
+    <div role="alert" class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-danger">
+      Couldn't load recipients: {recErr.message}
+    </div>
+  )}
+
+  {total === 0 ? (
+    <Card padding="lg" elevation="sm">
+      <p class="py-6 text-center text-sm text-ts-text-secondary">
+        This send has no recipient rows.
+      </p>
+    </Card>
+  ) : (
+    <Card padding="none" elevation="sm">
+      {/* Filter toggle. */}
+      <div class="flex items-center justify-between gap-3 border-b border-ts-border px-4 py-3 sm:px-6">
+        <h2 class="font-display text-base font-semibold text-ts-text">Recipients</h2>
+        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ts-text-secondary">
+          <input
+            type="checkbox"
+            id="filter-not-opened"
+            class="h-4 w-4 rounded border-ts-border text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          />
+          Only show "didn't open"
+        </label>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-ts-border" id="recipient-table">
+          <thead class="bg-ts-bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            <tr>
+              <th scope="col" class="px-4 py-3 sm:px-6">Recipient</th>
+              <th scope="col" class="px-4 py-3">Opened?</th>
+              <th scope="col" class="px-4 py-3 text-right tabular-nums">Opens</th>
+              <th scope="col" class="hidden px-4 py-3 sm:table-cell">Last opened</th>
+              <th scope="col" class="px-4 py-3">Engagement</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border bg-ts-bg-surface">
+            {sorted.map((r) => {
+              const opened = !!r.first_opened_at;
+              const ordered = r.account_id ? orderedAccounts.has(r.account_id) : false;
+              return (
+                <tr
+                  class="transition-colors hover:bg-ts-bg-muted/40"
+                  data-opened={opened ? 'yes' : 'no'}
+                >
+                  <td class="px-4 py-3 sm:px-6">
+                    <div class="font-medium text-ts-text">{r.name ?? '—'}</div>
+                    <div class="text-xs text-ts-text-secondary">{r.email}</div>
+                  </td>
+                  <td class="px-4 py-3">
+                    {opened ? (
+                      <span class="inline-flex items-center gap-1.5 rounded-full border border-ts-primary/30 bg-ts-primary/10 px-2.5 py-0.5 text-xs font-semibold text-ts-primary">
+                        Opened {fmtDate(r.first_opened_at)}
+                      </span>
+                    ) : (
+                      <span class="inline-flex items-center gap-1.5 rounded-full border border-ts-border bg-ts-bg-muted/40 px-2.5 py-0.5 text-xs font-semibold text-ts-text-secondary">
+                        No open
+                      </span>
+                    )}
+                  </td>
+                  <td class="px-4 py-3 text-right text-sm tabular-nums text-ts-text">
+                    {r.open_count ?? 0}
+                  </td>
+                  <td class="hidden px-4 py-3 text-sm text-ts-text-secondary sm:table-cell">
+                    {fmtDate(r.last_opened_at)}
+                  </td>
+                  <td class="px-4 py-3">
+                    {ordered ? (
+                      <span class="inline-flex items-center gap-1.5 rounded-full border border-ts-primary/30 bg-ts-primary/10 px-2.5 py-0.5 text-xs font-semibold text-ts-primary">
+                        ✓ Ordered
+                      </span>
+                    ) : r.account_id ? (
+                      <span class="text-xs text-ts-text-muted">No order yet</span>
+                    ) : (
+                      <span class="text-xs text-ts-text-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p
+        id="filter-empty"
+        hidden
+        class="px-4 py-6 text-center text-sm text-ts-text-muted sm:px-6"
+      >
+        Everyone on this send opened it. 🎉
+      </p>
+    </Card>
+  )}
+
+  <script>
+    /* Client-side "didn't open" filter — dependency-free, re-binds after
+       Astro view transitions. */
+    function initEmailTrackingFilter(): void {
+      const toggle = document.getElementById('filter-not-opened') as HTMLInputElement | null;
+      const table = document.getElementById('recipient-table');
+      const empty = document.getElementById('filter-empty');
+      if (!toggle || !table) return;
+
+      function apply(): void {
+        const onlyUnopened = toggle!.checked;
+        const rows = Array.from(
+          table!.querySelectorAll<HTMLTableRowElement>('tbody tr'),
+        );
+        let visible = 0;
+        for (const row of rows) {
+          const opened = row.dataset.opened === 'yes';
+          const hide = onlyUnopened && opened;
+          row.hidden = hide;
+          if (!hide) visible += 1;
+        }
+        if (empty) empty.hidden = !(onlyUnopened && visible === 0);
+      }
+
+      toggle.addEventListener('change', apply);
+    }
+
+    initEmailTrackingFilter();
+    document.addEventListener('astro:page-load', initEmailTrackingFilter);
+  </script>
+</AdminShell>

@@ -127,9 +127,10 @@ const navGroups: NavGroup[] = [
   {
     label: 'Comms & Content',
     items: [
-      { href: '/admin/weekly-email', label: 'Email',     match: '/admin/weekly-email', icon: '✉️' },
-      { href: '/admin/campaigns',    label: 'Campaigns', match: '/admin/campaigns',    icon: '📣' },
-      { href: '/admin/recipes',      label: 'Recipes',   match: '/admin/recipes',      icon: '🥬' },
+      { href: '/admin/weekly-email',   label: 'Email',     match: '/admin/weekly-email',   icon: '✉️' },
+      { href: '/admin/campaigns',      label: 'Campaigns', match: '/admin/campaigns',      icon: '📣' },
+      { href: '/admin/email-tracking', label: 'Open tracking', match: '/admin/email-tracking', icon: '📬' },
+      { href: '/admin/recipes',        label: 'Recipes',   match: '/admin/recipes',        icon: '🥬' },
     ],
   },
   {
@@ -263,7 +264,7 @@ const baseLinkClass =
     </header>
 
     {/* ════ SHELL: SIDEBAR + CONTENT ════ */}
-    <div class="mx-auto flex w-full max-w-[100rem] gap-0 lg:gap-6 lg:px-6">
+    <div class="mx-auto flex w-full max-w-[100rem] gap-0 lg:gap-6 lg:px-6 print:mx-0 print:max-w-none print:gap-0 print:px-0">
       {/* ──── DESKTOP SIDEBAR (lg+) ──── */}
       <aside
         class="sticky top-[3.75rem] hidden h-[calc(100vh-3.75rem)] w-64 shrink-0 overflow-y-auto py-6 lg:block print:hidden"

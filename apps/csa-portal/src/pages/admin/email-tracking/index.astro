@@ -1,0 +1,209 @@
+---
+/**
+ * /admin/email-tracking — list of every tracked 1:1 Gmail send (the pixel
+ * open-tracking system, migration 0060).
+ *
+ * Each row is a labelled batch sent from Todd's personal Gmail. We show the
+ * open funnel per send: recipients, # opened, # not opened, open-rate %.
+ * Click through → /admin/email-tracking/[id] for the per-recipient breakdown
+ * + the "didn't open" list Todd can act on.
+ *
+ * This is the Gmail-pixel sibling of /admin/campaigns (Resend webhook
+ * tracking). The accuracy caveat (Apple Mail Privacy false-opens, image
+ * blockers false-not-opens) is surfaced honestly on the page.
+ *
+ * Auth: middleware-gated (admin/staff). Cookie-aware admin client; RLS
+ * admin-bypass policies on tracked_email_sends / tracked_email_recipients
+ * (migration 0060) make this read possible without service-role.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+
+type SendRow = {
+  id: string;
+  label: string;
+  subject: string | null;
+  channel: string | null;
+  sent_by: string | null;
+  recipient_count: number | null;
+  created_at: string | null;
+};
+
+const { data: sendRows, error: listErr } = await supabase
+  .from('tracked_email_sends')
+  .select('id, label, subject, channel, sent_by, recipient_count, created_at')
+  .order('created_at', { ascending: false })
+  .limit(200)
+  .overrideTypes<SendRow[], { merge: false }>();
+
+if (listErr) {
+  console.error('[admin/email-tracking] list failed:', listErr.message);
+}
+const sends = sendRows ?? [];
+
+// Pull per-send open aggregates in ONE query, then fold into a map. We read
+// only the columns we need (send_id + open flag) for up to a few thousand
+// recipient rows — cheap, and avoids an N+1 per send.
+type RecAgg = { send_id: string; first_opened_at: string | null };
+let openedBySend = new Map<string, { total: number; opened: number }>();
+if (sends.length > 0) {
+  const sendIds = sends.map((s) => s.id);
+  const { data: recRows, error: recErr } = await supabase
+    .from('tracked_email_recipients')
+    .select('send_id, first_opened_at')
+    .in('send_id', sendIds)
+    .overrideTypes<RecAgg[], { merge: false }>();
+
+  if (recErr) {
+    console.error('[admin/email-tracking] recipient aggregate failed:', recErr.message);
+  }
+  for (const r of recRows ?? []) {
+    const agg = openedBySend.get(r.send_id) ?? { total: 0, opened: 0 };
+    agg.total += 1;
+    if (r.first_opened_at) agg.opened += 1;
+    openedBySend.set(r.send_id, agg);
+  }
+}
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function ratePillClasses(rate: number): string {
+  if (rate >= 50) return 'border-ts-primary/30 bg-ts-primary/10 text-ts-primary';
+  if (rate >= 20) return 'border-ts-warning/30 bg-ts-warning/10 text-ts-warning';
+  return 'border-ts-border bg-ts-bg-muted/40 text-ts-text-secondary';
+}
+---
+
+<AdminShell
+  title="Email open tracking"
+  subtitle="Open rates for the 1:1 wholesale emails you send from your Gmail."
+  pageTitle="Email tracking — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/email-tracking"
+>
+  {/* Accuracy caveat — honest, not overstated. */}
+  <div
+    role="note"
+    class="rounded-ts-md border border-ts-border bg-ts-bg-muted/30 px-4 py-3 text-sm text-ts-text-secondary"
+  >
+    <strong class="font-semibold text-ts-text">Read these as directional, not exact.</strong>
+    Apple Mail's Privacy Protection pre-loads images on Apple's servers, so some
+    contacts can show as "opened" without ever reading it. Image blockers do the
+    reverse — a real reader can show as "didn't open." Use the trend, not the
+    single number.
+  </div>
+
+  {listErr && (
+    <div role="alert" class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-danger">
+      Couldn't load tracked sends: {listErr.message}
+    </div>
+  )}
+
+  {sends.length === 0 ? (
+    <Card padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-4 py-8 text-center">
+        <div
+          aria-hidden="true"
+          class="flex h-14 w-14 items-center justify-center rounded-full border border-ts-border bg-ts-bg-muted/40 text-3xl"
+        >
+          📬
+        </div>
+        <h2 class="font-display text-xl font-bold text-ts-text">No tracked sends yet</h2>
+        <p class="max-w-md text-sm text-ts-text-secondary">
+          When you send a wholesale email through the tracked sender
+          (<code class="rounded bg-ts-bg-muted px-1 py-0.5 text-xs">send_tracked_email.py</code>),
+          it shows up here with an open rate. Nothing to show until your first send.
+        </p>
+      </div>
+    </Card>
+  ) : (
+    <Card padding="none" elevation="sm">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-ts-border">
+          <thead class="bg-ts-bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+            <tr>
+              <th scope="col" class="px-4 py-3 sm:px-6">Send</th>
+              <th scope="col" class="hidden px-4 py-3 sm:table-cell">Sent</th>
+              <th scope="col" class="px-4 py-3 text-right tabular-nums">Recipients</th>
+              <th scope="col" class="px-4 py-3 text-right tabular-nums">Opened</th>
+              <th scope="col" class="hidden px-4 py-3 text-right tabular-nums sm:table-cell">Didn't open</th>
+              <th scope="col" class="px-4 py-3 text-right tabular-nums">Open rate</th>
+              <th scope="col" class="px-4 py-3 sm:px-6"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ts-border bg-ts-bg-surface">
+            {sends.map((s) => {
+              const agg = openedBySend.get(s.id) ?? { total: 0, opened: 0 };
+              // Prefer the live recipient count from the ledger; fall back to
+              // the stored recipient_count if no recipient rows were read.
+              const total = agg.total || (s.recipient_count ?? 0);
+              const opened = agg.opened;
+              const notOpened = Math.max(total - opened, 0);
+              const rate = total > 0 ? Math.round((opened / total) * 100) : 0;
+              return (
+                <tr class="transition-colors hover:bg-ts-bg-muted/40">
+                  <td class="px-4 py-3 sm:px-6">
+                    <a
+                      href={`/admin/email-tracking/${s.id}`}
+                      class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                    >
+                      <div class="font-semibold text-ts-text">{s.label}</div>
+                      {s.subject && (
+                        <div class="mt-0.5 max-w-[40ch] truncate text-xs text-ts-text-secondary">
+                          {s.subject}
+                        </div>
+                      )}
+                    </a>
+                  </td>
+                  <td class="hidden px-4 py-3 text-sm text-ts-text-secondary sm:table-cell">
+                    {fmtDate(s.created_at)}
+                  </td>
+                  <td class="px-4 py-3 text-right text-sm tabular-nums text-ts-text">{total}</td>
+                  <td class="px-4 py-3 text-right text-sm tabular-nums text-ts-text">{opened}</td>
+                  <td class="hidden px-4 py-3 text-right text-sm tabular-nums text-ts-text-secondary sm:table-cell">
+                    {notOpened}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <span
+                      class={[
+                        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold tabular-nums',
+                        ratePillClasses(rate),
+                      ].join(' ')}
+                    >
+                      {rate}%
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-right sm:px-6">
+                    <a
+                      href={`/admin/email-tracking/${s.id}`}
+                      class="text-sm font-semibold text-ts-primary hover:underline"
+                    >
+                      View →
+                    </a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )}
+</AdminShell>
