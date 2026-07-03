@@ -94,6 +94,56 @@ export function normCrop(s: string): string {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+ * Stable per-line KEY (for live check-off progress, migration 0069)
+ * ────────────────────────────────────────────────────────────────── */
+
+/**
+ * A URL/DB-safe slug of a crop or harvest-crop name: the same normalization the
+ * cross-channel demand merge uses (normCrop → lowercase, drop parentheticals +
+ * punctuation, collapse spaces) with spaces turned into hyphens. Deterministic
+ * and dependency-free.
+ */
+export function slugForKey(s: string): string {
+  return normCrop(s).replace(/ /g, '-');
+}
+
+/**
+ * Derive the STABLE line_key stored in pick_pack_progress for one rendered
+ * Pick & Pack line. This key is written into the server-rendered
+ * `data-line-key` attribute AND used verbatim by the browser + the save
+ * endpoint, so it MUST be identical in all three places.
+ *
+ * WHY IT IS STABLE — and NEVER an array index:
+ *   • It is derived only from the crop / harvest-crop NAME (+ unit for the
+ *     per-crop pack lines), run through the SAME normCrop() the demand merge
+ *     already dedupes on. So the same crop yields the same key on every reload,
+ *     regardless of sort order, how many other crops there are, or which week it
+ *     is (the week is a SEPARATE column — week_date — so next week's identical
+ *     crop is a fresh row, not a collision).
+ *   • kind namespaces the two row shapes so they can never collide:
+ *       - 'group' → a combined-greens line (multiple package variants weighed as
+ *          one), keyed by its library harvest_crop. No unit (it aggregates units).
+ *       - 'row'   → an ordinary per-crop line, keyed by crop + unit. The unit is
+ *          included because a pack view can list the same crop under two units
+ *          (e.g. bunch vs lb) as two distinct lines.
+ *   • Within a single rendered sheet the demand is already deduped per crop
+ *     (overall) or per crop+unit (csa/wholesale/market), so no two rendered
+ *     lines share a (kind, name-slug, unit-slug) triple — the key is unique per
+ *     sheet, exactly what the (week, section, scope, market, line_key) UNIQUE
+ *     upsert needs.
+ */
+export function pickPackLineKey(
+  kind: 'group' | 'row',
+  name: string,
+  unit?: string | null,
+): string {
+  const base = slugForKey(name) || 'unnamed';
+  if (kind === 'group') return `g:${base}`;
+  const u = unit ? slugForKey(unit) : '';
+  return u ? `c:${base}:${u}` : `c:${base}`;
+}
+
+/* ──────────────────────────────────────────────────────────────────
  * Tender-green classification (TENDER GREENS FIRST)
  * ────────────────────────────────────────────────────────────────── */
 
@@ -225,6 +275,24 @@ export const PICK_PACK_STRINGS: Record<Lang, {
   nothing: string;
   pickOnce: string;
   langToggle: string;
+  /* ── Live check-off (migration 0069) — button + status + summary labels. ──
+   * Consumed by the browser controller on /admin/pick-pack/[week], which builds
+   * the interactive Harvesting/Done + Packed controls client-side. */
+  live: {
+    progress: string;        // summary heading
+    toGo: string;            // count label: not started
+    harvesting: string;      // count label + PICK button + status
+    done: string;            // count label + PICK button + status
+    packed: string;          // count label + PACK button + status
+    markPacked: string;      // PACK button
+    undo: string;            // reset a set line back to todo
+    actualQ: string;         // "How many did you actually get?" prompt label
+    save: string;            // confirm actual qty
+    cancel: string;          // dismiss the qty prompt
+    by: string;              // "· by " connector before the worker name
+    saveFailed: string;      // inline error after a failed POST
+    retry: string;           // retry a failed POST
+  };
 }> = {
   en: {
     overallTitle: 'Overall harvest — pick everything once',
@@ -241,6 +309,21 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     nothing: 'Nothing to harvest this week yet.',
     pickOnce: 'Harvest each crop once for everyone, then split it to the CSA / market / wholesale packs.',
     langToggle: 'Español',
+    live: {
+      progress: 'Progress',
+      toGo: 'to go',
+      harvesting: 'Harvesting',
+      done: 'Done',
+      packed: 'Packed',
+      markPacked: 'Packed',
+      undo: 'Undo',
+      actualQ: 'How many did you actually get?',
+      save: 'Save',
+      cancel: 'Cancel',
+      by: 'by',
+      saveFailed: "Couldn't save — tap to retry",
+      retry: 'Retry',
+    },
   },
   es: {
     overallTitle: 'Cosecha total — cosechar todo una vez',
@@ -257,5 +340,20 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     nothing: 'Aún no hay nada que cosechar esta semana.',
     pickOnce: 'Coseche cada cultivo una vez para todos, luego divídalo entre los empaques de CSA / mercado / mayoreo.',
     langToggle: 'English',
+    live: {
+      progress: 'Progreso',
+      toGo: 'por hacer',
+      harvesting: 'Cosechando',
+      done: 'Listo',
+      packed: 'Empacado',
+      markPacked: 'Empacado',
+      undo: 'Deshacer',
+      actualQ: '¿Cuánto cosechó en realidad?',
+      save: 'Guardar',
+      cancel: 'Cancelar',
+      by: 'por',
+      saveFailed: 'No se guardó — toque para reintentar',
+      retry: 'Reintentar',
+    },
   },
 };

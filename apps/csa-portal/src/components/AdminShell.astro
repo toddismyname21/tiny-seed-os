@@ -167,15 +167,18 @@ const navGroups: NavGroup[] = [
  * CREW_ALLOWED_PREFIXES). Rendered as a single group; crew get NO standalone
  * Home link (their home IS Handoff, the first item).
  */
-// CREW v1 nav = ONLY handoff + cooler (must stay a SUBSET of middleware's
-// CREW_ALLOWED_PREFIXES). The other pack pages render empty for crew (RLS
-// admin-bypass), so they are intentionally excluded until wired with an
-// ops-scoped/service-role loader — see CREW_ALLOWED_PREFIXES in middleware.ts.
+// CREW nav = handoff + cooler + pick-pack (must stay a SUBSET of middleware's
+// CREW_ALLOWED_PREFIXES). pick-pack is PII-safe for crew: per-crop aggregate
+// demand via service-role + the is_ops_caller-gated live check-off board
+// (migration 0069). The remaining pack pages render empty for crew (RLS admin-
+// bypass) and stay excluded until wired with their own PII-safe loader — see
+// CREW_ALLOWED_PREFIXES in middleware.ts.
 const crewNavGroup: NavGroup = {
   label: 'Pack & Deliver',
   items: [
     { href: '/admin/handoff',        label: 'Handoff',       match: '/admin/handoff',        icon: '🔁' },
     { href: '/admin/cooler',         label: 'Cooler',        match: '/admin/cooler',         icon: '🧊' },
+    { href: '/admin/pick-pack',      label: 'Pick & Pack',   match: '/admin/pick-pack',      icon: '✅' },
   ],
 };
 

@@ -19,6 +19,7 @@ import {
   resolveCycle, mondayOfWeek, currentDeliveryWeek, prettyWeekHeader, addDays,
 } from '../../../lib/cycle';
 import { weekOptions } from '../../../lib/cycle-ui';
+import { fetchAllOpenDueNoticesWithMember } from '../../../lib/notices';
 
 const supabase = Astro.locals.supabase;
 
@@ -75,6 +76,11 @@ const { count: wholesaleCount } = await supabase
 
 const csaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg').length;
 
+// Open make-ups due/overdue this week — awareness count for the pack-day hub,
+// so the pack lead knows owed items exist BEFORE opening a sheet. Same
+// member_notices source as the harvest + pack sheets (consistent count).
+const makeupsDue = (await fetchAllOpenDueNoticesWithMember(supabase, week_starting)).length;
+
 const DAY_LONG: Record<string, string> = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
   Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
@@ -124,6 +130,33 @@ const cardBtnGhostClass =
       </button>
     </form>
   </section>
+
+  {/* ── ⚠ Make-ups owed this week — pack-day awareness ──────────────
+      The pack lead must KNOW owed make-ups exist before harvesting. Reads the
+      same member_notices source as the harvest + pack sheets, so the count is
+      consistent. Links into the overall harvest where the owed items are listed
+      additively (and the pack sheet where they're resolved). */}
+  {makeupsDue > 0 && (
+    <section aria-labelledby="pp-makeups-heading">
+      <Card tone="danger" padding="md" elevation="sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h2 id="pp-makeups-heading" class="flex items-center gap-2 font-display text-base font-extrabold text-ts-danger">
+              <span aria-hidden="true">⚠</span>
+              {makeupsDue} make-up{makeupsDue === 1 ? '' : 's'} owed this week
+            </h2>
+            <p class="mt-0.5 text-sm text-ts-text-secondary">
+              Owed items the farm promised members — harvest them on top of the box totals, and pack them before closing each stop.
+            </p>
+          </div>
+          <div class="flex shrink-0 flex-wrap gap-2">
+            <a href={`/admin/pick-pack/${week_starting}`} class={cardBtnClass}>See in harvest →</a>
+            <a href={`/admin/pack-sheet/${week_starting}`} class={cardBtnGhostClass}>Open pack sheet →</a>
+          </div>
+        </div>
+      </Card>
+    </section>
+  )}
 
   {/* ── Overall harvest ───────────────────────────────────────────── */}
   <section aria-labelledby="pp-overall-heading" class="flex flex-col gap-3">

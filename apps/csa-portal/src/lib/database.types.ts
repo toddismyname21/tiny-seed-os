@@ -1291,6 +1291,36 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['cooler_pallets']['Row']>;
         Relationships: [];
       };
+      // Live per-line Pick & Pack check-off status (migration 0069). One row per
+      // (week_date, section, scope_day, market_id, line_key). section='harvest'
+      // is the PICK view (todo→harvesting→done); csa/wholesale/market are PACK
+      // views (todo→packed). market_id is a pickup_locations UUID for
+      // section='market', else the all-zero sentinel. Zero member PII — a crop
+      // line + status + the crew display name who last touched it. RLS:
+      // is_ops_caller (admin/staff/crew). In the supabase_realtime publication.
+      pick_pack_progress: {
+        Row: {
+          id: string;
+          week_date: string;
+          section: 'harvest' | 'csa' | 'wholesale' | 'market';
+          scope_day: 'all' | 'mon' | 'thu';
+          market_id: string;
+          line_key: string;
+          status: 'todo' | 'harvesting' | 'done' | 'packed';
+          actual_qty: number | null;
+          worked_by: string | null;
+          worked_by_id: string | null;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          week_date: string;
+          section: 'harvest' | 'csa' | 'wholesale' | 'market';
+          line_key: string;
+        } & Partial<Database['public']['Tables']['pick_pack_progress']['Row']>;
+        Update: Partial<Database['public']['Tables']['pick_pack_progress']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {

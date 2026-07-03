@@ -21,15 +21,39 @@
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
+import CombinedHarvestRow from '../../../components/CombinedHarvestRow.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from 'astro:env/client';
 import {
   resolveCycle, prettyWeekHeader, mondayOfWeek, isMonday, addDays,
 } from '../../../lib/cycle';
 import {
-  mergeCropDemand, channelCount, parseLang, PICK_PACK_STRINGS,
+  mergeCropDemand, channelCount, parseLang, normCrop, PICK_PACK_STRINGS,
+  pickPackLineKey,
   type CropDemandInput,
 } from '../../../lib/pick-pack';
+import {
+  fetchAllOpenDueNoticesWithMember, isNoticeOverdue, HOME_DELIVERY_HINT,
+  type NoticeWithMember,
+} from '../../../lib/notices';
 
+/* ── Two clients, deliberately (interactive P&P, migration 0069) ──────────────
+ * `db` (service-role) loads the PER-CROP AGGREGATE demand so a CREW user — who
+ * does NOT clear the admin RLS bypass — still sees the harvest/pack numbers. It
+ * is safe because EVERY pick-pack view renders per-crop aggregates only (crop
+ * name + qty + unit + lb + photo) — verified: no member contact_name/email/
+ * phone/address is rendered in any view.
+ *
+ * `supabase` (the cookie-aware RLS client) is kept for the TWO reads that touch
+ * member-linked data — the make-ups banner (member_notices, which joins
+ * customers.contact_name) and its pickup_locations day map. member_notices RLS
+ * is admin/staff-only (notices_staff_all, 0043), so for a crew user these return
+ * EMPTY and the make-ups banner never renders — the member names never reach
+ * crew. It is ALSO the client for the pick_pack_progress read (is_ops_caller
+ * lets crew read the shared board). Admin/staff behavior is unchanged (service-
+ * role returns them the same rows their RLS bypass did). */
 const supabase = Astro.locals.supabase;
+const db = supabaseAdmin;
 const slugParam = (Astro.params.slug ?? '') as string;
 const segments = slugParam.split('/').filter(Boolean);
 const week_input = segments[0] ?? '';
@@ -45,8 +69,57 @@ const marketIdParam = Astro.url.searchParams.get('market') ?? '';
 const lang = parseLang(Astro.url.searchParams.get('lang'));
 const t = PICK_PACK_STRINGS[lang];
 
-const cycle = await resolveCycle(supabase, week_starting);
+/* ── Harvest-day scope (mirrors /admin/harvest) ─────────────────────
+ * ?day=mon → demand for Tue + Wed distributions (Monday harvest)
+ * ?day=thu → demand for Sat + Sun distributions (Thursday harvest)
+ * ?day=all → the whole week merged (default — current behavior). */
+const dayRaw = Astro.url.searchParams.get('day') ?? 'all';
+const dayScope: 'mon' | 'thu' | 'all' =
+  dayRaw === 'mon' || dayRaw === 'thu' ? dayRaw : 'all';
+
+const cycle = await resolveCycle(db, week_starting);
 const weekEnd = addDays(week_starting, 6);
+
+/* ── Day-classification rules — copied verbatim from /admin/harvest so the
+ *    combined totals reconcile with the harvest page. ─────────────────── */
+/** CSA member → harvest day: Sat/Sun pickup → thu; everything else → mon. */
+function harvestTabForMember(day: string | null | undefined): 'mon' | 'thu' {
+  return day === 'Sat' || day === 'Sun' ? 'thu' : 'mon';
+}
+/** DOW (0=Sun…6=Sat) of a YYYY-MM-DD date, parsed as UTC (TZ-safe). */
+function dowOfYMD(ymd: string): number {
+  const [y, mo, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, (mo || 1) - 1, d || 1)).getUTCDay();
+}
+/** Wholesale → harvest day: Fri(5)/Sat(6) delivery → thu; else → mon. */
+function wholesaleTabFor(deliveryDate: string): 'mon' | 'thu' {
+  const dow = dowOfYMD(deliveryDate);
+  return dow === 5 || dow === 6 ? 'thu' : 'mon';
+}
+/** Market → harvest day: Tue → mon; Sat/Sun → thu; else excluded (null). */
+function marketTabFor(day: string | null | undefined): 'mon' | 'thu' | null {
+  if (day === 'Tue') return 'mon';
+  if (day === 'Sat' || day === 'Sun') return 'thu';
+  return null;
+}
+/**
+ * True if a member/wholesale row on `tab` is in the current scope.
+ * On 'all' everything passes (unchanged whole-week behavior). On mon/thu the
+ * row's tab must match. NOTE: market uses `marketInScope` instead, because on
+ * 'all' pick-pack keeps EVERY market (incl. untagged), matching prior behavior.
+ */
+function inScope(tab: 'mon' | 'thu'): boolean {
+  return dayScope === 'all' || tab === dayScope;
+}
+/**
+ * True if a market with `day_of_week` is in scope. On 'all' every market is
+ * kept (incl. untagged — the prior overall behavior). On mon/thu only markets
+ * that map to the selected harvest tab are kept.
+ */
+function marketInScope(day: string | null | undefined): boolean {
+  if (dayScope === 'all') return true;
+  return marketTabFor(day) === dayScope;
+}
 
 /* ──────────────────────────────────────────────────────────────────
  * 1. CSA box demand by crop — STRICTLY from resolveCycle.
@@ -57,6 +130,8 @@ interface CropAgg { crop: string; unit: string; qty: number; }
 const csaMap = new Map<string, CropAgg>(); // key = crop|unit
 for (const m of cycle.members) {
   if (m.share_type !== 'summer_veg') continue;
+  // Scope to the selected harvest day (Sat/Sun pickup → thu; else → mon).
+  if (!inScope(harvestTabForMember(m.pickup_location?.day_of_week))) continue;
   const comp = cycle.boxCompositionByMember.get(m.id);
   if (!comp) continue;
   for (const line of comp.items) {
@@ -73,19 +148,47 @@ const csaRows = Array.from(csaMap.values())
 /* ──────────────────────────────────────────────────────────────────
  * 2. Library category + photo lookup (for tender-green ordering + thumbs).
  * ────────────────────────────────────────────────────────────────── */
-interface LibRow { name: string; photo_url: string | null; category: string | null; }
-const { data: libRows } = await supabase
+interface LibRow { name: string; photo_url: string | null; category: string | null; pack_weight_lb: number | null; harvest_crop: string | null; }
+interface LibEntry { photo: string | null; category: string | null; packWeightLb: number | null; harvestCrop: string | null; }
+const { data: libRows } = await db
   .from('product_library')
-  .select('name, photo_url, category')
+  .select('name, photo_url, category, pack_weight_lb, harvest_crop')
   .overrideTypes<LibRow[], { merge: false }>();
-const libByName = new Map<string, { photo: string | null; category: string | null }>();
+// Keyed BOTH by exact-lowercase name AND by the merge's normCrop() key, so a
+// wholesale row like "King Spring Mix (per lb)" still resolves to the library
+// product "King Spring Mix" (same normalization the demand merge uses). Exact
+// match wins; the normalized alias fills gaps without clobbering a real row.
+const libByName = new Map<string, LibEntry>();
+const libByNorm = new Map<string, LibEntry>();
 for (const lp of libRows ?? []) {
-  const key = lp.name?.trim().toLowerCase();
-  if (!key) continue;
-  if (!libByName.has(key)) libByName.set(key, { photo: lp.photo_url, category: lp.category });
+  const raw = lp.name?.trim();
+  if (!raw) continue;
+  const entry: LibEntry = { photo: lp.photo_url, category: lp.category, packWeightLb: lp.pack_weight_lb, harvestCrop: lp.harvest_crop };
+  const exact = raw.toLowerCase();
+  if (!libByName.has(exact)) libByName.set(exact, entry);
+  const norm = normCrop(raw);
+  if (norm && !libByNorm.has(norm)) libByNorm.set(norm, entry);
 }
-function libLookup(crop: string): { photo: string | null; category: string | null } {
-  return libByName.get(crop.trim().toLowerCase()) ?? { photo: null, category: null };
+const EMPTY_LIB: LibEntry = { photo: null, category: null, packWeightLb: null, harvestCrop: null };
+function libLookup(crop: string): LibEntry {
+  const exact = crop.trim().toLowerCase();
+  return libByName.get(exact) ?? libByNorm.get(normCrop(crop)) ?? EMPTY_LIB;
+}
+
+/* ── Stop → day_of_week map (for scoping the make-ups banner by harvest day).
+ *    A make-up notice's stop_hint is a pickup-stop NAME (or HOME_DELIVERY_HINT).
+ *    We map that stop's day_of_week to the SAME harvest tab the crops use:
+ *    Sat/Sun pickup → thu; everything else (Tue/Wed) → mon. Home delivery runs
+ *    Wed → mon. Case-insensitive on the stored name. ────────────────────── */
+interface StopDowRow { name: string; day_of_week: string | null; }
+const { data: stopRows } = await supabase
+  .from('pickup_locations')
+  .select('name, day_of_week')
+  .overrideTypes<StopDowRow[], { merge: false }>();
+const stopDayByName = new Map<string, string | null>();
+for (const s of stopRows ?? []) {
+  const key = s.name?.trim().toLowerCase();
+  if (key) stopDayByName.set(key, s.day_of_week);
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -99,7 +202,7 @@ interface MarketOfferingRow {
   market: { id: string; name: string; day_of_week: string | null } | null;
   library: { name: string | null; photo_url: string | null; category: string | null } | null;
 }
-const { data: offeringRows, error: offeringsErr } = await supabase
+const { data: offeringRows, error: offeringsErr } = await db
   .from('market_offerings')
   .select(
     'id, name, unit, planned_qty, ' +
@@ -133,8 +236,10 @@ for (const o of offeringRows ?? []) {
     marketGroupMap.set(mid, group);
   }
   group.items.push({ name, unit, qty, photo, category });
-  // All-markets aggregate (for the overall harvest list).
-  if (qty > 0) {
+  // All-markets aggregate (for the overall harvest list), scoped to the
+  // selected harvest day. On 'all' every market counts; on mon/thu only the
+  // markets that map to that harvest tab (Tue → mon; Sat/Sun → thu).
+  if (qty > 0 && marketInScope(o.market?.day_of_week)) {
     const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
     const e = marketAllMap.get(key);
     if (e) e.qty += qty;
@@ -151,7 +256,7 @@ interface WholesaleItemRow {
   product: { unit: string | null; photo_url: string | null; library: { photo_url: string | null; category: string | null } | null } | null;
 }
 interface WholesaleOrderRow { id: string; delivery_date: string; items: WholesaleItemRow[] | null; }
-const { data: wholesaleOrderRows, error: wholesaleErr } = await supabase
+const { data: wholesaleOrderRows, error: wholesaleErr } = await db
   .from('wholesale_orders')
   .select(
     'id, delivery_date, ' +
@@ -168,6 +273,8 @@ if (wholesaleErr) {
 interface WsaleAgg { crop: string; unit: string; qty: number; photo: string | null; category: string | null; }
 const wholesaleMap = new Map<string, WsaleAgg>(); // key = crop|unit
 for (const o of wholesaleOrderRows ?? []) {
+  // Scope to the selected harvest day by delivery DOW (Fri/Sat → thu; else mon).
+  if (!inScope(wholesaleTabFor(o.delivery_date))) continue;
   for (const it of o.items ?? []) {
     const name = it.product_name?.trim();
     if (!name) continue;
@@ -206,6 +313,102 @@ function cropPhoto(crop: string): string | null {
   return libLookup(crop).photo;
 }
 
+/* ── Pack-weight → total pounds ─────────────────────────────────────────
+ * Portioned items (clamshell salad mixes, Big Bagz) are HARVESTED BY WEIGHT.
+ * When a crop's library product has pack_weight_lb set, we show the total
+ * pounds to pick = summed packed-unit qty × pack_weight_lb, alongside the
+ * unit count (the count is still needed for packing; the lb is for harvest).
+ *
+ * NEVER convert a row whose unit is ALREADY weight (lb/pound/#) — that qty is
+ * already pounds, so multiplying would double-count. Only count/portion units
+ * (each, clamshell, bag, box, bunch, …) get a lb figure. */
+const WEIGHT_UNIT_RE = /^(lb|lbs|pound|pounds|#)$/i;
+function isWeightUnit(unit: string | null | undefined): boolean {
+  return WEIGHT_UNIT_RE.test((unit ?? '').trim());
+}
+/**
+ * Total pounds for `qty` packed units of `crop` on unit `unit`, or null when
+ * there's nothing to show — no pack weight set, a weight-based unit (already
+ * pounds), or a non-positive qty. Rounded to 1 decimal for the pack floor.
+ */
+function packLb(crop: string, qty: number, unit: string): number | null {
+  const w = libLookup(crop).packWeightLb;
+  if (w == null || !(w > 0)) return null;
+  if (isWeightUnit(unit)) return null; // already pounds — don't double-count
+  if (!(qty > 0)) return null;
+  return Math.round(qty * w * 10) / 10;
+}
+/** "10 lb" / "10.5 lb" — trims a trailing ".0" for whole pounds. */
+function fmtLb(lb: number): string {
+  const s = Number.isInteger(lb) ? String(lb) : lb.toFixed(1);
+  return `${s} lb`;
+}
+
+/* ── Combine package variants into ONE harvest line (total pounds) ────────
+ * The crew harvests raw greens BY WEIGHT; clamshell vs "Big Bagz" is a
+ * downstream PACK decision. Products that share a non-null library.harvest_crop
+ * (e.g. "King Spring Mix" + "King Spring (Big Bagz)" → "King Spring Mix") must
+ * appear as ONE harvest line = summed pounds across variants, with the
+ * per-packaging breakdown underneath so the pack team can still portion.
+ *
+ * A group only forms when 2+ IN-SCOPE variants share a harvest_crop; a lone
+ * variant renders unchanged as its own normal row. Pounds per variant reuse
+ * packLb() (qty x pack_weight_lb; weight-based units are skipped — no
+ * double-count), so a variant with no pack weight contributes 0 lb but still
+ * shows in the breakdown as a count. */
+interface HarvestSourceRow {
+  crop: string;
+  qty: number;
+  unit: string;
+  /** Optional pre-computed pounds for this row (the OVERALL view sums pounds
+   *  across channels itself; other views leave this undefined and let packLb
+   *  derive it from qty x pack_weight_lb). */
+  lb?: number | null;
+}
+interface HarvestVariant { crop: string; qty: number; unit: string; lb: number | null; }
+interface CombinedHarvest { harvestCrop: string; totalLb: number; variants: HarvestVariant[]; }
+/**
+ * From a flat list of in-scope harvest rows, pull out the ones whose library
+ * product shares a non-null harvest_crop with ≥1 sibling in the SAME list, and
+ * fold each such family into one CombinedHarvest. Returns the combined groups
+ * (sorted biggest-pounds first) PLUS the set of source-row indices consumed, so
+ * the caller can render the remaining (uncombined) rows unchanged.
+ */
+function combineHarvest(rows: HarvestSourceRow[]): {
+  combined: CombinedHarvest[];
+  consumed: Set<number>;
+} {
+  // Bucket row indices by their harvest_crop (library lookup). Rows with no
+  // harvest_crop are never bucketed — they always render as themselves.
+  const byHarvestCrop = new Map<string, number[]>();
+  rows.forEach((r, i) => {
+    const hc = libLookup(r.crop).harvestCrop?.trim();
+    if (!hc) return;
+    const arr = byHarvestCrop.get(hc);
+    if (arr) arr.push(i);
+    else byHarvestCrop.set(hc, [i]);
+  });
+  const combined: CombinedHarvest[] = [];
+  const consumed = new Set<number>();
+  for (const [hc, idxs] of byHarvestCrop) {
+    if (idxs.length < 2) continue; // a lone variant renders unchanged
+    const variants: HarvestVariant[] = idxs.map((i) => {
+      const r = rows[i];
+      // Use the caller's pre-computed lb when given (OVERALL sums channels),
+      // else derive it from qty x pack_weight_lb via packLb().
+      const lb = r.lb !== undefined ? r.lb : packLb(r.crop, r.qty, r.unit);
+      return { crop: r.crop, qty: r.qty, unit: r.unit, lb };
+    });
+    const totalLb = Math.round(variants.reduce((a, v) => a + (v.lb ?? 0), 0) * 10) / 10;
+    // Order variants biggest-pounds first (clamshells before bags, usually).
+    variants.sort((a, b) => (b.lb ?? 0) - (a.lb ?? 0) || a.crop.localeCompare(b.crop));
+    combined.push({ harvestCrop: hc, totalLb, variants });
+    for (const i of idxs) consumed.add(i);
+  }
+  combined.sort((a, b) => b.totalLb - a.totalLb || a.harvestCrop.localeCompare(b.harvestCrop));
+  return { combined, consumed };
+}
+
 // Resolve the selected market group for the per-market view.
 const DAY_ORDER: Record<string, number> = { Tue: 0, Sat: 1, Sun: 2 };
 const marketGroupsSorted = Array.from(marketGroupMap.values()).sort((a, b) => {
@@ -217,6 +420,47 @@ const marketGroupsSorted = Array.from(marketGroupMap.values()).sort((a, b) => {
 const selectedMarket = view === 'market'
   ? marketGroupsSorted.find((g) => g.id === marketIdParam) ?? marketGroupsSorted[0] ?? null
   : null;
+
+/* ── Per-view combined-harvest groups (package variants → one weighed line) ──
+ * Built here so the templates stay thin. Each view feeds combineHarvest() the
+ * SAME flat row list it renders (in the same order), then renders the returned
+ * combined groups on top and the un-consumed rows unchanged below. Every source
+ * list is already day-scoped upstream (csaRows / wholesaleRows / merged /
+ * selectedMarket.items all respect the day filter), so a variant only counts
+ * when it's in scope — nothing extra to gate here. */
+
+/** Total pounds for a merged/overall row, summed across its channels (weight
+ *  units are already lb and are skipped by packLb, so no double-count). */
+function mergedRowLb(r: (typeof merged)[number]): number | null {
+  const total = [r.csa, r.market, r.wholesale].reduce((acc, c) => {
+    if (!c) return acc;
+    return acc + (packLb(r.crop, c.qty, c.unit) ?? 0);
+  }, 0);
+  return total > 0 ? Math.round(total * 10) / 10 : null;
+}
+
+// OVERALL — combine within the whole merged list; qty is the headline totalQty,
+// lb is the cross-channel sum. Keeps tender-first ordering for leftovers via the
+// original tenderRows/otherRows split (consumed rows drop out of each group).
+const overallCombined = combineHarvest(
+  merged.map((r) => ({ crop: r.crop, qty: r.totalQty, unit: r.csa?.unit ?? r.market?.unit ?? r.wholesale?.unit ?? 'each', lb: mergedRowLb(r) })),
+);
+const overallConsumedCrops = new Set(
+  Array.from(overallCombined.consumed).map((i) => merged[i].crop),
+);
+const tenderRowsShown = tenderRows.filter((r) => !overallConsumedCrops.has(r.crop));
+const otherRowsShown = otherRows.filter((r) => !overallConsumedCrops.has(r.crop));
+
+// CSA / WHOLESALE — combine within each list; the un-consumed rows render below.
+const csaCombine = combineHarvest(csaRows.map((r) => ({ crop: r.crop, qty: r.qty, unit: r.unit })));
+const csaRowsShown = csaRows.filter((_, i) => !csaCombine.consumed.has(i));
+const wholesaleCombine = combineHarvest(wholesaleRows.map((r) => ({ crop: r.crop, qty: r.qty, unit: r.unit })));
+const wholesaleRowsShown = wholesaleRows.filter((_, i) => !wholesaleCombine.consumed.has(i));
+
+// MARKET — combine within the selected market's items (name → crop).
+const marketItemsOrdered = selectedMarket ? orderMarketItems(selectedMarket.items) : [];
+const marketCombine = combineHarvest(marketItemsOrdered.map((it) => ({ crop: it.name, qty: it.qty, unit: it.unit })));
+const marketItemsShown = marketItemsOrdered.filter((_, i) => !marketCombine.consumed.has(i));
 // Order a market's items: tender greens first, then biggest qty.
 function orderMarketItems(items: MarketItem[]): MarketItem[] {
   return items.slice().sort((a, b) => {
@@ -243,7 +487,204 @@ else if (view === 'wholesale') docTitle = 'Wholesale harvest';
 else if (view === 'market') docTitle = `Market — ${selectedMarket?.name ?? 'market'}`;
 else docTitle = t.overallTitle;
 
-const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg').length;
+const totalCsaBoxes = cycle.members.filter(
+  (m) => m.share_type === 'summer_veg'
+    && inScope(harvestTabForMember(m.pickup_location?.day_of_week)),
+).length;
+
+/* ──────────────────────────────────────────────────────────────────
+ * MAKE-UPS TO ADD — additive accounting of owed make-up promises.
+ *   The harvest list drives WHAT THE CREW PICKS. If the farm owes a member a
+ *   double mushroom / make-good bread, the crew must harvest that extra product
+ *   — otherwise we won't HAVE it to pack (the owner's exact complaint). We do
+ *   NOT fold this into resolveCycle (too invasive/risky); instead we surface a
+ *   SEPARATE, clearly-labeled subtotal from member_notices (open + due/overdue,
+ *   ALL stops incl. general). Same source of truth as the pack sheets. Shown on
+ *   the overall + CSA harvest views (the box-harvest views). [] on error.
+ * ────────────────────────────────────────────────────────────────── */
+const allMakeupNotices: NoticeWithMember[] = await fetchAllOpenDueNoticesWithMember(
+  supabase, week_starting,
+);
+/**
+ * Harvest tab for a make-up notice, from its stop_hint (a pickup-stop NAME or
+ * the HOME_DELIVERY_HINT sentinel), using the SAME rule as the crops:
+ *   - HOME_DELIVERY_HINT              → mon (the home-delivery run is Wed).
+ *   - a stop whose day_of_week is Sat/Sun → thu (weekend markets).
+ *   - every other stop (Tue/Wed pickup) → mon.
+ *   - stop_hint NULL (general notice) OR an unknown stop → null (no single
+ *     harvest day). A general promise still consumes product but isn't tied to a
+ *     stop, so it only belongs on the whole-week ('all') view — never leaked
+ *     onto a specific day tab.
+ */
+function makeupTab(n: NoticeWithMember): 'mon' | 'thu' | null {
+  const hint = n.stop_hint?.trim();
+  if (!hint) return null; // general notice — no stop, no single day
+  if (hint === HOME_DELIVERY_HINT) return 'mon'; // Wed home-delivery run
+  const dow = stopDayByName.get(hint.toLowerCase());
+  if (dow === undefined) return null; // unknown stop → don't force onto a day
+  return harvestTabForMember(dow); // Sat/Sun → thu; else → mon
+}
+/**
+ * Make-ups in the current day scope. On 'all' every due make-up shows (the
+ * prior whole-week behavior). On mon/thu, keep only make-ups whose mapped
+ * harvest tab === the scope; general (null-tab) make-ups NEVER leak onto a
+ * specific day tab (they show on 'all' only). This mirrors the crop scoping so
+ * a Thursday sheet doesn't wrongly carry a Wed stop's owed make-up.
+ */
+const makeupNotices: NoticeWithMember[] =
+  dayScope === 'all'
+    ? allMakeupNotices
+    : allMakeupNotices.filter((n) => makeupTab(n) === dayScope);
+function makeupTag(n: NoticeWithMember): { text: string; overdue: boolean } {
+  const overdue = isNoticeOverdue(n.due_week, week_starting);
+  if (n.due_week == null) return { text: 'next opportunity', overdue: false };
+  const d = new Date(`${n.due_week}T12:00:00Z`);
+  const pretty = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(d);
+  return { text: overdue ? `OVERDUE since ${pretty}` : `due ${pretty}`, overdue };
+}
+const showMakeups = (view === 'overall' || view === 'csa') && makeupNotices.length > 0;
+
+/* ── Day-scope tab strip hrefs — preserve the current lang + view params so
+ *    switching the harvest day never drops the drill-down or language. ─── */
+function dayHref(day: 'mon' | 'thu' | 'all'): string {
+  const params = new URLSearchParams();
+  if (view !== 'overall') params.set('view', view);
+  if (view === 'market' && marketIdParam) params.set('market', marketIdParam);
+  if (lang !== 'en') params.set('lang', lang);
+  if (day !== 'all') params.set('day', day);
+  const qs = params.toString();
+  return `/admin/pick-pack/${week_starting}${qs ? `?${qs}` : ''}`;
+}
+const dayTabs: { key: 'all' | 'mon' | 'thu'; label: string; hint: string | null }[] = [
+  { key: 'all', label: 'All week', hint: null },
+  { key: 'mon', label: 'Monday harvest', hint: '→ Tue + Wed' },
+  { key: 'thu', label: 'Thursday harvest', hint: '→ Sat + Sun' },
+];
+/** Human label for the current day scope — printed on the doc band. */
+const dayScopeLabel =
+  dayScope === 'mon' ? 'Monday harvest · Tue + Wed'
+  : dayScope === 'thu' ? 'Thursday harvest · Sat + Sun'
+  : 'All week';
+
+/** View-switcher href that preserves the current day scope + language. */
+function viewHref(v: 'overall' | 'csa' | 'wholesale' | 'market', marketId?: string): string {
+  const p = new URLSearchParams();
+  if (v !== 'overall') p.set('view', v);
+  if (v === 'market' && marketId) p.set('market', marketId);
+  if (lang !== 'en') p.set('lang', lang);
+  if (dayScope !== 'all') p.set('day', dayScope);
+  const qs = p.toString();
+  return `/admin/pick-pack/${week_starting}${qs ? `?${qs}` : ''}`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * LIVE CHECK-OFF (migration 0069) — per-line status + WHO, synced across
+ * devices. Answers Todd's "confusion about what has been done, and if someone
+ * did it." The DB `section` is 'harvest' for the OVERALL pick view; the other
+ * three views are pack sections. The interactive controls are wired CLIENT-SIDE
+ * (see the <script> at the foot of the file) from the `data-*` attributes each
+ * line carries below; here we only load saved state + compute the summary so the
+ * page renders in its current status with no flash.
+ * ════════════════════════════════════════════════════════════════════════ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Non-market sections (+ an untagged market group) share this sentinel so the
+ *  (week,section,scope,market,line) UNIQUE dedupes — matches the 0069 default. */
+const SENTINEL_MARKET = '00000000-0000-0000-0000-000000000000';
+
+const ppSection: 'harvest' | 'csa' | 'wholesale' | 'market' =
+  view === 'overall' ? 'harvest' : view;
+const marketIdForKey =
+  view === 'market' && selectedMarket && UUID_RE.test(selectedMarket.id)
+    ? selectedMarket.id
+    : SENTINEL_MARKET;
+
+// Saved status for every line on THIS sheet (crew can read via is_ops_caller).
+interface ProgRow { line_key: string; status: string; worked_by: string | null; actual_qty: number | null; }
+const { data: progressRows } = await supabase
+  .from('pick_pack_progress')
+  .select('line_key, status, worked_by, actual_qty')
+  .eq('week_date', week_starting)
+  .eq('section', ppSection)
+  .eq('scope_day', dayScope)
+  .eq('market_id', marketIdForKey)
+  .overrideTypes<ProgRow[], { merge: false }>();
+const progressMap = new Map<string, ProgRow>();
+for (const r of progressRows ?? []) progressMap.set(r.line_key, r);
+
+/** Server-render attributes for one interactive line. The browser controller
+ *  reads these to build the Harvesting/Done or Packed control and to seed the
+ *  optimistic state — it NEVER recomputes line_key, so the key here is the sole
+ *  source of truth. `kind`/`name`/`unit` MUST match the summary key list below. */
+function lineAttrs(
+  kind: 'group' | 'row',
+  name: string,
+  keyUnit: string | null | undefined,
+  target: number | null,
+  displayUnit?: string | null,
+): Record<string, string> {
+  // keyUnit participates in the STABLE key (csa/wholesale/market split the same
+  // crop by unit; the overall view passes null so it keys by crop alone — this
+  // must mirror the ppKeys list). displayUnit is only shown in the "actual qty"
+  // prompt and defaults to keyUnit.
+  const key = pickPackLineKey(kind, name, keyUnit);
+  const r = progressMap.get(key);
+  return {
+    'data-pp-line': '',
+    'data-line-key': key,
+    'data-status': r?.status ?? 'todo',
+    'data-worked': r?.worked_by ?? '',
+    'data-actual': r?.actual_qty != null ? String(r.actual_qty) : '',
+    'data-target': target != null ? String(target) : '',
+    'data-unit': (displayUnit ?? keyUnit) ?? '',
+  };
+}
+
+/** Best single display unit for an OVERALL merged row (blank when channels
+ *  disagree) — used only for the "actual qty" prompt, not for the key. */
+function overallUnit(r: (typeof merged)[number]): string {
+  const units = new Set([r.csa?.unit, r.market?.unit, r.wholesale?.unit].filter(Boolean) as string[]);
+  return units.size === 1 ? [...units][0] : '';
+}
+
+// The line_key list for the CURRENT view — MUST mirror the template's render
+// order + kind/name/unit exactly so the summary counts match the rendered lines.
+let ppKeys: string[] = [];
+if (view === 'overall') {
+  ppKeys = [
+    ...overallCombined.combined.map((g) => pickPackLineKey('group', g.harvestCrop)),
+    ...tenderRowsShown.map((r) => pickPackLineKey('row', r.crop)),
+    ...otherRowsShown.map((r) => pickPackLineKey('row', r.crop)),
+  ];
+} else if (view === 'csa') {
+  ppKeys = [
+    ...csaCombine.combined.map((g) => pickPackLineKey('group', g.harvestCrop)),
+    ...csaRowsShown.map((r) => pickPackLineKey('row', r.crop, r.unit)),
+  ];
+} else if (view === 'wholesale') {
+  ppKeys = [
+    ...wholesaleCombine.combined.map((g) => pickPackLineKey('group', g.harvestCrop)),
+    ...wholesaleRowsShown.map((r) => pickPackLineKey('row', r.crop, r.unit)),
+  ];
+} else if (view === 'market') {
+  ppKeys = [
+    ...marketCombine.combined.map((g) => pickPackLineKey('group', g.harvestCrop)),
+    ...marketItemsShown.map((it) => pickPackLineKey('row', it.name, it.unit)),
+  ];
+}
+// Initial counts (the client keeps these live thereafter).
+let ppTodo = 0, ppHarvesting = 0, ppDone = 0, ppPacked = 0;
+for (const k of ppKeys) {
+  const st = progressMap.get(k)?.status ?? 'todo';
+  if (st === 'harvesting') ppHarvesting++;
+  else if (st === 'done') ppDone++;
+  else if (st === 'packed') ppPacked++;
+  else ppTodo++;
+}
+const ppTotal = ppKeys.length;
+const ppComplete = ppSection === 'harvest' ? ppDone : ppPacked;
+const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
 ---
 
 <AdminShell
@@ -254,7 +695,14 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
   <Fragment slot="actions">
     {view === 'overall' && (
       <a
-        href={`/admin/pick-pack/${week_starting}?lang=${lang === 'es' ? 'en' : 'es'}`}
+        href={(() => {
+          // Toggle language while preserving the current day scope.
+          const p = new URLSearchParams();
+          if (lang !== 'es') p.set('lang', 'es'); // en → es; es → (drop = en)
+          if (dayScope !== 'all') p.set('day', dayScope);
+          const qs = p.toString();
+          return `/admin/pick-pack/${week_starting}${qs ? `?${qs}` : ''}`;
+        })()}
         class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary"
       >
         🌐 {t.langToggle}
@@ -278,9 +726,9 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
   {/* ── Screen-only view switcher ──────────────────────────────────── */}
   <nav aria-label="Pick & Pack views" class="screen-only flex flex-wrap gap-2 border-b border-ts-border pb-3">
     {[
-      { key: 'overall', label: '🌾 Overall', href: `/admin/pick-pack/${week_starting}` },
-      { key: 'csa', label: '🥬 CSA', href: `/admin/pick-pack/${week_starting}?view=csa` },
-      { key: 'wholesale', label: '🍽 Wholesale', href: `/admin/pick-pack/${week_starting}?view=wholesale` },
+      { key: 'overall', label: '🌾 Overall', href: viewHref('overall') },
+      { key: 'csa', label: '🥬 CSA', href: viewHref('csa') },
+      { key: 'wholesale', label: '🍽 Wholesale', href: viewHref('wholesale') },
     ].map((tab) => (
       <a
         href={tab.href}
@@ -293,7 +741,7 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
     ))}
     {marketGroupsSorted.filter((g) => g.id !== 'untagged').map((g) => (
       <a
-        href={`/admin/pick-pack/${week_starting}?view=market&market=${g.id}`}
+        href={viewHref('market', g.id)}
         aria-current={view === 'market' && selectedMarket?.id === g.id ? 'page' : undefined}
         class={[
           'inline-flex h-9 items-center rounded-ts-md px-3 text-sm font-semibold transition-colors',
@@ -303,13 +751,127 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
     ))}
   </nav>
 
+  {/* ── Harvest-day scope tab strip ────────────────────────────────────
+      Scopes the combined per-crop demand to a single harvest day. Mon =
+      Tue + Wed distributions; Thu = Sat + Sun (weekend markets). "All week"
+      is the whole-week merge (default). Mirrors /admin/harvest's tab strip;
+      each link preserves the current lang + view drill-down. Screen-only —
+      hidden in print (the printed sheet is already scoped by the query). */}
+  <nav aria-label="Harvest day" class="screen-only flex flex-wrap gap-2 border-b border-ts-border">
+    {dayTabs.map((tab) => (
+      <a
+        href={dayHref(tab.key)}
+        aria-current={dayScope === tab.key ? 'page' : undefined}
+        class={[
+          'inline-flex h-10 items-center border-b-2 px-4 text-sm font-semibold transition-colors',
+          dayScope === tab.key
+            ? 'border-ts-primary text-ts-primary'
+            : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
+        ].join(' ')}
+      >
+        {tab.label}
+        {tab.hint && <span class="ml-2 text-xs text-ts-text-muted">{tab.hint}</span>}
+      </a>
+    ))}
+  </nav>
+
   <div class="print-doc">
+    {/* ═══ ⚠ MAKE-UPS TO ADD — additive subtotal on top of the harvest ═══
+        Owed make-up promises that must be harvested THIS week on top of the
+        normal box/market/wholesale demand — otherwise the farm won't HAVE the
+        product to pack (the owner's complaint). Shown on the box-harvest views
+        (overall + CSA). Reads the SAME member_notices source as the pack sheets,
+        so the makeup count is consistent across harvest / pick-pack / pack-sheet.
+        Overdue make-ups flagged in red. Prints in color. */}
+    {showMakeups && (
+      <section aria-labelledby="pp-makeups-heading" class="makeups-banner mb-5 rounded-ts-lg border-[3px] p-4 sm:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="pp-makeups-heading" class="flex items-center gap-2 font-display text-lg font-extrabold uppercase tracking-wide sm:text-xl">
+            <span aria-hidden="true">⚠</span>
+            Make-ups to add — harvest these too
+          </h2>
+          <span class="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-sm font-extrabold tabular-nums">
+            {makeupNotices.length} owed
+          </span>
+        </div>
+        <p class="mt-1 text-sm font-medium">
+          Owed items the farm promised members. Add these to the pick — they're on TOP of the box totals below.
+        </p>
+        <ul class="mt-3 flex flex-col divide-y divide-ts-border/40">
+          {makeupNotices.map((n) => {
+            const tag = makeupTag(n);
+            return (
+              <li class="harvest-row flex items-start gap-4 py-2.5">
+                <span class="harvest-check inline-block h-6 w-6 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-base font-bold leading-snug text-ts-text">
+                    {n.member_name && <span>{n.member_name} — </span>}{n.title}
+                  </p>
+                  {n.detail && (
+                    <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug text-ts-text-secondary">{n.detail}</p>
+                  )}
+                </div>
+                <span class={[
+                  'shrink-0 self-center rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide',
+                  tag.overdue ? 'bg-ts-danger/15 text-ts-danger' : 'bg-ts-bg-muted text-ts-text-secondary',
+                ].join(' ')}>{tag.text}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
+
+    {/* ══ LIVE CHECK-OFF config + progress summary (migration 0069) ══
+        Screen-only. The hidden config element hands the browser controller the
+        sheet coordinates + Supabase realtime creds + EN/ES labels; the summary
+        gives Todd (and the crew) a live to-go / harvesting / done (or packed)
+        readout. Hidden in print so the paper sheet is unchanged. */}
+    <div
+      id="pp-live-config"
+      class="hidden"
+      data-week={week_starting}
+      data-section={ppSection}
+      data-scope={dayScope}
+      data-market={marketIdForKey}
+      data-supabase-url={PUBLIC_SUPABASE_URL}
+      data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
+      data-i18n={JSON.stringify(t.live)}
+    ></div>
+
+    {ppTotal > 0 && (
+      <section class="screen-only mb-4" aria-label={t.live.progress} data-pp-summary>
+        <div class="rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="font-display text-sm font-bold uppercase tracking-wide text-ts-text-secondary">{t.live.progress}</h2>
+            <p class="text-sm font-bold tabular-nums text-ts-text">
+              <span data-pp-complete>{ppComplete}</span><span class="text-ts-text-muted"> / </span><span data-pp-total>{ppTotal}</span>
+            </p>
+          </div>
+          <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-ts-bg-muted">
+            <div data-pp-bar class="h-full rounded-full bg-ts-primary transition-[width] duration-300 ease-out" style={`width:${ppPct}%`}></div>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold tabular-nums">
+            <span class="text-ts-text-muted"><span data-pp-count-todo>{ppTodo}</span> {t.live.toGo}</span>
+            {ppSection === 'harvest' && (
+              <span class="text-ts-accent"><span data-pp-count-harvesting>{ppHarvesting}</span> {t.live.harvesting}</span>
+            )}
+            {ppSection === 'harvest' ? (
+              <span class="text-ts-primary"><span data-pp-count-done>{ppDone}</span> {t.live.done}</span>
+            ) : (
+              <span class="text-ts-primary"><span data-pp-count-packed>{ppPacked}</span> {t.live.packed}</span>
+            )}
+          </div>
+        </div>
+      </section>
+    )}
+
     {/* ═══════════════ OVERALL HARVEST ═══════════════ */}
     {view === 'overall' && (
       <section aria-labelledby="pp-heading" class="harvest-doc">
         <header class="doc-band rounded-ts-lg px-5 py-4">
           <p class="text-xs font-semibold uppercase tracking-wider opacity-90">
-            {t.overallTitle} · {prettyWeekHeader(week_starting)}
+            {t.overallTitle} · {prettyWeekHeader(week_starting)} · {dayScopeLabel}
           </p>
           <h2 id="pp-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🌾 {t.overallTitle}</h2>
           <p class="mt-1 text-sm font-semibold opacity-95">{t.overallSubtitle}</p>
@@ -321,9 +883,23 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
           </Card>
         ) : (
           <div class="mt-4 flex flex-col gap-6">
+            {overallCombined.combined.length > 0 && (
+              <section class="harvest-group" aria-label="Combined greens — harvest by weight">
+                <h3 class="group-head tender-head rounded-ts-md px-4 py-2 font-display text-lg font-bold">
+                  Combined greens — weigh once, split after
+                </h3>
+                <ol class="mt-2 flex flex-col">
+                  {overallCombined.combined.map((g) => (
+                    <div style="display:contents" {...lineAttrs('group', g.harvestCrop, 'lb', g.totalLb)}>
+                      <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
+                    </div>
+                  ))}
+                </ol>
+              </section>
+            )}
             {[
-              { label: t.tenderGroup, rows: tenderRows, tender: true },
-              { label: t.otherGroup, rows: otherRows, tender: false },
+              { label: t.tenderGroup, rows: tenderRowsShown, tender: true },
+              { label: t.otherGroup, rows: otherRowsShown, tender: false },
             ].filter((g) => g.rows.length > 0).map((group) => (
               <section class="harvest-group" aria-label={group.label}>
                 <h3 class={[
@@ -339,8 +915,17 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
                     const parts = [
                       cell(r.csa, t.csaCol), cell(r.market, t.marketCol), cell(r.wholesale, t.wholesaleCol),
                     ].filter(Boolean);
+                    // Total pounds to harvest across channels — sum each channel's
+                    // count-unit contribution (weight-unit channels are already lb
+                    // and are skipped by packLb, so they never double-count).
+                    const rowLbTotal = [r.csa, r.market, r.wholesale].reduce((acc, c) => {
+                      if (!c) return acc;
+                      const lb = packLb(r.crop, c.qty, c.unit);
+                      return acc + (lb ?? 0);
+                    }, 0);
+                    const rowLb = rowLbTotal > 0 ? Math.round(rowLbTotal * 10) / 10 : null;
                     return (
-                      <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                      <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', r.crop, null, r.totalQty, overallUnit(r))}>
                         <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
                         {photo && (
                           <span class="hidden h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface sm:flex print:hidden">
@@ -362,6 +947,11 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
                               ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.totalQty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{oneUnit}</span></>
                               : <span class="text-xs font-semibold text-ts-text-muted">{t.total}: {r.totalQty.toLocaleString()}<span class="ml-0.5">*</span></span>;
                           })()}
+                          {rowLb != null && (
+                            <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                              {fmtLb(rowLb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                            </p>
+                          )}
                         </div>
                       </li>
                     );
@@ -379,7 +969,7 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
     {view === 'csa' && (
       <section aria-labelledby="pp-csa-heading" class="harvest-doc">
         <header class="doc-band rounded-ts-lg px-5 py-4">
-          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">CSA harvest · {prettyWeekHeader(week_starting)}</p>
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">CSA harvest · {prettyWeekHeader(week_starting)} · {dayScopeLabel}</p>
           <h2 id="pp-csa-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🥬 CSA boxes — by crop</h2>
           <p class="mt-1 text-sm font-semibold opacity-95">{totalCsaBoxes} boxes · box demand from the cycle resolver</p>
         </header>
@@ -392,16 +982,29 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
           </Card>
         ) : (
           <ol class="mt-4 flex flex-col">
-            {csaRows.map((r) => (
-              <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
-                <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
-                <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
-                <div class="shrink-0 text-right">
-                  <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
-                  <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
-                </div>
-              </li>
+            {csaCombine.combined.map((g) => (
+              <div style="display:contents" {...lineAttrs('group', g.harvestCrop, 'lb', g.totalLb)}>
+                <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
+              </div>
             ))}
+            {csaRowsShown.map((r) => {
+              const lb = packLb(r.crop, r.qty, r.unit);
+              return (
+                <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', r.crop, r.unit, r.qty)}>
+                  <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                  <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
+                  <div class="shrink-0 text-right">
+                    <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
+                    <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
+                    {lb != null && (
+                      <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                        {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         )}
         <p class="mt-4 text-xs text-ts-text-muted">
@@ -414,7 +1017,7 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
     {view === 'wholesale' && (
       <section aria-labelledby="pp-wsale-heading" class="harvest-doc">
         <header class="doc-band rounded-ts-lg px-5 py-4">
-          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Wholesale harvest · {prettyWeekHeader(week_starting)}</p>
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Wholesale harvest · {prettyWeekHeader(week_starting)} · {dayScopeLabel}</p>
           <h2 id="pp-wsale-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🍽 Wholesale — by crop</h2>
           <p class="mt-1 text-sm font-semibold opacity-95">Submitted chef orders delivering this week</p>
         </header>
@@ -424,16 +1027,29 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
           </Card>
         ) : (
           <ol class="mt-4 flex flex-col">
-            {wholesaleRows.map((r) => (
-              <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
-                <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
-                <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
-                <div class="shrink-0 text-right">
-                  <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
-                  <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
-                </div>
-              </li>
+            {wholesaleCombine.combined.map((g) => (
+              <div style="display:contents" {...lineAttrs('group', g.harvestCrop, 'lb', g.totalLb)}>
+                <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
+              </div>
             ))}
+            {wholesaleRowsShown.map((r) => {
+              const lb = packLb(r.crop, r.qty, r.unit);
+              return (
+                <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', r.crop, r.unit, r.qty)}>
+                  <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                  <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
+                  <div class="shrink-0 text-right">
+                    <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
+                    <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
+                    {lb != null && (
+                      <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                        {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         )}
         <p class="mt-4 text-xs text-ts-text-muted">Real ordered quantities from chef wholesale orders (status submitted) delivering this week.</p>
@@ -452,31 +1068,41 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
                 {selectedMarket.day ? DAY_LONG[selectedMarket.day] ?? selectedMarket.day : 'Market'} · what to bring (planned qty)
               </p>
             </header>
-            {(() => {
-              const items = orderMarketItems(selectedMarket.items);
-              return items.length === 0 ? (
-                <Card tone="muted" padding="lg" elevation="sm">
-                  <p class="text-center text-sm text-ts-text-secondary">
-                    Nothing listed for this market — set the stall list at
-                    <a href="/admin/market" class="ml-1 font-semibold text-ts-primary hover:underline">Market list</a>.
-                  </p>
-                </Card>
-              ) : (
-                <ol class="mt-4 flex flex-col">
-                  {items.map((it) => (
-                    <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+            {marketItemsOrdered.length === 0 ? (
+              <Card tone="muted" padding="lg" elevation="sm">
+                <p class="text-center text-sm text-ts-text-secondary">
+                  Nothing listed for this market — set the stall list at
+                  <a href="/admin/market" class="ml-1 font-semibold text-ts-primary hover:underline">Market list</a>.
+                </p>
+              </Card>
+            ) : (
+              <ol class="mt-4 flex flex-col">
+                {marketCombine.combined.map((g) => (
+                  <div style="display:contents" {...lineAttrs('group', g.harvestCrop, 'lb', g.totalLb)}>
+                    <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
+                  </div>
+                ))}
+                {marketItemsShown.map((it) => {
+                  const lb = packLb(it.name, it.qty, it.unit);
+                  return (
+                    <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', it.name, it.unit, it.qty)}>
                       <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
                       <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{it.name}</p>
                       <div class="shrink-0 text-right">
                         {it.qty > 0
                           ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{it.qty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{it.unit}</span></>
                           : <span class="text-sm font-semibold text-ts-text-muted">{it.unit}</span>}
+                        {lb != null && (
+                          <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                            {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                          </p>
+                        )}
                       </div>
                     </li>
-                  ))}
-                </ol>
-              );
-            })()}
+                  );
+                })}
+              </ol>
+            )}
             <p class="mt-4 text-xs text-ts-text-muted">
               Planned qty is the farmer's estimate of what to bring to the {selectedMarket.name} stall this week. Tender greens listed first.
               Set the list at <a href="/admin/market" class="font-semibold text-ts-primary hover:underline">Market list</a>.
@@ -496,6 +1122,20 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
 </AdminShell>
 
 <style is:global>
+  /* ── LIVE CHECK-OFF (migration 0069) ────────────────────────────────────
+     On SCREEN the crop lines show interactive controls (Harvesting/Done or
+     Packed), so the empty "[ ]" tick box is redundant — hide it. It stays in
+     PRINT (no @media screen rule applies there) so the printed sheet is byte-
+     for-byte the same clean tickable document as before. Scoped to .harvest-doc
+     so the make-ups banner's own tick boxes (outside .harvest-doc, admin/staff
+     only) are untouched. */
+  @media screen {
+    .harvest-doc .harvest-check { display: none; }
+  }
+  /* Injected control container — screen only; the .screen-only rule in the
+     @media print block below removes it from the printout. */
+  .pp-ctl { min-height: 44px; }
+
   /* Doc band keeps its color through print (browsers strip backgrounds). */
   .doc-band {
     background: #1f6f54;            /* pine green — matches the pack-day motif */
@@ -514,6 +1154,15 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
     background: #fde68a;           /* amber — pick these FIRST */
     color: #5b3d00;
   }
+  /* ⚠ MAKE-UPS subtotal — loud red, prints in color (a missed make-up is the
+     failure this exists to prevent). */
+  .makeups-banner {
+    background: #fee2e2;
+    border-color: #dc2626;
+    color: #7f1d1d;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
@@ -525,9 +1174,310 @@ const totalCsaBoxes = cycle.members.filter((m) => m.share_type === 'summer_veg')
     /* Keep a crop row whole on one page. */
     .harvest-row { break-inside: avoid; page-break-inside: avoid; }
     .harvest-group { break-inside: auto; }
+    /* Keep the make-ups subtotal whole so it's never split across a page. */
+    .makeups-banner { break-inside: avoid; page-break-inside: avoid; }
 
     /* Big, legible print type for the pick list. */
     .harvest-row p { font-size: 14pt; }
   }
 </style>
+
+<script>
+  /* ══════════════════════════════════════════════════════════════════════════
+   * LIVE CHECK-OFF controller (migration 0069). Builds the per-line Harvesting/
+   * Done (PICK) or Packed (PACK) controls client-side from each line's server-
+   * rendered data-* attributes, POSTs each change to /api/admin/pick-pack/mark
+   * (optimistic, revert-on-failure), and subscribes to Supabase realtime so a
+   * check-off on ONE phone updates every other device — the summary bar included
+   * — without a reload. A 20s reconcile poll (GET /state) covers spotty pack-
+   * house wifi when the realtime socket drops. All controls are screen-only, so
+   * the printable sheet is untouched. No innerHTML, no native confirm/prompt.
+   * ════════════════════════════════════════════════════════════════════════ */
+  import { createClient } from '@supabase/supabase-js';
+
+  interface LineI18n {
+    progress: string; toGo: string; harvesting: string; done: string;
+    packed: string; markPacked: string; undo: string; actualQ: string;
+    save: string; cancel: string; by: string; saveFailed: string; retry: string;
+  }
+  interface Line {
+    key: string; li: HTMLElement; control: HTMLElement;
+    status: string; worked: string; actual: number | null;
+    target: number | null; unit: string;
+  }
+
+  const cfg = document.getElementById('pp-live-config');
+  if (cfg) {
+    const week = cfg.dataset.week || '';
+    const section = cfg.dataset.section || 'harvest';
+    const scope = cfg.dataset.scope || 'all';
+    const market = cfg.dataset.market || '';
+    const supabaseUrl = cfg.dataset.supabaseUrl || '';
+    const anonKey = cfg.dataset.supabaseAnonKey || '';
+    const isHarvest = section === 'harvest';
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let t: LineI18n;
+    try { t = JSON.parse(cfg.dataset.i18n || '{}') as LineI18n; } catch { t = {} as LineI18n; }
+
+    const BTN = 'pp-btn inline-flex min-h-[44px] items-center justify-center rounded-ts-md px-4 text-sm font-bold transition-transform duration-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2';
+    const BTN_PRIMARY = BTN + ' bg-ts-primary text-white outline-ts-primary';
+    const BTN_ACCENT = BTN + ' bg-ts-accent text-white outline-ts-accent';
+    const BTN_GHOST = 'pp-btn inline-flex min-h-[44px] items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text-secondary transition-transform duration-100 active:scale-95 hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+
+    const lines = new Map<string, Line>();
+
+    function mkBtn(label: string, cls: string, onClick: () => void): HTMLButtonElement {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = cls;
+      b.textContent = label;
+      b.addEventListener('click', onClick);
+      return b;
+    }
+
+    function statusPill(line: Line): HTMLElement {
+      const harvesting = line.status === 'harvesting';
+      const wrap = document.createElement('span');
+      wrap.className = harvesting
+        ? 'inline-flex items-center gap-1.5 rounded-full bg-ts-accent/15 px-3 py-1.5 text-sm font-bold text-ts-accent'
+        : 'inline-flex items-center gap-1.5 rounded-full bg-ts-primary/10 px-3 py-1.5 text-sm font-bold text-ts-primary';
+      const mark = document.createElement('span');
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = harvesting ? '…' : '✓';
+      wrap.appendChild(mark);
+      let label = harvesting ? t.harvesting : line.status === 'packed' ? t.packed : t.done;
+      if (line.status === 'done' && line.actual != null) {
+        label += ' ' + line.actual + (line.unit ? ' ' + line.unit : '');
+      }
+      const lbl = document.createElement('span');
+      lbl.textContent = label;
+      wrap.appendChild(lbl);
+      if (line.worked) {
+        const who = document.createElement('span');
+        who.className = 'font-medium text-ts-text-secondary';
+        who.textContent = '· ' + (t.by || '') + ' ' + line.worked;
+        wrap.appendChild(who);
+      }
+      return wrap;
+    }
+
+    function renderControl(line: Line): void {
+      const c = line.control;
+      c.textContent = '';
+      const st = line.status;
+      if (isHarvest) {
+        if (st === 'harvesting') {
+          c.appendChild(statusPill(line));
+          c.appendChild(mkBtn(t.done, BTN_PRIMARY, () => beginDone(line)));
+          c.appendChild(mkBtn(t.undo, BTN_GHOST, () => setStatus(line, 'todo')));
+        } else if (st === 'done') {
+          c.appendChild(statusPill(line));
+          c.appendChild(mkBtn(t.undo, BTN_GHOST, () => setStatus(line, 'todo')));
+        } else {
+          c.appendChild(mkBtn(t.harvesting, BTN_ACCENT, () => setStatus(line, 'harvesting')));
+          c.appendChild(mkBtn(t.done, BTN_PRIMARY, () => beginDone(line)));
+        }
+      } else {
+        if (st === 'packed') {
+          c.appendChild(statusPill(line));
+          c.appendChild(mkBtn(t.undo, BTN_GHOST, () => setStatus(line, 'todo')));
+        } else {
+          c.appendChild(mkBtn(t.markPacked, BTN_PRIMARY, () => setStatus(line, 'packed')));
+        }
+      }
+    }
+
+    /** Inline (never native) actual-qty entry before marking a PICK line done. */
+    function beginDone(line: Line): void {
+      const c = line.control;
+      c.textContent = '';
+      const label = document.createElement('span');
+      label.className = 'text-sm font-semibold text-ts-text';
+      label.textContent = t.actualQ;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = 'any';
+      input.inputMode = 'decimal';
+      input.className = 'h-11 w-24 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+      const def = line.actual != null ? line.actual : line.target;
+      if (def != null) input.value = String(def);
+      const commit = () => {
+        const v = parseFloat(input.value);
+        const qty = Number.isFinite(v) && v >= 0 ? v : (line.target ?? 0);
+        setStatus(line, 'done', qty);
+      };
+      const save = mkBtn(t.save, BTN_PRIMARY, commit);
+      const cancel = mkBtn(t.cancel, BTN_GHOST, () => renderControl(line));
+      c.appendChild(label);
+      c.appendChild(input);
+      if (line.unit) {
+        const u = document.createElement('span');
+        u.className = 'text-sm font-medium text-ts-text-secondary';
+        u.textContent = line.unit;
+        c.appendChild(u);
+      }
+      c.appendChild(save);
+      c.appendChild(cancel);
+      input.focus();
+      input.select();
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); renderControl(line); }
+      });
+    }
+
+    function marketIdForPost(): string | null {
+      return section === 'market' && UUID_RE.test(market) ? market : null;
+    }
+
+    async function setStatus(line: Line, status: string, actualQty?: number): Promise<void> {
+      const prev = { status: line.status, worked: line.worked, actual: line.actual };
+      line.status = status;
+      if (status === 'done') line.actual = actualQty != null ? actualQty : line.actual;
+      else if (status === 'todo') line.actual = null;
+      renderControl(line);
+      updateSummary();
+      try {
+        const res = await fetch('/api/admin/pick-pack/mark', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            week_date: week, section, scope_day: scope,
+            market_id: marketIdForPost(),
+            line_key: line.key, status,
+            actual_qty: status === 'done' ? (actualQty != null ? actualQty : line.actual) : null,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(String(data.error || 'save_failed'));
+        line.worked = data.worked_by || line.worked;
+        renderControl(line);
+        updateSummary();
+      } catch {
+        // Revert the optimistic change and offer a retry — never lose the tap.
+        line.status = prev.status; line.worked = prev.worked; line.actual = prev.actual;
+        renderControl(line);
+        updateSummary();
+        const err = document.createElement('button');
+        err.type = 'button';
+        err.className = 'inline-flex min-h-[44px] items-center gap-1.5 rounded-ts-md bg-ts-danger/10 px-3 text-sm font-semibold text-ts-danger active:scale-95';
+        err.textContent = '⚠ ' + (t.saveFailed || t.retry || 'Retry');
+        err.addEventListener('click', () => { setStatus(line, status, actualQty); });
+        line.control.appendChild(err);
+      }
+    }
+
+    function setText(sel: string, val: number): void {
+      const el = document.querySelector(sel);
+      if (el) el.textContent = String(val);
+    }
+    function updateSummary(): void {
+      let todo = 0, harvesting = 0, done = 0, packed = 0;
+      for (const line of lines.values()) {
+        if (line.status === 'harvesting') harvesting++;
+        else if (line.status === 'done') done++;
+        else if (line.status === 'packed') packed++;
+        else todo++;
+      }
+      const total = lines.size;
+      const complete = isHarvest ? done : packed;
+      setText('[data-pp-count-todo]', todo);
+      if (isHarvest) { setText('[data-pp-count-harvesting]', harvesting); setText('[data-pp-count-done]', done); }
+      else setText('[data-pp-count-packed]', packed);
+      setText('[data-pp-complete]', complete);
+      const bar = document.querySelector('[data-pp-bar]') as HTMLElement | null;
+      if (bar) bar.style.width = (total > 0 ? Math.round((complete / total) * 100) : 0) + '%';
+    }
+
+    // Build a control for every server-rendered line (normal <li> OR a combined
+    // row wrapped in a display:contents div — inject into its inner <li>).
+    document.querySelectorAll<HTMLElement>('[data-pp-line]').forEach((el) => {
+      const key = el.dataset.lineKey || '';
+      if (!key) return;
+      const li = (el.matches('li') ? el : el.querySelector('li')) as HTMLElement | null;
+      if (!li) return;
+      li.classList.add('flex-wrap');
+      const control = document.createElement('div');
+      control.className = 'pp-ctl screen-only mt-2 flex basis-full flex-wrap items-center gap-2';
+      li.appendChild(control);
+      const line: Line = {
+        key, li, control,
+        status: el.dataset.status || 'todo',
+        worked: el.dataset.worked || '',
+        actual: el.dataset.actual ? Number(el.dataset.actual) : null,
+        target: el.dataset.target ? Number(el.dataset.target) : null,
+        unit: el.dataset.unit || '',
+      };
+      lines.set(key, line);
+      renderControl(line);
+    });
+    updateSummary();
+
+    // Reconcile the whole sheet from the authoritative endpoint (on realtime
+    // (re)connect + as a fallback poll). Cookie-scoped, so it returns the true
+    // shared state regardless of realtime.
+    async function reconcile(): Promise<void> {
+      const params = new URLSearchParams({ week, section, scope_day: scope });
+      const mid = marketIdForPost();
+      if (mid) params.set('market_id', mid);
+      try {
+        const res = await fetch('/api/admin/pick-pack/state?' + params.toString(), { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.ok || !Array.isArray(data.rows)) return;
+        const seen = new Set<string>();
+        for (const r of data.rows) {
+          seen.add(r.line_key);
+          const line = lines.get(r.line_key);
+          if (line) { line.status = r.status; line.worked = r.worked_by || ''; line.actual = r.actual_qty; renderControl(line); }
+        }
+        for (const [k, line] of lines) {
+          if (!seen.has(k) && line.status !== 'todo') { line.status = 'todo'; line.worked = ''; line.actual = null; renderControl(line); }
+        }
+        updateSummary();
+      } catch { /* keep last-known state */ }
+    }
+
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    const startPoll = () => { if (!pollTimer) pollTimer = setInterval(reconcile, 20000); };
+    const stopPoll = () => { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } };
+
+    if (supabaseUrl && anonKey && week) {
+      try {
+        const sb = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+        const channel = sb.channel('pp:' + week)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'pick_pack_progress', filter: 'week_date=eq.' + week },
+            (payload: { eventType?: string; new?: Record<string, any>; old?: Record<string, any> }) => {
+              const row = (payload.new && Object.keys(payload.new).length ? payload.new : payload.old) || {};
+              // Only this sheet's rows (the week filter is server-side; scope +
+              // section + market are matched here).
+              if (row.section !== section || row.scope_day !== scope || row.market_id !== market) return;
+              const line = lines.get(row.line_key);
+              if (!line) return;
+              if (payload.eventType === 'DELETE') { line.status = 'todo'; line.worked = ''; line.actual = null; }
+              else { line.status = row.status; line.worked = row.worked_by || ''; line.actual = row.actual_qty ?? null; }
+              renderControl(line);
+              updateSummary();
+            },
+          )
+          .subscribe((st: string) => {
+            if (st === 'SUBSCRIBED') { stopPoll(); reconcile(); }
+            else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT' || st === 'CLOSED') { startPoll(); }
+          });
+        window.addEventListener('beforeunload', () => { try { sb.removeChannel(channel); } catch { /* noop */ } });
+      } catch { startPoll(); }
+    } else {
+      startPoll();
+    }
+
+    // Catch up whenever the crew returns to the tab.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reconcile();
+    });
+  }
+</script>
 </content>

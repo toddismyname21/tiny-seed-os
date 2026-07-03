@@ -104,18 +104,23 @@ const ADMIN_PREFIXES = ['/admin'];
 //
 // Prefix matching is SEGMENT-BOUNDARY exact (=== p OR startsWith(p + '/')) so
 // '/admin/handoff' never accidentally allows '/admin/handoffX'.
-// CREW v1 — ONLY the two zero-PII ops tools that are fully functional for crew.
-// The other pack pages (pick-pack, pack-sheet, harvest, labels, host-sheets,
-// stop-manifest, route-sheet, text-stop, substitutions, share-contents) load
-// member data through the RLS client and rely on the admin RLS bypass, so they
-// render EMPTY for a crew user (crew is not is_admin_caller). Rather than show
-// crew blank pages — or grant crew a broad member-table read that would leak
-// PII — they are intentionally EXCLUDED here. Handoff + cooler read the ops
-// tables crew CAN see via is_ops_caller() (migration 0068). Adding more pages
-// for crew is a deliberate follow-up needing per-page service-role/ops loaders.
+// CREW-allowed pack pages. Each is either fully PII-free for crew OR has been
+// deliberately wired with a service-role/ops-scoped loader so crew see the data
+// they need WITHOUT any member PII:
+//   • handoff + cooler — read the zero-PII ops tables via is_ops_caller() (0068).
+//   • pick-pack — the harvest/pack sheets load PER-CROP AGGREGATE demand through
+//     the service-role client (no member contact_name/email/phone rendered in
+//     any view; the make-ups banner's member names stay on the admin/staff-only
+//     RLS read, so they never reach crew), and the live check-off board is the
+//     is_ops_caller-gated pick_pack_progress table (migration 0069).
+// The OTHER pack pages (pack-sheet, harvest, labels, host-sheets, stop-manifest,
+// route-sheet, text-stop, substitutions, share-contents) still load member data
+// through the RLS client + admin bypass, so they render EMPTY for crew and stay
+// EXCLUDED until each gets its own PII-safe loader.
 const CREW_ALLOWED_PREFIXES = [
   '/admin/handoff',
   '/admin/cooler',
+  '/admin/pick-pack',
 ];
 
 // The crew home — where a crew user is sent from any non-allowlisted /admin page
