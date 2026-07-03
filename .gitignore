@@ -4,6 +4,18 @@
 *.xlsx
 *.docx
 
+# H-2A worker PII (passports, DOBs, profiles) — NEVER commit
+legal/h2a_worker_onboarding/workers_2026/
+
+# Secrets & credentials — NEVER commit
+config/google-sheets-credentials.json
+tinypm/.oauth_tokens/
+tinypm/.capability_tokens/
+SOCIAL_CREDENTIALS.md
+
+# Build/scan bloat
+repomix-output.xml
+
 # Downloaded web pages
 *.htm
 *_files/

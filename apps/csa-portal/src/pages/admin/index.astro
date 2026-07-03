@@ -12,7 +12,8 @@
  *      signups (last 7 days)
  *   2. Members by pickup location (table)
  *   3. Pending tasks — three callouts:
- *      a. Unfilled box content for the next pickup Wednesday
+ *      a. Box plan not set for the next pickup week (box_contents keyed on the
+ *         cycle Monday — week_date == week_starting — NOT the delivery Wed)
  *      b. Members stuck in onboarding > 3 days
  *      c. Churn-risk members (active but no auth.users.last_sign_in_at
  *         within 30 days). NOTE: We can't read auth.users from RLS-scoped
@@ -31,6 +32,7 @@ import Card from '../../components/Card.astro';
 import { DISPLAY_ORDER, countByBucket, type MemberShareRow } from '../../lib/share-buckets';
 import { todayET, todayWeekdayET } from '../../lib/delivery';
 import { resolveWeekSetup, upcomingSetupWeek } from '../../lib/week-setup';
+import { mondayOfWeek, currentDeliveryWeek, resolveCycle } from '../../lib/cycle';
 
 const supabase = Astro.locals.supabase;
 
@@ -59,7 +61,13 @@ const { data: todayRouteRows } = await supabase
   .limit(1)
   .overrideTypes<TodayRoute[], { merge: false }>();
 const todayRoute = todayRouteRows?.[0] ?? null;
-const isDeliveryDay = todayWeekday === 'Wed';
+// Delivery days run Tue (Lawrenceville), Wed (CSA stops + home delivery),
+// Sat (Bloomfield + Sewickley markets) and Sun (South Side Market) — the same
+// distribution days resolveCycle buckets into (cycle.ts §byDistributionDay).
+// The old Wed-only check hid the Tuesday CSA run and the Sat/Sun market runs
+// from this card, so on those days it wrongly showed "Not a delivery day".
+const DELIVERY_WEEKDAYS = new Set(['Tue', 'Wed', 'Sat', 'Sun']);
+const isDeliveryDay = DELIVERY_WEEKDAYS.has(todayWeekday);
 
 // ─────────────────────────────────────────────────────────────────────
 // Helpers
@@ -84,6 +92,10 @@ function upcomingWednesday(now: Date = new Date()): string {
 }
 
 const targetWeek = upcomingWednesday();
+// box_contents is keyed on the cycle MONDAY (week_date == week_starting), NOT
+// the delivery Wednesday. We keep the Wednesday for HUMAN display but query +
+// link on its Monday so the box-plan readiness check hits real rows.
+const targetWeekMonday = mondayOfWeek(targetWeek);
 const targetWeekPretty = new Intl.DateTimeFormat('en-US', {
   weekday: 'long', month: 'long', day: 'numeric',
   timeZone: 'America/New_York',
@@ -101,7 +113,7 @@ const [
   byShareTypeRes,
   byLocationRes,
   recentSignupsRes,
-  unfilledBoxRes,
+  boxPlanRes,
   stalledOnboardingRes,
   totalMembersRes,
 ] = await Promise.all([
@@ -115,9 +127,16 @@ const [
     .gte('created_at', sevenDaysAgo)
     .order('created_at', { ascending: false })
     .limit(10),
+  // Is THIS delivery week's box plan set? box_contents is keyed on the cycle
+  // MONDAY (week_date == week_starting — the same key resolveCycle, the
+  // share-contents sheet, and week-setup.ts all use), NOT the delivery
+  // Wednesday. The old query keyed on the Wednesday, matched ZERO rows every
+  // week, and fired a permanent false "unfilled boxes" alert. A HEAD count of
+  // any row for the Monday mirrors week-setup.ts's shared "box is set"
+  // definition, so the banner and this task can never disagree.
   supabase.from('box_contents')
-    .select('share_type', { count: 'exact', head: false })
-    .eq('week_date', targetWeek),
+    .select('id', { count: 'exact', head: true })
+    .eq('week_date', targetWeekMonday),
   supabase.from('members')
     .select('id, share_type, customer:customers(contact_name, email)')
     .eq('status', 'onboarding')
@@ -134,7 +153,8 @@ const totalCount = totalMembersRes.count ?? 0;
 // We bucket each active member into one of the granular display
 // groups defined in lib/share-buckets.ts (Summer Small Weekly, Summer
 // Large Bi-weekly Wk A, Add-on Weekly, etc.). The simple share_type
-// rollup is still kept around for the "unfilled boxes" task pill.
+// rollup (byShareType) is kept to gate the box-plan-missing task on
+// whether any active veg-box (summer_veg) members exist.
 type ShareBreakdownRow = {
   share_type: string;
   share_size: string | null;
@@ -186,6 +206,29 @@ for (const row of (byLocationRes.data ?? []) as unknown as LocationBreakdownRow[
 }
 const sortedLocations = Array.from(locationStats.values()).sort((a, b) => b.count - a.count);
 
+// ─── Home-delivery households (genuine home deliveries) ─────────────
+// The "Home deliveries" STAT CARD must show REAL home-delivery customers — not
+// every active member with a null pickup_location_id. That raw null-pickup
+// count (homeDeliveryCount above) is a catch-all that also sweeps in add-on
+// rows AND members with no pickup AND no delivery address, so it over-counts
+// (~36 vs the real ~11). The canonical source is resolveCycle for the CURRENT
+// delivery week: its 'home_delivery' byStop bucket is exactly the households
+// whose BOX is delivered home (delivery_address set, no pickup) — the SAME set
+// /admin/route-plan routes. We dedupe by customer_id to count households (one
+// stop each), matching the route planner's home-delivery stop count. NOTE: we
+// KEEP homeDeliveryCount unchanged for the "Members by pickup location" table +
+// its reconciliation footer, which intentionally counts ALL null-pickup rows so
+// the location sums reconcile to the active total. On resolver error we fall
+// back to that count so the card degrades to old behavior instead of crashing.
+let homeDeliveryStopCount = homeDeliveryCount;
+try {
+  const currentCycle = await resolveCycle(supabase, currentDeliveryWeek());
+  const homeStops = currentCycle.byStop.get('home_delivery') ?? [];
+  homeDeliveryStopCount = new Set(homeStops.map((m) => m.customer_id)).size;
+} catch (err) {
+  console.error('[admin/index] home-delivery resolveCycle failed:', (err as Error)?.message);
+}
+
 // ─── Recent signups ─────────────────────────────────────────────────
 type SignupRow = {
   id: string;
@@ -197,16 +240,18 @@ type SignupRow = {
 };
 const recentSignups = (recentSignupsRes.data ?? []) as unknown as SignupRow[];
 
-// ─── Unfilled box content for upcoming Wed ──────────────────────────
-// We expect box_contents rows for each ACTIVE share_type in production.
-// Anything missing → flag it for Todd.
-const expectedShareTypes = new Set(Array.from(byShareType.keys()));
-const filledShareTypes = new Set<string>();
-type BoxStub = { share_type: string };
-for (const row of (unfilledBoxRes.data ?? []) as BoxStub[]) {
-  filledShareTypes.add(row.share_type);
-}
-const unfilledShareTypes = Array.from(expectedShareTypes).filter((s) => !filledShareTypes.has(s));
+// ─── Box-plan readiness for the next pickup ─────────────────────────
+// The box plan lives in box_contents keyed on the cycle MONDAY (size-bucket
+// rows — small / large / family — read back by resolveCycle + the
+// share-contents sheet). "Unfilled" = NO box_contents rows for that Monday.
+// We only nag when there are active veg-box (summer_veg) members who actually
+// need a plan, so the alert stays quiet out of season instead of firing
+// forever. (Previously this compared member share_type ENUMS against
+// box_contents SIZE buckets on the wrong week key — it never matched, so it
+// flagged every share as unfilled on every load.)
+const boxPlanRowCount = boxPlanRes.count ?? 0;
+const hasVegBoxMembers = (byShareType.get('summer_veg') ?? 0) > 0;
+const boxPlanMissing = boxPlanRowCount === 0 && hasVegBoxMembers;
 
 // ─── Stalled onboarding ─────────────────────────────────────────────
 type StalledOnboardingRow = {
@@ -258,7 +303,7 @@ function shareLabel(s: string): string { return SHARE_LABEL[s] ?? s; }
 
 // Pending-task pill count for header
 const pendingTaskCount =
-  unfilledShareTypes.length + stalledOnboarding.length + (churnRiskCount > 0 ? 1 : 0);
+  (boxPlanMissing ? 1 : 0) + stalledOnboarding.length + (churnRiskCount > 0 ? 1 : 0);
 ---
 
 <AdminShell
@@ -381,9 +426,9 @@ const pendingTaskCount =
           Home deliveries
         </div>
         <div class="mt-1 font-display text-3xl font-bold text-ts-text tabular-nums sm:text-4xl">
-          {homeDeliveryCount}
+          {homeDeliveryStopCount}
         </div>
-        <div class="mt-1 text-xs text-ts-text-secondary">active</div>
+        <div class="mt-1 text-xs text-ts-text-secondary">households on the route</div>
       </Card>
     </div>
   </section>
@@ -411,7 +456,7 @@ const pendingTaskCount =
                 No route created for today yet
               </p>
               <p class="mt-1 text-sm text-ts-text-secondary">
-                Wednesday is a delivery day. Open the Route page to auto-seed stops.
+                {DAY_LONG[todayWeekday] ?? todayWeekday} is a delivery day. Open the Route page to auto-seed stops.
               </p>
             </>
           ) : (
@@ -420,7 +465,7 @@ const pendingTaskCount =
                 Not a delivery day
               </p>
               <p class="mt-1 text-sm text-ts-text-muted">
-                Routes run on Wednesdays. View past routes via the Route page.
+                Routes run Tuesday, Wednesday, Saturday, and Sunday. View past routes via the Route page.
               </p>
             </>
           )}
@@ -515,19 +560,19 @@ const pendingTaskCount =
       </Card>
     ) : (
       <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-        {unfilledShareTypes.length > 0 && (
+        {boxPlanMissing && (
           <Card tone="warning" padding="md" elevation="sm">
             <div class="flex items-start gap-3">
               <span class="text-2xl" aria-hidden="true">📦</span>
               <div class="min-w-0 flex-1">
                 <p class="font-semibold text-ts-text">
-                  Unfilled boxes for {targetWeekPretty}
+                  Box plan not set for {targetWeekPretty}
                 </p>
                 <p class="mt-1 text-sm text-ts-text-secondary">
-                  {unfilledShareTypes.map((s) => shareLabel(s)).join(', ')}
+                  No box contents saved for this pickup yet.
                 </p>
                 <a
-                  href={`/admin/box-contents?week=${targetWeek}`}
+                  href={`/admin/share-contents?week=${targetWeekMonday}`}
                   class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-ts-warning hover:underline"
                 >
                   Fill now <span aria-hidden="true">→</span>
