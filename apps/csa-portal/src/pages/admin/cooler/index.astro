@@ -1,0 +1,781 @@
+---
+/**
+ * /admin/cooler            → THE COOLER BOARD (move list first, board second).
+ * /admin/cooler?lang=es    → same, in Spanish.
+ *
+ * The pack crew needs to know what's in the coolers and, above all, WHAT TO MOVE
+ * and WHERE. The farm is always reorganizing, so this is a MOVE LIST, not a map
+ * the crew has to babysit. Design is docs/COOLER_LAYOUT.md ("Design approach for
+ * the board (v1)" + the RESOLVED open items + Todd's "Key operating rule").
+ *
+ * Model (docs/COOLER_LAYOUT.md):
+ *   - LOGICAL PALLETS, one per destination (each market / each wholesale order /
+ *     CSA / other) — NOT physical slot positions.
+ *   - ZONES, not 22 numbered slots: ph_accessible · ph_far · barn · van_overflow
+ *     (van overflow = a loose short-term list, no slots).
+ *   - Each pallet: label, type, zone, date_in (FIFO clock), optional 🔴 move-it
+ *     (+ aging/surplus/customer reason), status active/out.
+ *
+ * Information hierarchy:
+ *   1. THE MOVE LIST — computed, glanceable ("what do I move now, and where?"):
+ *      • 🔴 move-it pallets NOT in an accessible zone → restage forward.
+ *      • FIFO: the oldest active pallet, when it's stuck in ph_far/barn → send next.
+ *      • 🔵 CSA-in-Barn-by-Tuesday (Sun/Mon/Tue, no active CSA pallet in the barn).
+ *      • 🟠 Friday reminder (Thu/Fri): keep accessible space for weekend returns.
+ *      • 🟢 Weekend sequencing note (Thu–Sun): informational (Sewickley-Sat →
+ *        South-Side-Sun is expected, not a blocked-slot alarm).
+ *      Calm empty state when nothing needs moving.
+ *   2. THE BOARD — active pallets grouped by the 4 zones. Van overflow renders as
+ *      a loose list with a "bring back / send out soon" nudge.
+ *
+ * Actions are one-tap same-origin POSTs (styled inline confirm for mark-out /
+ * delete — NEVER native confirm()). All dynamic content is rendered via Astro
+ * expressions (auto-escaped); no innerHTML is built from user data.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import Badge from '../../../components/Badge.astro';
+import { todayET, todayWeekdayET } from '../../../lib/delivery';
+import { prettyShortDate } from '../../../lib/cycle';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+
+/* ── Language ────────────────────────────────────────────────────────────── */
+type Lang = 'en' | 'es';
+function parseLang(v: string | null): Lang {
+  return v === 'es' ? 'es' : 'en';
+}
+const lang = parseLang(Astro.url.searchParams.get('lang'));
+
+const STRINGS = {
+  en: {
+    pageTitle: 'Cooler board',
+    subtitle: 'What to move, and where — coolers at a glance',
+    langToggle: 'Español',
+    // Move list
+    moveHeading: 'Move list',
+    moveNone: 'Nothing to move right now',
+    moveNoneSub: 'Every pallet is where it needs to be. Check back as the day moves.',
+    restageForward: 'Restage forward',
+    restageForwardSub: 'flagged move-it but not in an accessible zone',
+    oldestNext: 'Oldest — send next',
+    oldestNextSub: 'FIFO: the oldest pallet is tucked in the back',
+    csaBarnTitle: 'Get the CSA pallet into the Barn cooler before Tuesday pack',
+    csaBarnSub: 'Todd’s rule: CSA items must be in the Barn cooler by Tuesday.',
+    fridayTitle: 'Keep accessible space open for weekend market returns',
+    fridaySub: 'Friday: PH-1/2/3 stay clear for Saturday/Sunday returns to sort Monday.',
+    weekendTitle: 'Weekend sequencing — this is expected, not a conflict',
+    weekendSub: 'Sewickley leaves Saturday, which clears space for South Side on Sunday.',
+    // Board
+    boardHeading: 'The board',
+    addPallet: '➕ Add pallet',
+    addTitle: 'Add a pallet',
+    zoneEmpty: 'No pallets here',
+    vanNudge: 'Loose overflow — bring these back in or send them out soon.',
+    // Pallet card / actions
+    inSince: 'in since',
+    day: 'day',
+    days: 'days',
+    moveTo: 'Move to',
+    flag: '🔴 Flag move-it',
+    moveItChip: 'move-it',
+    unflag: 'Clear move-it',
+    reason: 'Reason',
+    reasonAging: 'aging',
+    reasonSurplus: 'surplus',
+    reasonCustomer: 'customer',
+    markOut: '✓ Mark out',
+    outConfirm: 'Mark this pallet out (shipped / emptied)?',
+    outYes: 'Yes, mark out',
+    edit: '✏️ Edit',
+    del: '🗑 Delete',
+    delConfirm: 'Delete this pallet? This can’t be undone.',
+    delYes: 'Yes, delete',
+    cancel: 'Cancel',
+    save: 'Save',
+    label: 'Destination label',
+    labelHint: 'e.g. Bloomfield market · Wholesale — Legume · CSA',
+    type: 'Type',
+    zone: 'Zone',
+    dateIn: 'Date in',
+    notes: 'Notes',
+    typeMarket: 'Market',
+    typeWholesale: 'Wholesale',
+    typeCsa: 'CSA',
+    typeOther: 'Other',
+    zonePhAccessible: 'Pack House — accessible',
+    zonePhFar: 'Pack House — far corners',
+    zoneBarn: 'Barn cooler',
+    zoneVan: 'Van overflow',
+    moveItOn: 'Flag as move-it now',
+    // Banners
+    okSaved: 'Pallet updated.',
+    okAdded: 'Pallet added.',
+    okMoved: 'Pallet moved.',
+    okFlagged: 'Move-it flag updated.',
+    okOut: 'Pallet marked out.',
+    okDeleted: 'Pallet deleted.',
+    errGeneric: 'Something went wrong. Please try again.',
+  },
+  es: {
+    pageTitle: 'Tablero de enfriadores',
+    subtitle: 'Qué mover y a dónde — enfriadores de un vistazo',
+    langToggle: 'English',
+    moveHeading: 'Lista de movimientos',
+    moveNone: 'Nada que mover por ahora',
+    moveNoneSub: 'Cada tarima está donde debe. Revisa de nuevo durante el día.',
+    restageForward: 'Mover al frente',
+    restageForwardSub: 'marcada para mover pero no en una zona accesible',
+    oldestNext: 'La más vieja — sale primero',
+    oldestNextSub: 'PEPS: la tarima más vieja está guardada al fondo',
+    csaBarnTitle: 'Mete la tarima de CSA al enfriador del granero antes del martes',
+    csaBarnSub: 'Regla de Todd: lo de CSA debe estar en el granero para el martes.',
+    fridayTitle: 'Deja espacio accesible libre para devoluciones del mercado',
+    fridaySub: 'Viernes: PH-1/2/3 quedan libres para las devoluciones del sábado/domingo.',
+    weekendTitle: 'Secuencia de fin de semana — es lo esperado, no un conflicto',
+    weekendSub: 'Sewickley sale el sábado, lo que libera espacio para South Side el domingo.',
+    boardHeading: 'El tablero',
+    addPallet: '➕ Agregar tarima',
+    addTitle: 'Agregar una tarima',
+    zoneEmpty: 'No hay tarimas aquí',
+    vanNudge: 'Sobrante suelto — regrésalas o mándalas pronto.',
+    inSince: 'aquí desde',
+    day: 'día',
+    days: 'días',
+    moveTo: 'Mover a',
+    flag: '🔴 Marcar mover',
+    moveItChip: 'mover',
+    unflag: 'Quitar marca',
+    reason: 'Motivo',
+    reasonAging: 'envejeciendo',
+    reasonSurplus: 'excedente',
+    reasonCustomer: 'cliente',
+    markOut: '✓ Marcar salida',
+    outConfirm: '¿Marcar esta tarima como salida (enviada / vaciada)?',
+    outYes: 'Sí, marcar salida',
+    edit: '✏️ Editar',
+    del: '🗑 Eliminar',
+    delConfirm: '¿Eliminar esta tarima? No se puede deshacer.',
+    delYes: 'Sí, eliminar',
+    cancel: 'Cancelar',
+    save: 'Guardar',
+    label: 'Nombre del destino',
+    labelHint: 'ej. Mercado Bloomfield · Mayoreo — Legume · CSA',
+    type: 'Tipo',
+    zone: 'Zona',
+    dateIn: 'Fecha de entrada',
+    notes: 'Notas',
+    typeMarket: 'Mercado',
+    typeWholesale: 'Mayoreo',
+    typeCsa: 'CSA',
+    typeOther: 'Otro',
+    zonePhAccessible: 'Almacén — accesible',
+    zonePhFar: 'Almacén — esquinas lejanas',
+    zoneBarn: 'Enfriador del granero',
+    zoneVan: 'Sobrante en la van',
+    moveItOn: 'Marcar para mover ahora',
+    okSaved: 'Tarima actualizada.',
+    okAdded: 'Tarima agregada.',
+    okMoved: 'Tarima movida.',
+    okFlagged: 'Marca de mover actualizada.',
+    okOut: 'Tarima marcada como salida.',
+    okDeleted: 'Tarima eliminada.',
+    errGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+  },
+} as const;
+const t = STRINGS[lang];
+
+const toggleHref = lang === 'es' ? '/admin/cooler' : '/admin/cooler?lang=es';
+const isEs = lang === 'es';
+
+/* ── Banner (ok/error) ───────────────────────────────────────────────────── */
+const ok = Astro.url.searchParams.get('ok');
+const errParam = Astro.url.searchParams.get('error');
+let banner: { tone: 'ok' | 'err'; msg: string } | null = null;
+if (ok === 'saved') banner = { tone: 'ok', msg: t.okSaved };
+else if (ok === 'added') banner = { tone: 'ok', msg: t.okAdded };
+else if (ok === 'moved') banner = { tone: 'ok', msg: t.okMoved };
+else if (ok === 'flagged') banner = { tone: 'ok', msg: t.okFlagged };
+else if (ok === 'out') banner = { tone: 'ok', msg: t.okOut };
+else if (ok === 'deleted') banner = { tone: 'ok', msg: t.okDeleted };
+if (errParam) banner = { tone: 'err', msg: t.errGeneric };
+
+/* ── Date helpers (ET-anchored; never naive local) ──────────────────────── */
+const today = todayET();
+const weekday = todayWeekdayET(); // 'Sun'..'Sat'
+/** Whole days between two YYYY-MM-DD dates, anchored at noon UTC (DST-safe). */
+function ageDays(fromYMD: string, toYMD: string): number {
+  const ms = Date.parse(`${toYMD}T12:00:00Z`) - Date.parse(`${fromYMD}T12:00:00Z`);
+  return Math.max(0, Math.round(ms / 86_400_000));
+}
+function ageLabel(n: number): string {
+  return `${n} ${n === 1 ? t.day : t.days}`;
+}
+
+/* ── Load active pallets ─────────────────────────────────────────────────── */
+type PalletType = 'market' | 'wholesale' | 'csa' | 'other';
+type ZoneKey = 'ph_accessible' | 'ph_far' | 'barn' | 'van_overflow';
+type MoveReason = 'aging' | 'surplus' | 'customer';
+interface PalletRow {
+  id: string;
+  label: string;
+  pallet_type: PalletType;
+  zone: ZoneKey;
+  date_in: string;
+  move_it: boolean;
+  move_it_reason: MoveReason | null;
+  notes: string | null;
+}
+const { data: rows, error: rowsErr } = await supabase
+  .from('cooler_pallets')
+  .select('id, label, pallet_type, zone, date_in, move_it, move_it_reason, notes')
+  .eq('status', 'active')
+  .order('date_in', { ascending: true })
+  .order('created_at', { ascending: true })
+  .overrideTypes<PalletRow[], { merge: false }>();
+if (rowsErr) {
+  throw new Error(`cooler: pallets fetch failed: ${rowsErr.message}`);
+}
+const pallets = (rows ?? []).map((p) => ({ ...p, age: ageDays(p.date_in, today) }));
+type Pallet = (typeof pallets)[number];
+
+/* ── Zone + type + reason display metadata ──────────────────────────────── */
+const ACCESSIBLE: ReadonlySet<ZoneKey> = new Set<ZoneKey>(['ph_accessible', 'van_overflow']);
+const zoneLabels: Record<ZoneKey, string> = {
+  ph_accessible: t.zonePhAccessible,
+  ph_far: t.zonePhFar,
+  barn: t.zoneBarn,
+  van_overflow: t.zoneVan,
+};
+const zoneIcons: Record<ZoneKey, string> = {
+  ph_accessible: '🚪',
+  ph_far: '📦',
+  barn: '🛖',
+  van_overflow: '🚐',
+};
+const zoneOrder: ZoneKey[] = ['ph_accessible', 'ph_far', 'barn', 'van_overflow'];
+const typeLabels: Record<PalletType, string> = {
+  market: t.typeMarket,
+  wholesale: t.typeWholesale,
+  csa: t.typeCsa,
+  other: t.typeOther,
+};
+const typeBadge: Record<PalletType, 'green' | 'sky' | 'magenta' | 'gray'> = {
+  csa: 'green',
+  market: 'sky',
+  wholesale: 'magenta',
+  other: 'gray',
+};
+const reasonLabels: Record<MoveReason, string> = {
+  aging: t.reasonAging,
+  surplus: t.reasonSurplus,
+  customer: t.reasonCustomer,
+};
+
+/* ── Compute THE MOVE LIST ───────────────────────────────────────────────
+ * Each alert is { tone, icon, title, detail, pallets? }. Ordered most-urgent
+ * first. "Actionable" alerts (restage / CSA-by-Tue / FIFO) decide the empty
+ * state; the Friday + weekend notes are ambient, day-driven reminders. */
+type AlertTone = 'danger' | 'info' | 'warning' | 'primary';
+interface MoveAlert {
+  key: string;
+  tone: AlertTone;
+  icon: string;
+  title: string;
+  detail: string;
+  pallets: Pallet[];
+}
+const alerts: MoveAlert[] = [];
+
+// A. 🔴 move-it pallets NOT in an accessible zone → restage forward.
+const restage = pallets.filter((p) => p.move_it && !ACCESSIBLE.has(p.zone));
+if (restage.length > 0) {
+  alerts.push({
+    key: 'restage',
+    tone: 'danger',
+    icon: '🔴',
+    title: t.restageForward,
+    detail: t.restageForwardSub,
+    pallets: restage,
+  });
+}
+
+// B. FIFO: the oldest active pallet, surfaced when it's stuck in ph_far/barn
+//    (already-accessible oldest needs no move). Skip if it's already in the
+//    restage list above (no duplicate line).
+const restageIds = new Set(restage.map((p) => p.id));
+const oldest = pallets[0]; // sorted date_in asc, created_at asc
+if (
+  oldest &&
+  (oldest.zone === 'ph_far' || oldest.zone === 'barn') &&
+  !restageIds.has(oldest.id)
+) {
+  // Include any pallets tied on the same (oldest) date_in that are also stuck.
+  const oldestStuck = pallets.filter(
+    (p) => p.date_in === oldest.date_in &&
+      (p.zone === 'ph_far' || p.zone === 'barn') &&
+      !restageIds.has(p.id),
+  );
+  alerts.push({
+    key: 'fifo',
+    tone: 'warning',
+    icon: '📤',
+    title: t.oldestNext,
+    detail: t.oldestNextSub,
+    pallets: oldestStuck,
+  });
+}
+
+// C. 🔵 CSA-in-Barn-by-Tuesday: Sun/Mon/Tue + no active CSA pallet in the barn.
+const csaInBarn = pallets.some((p) => p.pallet_type === 'csa' && p.zone === 'barn');
+if (['Sun', 'Mon', 'Tue'].includes(weekday) && !csaInBarn) {
+  alerts.push({
+    key: 'csa-barn',
+    tone: 'info',
+    icon: '🔵',
+    title: t.csaBarnTitle,
+    detail: t.csaBarnSub,
+    pallets: pallets.filter((p) => p.pallet_type === 'csa'), // CSA pallets to relocate, if any
+  });
+}
+
+// D. 🟠 Friday reminder: Thu/Fri → keep accessible space open for returns.
+if (['Thu', 'Fri'].includes(weekday)) {
+  alerts.push({
+    key: 'friday',
+    tone: 'warning',
+    icon: '🟠',
+    title: t.fridayTitle,
+    detail: t.fridaySub,
+    pallets: [],
+  });
+}
+
+// E. 🟢 Weekend sequencing note (Thu–Sun): informational, not a conflict.
+if (['Thu', 'Fri', 'Sat', 'Sun'].includes(weekday)) {
+  alerts.push({
+    key: 'weekend',
+    tone: 'primary',
+    icon: '🟢',
+    title: t.weekendTitle,
+    detail: t.weekendSub,
+    pallets: [],
+  });
+}
+
+const toneClasses: Record<AlertTone, string> = {
+  danger: 'border-ts-danger/40 bg-ts-danger/5',
+  info: 'border-ts-info/40 bg-ts-info/5',
+  warning: 'border-ts-warning/40 bg-ts-warning/5',
+  primary: 'border-ts-primary/30 bg-ts-primary/5',
+};
+const toneText: Record<AlertTone, string> = {
+  danger: 'text-ts-danger',
+  info: 'text-ts-info',
+  warning: 'text-ts-warning',
+  primary: 'text-ts-primary',
+};
+
+/* ── Group pallets by zone for the board ─────────────────────────────────── */
+const byZone: Record<ZoneKey, Pallet[]> = {
+  ph_accessible: [],
+  ph_far: [],
+  barn: [],
+  van_overflow: [],
+};
+for (const p of pallets) byZone[p.zone].push(p);
+
+/* ── Shared field classes (mirror handoff/new.astro) ─────────────────────── */
+const inputClass =
+  'h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text transition-colors placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary';
+const labelClass = 'text-sm font-semibold text-ts-text';
+const selectClass =
+  'h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary';
+const zoneOpts = zoneOrder;
+const typeOpts: PalletType[] = ['market', 'wholesale', 'csa', 'other'];
+---
+
+<AdminShell
+  title={t.pageTitle}
+  subtitle={t.subtitle}
+  pageTitle={`${t.pageTitle} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <a
+      href={toggleHref}
+      class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🌐 {t.langToggle}
+    </a>
+  </Fragment>
+
+  {banner && (
+    <div
+      role="status"
+      class:list={[
+        'flex items-center gap-2 rounded-ts-md border px-4 py-3 text-sm font-medium',
+        banner.tone === 'ok' && 'border-ts-primary/30 bg-ts-primary/5 text-ts-primary',
+        banner.tone === 'err' && 'border-ts-danger/40 bg-ts-danger/10 text-ts-danger',
+      ]}
+    >
+      <span aria-hidden="true">{banner.tone === 'ok' ? '✓' : '⚠'}</span>
+      <span>{banner.msg}</span>
+    </div>
+  )}
+
+  {/* ═══ 1. THE MOVE LIST (top — the home screen) ═══ */}
+  <section aria-labelledby="cooler-move-heading" class="flex flex-col gap-3">
+    <div class="flex items-center justify-between gap-3">
+      <h2 id="cooler-move-heading" class="font-display text-lg font-bold text-ts-text sm:text-xl">
+        {t.moveHeading}
+      </h2>
+      {alerts.length > 0 && (
+        <Badge variant={alerts.some((a) => a.tone === 'danger') ? 'red' : 'amber'} size="sm">
+          {alerts.length}
+        </Badge>
+      )}
+    </div>
+
+    {alerts.length === 0 ? (
+      <Card tone="primary" padding="lg" elevation="sm">
+        <div class="flex items-start gap-3">
+          <span class="text-2xl" aria-hidden="true">✅</span>
+          <div>
+            <p class="font-semibold text-ts-text">{t.moveNone}</p>
+            <p class="mt-0.5 text-sm text-ts-text-secondary">{t.moveNoneSub}</p>
+          </div>
+        </div>
+      </Card>
+    ) : (
+      <ul class="flex flex-col gap-2.5">
+        {alerts.map((a) => (
+          <li class:list={['rounded-ts-lg border p-4 shadow-ts-sm', toneClasses[a.tone]]}>
+            <div class="flex items-start gap-3">
+              <span class="text-xl leading-none" aria-hidden="true">{a.icon}</span>
+              <div class="min-w-0 flex-1">
+                <p class:list={['text-base font-bold leading-snug', toneText[a.tone]]}>{a.title}</p>
+                <p class="mt-0.5 text-sm text-ts-text-secondary">{a.detail}</p>
+                {a.pallets.length > 0 && (
+                  <ul class="mt-2 flex flex-wrap gap-2">
+                    {a.pallets.map((p) => (
+                      <li class="inline-flex items-baseline gap-1.5 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2.5 py-1 text-sm">
+                        <span class="font-semibold text-ts-text">{p.label}</span>
+                        <span class="text-xs text-ts-text-secondary">
+                          {zoneLabels[p.zone]} · {ageLabel(p.age)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  {/* ═══ ADD PALLET (prominent disclosure) ═══ */}
+  <section aria-label={t.addTitle}>
+    <details class="group rounded-ts-lg border border-ts-primary/30 bg-ts-primary/5">
+      <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-ts-lg px-4 py-3 font-display text-base font-bold text-ts-primary transition-colors hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">
+        <span>{t.addPallet}</span>
+        <span class="transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <form
+        method="POST"
+        action="/api/admin/cooler/save"
+        class="flex flex-col gap-4 border-t border-ts-primary/20 p-4 sm:p-5"
+      >
+        {isEs && <input type="hidden" name="lang" value="es" />}
+        <div class="flex flex-col gap-1.5">
+          <label class={labelClass} for="add_label">{t.label}</label>
+          <input class={inputClass} type="text" id="add_label" name="label" maxlength="120" required placeholder={t.labelHint} />
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="add_type">{t.type}</label>
+            <select class={selectClass} id="add_type" name="pallet_type" required>
+              {typeOpts.map((v) => <option value={v}>{typeLabels[v]}</option>)}
+            </select>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="add_zone">{t.zone}</label>
+            <select class={selectClass} id="add_zone" name="zone">
+              {zoneOpts.map((v) => <option value={v}>{zoneLabels[v]}</option>)}
+            </select>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="add_date">{t.dateIn}</label>
+            <input class={inputClass} type="date" id="add_date" name="date_in" value={today} />
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class={labelClass} for="add_notes">{t.notes}</label>
+          <input class={inputClass} type="text" id="add_notes" name="notes" maxlength="2000" />
+        </div>
+        <label class="flex min-h-11 items-center gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3">
+          <input type="checkbox" name="move_it" value="true" class="h-5 w-5 rounded border-ts-border text-ts-primary focus:outline-2 focus:outline-offset-2 focus:outline-ts-primary" data-add-moveit />
+          <span class={labelClass}>{t.moveItOn}</span>
+        </label>
+        <div class="flex flex-col gap-1.5" data-add-reason hidden>
+          <label class={labelClass} for="add_reason">{t.reason}</label>
+          <select class={selectClass} id="add_reason" name="move_it_reason">
+            <option value="aging">{t.reasonAging}</option>
+            <option value="surplus">{t.reasonSurplus}</option>
+            <option value="customer">{t.reasonCustomer}</option>
+          </select>
+        </div>
+        <button
+          type="submit"
+          class="inline-flex h-12 w-full items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-bold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99] sm:w-auto"
+        >
+          {t.addPallet}
+        </button>
+      </form>
+    </details>
+  </section>
+
+  {/* ═══ 2. THE BOARD — grouped by zone ═══ */}
+  <section aria-labelledby="cooler-board-heading" class="flex flex-col gap-4">
+    <h2 id="cooler-board-heading" class="font-display text-lg font-bold text-ts-text sm:text-xl">
+      {t.boardHeading}
+    </h2>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {zoneOrder.map((zk) => {
+        const list = byZone[zk];
+        const isVan = zk === 'van_overflow';
+        return (
+          <div class:list={[
+            'flex flex-col gap-3 rounded-ts-lg border p-4',
+            isVan ? 'border-dashed border-ts-border bg-ts-bg-muted/20' : 'border-ts-border bg-ts-bg-surface',
+          ]}>
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="flex items-center gap-2 font-display text-base font-bold text-ts-text">
+                <span aria-hidden="true">{zoneIcons[zk]}</span>
+                {zoneLabels[zk]}
+              </h3>
+              <Badge variant="gray" size="sm">{list.length}</Badge>
+            </div>
+            {isVan && list.length > 0 && (
+              <p class="rounded-ts-md border border-ts-warning/30 bg-ts-warning/5 px-3 py-2 text-xs font-medium text-ts-warning">
+                ⚠ {t.vanNudge}
+              </p>
+            )}
+
+            {list.length === 0 ? (
+              <p class="rounded-ts-md border border-dashed border-ts-border px-3 py-6 text-center text-sm text-ts-text-muted">
+                {t.zoneEmpty}
+              </p>
+            ) : (
+              <ul class="flex flex-col gap-3">
+                {list.map((p) => (
+                  <li class="rounded-ts-md border border-ts-border bg-ts-bg-base/40 p-3">
+                    {/* Header: label + type badge + move-it chip */}
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-semibold text-ts-text">{p.label}</span>
+                      <Badge variant={typeBadge[p.pallet_type]} size="xs" uppercase>{typeLabels[p.pallet_type]}</Badge>
+                      {p.move_it && (
+                        <Badge variant="red" size="xs" uppercase>
+                          🔴 {p.move_it_reason ? reasonLabels[p.move_it_reason] : t.moveItChip}
+                        </Badge>
+                      )}
+                    </div>
+                    <p class="mt-1 text-xs text-ts-text-secondary">
+                      {t.inSince} {prettyShortDate(p.date_in)} · {ageLabel(p.age)}
+                    </p>
+                    {p.notes && (
+                      <p class="mt-1 text-sm text-ts-text-secondary">{p.notes}</p>
+                    )}
+
+                    {/* Move-to zone buttons (one-tap) */}
+                    <div class="mt-2.5 flex flex-col gap-1.5">
+                      <span class="text-[11px] font-semibold uppercase tracking-wide text-ts-text-muted">{t.moveTo}</span>
+                      <div class="flex flex-wrap gap-1.5">
+                        {zoneOrder.filter((z) => z !== p.zone).map((z) => (
+                          <form method="POST" action="/api/admin/cooler/move" class="m-0">
+                            <input type="hidden" name="id" value={p.id} />
+                            <input type="hidden" name="zone" value={z} />
+                            {isEs && <input type="hidden" name="lang" value="es" />}
+                            <button
+                              type="submit"
+                              class="inline-flex min-h-11 items-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2.5 text-xs font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.98]"
+                            >
+                              {zoneIcons[z]} {zoneLabels[z]}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Flag / unflag move-it */}
+                    <div class="mt-2.5 flex flex-wrap items-end gap-2">
+                      {p.move_it ? (
+                        <form method="POST" action="/api/admin/cooler/flag" class="m-0">
+                          <input type="hidden" name="id" value={p.id} />
+                          {isEs && <input type="hidden" name="lang" value="es" />}
+                          <button
+                            type="submit"
+                            class="inline-flex min-h-11 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text-secondary transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.98]"
+                          >
+                            {t.unflag}
+                          </button>
+                        </form>
+                      ) : (
+                        <form method="POST" action="/api/admin/cooler/flag" class="m-0 flex items-end gap-2">
+                          <input type="hidden" name="id" value={p.id} />
+                          <input type="hidden" name="move_it" value="true" />
+                          {isEs && <input type="hidden" name="lang" value="es" />}
+                          <label class="flex flex-col gap-1">
+                            <span class="text-[11px] font-semibold uppercase tracking-wide text-ts-text-muted">{t.reason}</span>
+                            <select name="move_it_reason" class="h-11 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 text-xs text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" aria-label={t.reason}>
+                              <option value="aging">{t.reasonAging}</option>
+                              <option value="surplus">{t.reasonSurplus}</option>
+                              <option value="customer">{t.reasonCustomer}</option>
+                            </select>
+                          </label>
+                          <button
+                            type="submit"
+                            class="inline-flex min-h-11 items-center rounded-ts-md border border-ts-danger/40 bg-ts-danger/5 px-3 text-xs font-semibold text-ts-danger transition-colors hover:bg-ts-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.98]"
+                          >
+                            {t.flag}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+
+                    {/* Mark-out (inline confirm) + Delete (inline confirm) + Edit */}
+                    <div class="mt-2.5 flex flex-wrap items-center gap-2 border-t border-ts-border pt-2.5">
+                      {/* Mark out */}
+                      <form method="POST" action="/api/admin/cooler/retire" class="m-0" data-confirm-form>
+                        <input type="hidden" name="id" value={p.id} />
+                        {isEs && <input type="hidden" name="lang" value="es" />}
+                        <button
+                          type="button"
+                          data-confirm-trigger
+                          class="inline-flex min-h-11 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                        >
+                          {t.markOut}
+                        </button>
+                        <div data-confirm-panel hidden class="mt-1.5 flex flex-col gap-1.5 rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 p-2">
+                          <span class="text-xs font-medium text-ts-text">{t.outConfirm}</span>
+                          <div class="flex gap-1.5">
+                            <button type="submit" class="inline-flex min-h-11 flex-1 items-center justify-center rounded-ts-md bg-ts-primary px-3 text-xs font-semibold text-white transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.98]">{t.outYes}</button>
+                            <button type="button" data-confirm-cancel class="inline-flex min-h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">{t.cancel}</button>
+                          </div>
+                        </div>
+                      </form>
+
+                      {/* Delete */}
+                      <form method="POST" action="/api/admin/cooler/delete" class="m-0" data-confirm-form>
+                        <input type="hidden" name="id" value={p.id} />
+                        {isEs && <input type="hidden" name="lang" value="es" />}
+                        <button
+                          type="button"
+                          data-confirm-trigger
+                          class="inline-flex min-h-11 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text-secondary transition-colors hover:border-ts-danger/40 hover:text-ts-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                        >
+                          {t.del}
+                        </button>
+                        <div data-confirm-panel hidden class="mt-1.5 flex flex-col gap-1.5 rounded-ts-md border border-ts-danger/40 bg-ts-danger/5 p-2">
+                          <span class="text-xs font-medium text-ts-text">{t.delConfirm}</span>
+                          <div class="flex gap-1.5">
+                            <button type="submit" class="inline-flex min-h-11 flex-1 items-center justify-center rounded-ts-md bg-ts-danger px-3 text-xs font-semibold text-white transition-colors hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.98]">{t.delYes}</button>
+                            <button type="button" data-confirm-cancel class="inline-flex min-h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text-secondary transition-colors hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">{t.cancel}</button>
+                          </div>
+                        </div>
+                      </form>
+
+                      {/* Edit (label / type / zone / date / notes) */}
+                      <details class="group ml-auto">
+                        <summary class="inline-flex min-h-11 cursor-pointer list-none items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">
+                          {t.edit}
+                        </summary>
+                        <form method="POST" action="/api/admin/cooler/save" class="mt-2 flex flex-col gap-3 rounded-ts-md border border-ts-border bg-ts-bg-surface p-3">
+                          <input type="hidden" name="id" value={p.id} />
+                          {/* preserve current move-it state on a metadata edit */}
+                          {p.move_it && <input type="hidden" name="move_it" value="true" />}
+                          {p.move_it && p.move_it_reason && <input type="hidden" name="move_it_reason" value={p.move_it_reason} />}
+                          {isEs && <input type="hidden" name="lang" value="es" />}
+                          <div class="flex flex-col gap-1.5">
+                            <label class={labelClass}>{t.label}</label>
+                            <input class={inputClass} type="text" name="label" value={p.label} maxlength="120" required />
+                          </div>
+                          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div class="flex flex-col gap-1.5">
+                              <label class={labelClass}>{t.type}</label>
+                              <select class={selectClass} name="pallet_type">
+                                {typeOpts.map((v) => <option value={v} selected={v === p.pallet_type}>{typeLabels[v]}</option>)}
+                              </select>
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                              <label class={labelClass}>{t.zone}</label>
+                              <select class={selectClass} name="zone">
+                                {zoneOpts.map((v) => <option value={v} selected={v === p.zone}>{zoneLabels[v]}</option>)}
+                              </select>
+                            </div>
+                            <div class="flex flex-col gap-1.5">
+                              <label class={labelClass}>{t.dateIn}</label>
+                              <input class={inputClass} type="date" name="date_in" value={p.date_in} />
+                            </div>
+                          </div>
+                          <div class="flex flex-col gap-1.5">
+                            <label class={labelClass}>{t.notes}</label>
+                            <input class={inputClass} type="text" name="notes" value={p.notes ?? ''} maxlength="2000" />
+                          </div>
+                          <button type="submit" class="inline-flex min-h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99] sm:w-auto">{t.save}</button>
+                        </form>
+                      </details>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  </section>
+</AdminShell>
+
+<script>
+  /* ════════════════════════════════════════════════════════════════
+     Cooler board client behaviour — dependency-free.
+     1. Styled inline confirms for mark-out / delete (NO native confirm()).
+     2. Add-pallet: reveal the move-it reason select only when flagged.
+     Re-runs after Astro view transitions via astro:page-load.
+     ════════════════════════════════════════════════════════════════ */
+  function initCoolerBoard(): void {
+    /* ── Inline confirms ── */
+    document.querySelectorAll<HTMLElement>('[data-confirm-form]').forEach((form) => {
+      const trigger = form.querySelector<HTMLButtonElement>('[data-confirm-trigger]');
+      const panel = form.querySelector<HTMLElement>('[data-confirm-panel]');
+      const cancel = form.querySelector<HTMLButtonElement>('[data-confirm-cancel]');
+      if (!trigger || !panel || !cancel) return;
+      trigger.addEventListener('click', () => {
+        panel.hidden = false;
+        trigger.hidden = true;
+        panel.querySelector<HTMLButtonElement>('button[type="submit"]')?.focus();
+      });
+      cancel.addEventListener('click', () => {
+        panel.hidden = true;
+        trigger.hidden = false;
+        trigger.focus();
+      });
+    });
+
+    /* ── Add-pallet: move-it reason reveal ── */
+    const addMoveit = document.querySelector<HTMLInputElement>('[data-add-moveit]');
+    const addReason = document.querySelector<HTMLElement>('[data-add-reason]');
+    if (addMoveit && addReason) {
+      const sync = (): void => { addReason.hidden = !addMoveit.checked; };
+      addMoveit.addEventListener('change', sync);
+      sync();
+    }
+  }
+  initCoolerBoard();
+  document.addEventListener('astro:page-load', initCoolerBoard);
+</script>

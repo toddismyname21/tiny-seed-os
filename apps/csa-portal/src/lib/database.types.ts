@@ -1260,6 +1260,35 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['packhouse_open_items']['Row']>;
         Relationships: [];
       };
+      // Logical cooler pallets — one per destination (each market / wholesale
+      // order / CSA / other), migration 0067. Tracks zone (ph_accessible /
+      // ph_far / barn / van_overflow), a FIFO date_in, an optional 🔴 move_it
+      // flag (+ aging/surplus/customer reason), and active/out status. The
+      // board is a MOVE LIST, not a physical map — no per-slot tracking. move_it
+      // is kept queryable for a future CSA-box-fill / wholesale-availability
+      // hook. Admin/staff-only RLS (is_admin_caller).
+      cooler_pallets: {
+        Row: {
+          id: string;
+          label: string;
+          pallet_type: 'market' | 'wholesale' | 'csa' | 'other';
+          zone: 'ph_accessible' | 'ph_far' | 'barn' | 'van_overflow';
+          date_in: string;
+          move_it: boolean;
+          move_it_reason: 'aging' | 'surplus' | 'customer' | null;
+          status: 'active' | 'out';
+          notes: string | null;
+          out_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          label: string;
+          pallet_type: 'market' | 'wholesale' | 'csa' | 'other';
+        } & Partial<Database['public']['Tables']['cooler_pallets']['Row']>;
+        Update: Partial<Database['public']['Tables']['cooler_pallets']['Row']>;
+        Relationships: [];
+      };
     };
     Views: {
       member_flex_balance: {
