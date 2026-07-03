@@ -1,0 +1,545 @@
+---
+/**
+ * /admin/wholesale/orders/new — MANUAL wholesale order entry (create + edit).
+ *
+ * WHY (Todd 2026-07-02): there was no way to key in a wholesale order a chef
+ * phoned / texted / emailed, or to add one past the Tuesday 7 AM cutoff. The
+ * chef self-serve token portal, the vendor-PDF importer, and a read-only orders
+ * view all exist — but no manual single-order entry. This is it.
+ *
+ * Two modes, one page:
+ *   - CREATE (default): pick a chef account + delivery date, build line items
+ *     (catalog products auto-priced at the account's tier discount, or custom
+ *     off-catalog items), POST to /api/admin/wholesale/orders/create.
+ *   - EDIT (?edit=<order_id>): loads an existing source='manual' order and its
+ *     items, POSTs to /update. Chef-portal / import orders are NOT editable here.
+ *
+ * All pricing is display-only in the browser; the server (RPC
+ * place_wholesale_order_admin, 0065) re-computes authoritative prices. All
+ * interactivity is inline vanilla JS doing same-origin POSTs; no framework.
+ * Service-role reads happen here at SSR (middleware admin-gated).
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import {
+  nextDeliveryWednesday, prettyDeliveryDate, isYMD, CUTOFF_LABEL,
+} from '../../../../lib/wholesale-order';
+
+export const prerender = false;
+
+const url = Astro.url;
+const dateParam = url.searchParams.get('date') ?? '';
+const editParam = url.searchParams.get('edit') ?? '';
+const editOrderId = /^[0-9a-fA-F-]{36}$/.test(editParam) ? editParam : '';
+
+// ─── Pricing tiers (id → { name, discount_pct }) ────────────────────
+type TierRow = { id: string; name: string; discount_pct: number };
+const { data: tiersData } = await supabaseAdmin
+  .from('wholesale_pricing_tiers')
+  .select('id, name, discount_pct');
+const tiers = (tiersData ?? []) as TierRow[];
+const tierById = new Map<string, TierRow>();
+for (const t of tiers) tierById.set(t.id, t);
+
+// ─── All chef accounts (staff picks one) ────────────────────────────
+type AccountRow = {
+  id: string;
+  restaurant_name: string;
+  status: string | null;
+  pricing_tier_id: string | null;
+};
+const { data: accountsData } = await supabaseAdmin
+  .from('wholesale_accounts')
+  .select('id, restaurant_name, status, pricing_tier_id')
+  .order('restaurant_name', { ascending: true });
+const accounts = (accountsData ?? []) as AccountRow[];
+
+function discountFor(a: AccountRow): number {
+  const t = a.pricing_tier_id ? tierById.get(a.pricing_tier_id) : undefined;
+  return t ? Number(t.discount_pct) || 0 : 0;
+}
+function tierLabel(a: AccountRow): string {
+  const t = a.pricing_tier_id ? tierById.get(a.pricing_tier_id) : undefined;
+  if (!t) return ' · no tier (list price)';
+  const disc = Number(t.discount_pct) || 0;
+  return disc > 0 ? ` · ${t.name} (${disc}% off)` : ` · ${t.name}`;
+}
+
+// ─── Active catalog products (row selects are built from these) ─────
+type ProductRow = { id: string; name: string; unit: string; price_cents: number };
+const { data: productsData } = await supabaseAdmin
+  .from('wholesale_products')
+  .select('id, name, unit, price_cents')
+  .eq('is_active', true)
+  .order('sort_order', { ascending: true })
+  .order('name', { ascending: true });
+const products = (productsData ?? []) as ProductRow[];
+
+// ─── EDIT mode: load the order + its items (must be source='manual') ─
+type EditLine = { product_id: string | null; product_name: string; qty: number; price_cents: number };
+let editData: {
+  order_id: string;
+  account_id: string | null;
+  delivery_date: string;
+  status: string;
+  lines: EditLine[];
+} | null = null;
+let editError = '';
+
+if (editOrderId) {
+  const { data: ord } = await supabaseAdmin
+    .from('wholesale_orders')
+    .select('id, account_id, delivery_date, status, source')
+    .eq('id', editOrderId)
+    .maybeSingle<{ id: string; account_id: string | null; delivery_date: string; status: string; source: string | null }>();
+  if (!ord) {
+    editError = 'That order could not be found.';
+  } else if (ord.source !== 'manual') {
+    editError = 'Only manually-entered orders can be edited here. This one came from the chef portal or an import.';
+  } else {
+    const { data: itemRows } = await supabaseAdmin
+      .from('wholesale_order_items')
+      .select('product_id, product_name, qty, unit_price_cents')
+      .eq('order_id', ord.id);
+    const lines: EditLine[] = (itemRows ?? []).map((r: any) => ({
+      product_id: (r.product_id ?? null) as string | null,
+      product_name: (r.product_name ?? '') as string,
+      qty: Number(r.qty) || 0,
+      price_cents: Number(r.unit_price_cents) || 0,
+    }));
+    editData = {
+      order_id: ord.id,
+      account_id: ord.account_id,
+      delivery_date: ord.delivery_date,
+      status: ord.status,
+      lines,
+    };
+  }
+}
+
+// ─── Defaults / mode ────────────────────────────────────────────────
+const isEdit = !!editData;
+const selectedAccountId = editData?.account_id ?? '';
+const selectedDate =
+  editData?.delivery_date ??
+  (isYMD(dateParam) ? dateParam : nextDeliveryWednesday());
+const backDate = isYMD(dateParam) ? dateParam : selectedDate;
+
+// JSON payloads for the client (escape "<" to avoid a </script> breakout).
+const jsonSafe = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c');
+const productsJson = jsonSafe(products);
+const editJson = jsonSafe(editData);
+
+const pageTitle = isEdit ? 'Edit wholesale order' : 'New wholesale order';
+---
+
+<AdminShell
+  title={pageTitle}
+  subtitle={isEdit
+    ? 'Editing a manually-entered order'
+    : `Key in a phoned, texted or emailed chef order · cutoff ${CUTOFF_LABEL}`}
+  pageTitle={`${pageTitle} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <a
+      href={`/admin/wholesale/orders?date=${backDate}`}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >← Chef orders</a>
+  </Fragment>
+
+  {editError ? (
+    <Card padding="lg" elevation="sm" class="border border-red-200 bg-red-50">
+      <h2 class="mb-1 text-lg font-semibold text-red-700">Can’t edit this order</h2>
+      <p class="text-sm text-red-700">{editError}</p>
+      <a
+        href={`/admin/wholesale/orders?date=${backDate}`}
+        class="mt-3 inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white hover:bg-ts-primary-dark"
+      >← Back to chef orders</a>
+    </Card>
+  ) : (
+    <form id="order-form" class="space-y-4">
+      {/* ── Who + when ──────────────────────────────────────────── */}
+      <Card padding="lg" elevation="sm">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Chef / restaurant</span>
+            <select
+              id="f-account"
+              required
+              disabled={isEdit}
+              class="min-h-[44px] w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-gray-800 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500"
+            >
+              <option value="" disabled selected={!selectedAccountId}>— choose a chef account —</option>
+              {accounts.map((a) => (
+                <option
+                  value={a.id}
+                  data-discount={discountFor(a)}
+                  selected={a.id === selectedAccountId}
+                >{a.restaurant_name}{tierLabel(a)}{a.status && a.status !== 'active' ? ` · ${a.status}` : ''}</option>
+              ))}
+            </select>
+            {isEdit && (
+              <span class="mt-1 block text-xs text-gray-400">The chef can’t be changed on an existing order — delete and re-enter to move it.</span>
+            )}
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Delivery date</span>
+            <input
+              id="f-date"
+              type="date"
+              required
+              value={selectedDate}
+              class="min-h-[44px] w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-gray-800 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            />
+            <span class="mt-1 block text-xs text-gray-400">Defaults to the next Wednesday. Change it to add a past-cutoff order.</span>
+          </label>
+        </div>
+        <p id="tier-note" class="mt-3 rounded-ts-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800" role="status" aria-live="polite"></p>
+      </Card>
+
+      {/* ── Line items ──────────────────────────────────────────── */}
+      <Card padding="lg" elevation="sm">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">Items</h2>
+          <span class="text-xs text-gray-400">Catalog prices auto-fill; edit any price for a one-off</span>
+        </div>
+
+        <div id="lines" class="space-y-3"></div>
+
+        {/* Empty state (shown when no rows) */}
+        <div id="empty-lines" class="rounded-ts-md border border-dashed border-ts-border bg-ts-bg-surface/60 px-4 py-6 text-center">
+          <div class="text-2xl" aria-hidden="true">🧾</div>
+          <p class="mt-1 text-sm text-gray-500">No items yet. Add the products the chef ordered.</p>
+        </div>
+
+        <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+          <button
+            id="add-catalog"
+            type="button"
+            class="inline-flex min-h-[44px] items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-transform hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98]"
+          >➕ Add catalog item</button>
+          <button
+            id="add-custom"
+            type="button"
+            class="inline-flex min-h-[44px] items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-transform hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98]"
+          >✏️ Add custom item</button>
+        </div>
+      </Card>
+
+      {/* ── Total + submit ──────────────────────────────────────── */}
+      <Card padding="lg" elevation="sm">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-500">Order total</span>
+          <span id="order-total" class="text-2xl font-bold text-emerald-600">$0.00</span>
+        </div>
+        <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            id="submit-btn"
+            type="submit"
+            class="inline-flex min-h-[48px] items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold text-white shadow-ts-sm transition-transform hover:bg-ts-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >{isEdit ? 'Save changes' : 'Create order'}</button>
+          <p id="submit-status" class="text-sm" role="status" aria-live="polite"></p>
+        </div>
+      </Card>
+    </form>
+  )}
+
+  {/* Data payloads for the client */}
+  <script type="application/json" id="products-data" is:inline set:html={productsJson}></script>
+  <script type="application/json" id="edit-data" is:inline set:html={editJson}></script>
+
+  <script is:inline>
+    (function () {
+      var form = document.getElementById('order-form');
+      if (!form) return; // editError state — nothing to wire up.
+
+      var PRODUCTS = JSON.parse(document.getElementById('products-data').textContent || '[]');
+      var EDIT = JSON.parse(document.getElementById('edit-data').textContent || 'null');
+      var IS_EDIT = !!EDIT;
+
+      var accountSel = document.getElementById('f-account');
+      var dateInput = document.getElementById('f-date');
+      var linesEl = document.getElementById('lines');
+      var emptyEl = document.getElementById('empty-lines');
+      var addCatalogBtn = document.getElementById('add-catalog');
+      var addCustomBtn = document.getElementById('add-custom');
+      var totalEl = document.getElementById('order-total');
+      var tierNote = document.getElementById('tier-note');
+      var submitBtn = document.getElementById('submit-btn');
+      var submitStatus = document.getElementById('submit-status');
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+      function money(cents) { return '$' + (Math.round(cents) / 100).toFixed(2); }
+
+      // Current account's tier discount (whole-number percent).
+      function currentDiscount() {
+        var opt = accountSel.options[accountSel.selectedIndex];
+        var d = opt ? parseFloat(opt.getAttribute('data-discount')) : 0;
+        return isFinite(d) ? d : 0;
+      }
+      // Effective catalog unit price in cents after the tier discount.
+      function tieredCents(listCents) {
+        var out = Math.round(listCents * (1 - currentDiscount() / 100));
+        return out < 0 ? 0 : out;
+      }
+
+      // Catalog <option> list, built once and cloned into each row select.
+      var catalogOptionsHtml = '<option value="">— choose a product —</option>';
+      for (var i = 0; i < PRODUCTS.length; i++) {
+        var p = PRODUCTS[i];
+        var label = p.name + (p.unit ? ' (' + p.unit + ')' : '');
+        catalogOptionsHtml +=
+          '<option value="' + escapeHtml(p.id) + '" data-price-cents="' + Number(p.price_cents) + '">' +
+          escapeHtml(label) + '</option>';
+      }
+
+      function setStatus(msg, kind) {
+        submitStatus.textContent = msg || '';
+        submitStatus.className =
+          'text-sm ' + (kind === 'error' ? 'text-ts-danger' : kind === 'ok' ? 'text-ts-primary' : 'text-gray-500');
+      }
+
+      function refreshTierNote() {
+        var opt = accountSel.options[accountSel.selectedIndex];
+        if (!accountSel.value) { tierNote.textContent = 'Pick a chef to load their pricing tier.'; return; }
+        var d = currentDiscount();
+        var who = opt ? opt.textContent.split(' · ')[0] : 'this chef';
+        tierNote.textContent = d > 0
+          ? who + ' gets ' + d + '% off list. Catalog items auto-fill at that price — edit any line for a one-off.'
+          : who + ' pays list price. Catalog items auto-fill at list — edit any line for a one-off.';
+      }
+
+      function toggleEmpty() {
+        var has = linesEl.querySelectorAll('.line-row').length > 0;
+        emptyEl.hidden = has;
+      }
+
+      // Build one line row. mode: 'catalog' | 'custom'. prefill optional.
+      function addRow(mode, prefill) {
+        var row = document.createElement('div');
+        row.className = 'line-row rounded-ts-md border border-ts-border bg-ts-bg-surface p-3';
+        row.setAttribute('data-mode', mode);
+
+        var isCustom = mode === 'custom';
+        row.innerHTML =
+          '<div class="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-end">' +
+            // product selector (catalog rows) OR custom name (custom rows)
+            '<div class="sm:col-span-6">' +
+              '<span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">' +
+                (isCustom ? 'Custom item' : 'Product') + '</span>' +
+              (isCustom
+                ? '<input type="text" class="ln-name min-h-[44px] w-full rounded-ts-md border border-ts-border bg-white px-3 py-2 text-sm focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" placeholder="e.g. Special mixed greens" />'
+                : '<select class="ln-product min-h-[44px] w-full rounded-ts-md border border-ts-border bg-white px-3 py-2 text-sm focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30">' + catalogOptionsHtml + '</select>') +
+            '</div>' +
+            // qty
+            '<div class="sm:col-span-2">' +
+              '<span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Qty</span>' +
+              '<input type="number" min="1" step="1" value="1" class="ln-qty min-h-[44px] w-full rounded-ts-md border border-ts-border bg-white px-3 py-2 text-sm focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />' +
+            '</div>' +
+            // unit price ($)
+            '<div class="sm:col-span-2">' +
+              '<span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Price $</span>' +
+              '<input type="number" min="0" step="0.01" class="ln-price min-h-[44px] w-full rounded-ts-md border border-ts-border bg-white px-3 py-2 text-sm focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" placeholder="0.00" />' +
+            '</div>' +
+            // line total + remove
+            '<div class="flex items-center justify-between gap-2 sm:col-span-2">' +
+              '<span class="ln-total text-sm font-semibold text-gray-700">$0.00</span>' +
+              '<button type="button" class="ln-remove inline-flex h-9 w-9 items-center justify-center rounded-ts-md border border-ts-border text-gray-400 hover:border-ts-danger/40 hover:text-ts-danger" aria-label="Remove item">✕</button>' +
+            '</div>' +
+          '</div>';
+
+        linesEl.appendChild(row);
+
+        var productSel = row.querySelector('.ln-product');
+        var nameInput = row.querySelector('.ln-name');
+        var qtyInput = row.querySelector('.ln-qty');
+        var priceInput = row.querySelector('.ln-price');
+        var totalSpan = row.querySelector('.ln-total');
+        var removeBtn = row.querySelector('.ln-remove');
+
+        function lineCents() {
+          var qty = parseInt(qtyInput.value, 10);
+          var price = parseFloat(priceInput.value);
+          if (!isFinite(qty) || qty < 0) qty = 0;
+          if (!isFinite(price) || price < 0) price = 0;
+          return Math.round(price * 100) * qty;
+        }
+        function refreshLine() {
+          totalSpan.textContent = money(lineCents());
+          recomputeTotal();
+        }
+
+        // Auto-fill a catalog row's price from the selected product × tier.
+        function autofillCatalogPrice() {
+          if (row.getAttribute('data-touched') === '1') return; // admin edited it
+          if (!productSel) return;
+          var opt = productSel.options[productSel.selectedIndex];
+          var listCents = opt ? parseFloat(opt.getAttribute('data-price-cents')) : NaN;
+          if (isFinite(listCents)) {
+            priceInput.value = (tieredCents(listCents) / 100).toFixed(2);
+          }
+          refreshLine();
+        }
+
+        if (productSel) {
+          productSel.addEventListener('change', function () {
+            row.removeAttribute('data-touched'); // new product → re-autofill
+            autofillCatalogPrice();
+          });
+        }
+        priceInput.addEventListener('input', function () {
+          row.setAttribute('data-touched', '1'); // manual override — stop autofill
+          refreshLine();
+        });
+        qtyInput.addEventListener('input', refreshLine);
+        if (nameInput) nameInput.addEventListener('input', refreshLine);
+        removeBtn.addEventListener('click', function () {
+          row.remove(); toggleEmpty(); recomputeTotal();
+        });
+
+        // Prefill (edit mode, or a catalog product chosen programmatically).
+        if (prefill) {
+          if (!isCustom && productSel && prefill.product_id) {
+            productSel.value = prefill.product_id;
+          }
+          if (isCustom && nameInput && prefill.product_name) {
+            nameInput.value = prefill.product_name;
+          }
+          if (prefill.qty != null) qtyInput.value = String(prefill.qty);
+          if (prefill.price_cents != null) {
+            priceInput.value = (Number(prefill.price_cents) / 100).toFixed(2);
+            // Preserve the stored price on an existing order — treat as an
+            // override so an untouched edit never silently re-prices.
+            row.setAttribute('data-touched', '1');
+          }
+        }
+
+        toggleEmpty();
+        refreshLine();
+        return row;
+      }
+
+      function recomputeTotal() {
+        var rows = linesEl.querySelectorAll('.line-row');
+        var sum = 0;
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var qty = parseInt(r.querySelector('.ln-qty').value, 10);
+          var price = parseFloat(r.querySelector('.ln-price').value);
+          if (!isFinite(qty) || qty < 0) qty = 0;
+          if (!isFinite(price) || price < 0) price = 0;
+          sum += Math.round(price * 100) * qty;
+        }
+        totalEl.textContent = money(sum);
+      }
+
+      // Re-autofill untouched catalog rows when the account (tier) changes.
+      accountSel.addEventListener('change', function () {
+        refreshTierNote();
+        var rows = linesEl.querySelectorAll('.line-row[data-mode="catalog"]');
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (r.getAttribute('data-touched') === '1') continue;
+          var sel = r.querySelector('.ln-product');
+          var opt = sel.options[sel.selectedIndex];
+          var listCents = opt ? parseFloat(opt.getAttribute('data-price-cents')) : NaN;
+          if (isFinite(listCents)) {
+            r.querySelector('.ln-price').value = (tieredCents(listCents) / 100).toFixed(2);
+            r.querySelector('.ln-total').textContent =
+              money(Math.round(tieredCents(listCents)) * (parseInt(r.querySelector('.ln-qty').value, 10) || 0));
+          }
+        }
+        recomputeTotal();
+      });
+
+      addCatalogBtn.addEventListener('click', function () { addRow('catalog', null); });
+      addCustomBtn.addEventListener('click', function () { addRow('custom', null); });
+
+      // ── Seed the form ──────────────────────────────────────────
+      refreshTierNote();
+      if (IS_EDIT && EDIT.lines && EDIT.lines.length) {
+        for (var k = 0; k < EDIT.lines.length; k++) {
+          var ln = EDIT.lines[k];
+          addRow(ln.product_id ? 'catalog' : 'custom', ln);
+        }
+      } else {
+        addRow('catalog', null); // start with one empty catalog row
+      }
+      toggleEmpty();
+
+      // ── Submit ─────────────────────────────────────────────────
+      form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        setStatus('', 'info');
+
+        if (!accountSel.value) { setStatus('Choose a chef account.', 'error'); accountSel.focus(); return; }
+        if (!dateInput.value) { setStatus('A delivery date is required.', 'error'); dateInput.focus(); return; }
+
+        var rows = linesEl.querySelectorAll('.line-row');
+        var lines = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var mode = r.getAttribute('data-mode');
+          var qty = parseInt(r.querySelector('.ln-qty').value, 10);
+          if (!isFinite(qty) || qty <= 0) continue; // skip empty/zero-qty rows
+          var touched = r.getAttribute('data-touched') === '1';
+          var priceStr = r.querySelector('.ln-price').value;
+          var priceCents = priceStr === '' ? null : Math.round(parseFloat(priceStr) * 100);
+
+          if (mode === 'custom') {
+            var name = (r.querySelector('.ln-name').value || '').trim();
+            if (!name) { setStatus('Every custom item needs a name.', 'error'); return; }
+            if (priceCents == null || !isFinite(priceCents)) { setStatus('Every custom item needs a price.', 'error'); return; }
+            lines.push({ product_name: name, qty: qty, price_cents: priceCents });
+          } else {
+            var pid = r.querySelector('.ln-product').value;
+            if (!pid) { setStatus('Choose a product for every catalog row (or remove it).', 'error'); return; }
+            var line = { product_id: pid, qty: qty };
+            // Only send a price when the admin overrode it — otherwise let the
+            // server price it fresh from the catalog × tier discount.
+            if (touched && priceCents != null && isFinite(priceCents)) line.price_cents = priceCents;
+            lines.push(line);
+          }
+        }
+
+        if (!lines.length) { setStatus('Add at least one item with a quantity.', 'error'); return; }
+
+        var payload = IS_EDIT
+          ? { order_id: EDIT.order_id, delivery_date: dateInput.value, lines: lines }
+          : { account_id: accountSel.value, delivery_date: dateInput.value, lines: lines };
+        var endpoint = IS_EDIT
+          ? '/api/admin/wholesale/orders/update'
+          : '/api/admin/wholesale/orders/create';
+
+        submitBtn.disabled = true;
+        setStatus(IS_EDIT ? 'Saving…' : 'Creating order…', 'info');
+
+        fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(function (res) { return res.json().then(function (j) { return { ok: res.ok, j: j }; }); })
+          .then(function (out) {
+            if (!out.ok || !out.j || !out.j.ok) {
+              var msg = (out.j && (out.j.message || out.j.error)) || 'Something went wrong.';
+              setStatus(msg, 'error');
+              submitBtn.disabled = false;
+              return;
+            }
+            setStatus(IS_EDIT ? 'Saved — opening orders…' : 'Order created — opening orders…', 'ok');
+            window.location.href = out.j.redirect || ('/admin/wholesale/orders?date=' + dateInput.value);
+          })
+          .catch(function (e) {
+            setStatus('Network error: ' + e.message, 'error');
+            submitBtn.disabled = false;
+          });
+      });
+    })();
+  </script>
+</AdminShell>
