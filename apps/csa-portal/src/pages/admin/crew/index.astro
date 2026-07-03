@@ -1,0 +1,363 @@
+---
+/**
+ * /admin/crew — 🧑‍🌾 Crew (admin management of the LIMITED pack/field role).
+ *
+ * Admin-only surface (reached via the middleware /admin gate; the "Crew" nav
+ * link shows for role='admin' only, and crew themselves are redirected away
+ * because /admin/crew is NOT in CREW_ALLOWED_PREFIXES). Lets Todd:
+ *   1. See every current crew member (customers.role='crew': name, email, added).
+ *   2. Invite a new one (name + email) → POST /api/admin/crew/invite, which
+ *      creates the crew row and emails a magic-link sign-in.
+ *   3. Remove one → POST /api/admin/crew/remove (styled inline confirm; the API
+ *      downgrades-or-deletes, never nuking a real account).
+ *
+ * Crew (migration 0068) can log in on their phone and use ONLY the pack-house
+ * ops tools (handoff + cooler) — never member PII, financials, or campaigns.
+ *
+ * Both mutations run client-side via fetch (JSON) so the list updates inline
+ * without a full reload. Server-side auth is enforced on every endpoint.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+
+interface CrewRow {
+  id: string;
+  contact_name: string | null;
+  email: string;
+  created_at: string;
+}
+
+// Admin RLS (admin_all_customers, 0017) lets this read every crew row.
+const { data: crewData, error: crewErr } = await supabase
+  .from('customers')
+  .select('id, contact_name, email, created_at')
+  .eq('role', 'crew')
+  .order('created_at', { ascending: false })
+  .overrideTypes<CrewRow[], { merge: false }>();
+
+if (crewErr) {
+  console.error('[admin/crew] crew list load failed:', crewErr.message);
+}
+const crew: CrewRow[] = crewData ?? [];
+
+// ET-local "added" date (the farm's calendar).
+const etDate = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+function addedOn(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : etDate.format(d);
+}
+---
+
+<AdminShell
+  title="Crew"
+  subtitle="Give the pack & field crew phone access to the handoff + cooler tools — nothing else."
+>
+  {/* ── Load error (rare) ─────────────────────────────────────────────── */}
+  {crewErr && (
+    <div
+      role="alert"
+      class="rounded-ts-lg border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-danger"
+    >
+      Couldn’t load the crew list. Refresh to try again.
+    </div>
+  )}
+
+  {/* ── Feedback banner (populated by client JS after invite/remove) ───── */}
+  <div
+    id="crew-feedback"
+    role="status"
+    aria-live="polite"
+    hidden
+    class="rounded-ts-lg border px-4 py-3 text-sm"
+  ></div>
+
+  {/* ── Invite form ───────────────────────────────────────────────────── */}
+  <section
+    class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm sm:p-6"
+    aria-labelledby="invite-heading"
+  >
+    <h2 id="invite-heading" class="font-display text-lg font-semibold text-ts-text">
+      Invite a crew member
+    </h2>
+    <p class="mt-1 text-sm text-ts-text-secondary">
+      They’ll get an email (English + Spanish) with a one-tap sign-in link. No
+      password — they log in with a one-time code on their phone.
+    </p>
+
+    <form id="crew-invite-form" class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end">
+      <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <label for="crew-name" class="text-sm font-medium text-ts-text">Name</label>
+        <input
+          id="crew-name"
+          name="name"
+          type="text"
+          required
+          maxlength="120"
+          autocomplete="name"
+          placeholder="Maria Lopez"
+          class="min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text placeholder:text-ts-text-muted transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </div>
+      <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+        <label for="crew-email" class="text-sm font-medium text-ts-text">Email</label>
+        <input
+          id="crew-email"
+          name="email"
+          type="email"
+          required
+          maxlength="254"
+          inputmode="email"
+          autocomplete="off"
+          placeholder="maria@example.com"
+          class="min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text placeholder:text-ts-text-muted transition-colors duration-150 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+        />
+      </div>
+      <button
+        type="submit"
+        id="crew-invite-submit"
+        class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-5 py-2.5 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        Send invite
+      </button>
+    </form>
+  </section>
+
+  {/* ── Current crew ──────────────────────────────────────────────────── */}
+  <section aria-labelledby="crew-list-heading">
+    <h2 id="crew-list-heading" class="mb-3 font-display text-lg font-semibold text-ts-text">
+      Current crew
+      <span class="ml-1 text-sm font-normal text-ts-text-muted" data-crew-count>({crew.length})</span>
+    </h2>
+
+    {/* Empty state — icon + explanation + pointer to the form. */}
+    <div
+      id="crew-empty"
+      hidden={crew.length > 0}
+      class="flex flex-col items-center gap-2 rounded-ts-xl border border-dashed border-ts-border bg-ts-bg-surface/50 px-6 py-10 text-center"
+    >
+      <span class="text-3xl" aria-hidden="true">🧑‍🌾</span>
+      <p class="text-sm font-medium text-ts-text">No crew members yet</p>
+      <p class="max-w-sm text-sm text-ts-text-secondary">
+        Invite your pack &amp; field crew above so they can log the shift handoff
+        and move cooler pallets from their own phones.
+      </p>
+    </div>
+
+    <ul id="crew-list" class="flex flex-col gap-2" class:list={[crew.length === 0 && 'hidden']}>
+      {crew.map((c) => (
+        <li
+          data-crew-id={c.id}
+          class="flex flex-col gap-3 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="min-w-0">
+            <p class="truncate font-medium text-ts-text" data-crew-name>{c.contact_name ?? '—'}</p>
+            <p class="truncate text-sm text-ts-text-secondary">{c.email}</p>
+            <p class="mt-0.5 text-xs text-ts-text-muted">Added {addedOn(c.created_at)}</p>
+          </div>
+
+          {/* Inline remove — a two-step styled confirm (NO native confirm()). */}
+          <div class="flex shrink-0 items-center gap-2" data-remove-controls>
+            <button
+              type="button"
+              data-remove-start
+              class="inline-flex min-h-11 items-center justify-center rounded-ts-md border border-ts-border px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-danger/50 hover:text-ts-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+            >
+              Remove
+            </button>
+            <div class="hidden items-center gap-2" data-remove-confirm>
+              <span class="text-sm text-ts-text-secondary">Remove access?</span>
+              <button
+                type="button"
+                data-remove-yes
+                class="inline-flex min-h-11 items-center justify-center rounded-ts-md bg-ts-danger px-3 py-2 text-sm font-semibold text-white transition-all duration-150 hover:opacity-90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger disabled:opacity-60"
+              >
+                Yes, remove
+              </button>
+              <button
+                type="button"
+                data-remove-cancel
+                class="inline-flex min-h-11 items-center justify-center rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <script>
+    /* ══════════════════════════════════════════════════════════════════
+       Crew management — dependency-free.
+       - Invite: POST /api/admin/crew/invite (JSON), prepend the new row.
+       - Remove: two-step inline confirm → POST /api/admin/crew/remove (JSON),
+         drop the row. NO native confirm()/alert().
+       Re-binds after Astro view transitions via astro:page-load.
+       ══════════════════════════════════════════════════════════════════ */
+    interface InviteResult { ok: boolean; note?: string; error?: string; crew?: { id: string; name: string; email: string } }
+    interface RemoveResult { ok: boolean; note?: string; error?: string }
+
+    function initCrew(): void {
+      const feedback = document.getElementById('crew-feedback');
+      const list = document.getElementById('crew-list');
+      const empty = document.getElementById('crew-empty');
+      const countEl = document.querySelector<HTMLElement>('[data-crew-count]');
+      const form = document.getElementById('crew-invite-form') as HTMLFormElement | null;
+      if (!form || form.dataset.bound === '1') return;
+      form.dataset.bound = '1';
+
+      function showFeedback(kind: 'ok' | 'err', msg: string): void {
+        if (!feedback) return;
+        feedback.hidden = false;
+        feedback.textContent = msg;
+        feedback.className =
+          'rounded-ts-lg border px-4 py-3 text-sm ' +
+          (kind === 'ok'
+            ? 'border-ts-primary/30 bg-ts-primary/5 text-ts-primary'
+            : 'border-ts-danger/30 bg-ts-danger/5 text-ts-danger');
+      }
+
+      function updateCount(): void {
+        if (!list || !countEl) return;
+        const n = list.querySelectorAll('[data-crew-id]').length;
+        countEl.textContent = `(${n})`;
+        if (empty) empty.hidden = n > 0;
+        list.classList.toggle('hidden', n === 0);
+      }
+
+      function esc(s: string): string {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function addRow(c: { id: string; name: string; email: string }): void {
+        if (!list) return;
+        // Avoid a duplicate row if this email was already listed (re-invite).
+        const existing = Array.from(list.querySelectorAll<HTMLElement>('[data-crew-id]')).find(
+          (li) => li.querySelector('p.text-ts-text-secondary')?.textContent?.trim().toLowerCase() === c.email.toLowerCase(),
+        );
+        if (existing) {
+          const nameEl = existing.querySelector('[data-crew-name]');
+          if (nameEl) nameEl.textContent = c.name;
+          return;
+        }
+        const li = document.createElement('li');
+        li.setAttribute('data-crew-id', c.id);
+        li.className =
+          'flex flex-col gap-3 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm sm:flex-row sm:items-center sm:justify-between';
+        const today = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric',
+        }).format(new Date());
+        li.innerHTML = `
+          <div class="min-w-0">
+            <p class="truncate font-medium text-ts-text" data-crew-name>${esc(c.name)}</p>
+            <p class="truncate text-sm text-ts-text-secondary">${esc(c.email)}</p>
+            <p class="mt-0.5 text-xs text-ts-text-muted">Added ${today}</p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2" data-remove-controls>
+            <button type="button" data-remove-start class="inline-flex min-h-11 items-center justify-center rounded-ts-md border border-ts-border px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:border-ts-danger/50 hover:text-ts-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger">Remove</button>
+            <div class="hidden items-center gap-2" data-remove-confirm>
+              <span class="text-sm text-ts-text-secondary">Remove access?</span>
+              <button type="button" data-remove-yes class="inline-flex min-h-11 items-center justify-center rounded-ts-md bg-ts-danger px-3 py-2 text-sm font-semibold text-white transition-all duration-150 hover:opacity-90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger disabled:opacity-60">Yes, remove</button>
+              <button type="button" data-remove-cancel class="inline-flex min-h-11 items-center justify-center rounded-ts-md px-3 py-2 text-sm font-medium text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">Cancel</button>
+            </div>
+          </div>`;
+        list.prepend(li);
+        updateCount();
+      }
+
+      /* ── Invite ── */
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submit = document.getElementById('crew-invite-submit') as HTMLButtonElement | null;
+        const nameInput = document.getElementById('crew-name') as HTMLInputElement | null;
+        const emailInput = document.getElementById('crew-email') as HTMLInputElement | null;
+        const name = nameInput?.value.trim() ?? '';
+        const email = emailInput?.value.trim() ?? '';
+        if (!name || !email) {
+          showFeedback('err', 'Enter both a name and an email.');
+          return;
+        }
+        if (submit) { submit.disabled = true; submit.textContent = 'Sending…'; }
+        try {
+          const resp = await fetch('/api/admin/crew/invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email }),
+          });
+          const data = (await resp.json().catch(() => null)) as InviteResult | null;
+          if (resp.ok && data?.ok) {
+            showFeedback('ok', data.note ?? 'Crew member added.');
+            if (data.crew) addRow(data.crew);
+            form.reset();
+          } else {
+            showFeedback('err', data?.error ?? 'Could not add that crew member.');
+          }
+        } catch {
+          showFeedback('err', 'Network error. Try again.');
+        } finally {
+          if (submit) { submit.disabled = false; submit.textContent = 'Send invite'; }
+        }
+      });
+
+      /* ── Remove (event-delegated so new rows work too) ── */
+      list?.addEventListener('click', async (e) => {
+        const target = e.target as HTMLElement;
+        const row = target.closest<HTMLElement>('[data-crew-id]');
+        if (!row) return;
+        const controls = row.querySelector<HTMLElement>('[data-remove-controls]');
+        const startBtn = controls?.querySelector<HTMLElement>('[data-remove-start]');
+        const confirmBox = controls?.querySelector<HTMLElement>('[data-remove-confirm]');
+
+        if (target.closest('[data-remove-start]')) {
+          startBtn?.classList.add('hidden');
+          confirmBox?.classList.remove('hidden');
+          confirmBox?.classList.add('flex');
+          return;
+        }
+        if (target.closest('[data-remove-cancel]')) {
+          confirmBox?.classList.add('hidden');
+          confirmBox?.classList.remove('flex');
+          startBtn?.classList.remove('hidden');
+          return;
+        }
+        if (target.closest('[data-remove-yes]')) {
+          const yesBtn = target.closest<HTMLButtonElement>('[data-remove-yes]');
+          if (yesBtn) yesBtn.disabled = true;
+          try {
+            const resp = await fetch('/api/admin/crew/remove', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ customer_id: row.getAttribute('data-crew-id') }),
+            });
+            const data = (await resp.json().catch(() => null)) as RemoveResult | null;
+            if (resp.ok && data?.ok) {
+              row.remove();
+              updateCount();
+              showFeedback('ok', data.note ?? 'Crew member removed.');
+            } else {
+              showFeedback('err', data?.error ?? 'Could not remove that crew member.');
+              if (yesBtn) yesBtn.disabled = false;
+            }
+          } catch {
+            showFeedback('err', 'Network error. Try again.');
+            if (yesBtn) yesBtn.disabled = false;
+          }
+        }
+      });
+    }
+
+    initCrew();
+    document.addEventListener('astro:page-load', initCrew);
+  </script>
+</AdminShell>

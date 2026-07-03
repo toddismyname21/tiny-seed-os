@@ -1,5 +1,5 @@
 /**
- * POST /api/admin/handoff/resolve-item   (admin/staff only)
+ * POST /api/admin/handoff/resolve-item   (admin/staff/crew — pack-house ops, migration 0068)
  *
  * Mark ONE carry-forward open item resolved. This is the explicit read-side
  * action that stops an item from carrying forward onto every future day's
@@ -13,12 +13,12 @@
  * On success: 303 → /admin/handoff?ok=resolved[&lang=es]
  * On failure: 303 → /admin/handoff?error=<code>[&lang=es]
  *
- * Authorization: isSameOriginPost() + requireAdmin(). The UPDATE runs through
+ * Authorization: isSameOriginPost() + requireCrew() (admin/staff/crew). The UPDATE runs through
  * the cookie-aware RLS client (packhouse_open_items_staff = is_admin_caller).
  */
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { requireAdmin } from '../../../../lib/admin';
+import { requireCrew } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 
 export const prerender = false;
@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   if (!isSameOriginPost(request, PORTAL_ORIGIN)) {
     return new Response('Forbidden', { status: 403 });
   }
-  const auth = await requireAdmin(locals.supabase, locals.user);
+  const auth = await requireCrew(locals.supabase, locals.user);
   if (auth.response) return auth.response;
   const ctx = auth.ctx;
 

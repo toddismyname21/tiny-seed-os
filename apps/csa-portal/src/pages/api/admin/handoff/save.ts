@@ -1,5 +1,5 @@
 /**
- * POST /api/admin/handoff/save   (admin/staff only)
+ * POST /api/admin/handoff/save   (admin/staff/crew — pack-house ops, migration 0068)
  *
  * Upsert ONE end-of-day pack-house handoff (keyed by log_date + crew_type) AND
  * insert any NEW carry-forward open items raised on it.
@@ -35,13 +35,13 @@
  *
  * Authorization (mirrors every other /api/admin/* mutation):
  *   1. isSameOriginPost() — CSRF belt-and-suspenders.
- *   2. requireAdmin() — customers.role ∈ ('admin','staff') → else 403.
+ *   2. requireCrew() — customers.role ∈ ('admin','staff','crew') → else 403.
  * The writes run through the cookie-aware RLS client; the tables' admin/staff
- * FOR ALL policy (is_admin_caller) lets them through.
+ * FOR ALL ops policy (is_ops_caller, migration 0068) lets admin/staff/crew through.
  */
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { requireAdmin } from '../../../../lib/admin';
+import { requireCrew } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 
 export const prerender = false;
@@ -112,7 +112,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   if (!isSameOriginPost(request, PORTAL_ORIGIN)) {
     return new Response('Forbidden', { status: 403 });
   }
-  const auth = await requireAdmin(locals.supabase, locals.user);
+  const auth = await requireCrew(locals.supabase, locals.user);
   if (auth.response) return auth.response;
   const ctx = auth.ctx;
 

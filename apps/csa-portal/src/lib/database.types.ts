@@ -42,8 +42,10 @@ export interface Database {
           total_orders: number;
           total_spent: number;
           notes: string | null;
-          /** Authorization role (migration 0017). 'admin'/'staff' bypass member-self RLS. */
-          role: 'member' | 'admin' | 'staff';
+          /** Authorization role (migration 0017; 'crew' added 0068). 'admin'/'staff'
+           *  bypass member-self RLS (is_admin_caller). 'crew' is a LIMITED pack/field
+           *  role — pack-house ops tables only (is_ops_caller), never member PII. */
+          role: 'member' | 'admin' | 'staff' | 'crew';
           /**
            * When the member confirmed they understand their pickup location +
            * day/time via /account/confirm-pickup (migration 0039, Todd

@@ -55,6 +55,13 @@ const {
 const pathname = Astro.url.pathname;
 const adminEmail = Astro.locals.user?.email ?? '';
 
+// Ops role, set by middleware on /admin/* routes (admin | staff | crew).
+// 'crew' (migration 0068) is the LIMITED pack/field role — it gets a REDUCED
+// nav of ONLY the pack/delivery ops pages it's allowed to reach. The "Crew"
+// management link is ADMIN-ONLY.
+const navRole = Astro.locals.adminRole;
+const isCrew = navRole === 'crew';
+
 interface NavItem {
   href: string;
   label: string;
@@ -154,6 +161,43 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+/**
+ * CREW reduced nav (migration 0068). Exactly the pack/delivery ops pages a crew
+ * user is allowed to reach (must stay a SUBSET of middleware's
+ * CREW_ALLOWED_PREFIXES). Rendered as a single group; crew get NO standalone
+ * Home link (their home IS Handoff, the first item).
+ */
+// CREW v1 nav = ONLY handoff + cooler (must stay a SUBSET of middleware's
+// CREW_ALLOWED_PREFIXES). The other pack pages render empty for crew (RLS
+// admin-bypass), so they are intentionally excluded until wired with an
+// ops-scoped/service-role loader — see CREW_ALLOWED_PREFIXES in middleware.ts.
+const crewNavGroup: NavGroup = {
+  label: 'Pack & Deliver',
+  items: [
+    { href: '/admin/handoff',        label: 'Handoff',       match: '/admin/handoff',        icon: '🔁' },
+    { href: '/admin/cooler',         label: 'Cooler',        match: '/admin/cooler',         icon: '🧊' },
+  ],
+};
+
+// Admin-only "Crew" management link, appended to the System group. Staff never
+// see it (Todd manages crew); crew can't even reach the page.
+const crewAdminItem: NavItem = {
+  href: '/admin/crew', label: 'Crew', match: '/admin/crew', icon: '🧑‍🌾',
+};
+
+// The nav actually rendered for this caller.
+//   - crew  → single reduced group, no Home link.
+//   - admin → full nav + the Crew management link in System.
+//   - staff → full nav (unchanged, no Crew link).
+const effectiveHome: NavItem | null = isCrew ? null : homeItem;
+const effectiveGroups: NavGroup[] = isCrew
+  ? [crewNavGroup]
+  : navGroups.map((g) =>
+      g.label === 'System' && navRole === 'admin'
+        ? { ...g, items: [...g.items, crewAdminItem] }
+        : g,
+    );
+
 function isActive(match: string): boolean {
   // /admin is only active on exact match — every nav item starts with /admin
   // so a `startsWith('/admin')` rule would mark Home active on every page.
@@ -162,16 +206,18 @@ function isActive(match: string): boolean {
 }
 
 // Pre-compute which group holds the active page so it renders <details open>.
-const homeActive = isActive(homeItem.match);
-const activeGroupLabel = navGroups.find((g) =>
+const homeActive = effectiveHome ? isActive(effectiveHome.match) : false;
+const activeGroupLabel = effectiveGroups.find((g) =>
   g.items.some((i) => isActive(i.match)),
 )?.label;
 
-// Flat list for the command palette (Home + every grouped item, with its
-// group hint). Serialised into a data attribute the client script reads.
+// Flat list for the command palette (Home if present + every grouped item, with
+// its group hint). Serialised into a data attribute the client script reads.
 const paletteItems = [
-  { href: homeItem.href, label: homeItem.label, icon: homeItem.icon, group: 'Home' },
-  ...navGroups.flatMap((g) =>
+  ...(effectiveHome
+    ? [{ href: effectiveHome.href, label: effectiveHome.label, icon: effectiveHome.icon, group: 'Home' }]
+    : []),
+  ...effectiveGroups.flatMap((g) =>
     g.items.map((i) => ({ href: i.href, label: i.label, icon: i.icon, group: g.label })),
   ),
 ];
@@ -276,16 +322,18 @@ const baseLinkClass =
         aria-label="Admin sections"
       >
         <nav>
-          <a
-            href={homeItem.href}
-            aria-current={homeActive ? 'page' : undefined}
-            class:list={[baseLinkClass, homeActive ? activeLinkClass : idleLinkClass]}
-          >
-            <span aria-hidden="true">{homeItem.icon}</span>
-            <span>{homeItem.label}</span>
-          </a>
+          {effectiveHome && (
+            <a
+              href={effectiveHome.href}
+              aria-current={homeActive ? 'page' : undefined}
+              class:list={[baseLinkClass, homeActive ? activeLinkClass : idleLinkClass]}
+            >
+              <span aria-hidden="true">{effectiveHome.icon}</span>
+              <span>{effectiveHome.label}</span>
+            </a>
+          )}
 
-          {navGroups.map((group) => {
+          {effectiveGroups.map((group) => {
             const groupActive = group.label === activeGroupLabel;
             return (
               <details open={groupActive} class="group mt-2">
@@ -384,16 +432,18 @@ const baseLinkClass =
         </div>
 
         <nav class="flex-1 overflow-y-auto p-3">
-          <a
-            href={homeItem.href}
-            aria-current={homeActive ? 'page' : undefined}
-            class:list={[baseLinkClass, homeActive ? activeLinkClass : idleLinkClass]}
-          >
-            <span aria-hidden="true">{homeItem.icon}</span>
-            <span>{homeItem.label}</span>
-          </a>
+          {effectiveHome && (
+            <a
+              href={effectiveHome.href}
+              aria-current={homeActive ? 'page' : undefined}
+              class:list={[baseLinkClass, homeActive ? activeLinkClass : idleLinkClass]}
+            >
+              <span aria-hidden="true">{effectiveHome.icon}</span>
+              <span>{effectiveHome.label}</span>
+            </a>
+          )}
 
-          {navGroups.map((group) => {
+          {effectiveGroups.map((group) => {
             const groupActive = group.label === activeGroupLabel;
             return (
               <details open={groupActive} class="group mt-2">

@@ -1,5 +1,5 @@
 /**
- * POST /api/admin/cooler/flag   (admin/staff only)
+ * POST /api/admin/cooler/flag   (admin/staff/crew — pack-house ops, migration 0068)
  *
  * ONE-TAP toggle of a pallet's 🔴 move-it flag (+ optional reason). This is the
  * signal that drives the top-of-page MOVE LIST and — later — the CSA-box-fill /
@@ -15,12 +15,12 @@
  * On success: 303 → /admin/cooler?ok=flagged[&lang=es]
  * On failure: 303 → /admin/cooler?error=<code>[&lang=es]
  *
- * Authorization: isSameOriginPost() + requireAdmin(). The UPDATE runs through
+ * Authorization: isSameOriginPost() + requireCrew() (admin/staff/crew). The UPDATE runs through
  * the cookie-aware RLS client (cooler_pallets_staff = is_admin_caller).
  */
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { requireAdmin } from '../../../../lib/admin';
+import { requireCrew } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 
 export const prerender = false;
@@ -42,7 +42,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   if (!isSameOriginPost(request, PORTAL_ORIGIN)) {
     return new Response('Forbidden', { status: 403 });
   }
-  const auth = await requireAdmin(locals.supabase, locals.user);
+  const auth = await requireCrew(locals.supabase, locals.user);
   if (auth.response) return auth.response;
 
   let form: FormData;

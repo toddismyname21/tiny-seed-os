@@ -22,9 +22,14 @@ declare global {
        * member-data query.
        */
       supabase: SupabaseClient<Database>;
-      /** Admin role, set by middleware on /admin/* routes only. */
-      adminRole?: 'admin' | 'staff';
-      /** The admin user's own customers.id, set on /admin/* routes. */
+      /**
+       * Ops role, set by middleware on /admin/* routes only. 'admin'/'staff'
+       * get full access; 'crew' (migration 0068) is the LIMITED pack/field role
+       * restricted to the pack-house ops allowlist — AdminShell reads this to
+       * render the reduced crew nav. Never set for members/anonymous.
+       */
+      adminRole?: 'admin' | 'staff' | 'crew';
+      /** The admin/ops user's own customers.id, set on /admin/* routes. */
       adminCustomerId?: string;
       /**
        * Whether the current member has an active FLEX share. Set by

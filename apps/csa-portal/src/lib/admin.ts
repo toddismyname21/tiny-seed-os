@@ -28,9 +28,24 @@ export const ADMIN_REDIRECT_NON_MEMBER = '/dashboard?error=admin_only';
 
 export type AdminRole = 'admin' | 'staff';
 
+/**
+ * The set of roles allowed to reach the OPERATIONAL pack-house tools (handoff +
+ * cooler). 'crew' is the LIMITED pack/field role (migration 0068) — it can use
+ * ONLY those ops endpoints and their allowlisted pages; it is NEVER granted
+ * admin/staff reach (requireAdmin/requireAdminRole keep meaning admin+staff
+ * only, so every OTHER /api/admin/* route continues to block crew unchanged).
+ */
+export type OpsRole = 'admin' | 'staff' | 'crew';
+
 export interface AdminContext {
   user: User;
   role: AdminRole;
+  customerId: string;
+}
+
+export interface OpsContext {
+  user: User;
+  role: OpsRole;
   customerId: string;
 }
 
@@ -48,7 +63,7 @@ export async function resolveAdminRole(
 ): Promise<AdminContext | null> {
   if (!user || !user.email) return null;
 
-  type Row = { id: string; role: 'member' | 'admin' | 'staff' };
+  type Row = { id: string; role: 'member' | 'admin' | 'staff' | 'crew' };
   const { data, error } = await supabase
     .from('customers')
     .select('id, role')
@@ -64,7 +79,47 @@ export async function resolveAdminRole(
   }
 
   if (!data) return null;
+  // 'crew' is NOT admin/staff — it must never resolve as an AdminContext, so
+  // every requireAdmin-gated route keeps blocking crew with zero changes.
   if (data.role !== 'admin' && data.role !== 'staff') return null;
+
+  return { user, role: data.role, customerId: data.id };
+}
+
+/**
+ * Look up the current user's customers.role for the OPERATIONAL surface.
+ * Returns an OpsContext when the role is admin, staff, OR crew — used ONLY by
+ * middleware (to branch crew into the reduced allowlist) and by the handoff +
+ * cooler endpoints via requireCrew(). Returns null for members / no row / a
+ * failed lookup (never grant ops access on error).
+ *
+ * This is a SEPARATE function from resolveAdminRole so that broadening the ops
+ * surface can NEVER accidentally widen admin/staff-only checks: resolveAdminRole
+ * still rejects crew.
+ */
+export async function resolveOpsRole(
+  supabase: SupabaseClient<Database>,
+  user: User | null
+): Promise<OpsContext | null> {
+  if (!user || !user.email) return null;
+
+  type Row = { id: string; role: 'member' | 'admin' | 'staff' | 'crew' };
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, role')
+    .eq('email', user.email)
+    .maybeSingle()
+    .overrideTypes<Row, { merge: false }>();
+
+  if (error) {
+    console.error('[admin] ops role lookup failed:', error.message);
+    return null;
+  }
+
+  if (!data) return null;
+  if (data.role !== 'admin' && data.role !== 'staff' && data.role !== 'crew') {
+    return null;
+  }
 
   return { user, role: data.role, customerId: data.id };
 }
@@ -111,6 +166,32 @@ export async function requireAdmin(
 ): Promise<{ ctx: AdminContext; response?: never } | { ctx?: never; response: Response }> {
   const ctx = await resolveAdminRole(supabase, user);
   if (!ctx) {
+    return { response: denyIfNotAdmin(null)! };
+  }
+  return { ctx };
+}
+
+/**
+ * Gate for the OPERATIONAL pack-house endpoints (handoff + cooler ONLY). Allows
+ * role IN ('admin','staff','crew') — mirrors requireAdmin's return shape so an
+ * endpoint switches from admin-only to ops-allowed by changing exactly one call
+ * (`requireAdmin` → `requireCrew`). Returns a 403 Response for members / no row.
+ *
+ * SECURITY NOTE: only the handoff + cooler routes may use this. Every other
+ * /api/admin/* route must keep calling requireAdmin so crew stays blocked from
+ * member management, financials, pricing, campaigns, and exports. The DB is the
+ * backstop: crew's cookie-aware writes only clear RLS on the three PII-free ops
+ * tables (migration 0068 is_ops_caller) — never on any member table.
+ */
+export async function requireCrew(
+  supabase: SupabaseClient<Database>,
+  user: User | null
+): Promise<{ ctx: OpsContext; response?: never } | { ctx?: never; response: Response }> {
+  const ctx = await resolveOpsRole(supabase, user);
+  if (!ctx) {
+    // Same collapsed-403 semantics as denyIfNotAdmin: middleware already
+    // bounces unauthenticated callers away from /admin/*, so any caller that
+    // reaches here without an ops role is authenticated-but-unauthorized.
     return { response: denyIfNotAdmin(null)! };
   }
   return { ctx };

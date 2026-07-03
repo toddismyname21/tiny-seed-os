@@ -37,7 +37,7 @@ import {
   ONBOARDING_STEPS,
   type OnboardingStep,
 } from './lib/onboarding';
-import { resolveAdminRole } from './lib/admin';
+import { resolveOpsRole } from './lib/admin';
 import { phoneSatisfiesGate } from './lib/phone';
 import { memberHasFlexShare } from './lib/account';
 
@@ -85,6 +85,49 @@ function isPublicTokenRoute(pathname: string): boolean {
 // (they need JSON 403s, not HTML redirects) and enforce their own
 // role check via `requireAdmin()` in the route handler.
 const ADMIN_PREFIXES = ['/admin'];
+
+// ───────────────────────────────────────────────────────────────────────
+// CREW least-privilege allowlist (migration 0068 — limited pack/field role).
+// A user whose customers.role='crew' may reach ONLY these /admin PAGE prefixes
+// (pack/delivery ops). These pages inherently show member NAMES for packing /
+// labels — job-necessary — but crew NEVER reaches member management, financials,
+// pricing, campaigns, exports, sync/health, or the /admin dashboard. Any OTHER
+// /admin/* PAGE is redirected to the crew home (/admin/handoff) by the crew
+// branch below.
+//
+// This is a PAGE allowlist. /api/admin/* is deliberately NOT gated here — JSON
+// endpoints must return their own 403 (not an HTML 303 redirect). Crew reaches
+// an /api/admin path only via fetch from an allowed page, and only the handoff +
+// cooler endpoints accept crew (requireCrew); every other /api/admin/* route
+// keeps calling requireAdmin and returns 403 for crew. So we let /api/admin/*
+// fall through for crew and rely on per-endpoint gating.
+//
+// Prefix matching is SEGMENT-BOUNDARY exact (=== p OR startsWith(p + '/')) so
+// '/admin/handoff' never accidentally allows '/admin/handoffX'.
+// CREW v1 — ONLY the two zero-PII ops tools that are fully functional for crew.
+// The other pack pages (pick-pack, pack-sheet, harvest, labels, host-sheets,
+// stop-manifest, route-sheet, text-stop, substitutions, share-contents) load
+// member data through the RLS client and rely on the admin RLS bypass, so they
+// render EMPTY for a crew user (crew is not is_admin_caller). Rather than show
+// crew blank pages — or grant crew a broad member-table read that would leak
+// PII — they are intentionally EXCLUDED here. Handoff + cooler read the ops
+// tables crew CAN see via is_ops_caller() (migration 0068). Adding more pages
+// for crew is a deliberate follow-up needing per-page service-role/ops loaders.
+const CREW_ALLOWED_PREFIXES = [
+  '/admin/handoff',
+  '/admin/cooler',
+];
+
+// The crew home — where a crew user is sent from any non-allowlisted /admin page
+// (and from /dashboard). MUST itself be inside CREW_ALLOWED_PREFIXES to avoid a
+// redirect loop.
+const CREW_HOME = '/admin/handoff';
+
+function isCrewAllowedPage(pathname: string): boolean {
+  return CREW_ALLOWED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
 
 // Routes a logged-in user shouldn't see — bounce them to /dashboard.
 const AUTH_ONLY_PREFIXES = ['/login'];
@@ -263,27 +306,48 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // /dashboard (none exist today) would also pass through unchanged.
   // ───────────────────────────────────────────────────────────────────
   if (user && pathname === '/dashboard') {
-    const adminCtx = await resolveAdminRole(supabase, user);
-    if (adminCtx) {
-      return redirect('/admin', 303);
+    const opsCtx = await resolveOpsRole(supabase, user);
+    if (opsCtx) {
+      // Crew are not CSA members — send them to their pack-house home instead of
+      // the (empty, member-facing) /dashboard OR the /admin dashboard (which
+      // crew may not see). Admin/staff land on the full /admin dashboard.
+      return redirect(opsCtx.role === 'crew' ? CREW_HOME : '/admin', 303);
     }
   }
 
   // ───────────────────────────────────────────────────────────────────
-  // Admin gate. Routes under /admin/* require role in ('admin','staff').
-  // If the user is authenticated but not admin, redirect to /dashboard
-  // with ?error=admin_only so the dashboard can flash a banner.
-  // Unauth users hitting /admin/* are already redirected to /login by
-  // the protected-route check above (since /admin is in PROTECTED_PREFIXES).
+  // Admin / ops gate. Routes under /admin/* require role in
+  // ('admin','staff','crew'). If the user is authenticated but has none of
+  // those roles, redirect to /dashboard with ?error=admin_only so the
+  // dashboard can flash a banner. Unauth users hitting /admin/* are already
+  // redirected to /login by the protected-route check above (since /admin is
+  // in PROTECTED_PREFIXES).
+  //
+  // CREW least-privilege branch: a crew user may reach ONLY the pack-house
+  // page allowlist (CREW_ALLOWED_PREFIXES). Any OTHER /admin PAGE (members,
+  // reports, campaigns, weekly-email, wholesale/*, products, flex-*, sync,
+  // health, notices, market/*, the /admin dashboard, …) is redirected to the
+  // crew home. /api/admin/* is NOT redirected — those endpoints self-gate and
+  // return JSON 403s (crew is accepted only by the handoff + cooler routes via
+  // requireCrew; everything else calls requireAdmin → 403). admin/staff
+  // behavior is COMPLETELY UNCHANGED (full access).
   // ───────────────────────────────────────────────────────────────────
   if (user && isAdminRoute(pathname)) {
-    const adminCtx = await resolveAdminRole(supabase, user);
-    if (!adminCtx) {
+    const opsCtx = await resolveOpsRole(supabase, user);
+    if (!opsCtx) {
       return redirect('/dashboard?error=admin_only', 303);
     }
-    // Stash so admin pages don't re-query.
-    locals.adminRole = adminCtx.role;
-    locals.adminCustomerId = adminCtx.customerId;
+    if (
+      opsCtx.role === 'crew' &&
+      !pathname.startsWith('/api/') &&
+      !isCrewAllowedPage(pathname)
+    ) {
+      // Crew hit a non-allowlisted /admin page → bounce to their home.
+      return redirect(CREW_HOME, 303);
+    }
+    // Stash so admin/ops pages (and AdminShell) don't re-query.
+    locals.adminRole = opsCtx.role;
+    locals.adminCustomerId = opsCtx.customerId;
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -322,14 +386,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
       .eq('email', user.email)
       .maybeSingle()
       .overrideTypes<
-        { role: 'member' | 'admin' | 'staff'; phone: string | null; pickup_acknowledged_at: string | null },
+        { role: 'member' | 'admin' | 'staff' | 'crew'; phone: string | null; pickup_acknowledged_at: string | null },
         { merge: false }
       >();
 
     if (gateErr) {
       console.error('[middleware] member-nag lookup failed (skipping nags):', gateErr.message);
     } else if (gateRow) {
-      const isStaff = gateRow.role === 'admin' || gateRow.role === 'staff';
+      // admin/staff/crew are farm workers, not CSA members — never nag them
+      // about a phone/pickup they don't have.
+      const isStaff =
+        gateRow.role === 'admin' ||
+        gateRow.role === 'staff' ||
+        gateRow.role === 'crew';
 
       const needsPhone =
         !isStaff &&

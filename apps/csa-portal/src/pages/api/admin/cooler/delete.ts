@@ -1,5 +1,5 @@
 /**
- * POST /api/admin/cooler/delete   (admin/staff only)
+ * POST /api/admin/cooler/delete   (admin/staff/crew — pack-house ops, migration 0068)
  *
  * Hard-delete a pallet row — for one created in error (wrong destination, typo,
  * duplicate). A pallet that legitimately shipped/emptied should be retired via
@@ -13,12 +13,12 @@
  * On success: 303 → /admin/cooler?ok=deleted[&lang=es]
  * On failure: 303 → /admin/cooler?error=<code>[&lang=es]
  *
- * Authorization: isSameOriginPost() + requireAdmin(). The DELETE runs through
+ * Authorization: isSameOriginPost() + requireCrew() (admin/staff/crew). The DELETE runs through
  * the cookie-aware RLS client (cooler_pallets_staff = is_admin_caller).
  */
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { requireAdmin } from '../../../../lib/admin';
+import { requireCrew } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 
 export const prerender = false;
@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
   if (!isSameOriginPost(request, PORTAL_ORIGIN)) {
     return new Response('Forbidden', { status: 403 });
   }
-  const auth = await requireAdmin(locals.supabase, locals.user);
+  const auth = await requireCrew(locals.supabase, locals.user);
   if (auth.response) return auth.response;
 
   let form: FormData;
