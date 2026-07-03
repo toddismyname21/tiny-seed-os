@@ -1,0 +1,615 @@
+---
+/**
+ * /admin/handoff/new                         → fill TODAY's end-of-day handoff.
+ * /admin/handoff/new?crew=field&date=…&lang=es → switch crew / date / language.
+ *
+ * The 7-block end-of-day form from docs/research/PACKHOUSE_HANDOFF_RESEARCH_2026.md
+ * (§2 field set, §3 fill-side UX). Progressive disclosure: each block is a native
+ * <details name="handoff-block"> so they form an EXCLUSIVE accordion (one open at
+ * a time) in modern browsers, and degrade to independently-openable sections when
+ * that attribute isn't supported — the form is fully usable with zero JavaScript.
+ *
+ * The blocks:
+ *   A  Identity — date (default today ET), crew (pack/field), author, next crew,
+ *      headcount. Crew + date are chosen via reload links so the server pre-fills
+ *      the matching existing handoff (edit path).
+ *   B  Status — 3 big segmented buttons + a ≤140-char summary with a live counter.
+ *   C  What got packed — per-channel done/target (CSA target pre-filled from the
+ *      cycle resolver when available) + plan completed yes/partial/no.
+ *   D  Cooler state — PH cooler / Barn cooler / truck temps + free text (use-first,
+ *      running-low). References the coolers by name (docs/COOLER_LAYOUT.md).
+ *   E  Issues — quality / equipment / safety, each revealed only on "Yes" + an
+ *      optional photo URL.
+ *   F  Carry-forward — add multiple open items (body + owner) + top-3 priorities.
+ *   G  Note to next crew — free text.
+ *
+ * Voice-to-text (Web Speech API) is layered onto the free-text fields as pure
+ * progressive enhancement: the mic buttons are hidden unless the API exists.
+ *
+ * EDIT PATH: when a handoff already exists for (date, crew) — the UNIQUE key —
+ * every field is pre-filled from it and the save endpoint upserts on that key.
+ *
+ * Submit = same-origin POST to /api/admin/handoff/save (requireAdmin + CSRF there).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import { todayET, todayWeekdayET } from '../../../lib/delivery';
+import { resolveCycle, currentDeliveryWeek } from '../../../lib/cycle';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const currentEmail = Astro.locals.user?.email ?? '';
+
+/* ── Language ────────────────────────────────────────────────────────────── */
+type Lang = 'en' | 'es';
+function parseLang(v: string | null): Lang {
+  return v === 'es' ? 'es' : 'en';
+}
+const lang = parseLang(Astro.url.searchParams.get('lang'));
+
+/* ── Resolve the (date, crew) this fill targets ──────────────────────────── */
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
+const dateParam = Astro.url.searchParams.get('date') ?? '';
+const logDate = YMD.test(dateParam) ? dateParam : todayET();
+
+// Default crew from the weekday: the FIELD crew works the pack house on Friday
+// (weekend-market prep); the pack crew works Mon/Tue/Thu. Todd can override with
+// the crew links. crew comes from the query param first, else the weekday guess.
+const crewParam = Astro.url.searchParams.get('crew');
+const weekdayCrew: 'pack' | 'field' = todayWeekdayET() === 'Fri' ? 'field' : 'pack';
+const crew: 'pack' | 'field' = crewParam === 'field' || crewParam === 'pack' ? crewParam : weekdayCrew;
+
+/* ── Load any existing handoff for this (date, crew) → edit prefill ──────── */
+interface HandoffRow {
+  id: string;
+  author_name: string | null;
+  next_crew: string | null;
+  headcount: number | null;
+  shift_status: 'normal' | 'attention' | 'urgent';
+  summary: string | null;
+  plan_completed: 'yes' | 'partial' | 'no' | null;
+  packed: unknown;
+  ph_cooler_temp: number | null;
+  barn_cooler_temp: number | null;
+  truck_used: boolean;
+  truck_temp: number | null;
+  cooler_notes: string | null;
+  use_first: string | null;
+  running_low: string | null;
+  quality_issue: string | null;
+  equipment_issue: string | null;
+  safety_issue: string | null;
+  photo_url: string | null;
+  priorities: unknown;
+  note_next_crew: string | null;
+}
+const { data: existing, error: existingErr } = await supabase
+  .from('packhouse_handoff')
+  .select('*')
+  .eq('log_date', logDate)
+  .eq('crew_type', crew)
+  .maybeSingle()
+  .overrideTypes<HandoffRow | null, { merge: false }>();
+if (existingErr) {
+  throw new Error(`handoff/new: existing fetch failed: ${existingErr.message}`);
+}
+const isEdit = !!existing;
+
+/* ── Packed done/target prefill: existing row wins; else pre-fill TARGETS from
+ *    the cycle resolver where reasonable (CSA box count), leaving done + the
+ *    other channels blank. resolveCycle can THROW on a schema error, so it is
+ *    strictly best-effort here — never block the form on it. ─────────────── */
+interface PackedCell { done: number | null; target: number | null; }
+function existingPacked(channel: string): PackedCell {
+  const p = existing?.packed;
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return { done: null, target: null };
+  const c = (p as Record<string, unknown>)[channel];
+  if (!c || typeof c !== 'object') return { done: null, target: null };
+  const cc = c as Record<string, unknown>;
+  return {
+    done: typeof cc.done === 'number' ? cc.done : null,
+    target: typeof cc.target === 'number' ? cc.target : null,
+  };
+}
+let csaTargetHint: number | null = null;
+if (!isEdit) {
+  try {
+    const cycle = await resolveCycle(supabase, currentDeliveryWeek());
+    csaTargetHint = cycle.members.filter((m) => m.share_type === 'summer_veg').length || null;
+  } catch (err) {
+    // Resolver unavailable → leave every target blank. The form still works.
+    console.error('[handoff/new] resolveCycle target hint skipped:', (err as Error).message);
+  }
+}
+const packedCsa = isEdit ? existingPacked('csa') : { done: null, target: csaTargetHint };
+const packedMarket = existingPacked('market');
+const packedWholesale = existingPacked('wholesale');
+const packedFloral = existingPacked('floral');
+
+/** Existing priorities → 3-slot array (defensive). */
+function priorityAt(i: number): string {
+  const p = existing?.priorities;
+  if (!Array.isArray(p)) return '';
+  const v = p[i];
+  return typeof v === 'string' ? v : '';
+}
+
+const status = existing?.shift_status ?? 'normal';
+const plan = existing?.plan_completed ?? '';
+
+/* ── Bilingual strings ───────────────────────────────────────────────────── */
+const STRINGS = {
+  en: {
+    pageTitle: 'End-of-day handoff', subtitleNew: 'Fill this before you leave — the next crew reads it first thing',
+    subtitleEdit: 'Editing this shift’s handoff',
+    langToggle: 'Español', back: '← Digest',
+    blockA: 'A · Who & when', blockB: 'B · Shift status', blockC: 'C · What got packed',
+    blockD: 'D · Coolers', blockE: 'E · Issues', blockF: 'F · Carry forward', blockG: 'G · Note to next crew',
+    date: 'Date', crew: 'Crew', packCrew: 'Pack crew', fieldCrew: 'Field crew',
+    author: 'Your name', nextCrew: "Who's coming in next", headcount: 'People on shift',
+    statusQ: 'Overall shift status', statusNormal: 'Normal', statusAttention: 'Needs attention', statusUrgent: 'Urgent',
+    summary: 'One-line summary', summaryHint: 'e.g. "Packed 78 CSA shares, held 4 floral, truck cooler ran warm"',
+    csa: 'CSA shares', market: 'Market boxes', wholesale: 'Wholesale', floral: 'Floral',
+    done: 'Done', target: 'Target', planQ: 'Was the packing plan completed?',
+    planYes: 'Yes', planPartial: 'Partial', planNo: 'No',
+    phCooler: 'PH cooler °F', barnCooler: 'Barn cooler °F', truckUsed: 'Truck used?', truckTemp: 'Truck °F',
+    coolerNotes: 'Cooler notes', useFirst: 'Use FIRST (oldest / at-risk)', runningLow: 'Running LOW',
+    qualityQ: 'Any quality concerns?', equipmentQ: 'Any equipment issues?', safetyQ: 'Any safety / incident?',
+    yes: 'Yes', no: 'No', detail: 'Details', photo: 'Photo URL (optional)',
+    openItems: 'Open items to carry forward', openItemBody: 'What needs follow-up', openItemOwner: 'Owner (optional)',
+    addItem: '＋ Add another item', remove: 'Remove',
+    priorities: 'Top 3 priorities for the next crew', priority: 'Priority',
+    note: 'Anything to tell the next crew', noteHint: 'Field-crew vs pack-crew specifics go here',
+    save: 'Save handoff', saveEdit: 'Update handoff', mic: 'Speak', listening: 'Listening…',
+    chars: 'characters',
+  },
+  es: {
+    pageTitle: 'Entrega de fin de día', subtitleNew: 'Llénalo antes de irte — el siguiente equipo lo lee primero',
+    subtitleEdit: 'Editando la entrega de este turno',
+    langToggle: 'English', back: '← Resumen',
+    blockA: 'A · Quién y cuándo', blockB: 'B · Estado del turno', blockC: 'C · Lo que se empacó',
+    blockD: 'D · Enfriadores', blockE: 'E · Problemas', blockF: 'F · Traspaso', blockG: 'G · Nota al siguiente equipo',
+    date: 'Fecha', crew: 'Equipo', packCrew: 'Equipo de empaque', fieldCrew: 'Equipo de campo',
+    author: 'Tu nombre', nextCrew: 'Quién entra después', headcount: 'Personas en el turno',
+    statusQ: 'Estado general del turno', statusNormal: 'Normal', statusAttention: 'Atención', statusUrgent: 'Urgente',
+    summary: 'Resumen de una línea', summaryHint: 'ej. "Empacamos 78 cajas CSA, 4 florales pendientes, el camión enfrió caliente"',
+    csa: 'Cajas CSA', market: 'Cajas de mercado', wholesale: 'Mayoreo', floral: 'Floral',
+    done: 'Hecho', target: 'Meta', planQ: '¿Se completó el plan de empaque?',
+    planYes: 'Sí', planPartial: 'Parcial', planNo: 'No',
+    phCooler: 'Enfriador PH °F', barnCooler: 'Enfriador granero °F', truckUsed: '¿Camión usado?', truckTemp: 'Camión °F',
+    coolerNotes: 'Notas de enfriadores', useFirst: 'Usar PRIMERO (más viejo / en riesgo)', runningLow: 'Escaseando',
+    qualityQ: '¿Problemas de calidad?', equipmentQ: '¿Problemas de equipo?', safetyQ: '¿Seguridad / incidente?',
+    yes: 'Sí', no: 'No', detail: 'Detalles', photo: 'URL de foto (opcional)',
+    openItems: 'Pendientes para traspasar', openItemBody: 'Qué necesita seguimiento', openItemOwner: 'Responsable (opcional)',
+    addItem: '＋ Agregar otro pendiente', remove: 'Quitar',
+    priorities: 'Las 3 prioridades para el siguiente equipo', priority: 'Prioridad',
+    note: 'Algo que decirle al siguiente equipo', noteHint: 'Aquí van los detalles de equipo de campo vs empaque',
+    save: 'Guardar entrega', saveEdit: 'Actualizar entrega', mic: 'Hablar', listening: 'Escuchando…',
+    chars: 'caracteres',
+  },
+} as const;
+const t = STRINGS[lang];
+
+const langQS = lang === 'es' ? '?lang=es' : '';
+const toggleHref = (() => {
+  const p = new URLSearchParams();
+  if (lang !== 'es') p.set('lang', 'es');
+  if (crew !== weekdayCrew) p.set('crew', crew);
+  if (logDate !== todayET()) p.set('date', logDate);
+  const qs = p.toString();
+  return `/admin/handoff/new${qs ? `?${qs}` : ''}`;
+})();
+/** Crew-switch link — reloads so the server pre-fills that crew's handoff. */
+function crewHref(c: 'pack' | 'field'): string {
+  const p = new URLSearchParams();
+  p.set('crew', c);
+  if (logDate !== todayET()) p.set('date', logDate);
+  if (lang === 'es') p.set('lang', 'es');
+  return `/admin/handoff/new?${p.toString()}`;
+}
+
+// Shared field classes.
+const inputClass = 'h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text transition-colors placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary';
+const labelClass = 'text-sm font-semibold text-ts-text';
+const summaryHeadClass = 'flex min-h-12 cursor-pointer list-none items-center justify-between rounded-ts-lg border border-ts-border bg-ts-bg-surface px-4 py-3 font-display text-base font-bold text-ts-text transition-colors hover:border-ts-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+const blockBodyClass = 'mt-2 flex flex-col gap-4 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 sm:p-5';
+---
+
+<AdminShell
+  title={t.pageTitle}
+  subtitle={isEdit ? t.subtitleEdit : t.subtitleNew}
+  pageTitle={`${t.pageTitle} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <a
+      href={toggleHref}
+      class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >🌐 {t.langToggle}</a>
+    <a
+      href={`/admin/handoff${langQS}`}
+      class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >{t.back}</a>
+  </Fragment>
+
+  <form method="POST" action="/api/admin/handoff/save" class="flex flex-col gap-3" data-handoff-form>
+    {lang === 'es' && <input type="hidden" name="lang" value="es" />}
+    <input type="hidden" name="crew_type" value={crew} />
+
+    {/* ═══ BLOCK A — Identity ═══ */}
+    <details name="handoff-block" open class="group">
+      <summary class={summaryHeadClass}>
+        <span>{t.blockA}</span>
+        <span class="text-ts-text-muted transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <div class={blockBodyClass}>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="log_date">{t.date}</label>
+            <input
+              class={inputClass}
+              type="date"
+              id="log_date"
+              name="log_date"
+              value={logDate}
+              data-date-reload
+              required
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class={labelClass}>{t.crew}</span>
+            <div class="flex gap-2" role="group" aria-label={t.crew}>
+              {(['pack', 'field'] as const).map((c) => (
+                <a
+                  href={crewHref(c)}
+                  aria-current={crew === c ? 'true' : undefined}
+                  class:list={[
+                    'inline-flex h-11 flex-1 items-center justify-center rounded-ts-md border px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+                    crew === c
+                      ? 'border-ts-primary bg-ts-primary/10 text-ts-primary'
+                      : 'border-ts-border bg-ts-bg-surface text-ts-text-secondary hover:border-ts-primary/40',
+                  ]}
+                >{c === 'field' ? t.fieldCrew : t.packCrew}</a>
+              ))}
+            </div>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="author_name">{t.author}</label>
+            <input class={inputClass} type="text" id="author_name" name="author_name" value={existing?.author_name ?? currentEmail} maxlength="120" autocomplete="name" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="next_crew">{t.nextCrew}</label>
+            <input class={inputClass} type="text" id="next_crew" name="next_crew" value={existing?.next_crew ?? ''} maxlength="120" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="headcount">{t.headcount}</label>
+            <input class={inputClass} type="number" inputmode="numeric" min="0" max="99" id="headcount" name="headcount" value={existing?.headcount ?? ''} />
+          </div>
+        </div>
+      </div>
+    </details>
+
+    {/* ═══ BLOCK B — Status ═══ */}
+    <details name="handoff-block" class="group">
+      <summary class={summaryHeadClass}>
+        <span>{t.blockB}</span>
+        <span class="text-ts-text-muted transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <div class={blockBodyClass}>
+        <fieldset class="flex flex-col gap-2">
+          <legend class={`${labelClass} mb-1`}>{t.statusQ}</legend>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {([
+              { v: 'normal', label: t.statusNormal, icon: '✓', on: 'peer-checked:border-ts-primary peer-checked:bg-ts-primary/10 peer-checked:text-ts-primary' },
+              { v: 'attention', label: t.statusAttention, icon: '⚠', on: 'peer-checked:border-ts-warning peer-checked:bg-ts-warning/10 peer-checked:text-ts-warning' },
+              { v: 'urgent', label: t.statusUrgent, icon: '‼', on: 'peer-checked:border-ts-danger peer-checked:bg-ts-danger/10 peer-checked:text-ts-danger' },
+            ] as const).map((opt) => (
+              <label class="relative">
+                <input type="radio" name="shift_status" value={opt.v} checked={status === opt.v} class="peer sr-only" />
+                <span class:list={['flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base font-semibold text-ts-text-secondary transition-colors hover:border-ts-primary/40 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ts-primary', opt.on]}>
+                  <span aria-hidden="true">{opt.icon}</span>{opt.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div class="flex flex-col gap-1.5">
+          <label class={labelClass} for="summary">{t.summary}</label>
+          <div class="relative flex items-start gap-2">
+            <textarea class="min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" id="summary" name="summary" rows="2" maxlength="140" placeholder={t.summaryHint} data-counter="summary-count">{existing?.summary ?? ''}</textarea>
+            <button type="button" class="mic-btn hidden h-11 shrink-0 items-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text-secondary transition-colors hover:border-ts-primary/40 hover:text-ts-primary" data-mic="summary" aria-label={t.mic}>🎤</button>
+          </div>
+          <p class="text-xs text-ts-text-muted"><span id="summary-count">{(existing?.summary ?? '').length}</span>/140 {t.chars}</p>
+        </div>
+      </div>
+    </details>
+
+    {/* ═══ BLOCK C — What got packed ═══ */}
+    <details name="handoff-block" class="group">
+      <summary class={summaryHeadClass}>
+        <span>{t.blockC}</span>
+        <span class="text-ts-text-muted transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <div class={blockBodyClass}>
+        {([
+          { key: 'csa', label: t.csa, cell: packedCsa },
+          { key: 'market', label: t.market, cell: packedMarket },
+          { key: 'wholesale', label: t.wholesale, cell: packedWholesale },
+          { key: 'floral', label: t.floral, cell: packedFloral },
+        ] as const).map((ch) => (
+          <div class="grid grid-cols-[1fr_auto_auto] items-center gap-2 sm:gap-3">
+            <span class={labelClass}>{ch.label}</span>
+            <label class="flex items-center gap-1.5">
+              <span class="text-xs text-ts-text-secondary">{t.done}</span>
+              <input class="h-11 w-20 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 text-center text-base tabular-nums text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" type="number" inputmode="numeric" min="0" name={`packed_${ch.key}_done`} value={ch.cell.done ?? ''} aria-label={`${ch.label} ${t.done}`} />
+            </label>
+            <label class="flex items-center gap-1.5">
+              <span class="text-xs text-ts-text-secondary">{t.target}</span>
+              <input class="h-11 w-20 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 text-center text-base tabular-nums text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" type="number" inputmode="numeric" min="0" name={`packed_${ch.key}_target`} value={ch.cell.target ?? ''} aria-label={`${ch.label} ${t.target}`} />
+            </label>
+          </div>
+        ))}
+        <fieldset class="flex flex-col gap-2">
+          <legend class={`${labelClass} mb-1`}>{t.planQ}</legend>
+          <div class="grid grid-cols-3 gap-2">
+            {([
+              { v: 'yes', label: t.planYes, on: 'peer-checked:border-ts-primary peer-checked:bg-ts-primary/10 peer-checked:text-ts-primary' },
+              { v: 'partial', label: t.planPartial, on: 'peer-checked:border-ts-warning peer-checked:bg-ts-warning/10 peer-checked:text-ts-warning' },
+              { v: 'no', label: t.planNo, on: 'peer-checked:border-ts-danger peer-checked:bg-ts-danger/10 peer-checked:text-ts-danger' },
+            ] as const).map((opt) => (
+              <label class="relative">
+                <input type="radio" name="plan_completed" value={opt.v} checked={plan === opt.v} class="peer sr-only" />
+                <span class:list={['flex min-h-11 cursor-pointer items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 text-sm font-semibold text-ts-text-secondary transition-colors hover:border-ts-primary/40 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ts-primary', opt.on]}>{opt.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+    </details>
+
+    {/* ═══ BLOCK D — Coolers ═══ */}
+    <details name="handoff-block" class="group">
+      <summary class={summaryHeadClass}>
+        <span>{t.blockD}</span>
+        <span class="text-ts-text-muted transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <div class={blockBodyClass}>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="ph_cooler_temp">{t.phCooler}</label>
+            <input class={inputClass} type="number" inputmode="decimal" step="0.1" id="ph_cooler_temp" name="ph_cooler_temp" value={existing?.ph_cooler_temp ?? ''} placeholder="33–40" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="barn_cooler_temp">{t.barnCooler}</label>
+            <input class={inputClass} type="number" inputmode="decimal" step="0.1" id="barn_cooler_temp" name="barn_cooler_temp" value={existing?.barn_cooler_temp ?? ''} placeholder="33–40" />
+          </div>
+        </div>
+        <div class="flex flex-col gap-2 rounded-ts-md border border-ts-border bg-ts-bg-muted/30 p-3">
+          <label class="flex min-h-11 items-center gap-3">
+            <input type="checkbox" name="truck_used" value="true" checked={existing?.truck_used ?? false} class="h-5 w-5 rounded border-ts-border text-ts-primary focus:outline-2 focus:outline-offset-2 focus:outline-ts-primary" data-truck-toggle />
+            <span class={labelClass}>{t.truckUsed}</span>
+          </label>
+          <div class="flex flex-col gap-1.5" data-truck-temp hidden={!existing?.truck_used}>
+            <label class={labelClass} for="truck_temp">{t.truckTemp}</label>
+            <input class={inputClass} type="number" inputmode="decimal" step="0.1" id="truck_temp" name="truck_temp" value={existing?.truck_temp ?? ''} />
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class={labelClass} for="cooler_notes">{t.coolerNotes}</label>
+          <div class="flex items-start gap-2">
+            <textarea class="min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" id="cooler_notes" name="cooler_notes" rows="2">{existing?.cooler_notes ?? ''}</textarea>
+            <button type="button" class="mic-btn hidden h-11 shrink-0 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm hover:border-ts-primary/40 hover:text-ts-primary" data-mic="cooler_notes" aria-label={t.mic}>🎤</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="use_first">{t.useFirst}</label>
+            <textarea class="min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" id="use_first" name="use_first" rows="2">{existing?.use_first ?? ''}</textarea>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class={labelClass} for="running_low">{t.runningLow}</label>
+            <textarea class="min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" id="running_low" name="running_low" rows="2">{existing?.running_low ?? ''}</textarea>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    {/* ═══ BLOCK E — Issues ═══ */}
+    <details name="handoff-block" class="group">
+      <summary class={summaryHeadClass}>
+        <span>{t.blockE}</span>
+        <span class="text-ts-text-muted transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <div class={blockBodyClass}>
+        {([
+          { key: 'quality_issue', q: t.qualityQ, val: existing?.quality_issue ?? '' },
+          { key: 'equipment_issue', q: t.equipmentQ, val: existing?.equipment_issue ?? '' },
+          { key: 'safety_issue', q: t.safetyQ, val: existing?.safety_issue ?? '' },
+        ] as const).map((iss) => (
+          <div class="flex flex-col gap-2 border-b border-ts-border pb-4 last:border-0 last:pb-0" data-issue-group>
+            <span class={labelClass}>{iss.q}</span>
+            <div class="flex gap-2" role="group">
+              <label class="relative flex-1">
+                <input type="radio" name={`__toggle_${iss.key}`} value="no" checked={!iss.val} class="peer sr-only" data-issue-no />
+                <span class="flex min-h-11 cursor-pointer items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text-secondary transition-colors hover:border-ts-primary/40 peer-checked:border-ts-primary peer-checked:bg-ts-primary/10 peer-checked:text-ts-primary">{t.no}</span>
+              </label>
+              <label class="relative flex-1">
+                <input type="radio" name={`__toggle_${iss.key}`} value="yes" checked={!!iss.val} class="peer sr-only" data-issue-yes />
+                <span class="flex min-h-11 cursor-pointer items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text-secondary transition-colors hover:border-ts-warning/40 peer-checked:border-ts-warning peer-checked:bg-ts-warning/10 peer-checked:text-ts-warning">{t.yes}</span>
+              </label>
+            </div>
+            <div class="flex items-start gap-2" data-issue-detail hidden={!iss.val}>
+              <textarea class="min-h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" name={iss.key} rows="2" placeholder={t.detail}>{iss.val}</textarea>
+              <button type="button" class="mic-btn hidden h-11 shrink-0 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm hover:border-ts-primary/40 hover:text-ts-primary" data-mic={iss.key} aria-label={t.mic}>🎤</button>
+            </div>
+          </div>
+        ))}
+        <div class="flex flex-col gap-1.5">
+          <label class={labelClass} for="photo_url">{t.photo}</label>
+          <input class={inputClass} type="url" id="photo_url" name="photo_url" value={existing?.photo_url ?? ''} placeholder="https://…" inputmode="url" />
+        </div>
+      </div>
+    </details>
+
+    {/* ═══ BLOCK F — Carry forward ═══ */}
+    <details name="handoff-block" class="group">
+      <summary class={summaryHeadClass}>
+        <span>{t.blockF}</span>
+        <span class="text-ts-text-muted transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <div class={blockBodyClass}>
+        <div class="flex flex-col gap-2">
+          <span class={labelClass}>{t.openItems}</span>
+          <div data-open-items class="flex flex-col gap-2">
+            {/* Two starter rows so the field is usable without JavaScript. */}
+            {[0, 1].map(() => (
+              <div class="flex flex-col gap-2 rounded-ts-md border border-ts-border bg-ts-bg-muted/20 p-2.5 sm:flex-row" data-open-item-row>
+                <input class="h-11 flex-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" type="text" name="open_item_body" placeholder={t.openItemBody} maxlength="500" />
+                <input class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary sm:w-40" type="text" name="open_item_owner" placeholder={t.openItemOwner} maxlength="120" />
+              </div>
+            ))}
+          </div>
+          <button type="button" data-add-item class="hidden h-11 w-fit items-center rounded-ts-md border border-dashed border-ts-border px-4 text-sm font-semibold text-ts-text-secondary transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">{t.addItem}</button>
+        </div>
+        <fieldset class="flex flex-col gap-2">
+          <legend class={`${labelClass} mb-1`}>{t.priorities}</legend>
+          {[0, 1, 2].map((i) => (
+            <div class="flex items-center gap-2">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 text-sm font-bold text-ts-primary" aria-hidden="true">{i + 1}</span>
+              <input class={inputClass} type="text" name="priority" value={priorityAt(i)} maxlength="200" placeholder={`${t.priority} ${i + 1}`} aria-label={`${t.priority} ${i + 1}`} />
+            </div>
+          ))}
+        </fieldset>
+      </div>
+    </details>
+
+    {/* ═══ BLOCK G — Note to next crew ═══ */}
+    <details name="handoff-block" class="group">
+      <summary class={summaryHeadClass}>
+        <span>{t.blockG}</span>
+        <span class="text-ts-text-muted transition-transform group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+      <div class={blockBodyClass}>
+        <div class="flex flex-col gap-1.5">
+          <label class={labelClass} for="note_next_crew">{t.note}</label>
+          <div class="flex items-start gap-2">
+            <textarea class="min-h-24 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2.5 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary" id="note_next_crew" name="note_next_crew" rows="4" placeholder={t.noteHint}>{existing?.note_next_crew ?? ''}</textarea>
+            <button type="button" class="mic-btn hidden h-11 shrink-0 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm hover:border-ts-primary/40 hover:text-ts-primary" data-mic="note_next_crew" aria-label={t.mic}>🎤</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    {/* Sticky submit — always reachable on mobile. */}
+    <div class="sticky bottom-0 z-10 -mx-4 mt-2 border-t border-ts-border bg-ts-bg-base/95 px-4 py-3 backdrop-blur-sm sm:mx-0 sm:rounded-ts-lg sm:border sm:px-5">
+      <button
+        type="submit"
+        class="inline-flex h-12 w-full items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-bold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary active:scale-[0.99]"
+      >
+        {isEdit ? t.saveEdit : t.save}
+      </button>
+    </div>
+  </form>
+</AdminShell>
+
+<script define:vars={{ speechLang: lang === 'es' ? 'es-US' : 'en-US', listeningLabel: t.listening, micLabel: t.mic, removeLabel: t.remove, addLabel: t.addItem, bodyPh: t.openItemBody, ownerPh: t.openItemOwner }}>
+  function initHandoffForm() {
+    /* ── Summary character counter ── */
+    document.querySelectorAll('[data-counter]').forEach((el) => {
+      const target = document.getElementById(el.getAttribute('data-counter'));
+      if (!target) return;
+      el.addEventListener('input', () => { target.textContent = String(el.value.length); });
+    });
+
+    /* ── Date change → reload so the server pre-fills that day's handoff ── */
+    const dateInput = document.querySelector('[data-date-reload]');
+    if (dateInput) {
+      dateInput.addEventListener('change', () => {
+        const url = new URL(window.location.href);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
+          url.searchParams.set('date', dateInput.value);
+          window.location.href = url.toString();
+        }
+      });
+    }
+
+    /* ── Truck-used checkbox reveals the truck temp field ── */
+    const truckToggle = document.querySelector('[data-truck-toggle]');
+    const truckTemp = document.querySelector('[data-truck-temp]');
+    if (truckToggle && truckTemp) {
+      const sync = () => { truckTemp.hidden = !truckToggle.checked; };
+      truckToggle.addEventListener('change', sync);
+      sync();
+    }
+
+    /* ── Issue Yes/No reveals the detail field ── */
+    document.querySelectorAll('[data-issue-group]').forEach((group) => {
+      const detail = group.querySelector('[data-issue-detail]');
+      const yes = group.querySelector('[data-issue-yes]');
+      const no = group.querySelector('[data-issue-no]');
+      if (!detail || !yes || !no) return;
+      const sync = () => { detail.hidden = !yes.checked; };
+      yes.addEventListener('change', sync);
+      no.addEventListener('change', sync);
+      sync();
+    });
+
+    /* ── Add / remove open-item rows ── */
+    const itemsWrap = document.querySelector('[data-open-items]');
+    const addBtn = document.querySelector('[data-add-item]');
+    if (itemsWrap && addBtn) {
+      addBtn.classList.remove('hidden');
+      addBtn.classList.add('inline-flex');
+      addBtn.addEventListener('click', () => {
+        const row = document.createElement('div');
+        row.className = 'flex flex-col gap-2 rounded-ts-md border border-ts-border bg-ts-bg-muted/20 p-2.5 sm:flex-row';
+        row.setAttribute('data-open-item-row', '');
+        const body = document.createElement('input');
+        body.className = 'h-11 flex-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary';
+        body.type = 'text'; body.name = 'open_item_body'; body.placeholder = bodyPh; body.maxLength = 500;
+        const owner = document.createElement('input');
+        owner.className = 'h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus:border-ts-primary focus:outline-2 focus:outline-offset-0 focus:outline-ts-primary sm:w-40';
+        owner.type = 'text'; owner.name = 'open_item_owner'; owner.placeholder = ownerPh; owner.maxLength = 120;
+        const rm = document.createElement('button');
+        rm.type = 'button'; rm.textContent = '✕'; rm.setAttribute('aria-label', removeLabel);
+        rm.className = 'h-11 shrink-0 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text-secondary transition-colors hover:border-ts-danger/40 hover:text-ts-danger';
+        rm.addEventListener('click', () => row.remove());
+        row.append(body, owner, rm);
+        itemsWrap.appendChild(row);
+        body.focus();
+      });
+    }
+
+    /* ── Voice-to-text (Web Speech API) — progressive enhancement ── */
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      document.querySelectorAll('[data-mic]').forEach((btn) => {
+        const fieldName = btn.getAttribute('data-mic');
+        const field = document.querySelector('[name="' + fieldName + '"]');
+        if (!field) return;
+        btn.classList.remove('hidden');
+        btn.classList.add('inline-flex');
+        let active = false;
+        btn.addEventListener('click', () => {
+          if (active) return;
+          const rec = new SR();
+          rec.lang = speechLang;
+          rec.interimResults = false;
+          active = true;
+          btn.textContent = '●';
+          btn.setAttribute('aria-label', listeningLabel);
+          rec.onresult = (e) => {
+            const text = Array.from(e.results).map((r) => r[0].transcript).join(' ').trim();
+            if (text) field.value = field.value ? field.value.trim() + ' ' + text : text;
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+          };
+          const stop = () => { active = false; btn.textContent = '🎤'; btn.setAttribute('aria-label', micLabel); };
+          rec.onerror = stop;
+          rec.onend = stop;
+          rec.start();
+        });
+      });
+    }
+  }
+  initHandoffForm();
+  document.addEventListener('astro:page-load', initHandoffForm);
+</script>

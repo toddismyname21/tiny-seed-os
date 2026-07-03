@@ -51,6 +51,13 @@ export interface Database {
            * forces the confirm-pickup interstitial.
            */
           pickup_acknowledged_at: string | null;
+          /**
+           * CSA route-optimizer inclusion flag (migration 0062). true (default)
+           * = this customer's home-delivery address is fed to the optimizer as
+           * before. false = excluded from the optimizer and shown only as a
+           * MANUAL / not-routable stop on the route planner (deliver by hand).
+           */
+          routable: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -550,6 +557,29 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['member_notices']['Row']>;
         Relationships: [];
       };
+      // Pack & Load per-stop check-off state (migration 0061). One row per
+      // (week_starting, stop_id) recording the crew's "stop loaded" toggle.
+      // stop_id is the cycle resolver's StopTotals.stop_id (a pickup_location
+      // id, the 'home_delivery' sentinel, or 'no_pickup_set'). confirmed_count
+      // is the total boxes at click time, for the live stale-guard.
+      pack_stop_status: {
+        Row: {
+          id: string;
+          week_starting: string;
+          stop_id: string;
+          loaded: boolean;
+          confirmed_count: number | null;
+          confirmed_by: string | null;
+          confirmed_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          week_starting: string;
+          stop_id: string;
+        } & Partial<Database['public']['Tables']['pack_stop_status']['Row']>;
+        Update: Partial<Database['public']['Tables']['pack_stop_status']['Row']>;
+        Relationships: [];
+      };
       // Phase-1 member reporting of stop_messages (migration 0029). Created in
       // Phase 0 so the Phase-1 upgrade is policy/trigger/RPC only; stays empty
       // until member reporting ships. Admin-only RLS in Phase 0.
@@ -759,6 +789,16 @@ export interface Database {
           description: string | null;
           quality_note: string | null;
           quality_week: string | null;
+          // Pounds of product in ONE packed unit of a portioned item
+          // (migration 0063). e.g. 1/4 lb clamshell salad mix = 0.25; a 12 oz
+          // "Big Bag" = 0.75. NULL = unknown → Pick & Pack shows only the count.
+          pack_weight_lb: number | null;
+          // Shared harvest-line name grouping packaging variants of the SAME
+          // raw crop (migration 0064). e.g. "King Spring Mix" and "King Spring
+          // (Big Bagz)" both = "King Spring Mix" so Pick & Pack combines them
+          // into ONE harvest line (total pounds), with the packaging breakdown
+          // underneath. NULL = the product harvests as its own standalone line.
+          harvest_crop: string | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -1152,6 +1192,72 @@ export interface Database {
           email: string;
         };
         Update: Partial<Database['public']['Tables']['tracked_email_recipients']['Row']>;
+        Relationships: [];
+      };
+      // End-of-day pack-house shift handoff (migration 0066). One row per
+      // (log_date, crew_type) shift — UNIQUE on that key so the save endpoint
+      // upserts a crew's single daily handoff. crew_type: 'pack' (Mon/Tue/Thu)
+      // or 'field' (Fri weekend-market prep). shift_status drives the read
+      // digest's triage color. packed/priorities are flexible jsonb (per-channel
+      // done-vs-target object; ≤3-string array). read_by/read_at is the incoming
+      // person's I-PASS acknowledgment. Admin/staff-only RLS (is_admin_caller).
+      packhouse_handoff: {
+        Row: {
+          id: string;
+          log_date: string;
+          crew_type: 'pack' | 'field';
+          author_name: string | null;
+          next_crew: string | null;
+          headcount: number | null;
+          shift_status: 'normal' | 'attention' | 'urgent';
+          summary: string | null;
+          plan_completed: 'yes' | 'partial' | 'no' | null;
+          packed: Json | null;
+          ph_cooler_temp: number | null;
+          barn_cooler_temp: number | null;
+          truck_used: boolean;
+          truck_temp: number | null;
+          cooler_notes: string | null;
+          use_first: string | null;
+          running_low: string | null;
+          quality_issue: string | null;
+          equipment_issue: string | null;
+          safety_issue: string | null;
+          photo_url: string | null;
+          priorities: Json | null;
+          note_next_crew: string | null;
+          read_by: string | null;
+          read_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          log_date: string;
+          crew_type: 'pack' | 'field';
+        } & Partial<Database['public']['Tables']['packhouse_handoff']['Row']>;
+        Update: Partial<Database['public']['Tables']['packhouse_handoff']['Row']>;
+        Relationships: [];
+      };
+      // Carry-forward pack-house items that persist across days until resolved
+      // (migration 0066). OPEN while resolved_at IS NULL; the digest surfaces
+      // every open item on every future day with age = today − created_date
+      // (ET-local). Resolution is an explicit read-side action — never
+      // auto-cleared (fixes the "carryforward zombie" anti-pattern).
+      packhouse_open_items: {
+        Row: {
+          id: string;
+          body: string;
+          owner: string | null;
+          created_handoff_id: string | null;
+          created_date: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          body: string;
+        } & Partial<Database['public']['Tables']['packhouse_open_items']['Row']>;
+        Update: Partial<Database['public']['Tables']['packhouse_open_items']['Row']>;
         Relationships: [];
       };
     };

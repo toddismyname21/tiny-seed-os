@@ -1,0 +1,597 @@
+---
+/**
+ * /admin/handoff            → START-OF-DAY DIGEST (the read side) + section landing.
+ * /admin/handoff?lang=es    → same, in Spanish.
+ *
+ * The incoming person's triage screen. Information hierarchy (from
+ * docs/research/PACKHOUSE_HANDOFF_RESEARCH_2026.md §4):
+ *
+ *   1. OPEN carry-forward items across ALL prior days (not just yesterday) —
+ *      each with its age ("open since Tue Jul 1 — 2 days") and a Resolve
+ *      button. Items 3+ days old escalate visually (ts-danger tokens). This is
+ *      the highest-risk information for the Thu-field / Tue-pack crew change.
+ *   2. The most-recent handoff's status + summary + cooler state + what's
+ *      running low + targets + priorities + the note to the next crew.
+ *   3. An "I've read this" acknowledgment (I-PASS synthesis-by-receiver) that
+ *      stamps read_by/read_at, shown until the current user has acked the
+ *      latest handoff.
+ *
+ * Read-only reads run through the cookie-aware RLS client (admin/staff policy).
+ * Every mutation is a same-origin POST to /api/admin/handoff/* (styled inline
+ * buttons — no native confirm()/alert()). All dynamic content is rendered via
+ * Astro expressions (auto-escaped); no innerHTML is built from user data.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import Badge from '../../../components/Badge.astro';
+import { todayET } from '../../../lib/delivery';
+import { prettyShortDate } from '../../../lib/cycle';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const currentEmail = Astro.locals.user?.email ?? '';
+
+/* ── Bilingual strings (EN/ES). Mirrors the pick-pack ?lang= approach; kept
+ *    inline because this feature owns its own copy. ─────────────────────── */
+type Lang = 'en' | 'es';
+function parseLang(v: string | null): Lang {
+  return v === 'es' ? 'es' : 'en';
+}
+const lang = parseLang(Astro.url.searchParams.get('lang'));
+
+const STRINGS = {
+  en: {
+    pageTitle: 'Pack-house handoff',
+    subtitle: 'What happened last shift — read before you start',
+    fill: '➕ Fill end-of-day handoff',
+    langToggle: 'Español',
+    openHeading: 'Open items — carried forward',
+    openNone: 'Nothing open. All clear.',
+    openNoneSub: 'No unresolved items are carrying over from previous shifts.',
+    openSince: 'open since',
+    day: 'day',
+    days: 'days',
+    resolve: 'Resolve',
+    escalated: 'Needs attention — open 3+ days',
+    owner: 'Owner',
+    latestHeading: 'Latest handoff',
+    noHandoff: 'No handoff filled yet',
+    noHandoffSub: 'The first end-of-day handoff will show up here for the next crew to read.',
+    statusNormal: 'Normal',
+    statusAttention: 'Needs attention',
+    statusUrgent: 'Urgent',
+    packCrew: 'Pack crew',
+    fieldCrew: 'Field crew',
+    nextCrew: 'Next crew',
+    people: 'on shift',
+    coolers: 'Coolers',
+    phCooler: 'PH cooler',
+    barnCooler: 'Barn cooler',
+    truck: 'Truck',
+    notUsed: 'not used',
+    coolerNotes: 'Cooler notes',
+    useFirst: 'Use first',
+    runningLow: 'Running low',
+    packed: 'What got packed',
+    planYes: 'Plan completed',
+    planPartial: 'Plan partially done',
+    planNo: 'Plan not completed',
+    target: 'target',
+    done: 'done',
+    issues: 'Issues flagged',
+    quality: 'Quality',
+    equipment: 'Equipment',
+    safety: 'Safety',
+    photo: 'Photo attached',
+    viewPhoto: 'View photo',
+    priorities: 'Top priorities for next crew',
+    noteNext: 'Note to next crew',
+    ackPrompt: "Read this handoff? Tap to confirm you've seen it.",
+    ack: "✓ I've read this",
+    readBy: 'Read by',
+    at: 'at',
+    okSaved: 'Handoff saved.',
+    okResolved: 'Item resolved.',
+    okAcked: 'Marked as read.',
+    warnItems: 'Handoff saved, but an open item failed to save — please re-add it.',
+    errGeneric: 'Something went wrong. Please try again.',
+    filledBy: 'Filled by',
+  },
+  es: {
+    pageTitle: 'Entrega del almacén',
+    subtitle: 'Qué pasó en el turno anterior — léelo antes de empezar',
+    fill: '➕ Llenar entrega de fin de día',
+    langToggle: 'English',
+    openHeading: 'Pendientes — traspasados',
+    openNone: 'Nada pendiente. Todo en orden.',
+    openNoneSub: 'No hay pendientes sin resolver de turnos anteriores.',
+    openSince: 'abierto desde',
+    day: 'día',
+    days: 'días',
+    resolve: 'Resolver',
+    escalated: 'Requiere atención — abierto 3+ días',
+    owner: 'Responsable',
+    latestHeading: 'Última entrega',
+    noHandoff: 'Aún no hay entrega',
+    noHandoffSub: 'La primera entrega de fin de día aparecerá aquí para el siguiente equipo.',
+    statusNormal: 'Normal',
+    statusAttention: 'Atención',
+    statusUrgent: 'Urgente',
+    packCrew: 'Equipo de empaque',
+    fieldCrew: 'Equipo de campo',
+    nextCrew: 'Siguiente equipo',
+    people: 'en el turno',
+    coolers: 'Enfriadores',
+    phCooler: 'Enfriador PH',
+    barnCooler: 'Enfriador granero',
+    truck: 'Camión',
+    notUsed: 'no usado',
+    coolerNotes: 'Notas de enfriadores',
+    useFirst: 'Usar primero',
+    runningLow: 'Escaseando',
+    packed: 'Lo que se empacó',
+    planYes: 'Plan completado',
+    planPartial: 'Plan parcialmente hecho',
+    planNo: 'Plan no completado',
+    target: 'meta',
+    done: 'hecho',
+    issues: 'Problemas señalados',
+    quality: 'Calidad',
+    equipment: 'Equipo',
+    safety: 'Seguridad',
+    photo: 'Foto adjunta',
+    viewPhoto: 'Ver foto',
+    priorities: 'Prioridades para el siguiente equipo',
+    noteNext: 'Nota para el siguiente equipo',
+    ackPrompt: '¿Leíste esta entrega? Toca para confirmar que la viste.',
+    ack: '✓ Ya la leí',
+    readBy: 'Leído por',
+    at: 'a las',
+    okSaved: 'Entrega guardada.',
+    okResolved: 'Pendiente resuelto.',
+    okAcked: 'Marcado como leído.',
+    warnItems: 'Entrega guardada, pero un pendiente no se guardó — agrégalo de nuevo.',
+    errGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+    filledBy: 'Llenado por',
+  },
+} as const;
+const t = STRINGS[lang];
+
+/** Preserve ?lang across links to /new and the toggle target. */
+const langQS = lang === 'es' ? '?lang=es' : '';
+const toggleHref = lang === 'es' ? '/admin/handoff' : '/admin/handoff?lang=es';
+
+/* ── Banner (ok/error/warn) ─────────────────────────────────────────────── */
+const ok = Astro.url.searchParams.get('ok');
+const errParam = Astro.url.searchParams.get('error');
+const warn = Astro.url.searchParams.get('warn');
+let banner: { tone: 'ok' | 'warn' | 'err'; msg: string } | null = null;
+if (ok === 'saved') banner = { tone: 'ok', msg: t.okSaved };
+else if (ok === 'resolved') banner = { tone: 'ok', msg: t.okResolved };
+else if (ok === 'acked') banner = { tone: 'ok', msg: t.okAcked };
+if (warn === 'items') banner = { tone: 'warn', msg: t.warnItems };
+if (errParam) banner = { tone: 'err', msg: t.errGeneric };
+
+/* ── Date helpers (ET-anchored; never naive local) ──────────────────────── */
+const today = todayET();
+/** Whole days between two YYYY-MM-DD dates, anchored at noon UTC (DST-safe). */
+function ageDays(fromYMD: string, toYMD: string): number {
+  const ms = Date.parse(`${toYMD}T12:00:00Z`) - Date.parse(`${fromYMD}T12:00:00Z`);
+  return Math.max(0, Math.round(ms / 86_400_000));
+}
+
+/* ── 1. OPEN carry-forward items across ALL prior days ──────────────────── */
+interface OpenItemRow {
+  id: string;
+  body: string;
+  owner: string | null;
+  created_date: string;
+  created_handoff_id: string | null;
+}
+const { data: openRows, error: openErr } = await supabase
+  .from('packhouse_open_items')
+  .select('id, body, owner, created_date, created_handoff_id')
+  .is('resolved_at', null)
+  .order('created_date', { ascending: true })
+  .overrideTypes<OpenItemRow[], { merge: false }>();
+if (openErr) {
+  throw new Error(`handoff: open_items fetch failed: ${openErr.message}`);
+}
+const openItems = (openRows ?? []).map((r) => {
+  const age = ageDays(r.created_date, today);
+  return { ...r, age, escalated: age >= 3 };
+});
+
+/* ── 2. Most-recent handoff ──────────────────────────────────────────────── */
+interface HandoffRow {
+  id: string;
+  log_date: string;
+  crew_type: 'pack' | 'field';
+  author_name: string | null;
+  next_crew: string | null;
+  headcount: number | null;
+  shift_status: 'normal' | 'attention' | 'urgent';
+  summary: string | null;
+  plan_completed: 'yes' | 'partial' | 'no' | null;
+  packed: unknown;
+  ph_cooler_temp: number | null;
+  barn_cooler_temp: number | null;
+  truck_used: boolean;
+  truck_temp: number | null;
+  cooler_notes: string | null;
+  use_first: string | null;
+  running_low: string | null;
+  quality_issue: string | null;
+  equipment_issue: string | null;
+  safety_issue: string | null;
+  photo_url: string | null;
+  priorities: unknown;
+  note_next_crew: string | null;
+  read_by: string | null;
+  read_at: string | null;
+}
+const { data: latest, error: latestErr } = await supabase
+  .from('packhouse_handoff')
+  .select('*')
+  .order('log_date', { ascending: false })
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .maybeSingle()
+  .overrideTypes<HandoffRow | null, { merge: false }>();
+if (latestErr) {
+  throw new Error(`handoff: latest fetch failed: ${latestErr.message}`);
+}
+
+/* ── Derive the latest handoff's display fields ──────────────────────────── */
+function crewLabel(c: 'pack' | 'field'): string {
+  return c === 'field' ? t.fieldCrew : t.packCrew;
+}
+const statusMeta: Record<HandoffRow['shift_status'], { label: string; variant: 'green' | 'amber' | 'red'; icon: string }> = {
+  normal: { label: t.statusNormal, variant: 'green', icon: '✓' },
+  attention: { label: t.statusAttention, variant: 'amber', icon: '⚠' },
+  urgent: { label: t.statusUrgent, variant: 'red', icon: '‼' },
+};
+
+/** packed jsonb → renderable per-channel rows (defensive parse). */
+interface PackedRow { channel: string; done: number | null; target: number | null; }
+function parsePacked(v: unknown): PackedRow[] {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return [];
+  const labels: Record<string, string> = { csa: 'CSA', market: lang === 'es' ? 'Mercado' : 'Market', wholesale: lang === 'es' ? 'Mayoreo' : 'Wholesale', floral: lang === 'es' ? 'Floral' : 'Floral' };
+  const out: PackedRow[] = [];
+  for (const key of ['csa', 'market', 'wholesale', 'floral']) {
+    const cell = (v as Record<string, unknown>)[key];
+    if (!cell || typeof cell !== 'object') continue;
+    const c = cell as Record<string, unknown>;
+    const done = typeof c.done === 'number' ? c.done : null;
+    const target = typeof c.target === 'number' ? c.target : null;
+    if (done === null && target === null) continue;
+    out.push({ channel: labels[key] ?? key, done, target });
+  }
+  return out;
+}
+/** priorities jsonb → string[] (defensive). */
+function parsePriorities(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).slice(0, 3);
+}
+
+const packedRows = latest ? parsePacked(latest.packed) : [];
+const priorities = latest ? parsePriorities(latest.priorities) : [];
+const planLabel = latest?.plan_completed === 'yes' ? t.planYes
+  : latest?.plan_completed === 'partial' ? t.planPartial
+  : latest?.plan_completed === 'no' ? t.planNo : null;
+const issues: Array<{ label: string; text: string }> = [];
+if (latest) {
+  if (latest.quality_issue) issues.push({ label: t.quality, text: latest.quality_issue });
+  if (latest.equipment_issue) issues.push({ label: t.equipment, text: latest.equipment_issue });
+  if (latest.safety_issue) issues.push({ label: t.safety, text: latest.safety_issue });
+}
+
+/** Format a stored temperature for display, or a dash. */
+function fmtTemp(n: number | null): string {
+  return n === null ? '—' : `${n}°F`;
+}
+/** Read-receipt "at" time in ET. */
+function fmtReadAt(iso: string): string {
+  return new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', {
+    timeZone: 'America/New_York', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  }).format(new Date(iso));
+}
+
+// Show the ack button until the CURRENT user has acked THIS latest handoff.
+const needsAck = !!latest && (!latest.read_at || latest.read_by !== currentEmail);
+---
+
+<AdminShell
+  title={t.pageTitle}
+  subtitle={t.subtitle}
+  pageTitle={`${t.pageTitle} — Tiny Seed Admin`}
+>
+  <Fragment slot="actions">
+    <a
+      href={toggleHref}
+      class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🌐 {t.langToggle}
+    </a>
+    <a
+      href={`/admin/handoff/new${langQS}`}
+      class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      {t.fill}
+    </a>
+  </Fragment>
+
+  {banner && (
+    <div
+      role="status"
+      class:list={[
+        'flex items-center gap-2 rounded-ts-md border px-4 py-3 text-sm font-medium',
+        banner.tone === 'ok' && 'border-ts-primary/30 bg-ts-primary/5 text-ts-primary',
+        banner.tone === 'warn' && 'border-ts-warning/40 bg-ts-warning/10 text-ts-warning',
+        banner.tone === 'err' && 'border-ts-danger/40 bg-ts-danger/10 text-ts-danger',
+      ]}
+    >
+      <span aria-hidden="true">{banner.tone === 'ok' ? '✓' : banner.tone === 'warn' ? '⚠' : '⚠'}</span>
+      <span>{banner.msg}</span>
+    </div>
+  )}
+
+  {/* ═══ 1. OPEN CARRY-FORWARD ITEMS (top — highest priority) ═══ */}
+  <section aria-labelledby="handoff-open-heading" class="flex flex-col gap-3">
+    <div class="flex items-center justify-between gap-3">
+      <h2 id="handoff-open-heading" class="font-display text-lg font-bold text-ts-text sm:text-xl">
+        {t.openHeading}
+      </h2>
+      {openItems.length > 0 && (
+        <Badge variant={openItems.some((i) => i.escalated) ? 'red' : 'amber'} size="sm">
+          {openItems.length}
+        </Badge>
+      )}
+    </div>
+
+    {openItems.length === 0 ? (
+      <Card tone="primary" padding="lg" elevation="sm">
+        <div class="flex items-start gap-3">
+          <span class="text-2xl" aria-hidden="true">✅</span>
+          <div>
+            <p class="font-semibold text-ts-text">{t.openNone}</p>
+            <p class="mt-0.5 text-sm text-ts-text-secondary">{t.openNoneSub}</p>
+          </div>
+        </div>
+      </Card>
+    ) : (
+      <ul class="flex flex-col gap-2.5">
+        {openItems.map((item) => (
+          <li
+            class:list={[
+              'rounded-ts-lg border p-4 shadow-ts-sm',
+              item.escalated
+                ? 'border-ts-danger/40 bg-ts-danger/5'
+                : 'border-ts-warning/40 bg-ts-warning/5',
+            ]}
+          >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div class="min-w-0 flex-1">
+                <p class="text-base font-semibold leading-snug text-ts-text">{item.body}</p>
+                <div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                  <span class:list={['font-semibold', item.escalated ? 'text-ts-danger' : 'text-ts-warning']}>
+                    {t.openSince} {prettyShortDate(item.created_date)} — {item.age} {item.age === 1 ? t.day : t.days}
+                  </span>
+                  {item.owner && (
+                    <span class="text-ts-text-secondary">· {t.owner}: {item.owner}</span>
+                  )}
+                  {item.escalated && (
+                    <Badge variant="red" size="xs" uppercase>{t.escalated}</Badge>
+                  )}
+                </div>
+              </div>
+              <form method="POST" action="/api/admin/handoff/resolve-item" class="shrink-0">
+                <input type="hidden" name="item_id" value={item.id} />
+                {lang === 'es' && <input type="hidden" name="lang" value="es" />}
+                <button
+                  type="submit"
+                  class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:w-auto"
+                >
+                  ✓ {t.resolve}
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  {/* ═══ 2. LATEST HANDOFF DIGEST ═══ */}
+  <section aria-labelledby="handoff-latest-heading" class="flex flex-col gap-3">
+    <h2 id="handoff-latest-heading" class="font-display text-lg font-bold text-ts-text sm:text-xl">
+      {t.latestHeading}
+    </h2>
+
+    {!latest ? (
+      <Card tone="muted" padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-6 text-center">
+          <span class="text-4xl" aria-hidden="true">📋</span>
+          <div>
+            <p class="font-semibold text-ts-text">{t.noHandoff}</p>
+            <p class="mt-1 text-sm text-ts-text-secondary">{t.noHandoffSub}</p>
+          </div>
+          <a
+            href={`/admin/handoff/new${langQS}`}
+            class="mt-1 inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            {t.fill}
+          </a>
+        </div>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="md">
+        {/* Status band */}
+        <div
+          class:list={[
+            'flex flex-wrap items-center justify-between gap-3 rounded-t-ts-xl border-b px-5 py-4 sm:px-6',
+            latest.shift_status === 'normal' && 'border-ts-primary/20 bg-ts-primary/5',
+            latest.shift_status === 'attention' && 'border-ts-warning/30 bg-ts-warning/10',
+            latest.shift_status === 'urgent' && 'border-ts-danger/30 bg-ts-danger/10',
+          ]}
+        >
+          <div class="flex items-center gap-3">
+            <Badge variant={statusMeta[latest.shift_status].variant} size="sm" uppercase>
+              {statusMeta[latest.shift_status].icon} {statusMeta[latest.shift_status].label}
+            </Badge>
+            <span class="text-sm font-semibold text-ts-text">
+              {crewLabel(latest.crew_type)} · {prettyShortDate(latest.log_date)}
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ts-text-secondary">
+            {latest.author_name && <span>{t.filledBy}: {latest.author_name}</span>}
+            {latest.next_crew && <span>→ {t.nextCrew}: {latest.next_crew}</span>}
+            {latest.headcount !== null && <span>· {latest.headcount} {t.people}</span>}
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-5 p-5 sm:p-6">
+          {latest.summary && (
+            <p class="text-base font-medium leading-relaxed text-ts-text">{latest.summary}</p>
+          )}
+
+          {/* Cooler state */}
+          <div class="flex flex-col gap-2">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">{t.coolers}</h3>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div class="rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2">
+                <p class="text-xs text-ts-text-secondary">{t.phCooler}</p>
+                <p class="font-display text-lg font-bold tabular-nums text-ts-text">{fmtTemp(latest.ph_cooler_temp)}</p>
+              </div>
+              <div class="rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2">
+                <p class="text-xs text-ts-text-secondary">{t.barnCooler}</p>
+                <p class="font-display text-lg font-bold tabular-nums text-ts-text">{fmtTemp(latest.barn_cooler_temp)}</p>
+              </div>
+              <div class="rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2">
+                <p class="text-xs text-ts-text-secondary">{t.truck}</p>
+                <p class="font-display text-lg font-bold tabular-nums text-ts-text">
+                  {latest.truck_used ? fmtTemp(latest.truck_temp) : t.notUsed}
+                </p>
+              </div>
+            </div>
+            {latest.cooler_notes && (
+              <p class="text-sm text-ts-text-secondary"><span class="font-semibold text-ts-text">{t.coolerNotes}:</span> {latest.cooler_notes}</p>
+            )}
+          </div>
+
+          {/* Use first / Running low */}
+          {(latest.use_first || latest.running_low) && (
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {latest.use_first && (
+                <div class="rounded-ts-md border border-ts-warning/30 bg-ts-warning/5 px-3 py-2">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-ts-warning">{t.useFirst}</p>
+                  <p class="mt-0.5 text-sm text-ts-text">{latest.use_first}</p>
+                </div>
+              )}
+              {latest.running_low && (
+                <div class="rounded-ts-md border border-ts-warning/30 bg-ts-warning/5 px-3 py-2">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-ts-warning">{t.runningLow}</p>
+                  <p class="mt-0.5 text-sm text-ts-text">{latest.running_low}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* What got packed */}
+          {(packedRows.length > 0 || planLabel) && (
+            <div class="flex flex-col gap-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">{t.packed}</h3>
+              {packedRows.length > 0 && (
+                <div class="flex flex-wrap gap-2">
+                  {packedRows.map((row) => (
+                    <span class="inline-flex items-baseline gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-1.5 text-sm">
+                      <span class="font-semibold text-ts-text">{row.channel}</span>
+                      <span class="font-display font-bold tabular-nums text-ts-text">{row.done ?? '—'}</span>
+                      {row.target !== null && <span class="text-xs text-ts-text-secondary">/ {row.target} {t.target}</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {planLabel && (
+                <Badge
+                  variant={latest.plan_completed === 'yes' ? 'green' : latest.plan_completed === 'partial' ? 'amber' : 'red'}
+                  size="sm"
+                >{planLabel}</Badge>
+              )}
+            </div>
+          )}
+
+          {/* Issues */}
+          {issues.length > 0 && (
+            <div class="flex flex-col gap-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-ts-danger">{t.issues}</h3>
+              <ul class="flex flex-col gap-1.5">
+                {issues.map((iss) => (
+                  <li class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-3 py-2 text-sm text-ts-text">
+                    <span class="font-semibold text-ts-danger">{iss.label}:</span> {iss.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {latest.photo_url && (
+            <a
+              href={latest.photo_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex h-11 w-fit items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              📷 {t.viewPhoto}
+            </a>
+          )}
+
+          {/* Priorities */}
+          {priorities.length > 0 && (
+            <div class="flex flex-col gap-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">{t.priorities}</h3>
+              <ol class="flex flex-col gap-1.5">
+                {priorities.map((p, i) => (
+                  <li class="flex items-start gap-2.5 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2">
+                    <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ts-primary text-xs font-bold text-white" aria-hidden="true">{i + 1}</span>
+                    <span class="text-sm font-medium text-ts-text">{p}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* Note to next crew */}
+          {latest.note_next_crew && (
+            <div class="rounded-ts-md border border-ts-border bg-ts-bg-muted/40 p-4">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">{t.noteNext}</h3>
+              <p class="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ts-text">{latest.note_next_crew}</p>
+            </div>
+          )}
+
+          {/* Acknowledgment (I-PASS synthesis by receiver) */}
+          {needsAck ? (
+            <form method="POST" action="/api/admin/handoff/ack" class="flex flex-col gap-2 border-t border-ts-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p class="text-sm text-ts-text-secondary">{t.ackPrompt}</p>
+              <input type="hidden" name="handoff_id" value={latest.id} />
+              {lang === 'es' && <input type="hidden" name="lang" value="es" />}
+              <button
+                type="submit"
+                class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                {t.ack}
+              </button>
+            </form>
+          ) : latest.read_at ? (
+            <p class="border-t border-ts-border pt-4 text-sm text-ts-text-secondary">
+              ✓ {t.readBy} {latest.read_by} {t.at} {fmtReadAt(latest.read_at)}
+            </p>
+          ) : null}
+        </div>
+      </Card>
+    )}
+  </section>
+</AdminShell>
