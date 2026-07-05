@@ -6,6 +6,12 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-05] CSA — Cadence adjudication data corrections + Stephanie make-good (PM_ARCHITECT, per Todd)
+
+DATA ONLY (no code). Todd adjudicated the remaining cadence anomalies: (1) Chris & Deanna (neighbor) = complimentary WEEKLY share → cadence already 'weekly' via 0073 backfill; total_weeks corrected 9→18. (2) The six sheet-era members confirmed BIWEEKLY (Ronelle Myers veg, Stephtanie Montemurro veg+flower, Lela Dougherty veg, Doug Holscher veg, Dawn Bartlett veg, Kevin Hutchings flower) — cadence/parity unchanged, total_weeks corrected to biweekly-sized (18→9 veg, 16→8 flower), weeks_remaining capped; 7 rows verified after update. Evidence trail: Shopify by email + by name + full 2026 order sweep + Gmail; Ronelle's 3 biweekly add-ons corroborate; others have no purchasable record (manual/sheet signups) and their all-season biweekly-B delivery pattern went uncontested. (3) member_notices make-good inserted (id 1b054f1e): Stephanie Montemurro flower bouquet NOT delivered Wed Jul 1 (member email Jul 2) → owed on her next on-week, due_week 2026-07-13, stop_hint HOME DELIVERY — surfaces on pack sheets via the existing make-good flow.
+
+---
+
 ## [2026-07-05] CSA — CADENCE data-model fix: members.cadence becomes the weekly-vs-biweekly source of truth (FULLSTACK_BUILDER)
 
 Root-caused + fixed the box-allocation data-model flaw where `members.biweekly_week ('A'|'B'|NULL)` was the ONLY cadence signal and the app treated a NULL as "on-week EVERY week" (cycle.ts isMemberOnThisWeek). That single column cannot distinguish a WEEKLY member from a biweekly member not-yet-assigned A/B. Prod consequences (PM-verified vs code + prod + Shopify): (a) a biweekly-unassigned purchaser silently got WEEKLY boxes; (b) weekly members with a stray parity got HALF their boxes; (c) the admin "Unassigned Week A/B" counter was uncomputable; (d) the self-service picker stamped ONE parity across ALL of a mixed household's rows, halving their WEEKLY share (2 Shopify-proven cases). NOT DEPLOYED; **migration 0073 NOT applied** (left local for PM). Behavior-preserving except the 2 evidenced corrections + the self-service scoping fix (which RESTORES paid service).
