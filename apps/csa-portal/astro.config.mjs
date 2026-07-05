@@ -123,6 +123,20 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+
+      // ── Post-pickup feedback-token HMAC secret (micro-survey links) ──
+      // Signs + verifies the per-(customer, week) tokens embedded in the
+      // weekly email's "How was your box?" link (lib/feedback.ts →
+      // signFeedbackToken / verifyFeedbackToken). A DISTINCT secret is
+      // preferred so rotating feedback links never invalidates unsubscribe
+      // links; the callers fall back to UNSUBSCRIBE_SECRET when this is unset,
+      // so the survey works before a separate secret is wired. `optional` so a
+      // local build/check (where it's absent) still succeeds.
+      FEEDBACK_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
     },
   },
 });
