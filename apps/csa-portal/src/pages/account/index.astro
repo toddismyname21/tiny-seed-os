@@ -486,6 +486,40 @@ const showNextBox = nextBoxDateLong !== '';
         <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
       </a>
 
+      {/* RECIPES (account-level — Phase 2 Wave 3). Surfaces the recipe library,
+          matched to the member's current box + fully searchable. */}
+      <a
+        href="/account/recipes"
+        class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        <span class="text-3xl" aria-hidden="true">🥗</span>
+        <div class="min-w-0 flex-1">
+          <h3 class="text-base font-semibold text-ts-text">Recipes</h3>
+          <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
+            Ideas for cooking your share — matched to what's in your box
+          </p>
+          <p class="mt-1 text-xs text-ts-text-muted">Browse the full library, searchable by crop</p>
+        </div>
+        <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+      </a>
+
+      {/* PICKUP HISTORY (account-level — Phase 2 Wave 3). "Your season so far":
+          boxes received, week by week. */}
+      <a
+        href="/account/history"
+        class="group flex items-start gap-4 rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm transition-all duration-200 hover:border-ts-primary/40 hover:shadow-ts-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        <span class="text-3xl" aria-hidden="true">📦</span>
+        <div class="min-w-0 flex-1">
+          <h3 class="text-base font-semibold text-ts-text">Your season so far</h3>
+          <p class="mt-1 text-sm leading-snug text-ts-text-secondary">
+            Your pickup history — boxes received, week by week
+          </p>
+          <p class="mt-1 text-xs text-ts-text-muted">A look back at your CSA season</p>
+        </div>
+        <span class="self-center text-ts-text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true">→</span>
+      </a>
+
       {/* CARDS */}
       {primary ? (
         <section aria-labelledby="settings-heading" class="flex flex-col gap-3">

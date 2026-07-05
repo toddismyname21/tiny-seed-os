@@ -1,0 +1,341 @@
+---
+/**
+ * /account/history — member pickup history / "Your season so far" (Phase 2
+ * Wave 3, gap 8 / proposal 2.8).
+ *
+ * Shows the member their season at a glance: boxes received vs box weeks
+ * elapsed, a week-by-week list (date RANGE + picked-up / not-picked-up / on-hold),
+ * and a few warm aggregate stats. Nothing shaming — a missed week reads the
+ * neutral "Not picked up", and a vacation-hold week reads "On hold" (never
+ * "Missed"), sourced from vacation_holds so a correct skip is never mislabelled.
+ *
+ * DATA ACCESS / RLS (documented decision — NO migration needed):
+ *   • pickup_attendance already has `attendance_self_read` (migration 0011),
+ *     scoped to the HOUSEHOLD via current_customer_id()
+ *     (member_id IN (SELECT id FROM members WHERE customer_id = current_customer_id())).
+ *     So the member's own RLS-scoped client (`Astro.locals.supabase`) reads ONLY
+ *     their household's attendance rows — per-member PII stays private. We add
+ *     NO new policy for it (a blanket authenticated read would violate
+ *     least-privilege; the existing self-scoped policy is exactly right).
+ *   • vacation_holds already has `vacation_self_all` (migration 0011), same
+ *     household scoping — read directly.
+ *   Both queries additionally bound `week_date` / date range to the season, and
+ *   RLS guarantees they can only ever return this household's rows.
+ *
+ * SEASON DERIVATION mirrors the dashboard: among the member's live shares, the
+ * controlling schedule is the configured SEASON_SCHEDULE with the EARLIEST
+ * firstDelivery; the member's delivery calendar comes from resolveMemberSchedule
+ * (weekly = every week; biweekly = their A/B parity). "Elapsed" = delivery
+ * Wednesdays on/before today (ET).
+ *
+ * SPARSE / EMPTY pickup_attendance (there is currently NO writer in the app, so
+ * prod is effectively empty): when the household has NO attendance rows for the
+ * season, we DON'T claim pickups. We show boxes-received as an ESTIMATE derived
+ * from elapsed on-weeks minus hold weeks, clearly labelled "estimated", and the
+ * week list shows each elapsed week without a pickup claim (holds still shown).
+ *
+ * WEEK-KEY ROBUSTNESS: pickup_attendance.week_date has no writer yet, so its
+ * eventual keying (cycle Monday vs delivery Wednesday) is unknown. We normalise
+ * BOTH the attendance rows AND the member's delivery dates to their cycle Monday
+ * (mondayOfWeek) before joining, so the match is correct either way.
+ *
+ * GLOSSARY: weeks are date RANGES via weekRangeLabel ("Week of Jun 22 – Jun 28"),
+ * never "this week".
+ */
+import MemberShell from '../../components/MemberShell.astro';
+import Card from '../../components/Card.astro';
+import Badge from '../../components/Badge.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { resolveAccountCustomer, todayET } from '../../lib/account';
+import { getSchedule, type SeasonSchedule } from '../../lib/season';
+import { resolveMemberSchedule } from '../../lib/schedule';
+import { mondayOfWeek, addDays } from '../../lib/cycle';
+import { weekRangeLabel } from '../../lib/cycle-ui';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+const today = todayET();
+
+// ─── Household + live shares ─────────────────────────────────────────
+const account = await resolveAccountCustomer(supabase);
+
+type ShareRow = {
+  id: string;
+  share_type: string;
+  share_size: string | null;
+  status: string;
+  biweekly_week: 'A' | 'B' | null;
+};
+let liveShares: ShareRow[] = [];
+if (account) {
+  const { data: memberRows, error: membersError } = await supabase
+    .from('members')
+    .select('id, share_type, share_size, status, biweekly_week')
+    .eq('customer_id', account.id)
+    .overrideTypes<ShareRow[], { merge: false }>();
+  if (membersError) {
+    console.error('[account/history] members fetch failed:', membersError.message);
+  }
+  const liveStatuses = new Set(['active', 'paused', 'onboarding']);
+  liveShares = (memberRows ?? []).filter((m) => liveStatuses.has(m.status));
+}
+
+// ─── Controlling schedule (mirror dashboard) ─────────────────────────
+// The configured season with the earliest firstDelivery drives the calendar.
+// Prefer a box-bearing veg/flower share (never a flex/add_on) as the "primary"
+// so its biweekly parity is the one we project.
+let controllingSchedule: SeasonSchedule | null = null;
+for (const s of liveShares) {
+  const sched = getSchedule(s.share_type);
+  if (!sched) continue;
+  if (!controllingSchedule || sched.firstDelivery < controllingSchedule.firstDelivery) {
+    controllingSchedule = sched;
+  }
+}
+// The member row whose schedule IS the controlling one (prefer veg/flower).
+const primaryShare =
+  liveShares.find(
+    (s) =>
+      s.share_type !== 'flex' &&
+      s.share_type !== 'add_on' &&
+      getSchedule(s.share_type)?.firstDelivery === controllingSchedule?.firstDelivery,
+  ) ??
+  liveShares.find(
+    (s) => getSchedule(s.share_type)?.firstDelivery === controllingSchedule?.firstDelivery,
+  ) ??
+  null;
+
+// ─── The member's delivery calendar + elapsed weeks ──────────────────
+type WeekStatus = 'picked' | 'not_picked' | 'hold' | 'no_record';
+type WeekRow = { deliveryDate: string; monday: string; range: string; status: WeekStatus };
+
+let weekRows: WeekRow[] = [];
+let allDeliveryCount = 0;
+let elapsedCount = 0;
+let boxesPicked = 0;
+let holdCount = 0;
+let hasAttendance = false;
+let seasonConfigured = false;
+
+if (controllingSchedule && primaryShare) {
+  seasonConfigured = true;
+  const resolved = resolveMemberSchedule({
+    schedule: controllingSchedule,
+    biweeklyWeek: primaryShare.biweekly_week,
+  });
+  allDeliveryCount = resolved.allDeliveries.length;
+
+  // Elapsed = the member's delivery Wednesdays on/before today.
+  const elapsed = resolved.allDeliveries.filter((d) => d <= today);
+  elapsedCount = elapsed.length;
+
+  const seasonStartMonday = mondayOfWeek(controllingSchedule.firstDelivery);
+
+  // ── Attendance (household, RLS-scoped) → Monday-keyed map ──
+  // Normalise week_date to the cycle Monday so the join is correct whether the
+  // eventual writer keys Monday or Wednesday. Aggregate across household members:
+  // a week counts as PICKED if ANY member picked up; NOT_PICKED if a row exists
+  // but none picked up.
+  const attByMonday = new Map<string, { anyPicked: boolean; anyRow: boolean }>();
+  {
+    const { data: attRows, error: attErr } = await supabase
+      .from('pickup_attendance')
+      .select('week_date, picked_up')
+      .gte('week_date', seasonStartMonday);
+    if (attErr) {
+      console.error('[account/history] pickup_attendance fetch failed:', attErr.message);
+    }
+    const rows = (attRows ?? []) as Array<{ week_date: string; picked_up: boolean }>;
+    hasAttendance = rows.length > 0;
+    for (const r of rows) {
+      const mon = mondayOfWeek(r.week_date);
+      const slot = attByMonday.get(mon) ?? { anyPicked: false, anyRow: false };
+      slot.anyRow = true;
+      if (r.picked_up) slot.anyPicked = true;
+      attByMonday.set(mon, slot);
+    }
+  }
+
+  // ── Vacation holds (household, RLS-scoped) → Monday overlap set ──
+  const holdMondays = new Set<string>();
+  {
+    const seasonEndMonday = mondayOfWeek(
+      addDays(controllingSchedule.firstDelivery, (controllingSchedule.totalWeeks - 1) * 7),
+    );
+    const seasonEndSunday = addDays(seasonEndMonday, 6);
+    const { data: holdRows, error: holdErr } = await supabase
+      .from('vacation_holds')
+      .select('start_date, end_date, status')
+      .in('status', ['scheduled', 'active', 'completed'])
+      .lte('start_date', seasonEndSunday)
+      .gte('end_date', seasonStartMonday);
+    if (holdErr) {
+      console.error('[account/history] vacation_holds fetch failed:', holdErr.message);
+    }
+    for (const h of (holdRows ?? []) as Array<{ start_date: string; end_date: string }>) {
+      // Mark every elapsed delivery week whose Mon–Sun window overlaps the hold.
+      for (const d of elapsed) {
+        const mon = mondayOfWeek(d);
+        const sun = addDays(mon, 6);
+        if (h.start_date <= sun && h.end_date >= mon) holdMondays.add(mon);
+      }
+    }
+  }
+
+  // ── Build the week-by-week rows (most recent first) ──
+  weekRows = elapsed
+    .slice()
+    .reverse()
+    .map((deliveryDate) => {
+      const monday = mondayOfWeek(deliveryDate);
+      let status: WeekStatus;
+      if (holdMondays.has(monday)) {
+        status = 'hold';
+      } else {
+        const att = attByMonday.get(monday);
+        if (att?.anyPicked) status = 'picked';
+        else if (att?.anyRow) status = 'not_picked';
+        else status = 'no_record';
+      }
+      return { deliveryDate, monday, range: weekRangeLabel(monday), status };
+    });
+
+  boxesPicked = weekRows.filter((w) => w.status === 'picked').length;
+  holdCount = weekRows.filter((w) => w.status === 'hold').length;
+}
+
+// ─── Headline stats ──────────────────────────────────────────────────
+// Box weeks that "counted" so far = elapsed on-weeks minus hold weeks (a hold
+// week is not a box you were due). Boxes received: exact from attendance when we
+// have any; otherwise an ESTIMATE (assume you got every non-hold box).
+const boxWeeksDue = Math.max(0, elapsedCount - holdCount);
+const boxesReceived = hasAttendance ? boxesPicked : boxWeeksDue;
+const boxesEstimated = seasonConfigured && !hasAttendance;
+
+const firstName = (account?.contactName ?? user.email!.split('@')[0]).trim().split(/\s+/)[0];
+
+const STATUS_BADGE: Record<WeekStatus, { variant: 'green' | 'amber' | 'sky' | 'gray'; label: string }> = {
+  picked: { variant: 'green', label: 'Picked up' },
+  not_picked: { variant: 'gray', label: 'Not picked up' },
+  hold: { variant: 'amber', label: 'On hold' },
+  no_record: { variant: 'gray', label: 'Box week' },
+};
+---
+
+<MemberShell
+  title="Your season so far — Tiny Seed Farm CSA"
+  description="Your CSA pickup history: boxes received, week by week."
+  canonical="https://csa.tinyseedfarm.com/account/history"
+  userEmail={user.email}
+  active="account"
+  back={{ href: '/dashboard', label: 'Dashboard' }}
+>
+  <section aria-labelledby="history-heading">
+    <h1
+      id="history-heading"
+      class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl"
+    >
+      Your season so far
+    </h1>
+    <p class="mt-2 text-base text-ts-text-secondary">
+      Hi {firstName} — here's a look back at your CSA season.
+    </p>
+  </section>
+
+  {!seasonConfigured ? (
+    <EmptyState title="Your season hasn't started yet" icon="🌱" tone="primary">
+      Once your CSA season is underway, you'll see your boxes here — week by week,
+      with a running tally of what you've picked up.
+    </EmptyState>
+  ) : (
+    <>
+      {/* ════ SUMMARY STATS ════ */}
+      <section aria-label="Season summary">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {/* Boxes received */}
+          <Card padding="md" elevation="sm" tone="primary">
+            <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              Boxes received
+            </p>
+            <p class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">
+              {boxesReceived}<span class="text-lg font-semibold text-ts-text-muted"> / {boxWeeksDue}</span>
+            </p>
+            <p class="mt-0.5 text-xs text-ts-text-muted">
+              {boxesEstimated ? 'estimated' : 'so far this season'}
+            </p>
+          </Card>
+
+          {/* Weeks in the season */}
+          <Card padding="md" elevation="sm">
+            <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              Week
+            </p>
+            <p class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">
+              {elapsedCount}<span class="text-lg font-semibold text-ts-text-muted"> / {allDeliveryCount}</span>
+            </p>
+            <p class="mt-0.5 text-xs text-ts-text-muted">of your season</p>
+          </Card>
+
+          {/* Holds taken */}
+          <Card padding="md" elevation="sm" class="col-span-2 sm:col-span-1">
+            <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+              Weeks on hold
+            </p>
+            <p class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">
+              {holdCount}
+            </p>
+            <p class="mt-0.5 text-xs text-ts-text-muted">vacation weeks you paused</p>
+          </Card>
+        </div>
+
+        {boxesEstimated && (
+          <p class="mt-3 flex items-start gap-2 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2 text-xs leading-snug text-ts-text-secondary">
+            <span aria-hidden="true">ℹ️</span>
+            <span>
+              We don't have pickup scans on file yet, so "boxes received" is an
+              estimate that assumes you got every box that wasn't on hold. It'll
+              get exact once your pickups are being logged at the stop.
+            </span>
+          </p>
+        )}
+      </section>
+
+      {/* ════ WEEK-BY-WEEK LIST ════ */}
+      <section aria-labelledby="weeks-heading" class="flex flex-col gap-4">
+        <h2 id="weeks-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+          Week by week
+        </h2>
+
+        {weekRows.length === 0 ? (
+          <EmptyState title="No boxes yet" icon="📦" tone="default">
+            Your first box of the season is on its way. Once it's here, this is
+            where you'll see your week-by-week pickups.
+          </EmptyState>
+        ) : (
+          <Card padding="none" elevation="sm">
+            <ul class="divide-y divide-ts-border/60">
+              {weekRows.map((w) => {
+                const badge = STATUS_BADGE[w.status];
+                return (
+                  <li class="flex items-center justify-between gap-3 px-5 py-4 sm:px-6">
+                    <span class="min-w-0 text-sm font-medium text-ts-text sm:text-base">
+                      {w.range}
+                    </span>
+                    <Badge variant={badge.variant} size="sm">
+                      {badge.label}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        )}
+      </section>
+    </>
+  )}
+</MemberShell>

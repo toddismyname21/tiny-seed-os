@@ -1,0 +1,346 @@
+---
+/**
+ * /account/recipes — member-facing recipe browse page (Phase 2 Wave 3, gap 7 /
+ * proposal 2.7). Surfaces the EXISTING admin recipe library to members.
+ *
+ * Two sections:
+ *   1. "For your box" — active recipes whose crops overlap the MEMBER's current
+ *      resolved box (the upcoming cycle's box_contents for the member's size
+ *      buckets). Matching REUSES the weekly-email matcher `matchRecipesToBox`
+ *      (lib/weekly-email.ts) so this page and the weekly email can never drift
+ *      on which recipe belongs to which box. We pass a high limit (all active
+ *      recipes) so the member sees EVERY match for their box, not just the 3 the
+ *      email surfaces — the interleave (farm-then-link) ordering is preserved.
+ *   2. "All recipes" — every active recipe, searchable client-side by title +
+ *      crop tag (a plain visibility toggle over server-rendered cards, so there
+ *      is no innerHTML injection / XSS surface and it works without the network).
+ *
+ * DATA ACCESS / RLS (documented decision): recipes were admin-only
+ * (migration 0026 — `admin_all_recipes`, no member/anon read). Recipes hold ZERO
+ * member PII, so migration 0072 adds a LEAST-PRIVILEGE, ACTIVE-ONLY SELECT policy
+ * for `authenticated` (`recipes_active_member_read`: USING (is_active = true)).
+ * This page reads recipes through the member's RLS-scoped cookie client
+ * (`Astro.locals.supabase`) — the same client every other /account page uses —
+ * and additionally filters `.eq('is_active', true)` in the query. Until 0072 is
+ * applied the member client returns zero rows and the page degrades to its empty
+ * states (no crash). We deliberately did NOT read recipes with the service-role
+ * client: an RLS policy is the correct, in-database least-privilege boundary and
+ * keeps this page consistent with the member-scoped read pattern.
+ *
+ * GLOSSARY: the box week is labelled as a Mon–Sun date RANGE via weekRangeLabel
+ * ("Week of Jun 22 – Jun 28"), never "this week".
+ */
+import MemberShell from '../../components/MemberShell.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { resolveAccountCustomer } from '../../lib/account';
+import { upcomingWednesdayET, resolveBoxContentsBuckets } from '../../lib/box';
+import { mondayOfWeek } from '../../lib/cycle';
+import { weekRangeLabel } from '../../lib/cycle-ui';
+import { matchRecipesToBox } from '../../lib/weekly-email';
+import { SOURCE_LABEL, type Recipe } from '../../lib/recipes';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+// ─── Resolve the member's household + active shares ──────────────────
+// Same household resolution every /account page uses (household_owner()).
+const account = await resolveAccountCustomer(supabase);
+
+type ShareRow = { share_type: string; share_size: string | null; status: string };
+let activeShares: ShareRow[] = [];
+if (account) {
+  const { data: memberRows, error: membersError } = await supabase
+    .from('members')
+    .select('share_type, share_size, status')
+    .eq('customer_id', account.id)
+    .overrideTypes<ShareRow[], { merge: false }>();
+  if (membersError) {
+    console.error('[account/recipes] members fetch failed:', membersError.message);
+  }
+  const liveStatuses = new Set(['active', 'paused', 'onboarding']);
+  activeShares = (memberRows ?? []).filter((m) => liveStatuses.has(m.status));
+}
+
+// ─── The member's CURRENT box product names ──────────────────────────
+// box_contents is keyed by the cycle MONDAY (derived from the upcoming delivery
+// Wednesday) and published by SIZE bucket, NOT the member's enum share_type —
+// exactly the resolution /box uses (resolveBoxContentsBuckets). We collect the
+// DISTINCT product names across the member's buckets to feed the matcher.
+const targetWeek = upcomingWednesdayET();
+const boxContentsWeek = mondayOfWeek(targetWeek);
+const boxWeekRange = weekRangeLabel(boxContentsWeek);
+
+const { queryShareTypes } = resolveBoxContentsBuckets(activeShares);
+
+let boxProductNames: string[] = [];
+if (queryShareTypes.length > 0) {
+  const { data: rows, error: boxErr } = await supabase
+    .from('box_contents')
+    .select('product_name, share_type')
+    .eq('week_date', boxContentsWeek)
+    .in('share_type', queryShareTypes);
+  if (boxErr) {
+    console.error('[account/recipes] box_contents fetch failed:', boxErr.message);
+  }
+  // Distinct product names (case-insensitive) — one crop, one match token.
+  const seen = new Set<string>();
+  for (const r of (rows ?? []) as Array<{ product_name: string }>) {
+    const key = r.product_name.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    boxProductNames.push(r.product_name);
+  }
+}
+
+// ─── Active recipe library (member RLS client) ───────────────────────
+// Requires migration 0072's active-only member SELECT policy to return rows.
+const { data: recipeRows, error: recipeErr } = await supabase
+  .from('recipes')
+  .select('*')
+  .eq('is_active', true)
+  .order('created_at', { ascending: false })
+  .overrideTypes<Recipe[], { merge: false }>();
+if (recipeErr) {
+  console.error('[account/recipes] recipes fetch failed:', recipeErr.message);
+}
+const allRecipes = recipeRows ?? [];
+
+// ─── "For your box" matches — REUSES the weekly-email matcher ─────────
+// Pass a limit of allRecipes.length so we surface EVERY match for the member's
+// box (the email caps at 3); the farm/link interleave is preserved.
+const forYourBox =
+  boxProductNames.length > 0
+    ? matchRecipesToBox(allRecipes, boxProductNames, allRecipes.length)
+    : [];
+
+const hasShare = activeShares.length > 0;
+const boxPosted = boxProductNames.length > 0;
+
+/** Lowercased search haystack for a recipe (title + crop tags). */
+function searchKey(r: Recipe): string {
+  return `${r.title} ${r.crops.join(' ')}`.toLowerCase();
+}
+
+/** DOM-safe id fragment for a details/summary pairing. */
+function domId(prefix: string, id: string): string {
+  return `${prefix}-${id}`;
+}
+---
+
+<MemberShell
+  title="Recipes — Tiny Seed Farm CSA"
+  description="Browse recipes for what's in your CSA box, tagged by crop."
+  canonical="https://csa.tinyseedfarm.com/account/recipes"
+  userEmail={user.email}
+  active="account"
+  back={{ href: '/dashboard', label: 'Dashboard' }}
+>
+  <section aria-labelledby="recipes-heading">
+    <h1
+      id="recipes-heading"
+      class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl"
+    >
+      Recipes
+    </h1>
+    <p class="mt-2 text-base text-ts-text-secondary">
+      Ideas for cooking your share — matched to what's in your box, plus the full
+      library to browse any time.
+    </p>
+  </section>
+
+  {/* ════ FOR YOUR BOX ════ */}
+  <section aria-labelledby="for-box-heading" class="flex flex-col gap-4">
+    <div class="flex flex-col gap-1">
+      <h2 id="for-box-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        For your box
+      </h2>
+      <p class="text-sm font-medium text-ts-text-secondary">
+        {boxWeekRange}
+      </p>
+    </div>
+
+    {forYourBox.length > 0 ? (
+      <ul class="flex flex-col gap-3">
+        {forYourBox.map((r) => (
+          <li>
+            <article class="rounded-ts-xl border border-ts-primary/30 bg-ts-primary/5 p-5 shadow-ts-sm">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="font-display text-lg font-semibold text-ts-text">{r.title}</h3>
+                <span class={[
+                  'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+                  r.source === 'farm'
+                    ? 'bg-ts-primary/15 text-ts-primary'
+                    : 'bg-ts-bg-muted text-ts-text-secondary',
+                ].join(' ')}>
+                  {SOURCE_LABEL[r.source]}
+                </span>
+              </div>
+              {r.crops.length > 0 && (
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                  {r.crops.map((c) => (
+                    <span class="inline-flex items-center rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-medium text-ts-text-secondary">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {r.source === 'link' && r.url ? (
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-3 inline-flex h-11 items-center gap-2 rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+                >
+                  View recipe
+                  <span aria-hidden="true">↗</span>
+                </a>
+              ) : r.source === 'farm' && r.body ? (
+                <details class="group mt-3">
+                  <summary class="inline-flex h-11 cursor-pointer list-none items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]">
+                    <span class="group-open:hidden">View recipe</span>
+                    <span class="hidden group-open:inline">Hide recipe</span>
+                    <span aria-hidden="true" class="transition-transform duration-200 group-open:rotate-180">▾</span>
+                  </summary>
+                  <div class="mt-3 whitespace-pre-wrap rounded-ts-md border border-ts-border bg-ts-bg-surface p-4 text-sm leading-relaxed text-ts-text">{r.body}</div>
+                </details>
+              ) : null}
+            </article>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <EmptyState
+        title={hasShare && boxPosted ? 'No recipe matches yet for this week' : 'Box not posted yet'}
+        icon="🥬"
+        tone="primary"
+      >
+        {hasShare && boxPosted
+          ? "We haven't tagged a recipe for this week's crops yet — browse the full library below for ideas."
+          : "Once your box for this week is posted, we'll match recipes to its crops here. In the meantime, browse the full library below."}
+      </EmptyState>
+    )}
+  </section>
+
+  {/* ════ ALL RECIPES ════ */}
+  <section aria-labelledby="all-recipes-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="all-recipes-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        All recipes
+      </h2>
+      <span class="text-sm text-ts-text-muted tabular-nums">
+        {allRecipes.length} recipe{allRecipes.length === 1 ? '' : 's'}
+      </span>
+    </div>
+
+    {allRecipes.length === 0 ? (
+      <EmptyState title="No recipes yet" icon="📖" tone="default">
+        We're building our recipe library. Check back soon — we'll add ideas for
+        every crop in your box.
+      </EmptyState>
+    ) : (
+      <>
+        {/* Search — filters the server-rendered cards below (no network). */}
+        <div class="relative">
+          <label for="recipe-search" class="sr-only">Search recipes by name or crop</label>
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted" aria-hidden="true">🔍</span>
+          <input
+            id="recipe-search"
+            type="search"
+            inputmode="search"
+            autocomplete="off"
+            placeholder="Search by name or crop (e.g. kale, soup)…"
+            data-recipe-search
+            class="h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-surface pl-10 pr-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          />
+        </div>
+
+        <ul class="flex flex-col gap-3" data-recipe-list>
+          {allRecipes.map((r) => (
+            <li data-recipe-card data-search={searchKey(r)}>
+              <article class="rounded-ts-xl border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="font-display text-lg font-semibold text-ts-text">{r.title}</h3>
+                  <span class={[
+                    'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+                    r.source === 'farm'
+                      ? 'bg-ts-primary/15 text-ts-primary'
+                      : 'bg-ts-bg-muted text-ts-text-secondary',
+                  ].join(' ')}>
+                    {SOURCE_LABEL[r.source]}
+                  </span>
+                </div>
+                {r.crops.length > 0 && (
+                  <div class="mt-2 flex flex-wrap gap-1.5">
+                    {r.crops.map((c) => (
+                      <span class="inline-flex items-center rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-medium text-ts-text-secondary">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {r.source === 'link' && r.url ? (
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-3 inline-flex h-11 items-center gap-2 rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+                  >
+                    View recipe
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                ) : r.source === 'farm' && r.body ? (
+                  <details class="group mt-3" id={domId('recipe', r.id)}>
+                    <summary class="inline-flex h-11 cursor-pointer list-none items-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]">
+                      <span class="group-open:hidden">View recipe</span>
+                      <span class="hidden group-open:inline">Hide recipe</span>
+                      <span aria-hidden="true" class="transition-transform duration-200 group-open:rotate-180">▾</span>
+                    </summary>
+                    <div class="mt-3 whitespace-pre-wrap rounded-ts-md border border-ts-border bg-ts-bg-base p-4 text-sm leading-relaxed text-ts-text">{r.body}</div>
+                  </details>
+                ) : null}
+              </article>
+            </li>
+          ))}
+        </ul>
+
+        {/* No-results state (revealed by JS when the filter matches nothing). */}
+        <div data-recipe-empty hidden>
+          <EmptyState title="No matches" icon="🔍" tone="default">
+            No recipes match your search. Try a different crop or dish name.
+          </EmptyState>
+        </div>
+      </>
+    )}
+  </section>
+
+  <script is:inline>
+    // Client-side search: toggle visibility of server-rendered cards. No
+    // innerHTML, no network — a plain, safe substring filter over data-search.
+    (function () {
+      const input = document.querySelector('[data-recipe-search]');
+      const cards = Array.from(document.querySelectorAll('[data-recipe-card]'));
+      const emptyEl = document.querySelector('[data-recipe-empty]');
+      if (!input || cards.length === 0) return;
+
+      function apply() {
+        const q = input.value.trim().toLowerCase();
+        let visible = 0;
+        for (const card of cards) {
+          const hay = card.getAttribute('data-search') || '';
+          const show = q === '' || hay.indexOf(q) !== -1;
+          card.hidden = !show;
+          if (show) visible += 1;
+        }
+        if (emptyEl) emptyEl.hidden = visible !== 0;
+      }
+
+      input.addEventListener('input', apply);
+      apply();
+    })();
+  </script>
+</MemberShell>

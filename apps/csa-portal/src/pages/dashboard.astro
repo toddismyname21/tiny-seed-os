@@ -1602,6 +1602,17 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
               ))}
             </div>
           )}
+          {/* Wave 3 cross-links: recipes matched to the box + season history */}
+          <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+            <a
+              href="/account/recipes"
+              class="inline-flex items-center gap-1 text-sm font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >🥗 Recipes for your box <span aria-hidden="true">→</span></a>
+            <a
+              href="/account/history"
+              class="inline-flex items-center gap-1 text-sm font-medium text-ts-primary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >📦 Your season so far <span aria-hidden="true">→</span></a>
+          </div>
         </section>
       )}
 
