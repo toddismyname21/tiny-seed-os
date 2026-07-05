@@ -28,6 +28,7 @@ import { requireAdmin } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import {
   TARGETABLE_SHARE_TYPES,
+  SEGMENT_KINDS,
   normalizeRecipientFilter,
   type Campaign,
 } from '../../../../lib/campaign';
@@ -60,6 +61,9 @@ const DraftSchema = z.object({
     .object({
       share_types: z.array(z.enum(TARGETABLE_SHARE_TYPES)).default([]),
       newsletter_opt_in: z.boolean().default(true),
+      // Phase 2 Wave 2 segments — optional so legacy payloads stay valid.
+      segment: z.enum(SEGMENT_KINDS).optional(),
+      renewal_weeks_threshold: z.number().int().min(1).max(52).optional(),
     })
     .default({ share_types: [], newsletter_opt_in: true }),
 });
@@ -118,10 +122,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const filter = normalizeRecipientFilter(input.recipient_filter);
 
   // recipient_filter is stored as JSONB; we shape it as plain Json for
-  // the supabase write so the typed insert/update accepts it.
+  // the supabase write so the typed insert/update accepts it. segment +
+  // renewal_weeks_threshold are always written (normalizeRecipientFilter
+  // defaults them) so a campaign's audience is fully self-describing.
   const filterJson: Json = {
     share_types: [...filter.share_types],
     newsletter_opt_in: filter.newsletter_opt_in,
+    segment: filter.segment ?? 'active',
+    renewal_weeks_threshold: filter.renewal_weeks_threshold ?? null,
   };
   const payload = {
     name: input.name,

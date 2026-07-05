@@ -22,7 +22,9 @@ import {
   countRecipients,
   normalizeRecipientFilter,
   TARGETABLE_SHARE_TYPES,
+  SEGMENT_KINDS,
   type TargetableShareType,
+  type SegmentKind,
 } from '../../../../lib/campaign';
 
 export const prerender = false;
@@ -51,9 +53,19 @@ export const GET: APIRoute = async ({ url, locals }) => {
   const rawOptIn = url.searchParams.get('newsletter_opt_in');
   const newsletterOptIn = rawOptIn === null ? true : rawOptIn !== 'false';
 
+  // Segment (Phase 2 Wave 2). Absent/unknown → 'active' (legacy model).
+  const allowedSegments = new Set<SegmentKind>(SEGMENT_KINDS);
+  const rawSegment = url.searchParams.get('segment') ?? '';
+  const segment: SegmentKind = allowedSegments.has(rawSegment as SegmentKind)
+    ? (rawSegment as SegmentKind)
+    : 'active';
+  const rawThreshold = url.searchParams.get('weeks_threshold');
+
   const filter = normalizeRecipientFilter({
     share_types: shareTypes,
     newsletter_opt_in: newsletterOptIn,
+    segment,
+    renewal_weeks_threshold: rawThreshold ?? undefined,
   });
 
   const result = await countRecipients(locals.supabase, filter);

@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { requireAdmin } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { sendTestEmail, type Campaign } from '../../../../lib/campaign';
+import { sendTestEmail, fetchRenewalUrl, type Campaign } from '../../../../lib/campaign';
 import {
   RESEND_API_KEY,
   RESEND_FROM_EMAIL,
@@ -104,11 +104,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ ok: false, error: 'campaign_not_found' }, 404);
   }
 
+  // Live renewal_url so a test of a renewal/win-back template shows the real CTA.
+  const renewalUrl = await fetchRenewalUrl(supabaseAdmin);
+
   const result = await sendTestEmail({
     apiKey: RESEND_API_KEY,
     from: RESEND_FROM_EMAIL,
     unsubscribeSecret: UNSUBSCRIBE_SECRET,
     toEmail: target,
+    renewalUrl,
     campaign: {
       name: campaign.name ?? '',
       subject: campaign.subject,

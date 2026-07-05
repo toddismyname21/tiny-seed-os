@@ -30,6 +30,7 @@ import {
   CAMPAIGN_TEMPLATES,
   TARGETABLE_SHARE_TYPES,
   TEMPLATE_CATEGORIES,
+  DEFAULT_RENEWAL_WEEKS_THRESHOLD,
   type CampaignTemplateRow,
 } from '../../../lib/campaign';
 import { EMAIL_SAFE_FONTS } from '../../../scripts/campaign-editor';
@@ -38,6 +39,22 @@ export const prerender = false;
 
 const adminEmail = Astro.locals.user?.email ?? '';
 const supabase = Astro.locals.supabase;
+
+// Default renewal-window threshold prefilled into the composer — the admin's
+// configured value from portal_settings (migration 0070) wins over the code
+// default so the picker matches the armed dashboard banner.
+let portalRenewalThreshold = DEFAULT_RENEWAL_WEEKS_THRESHOLD;
+{
+  const { data: thresholdRows } = await supabase
+    .from('portal_settings')
+    .select('key, value')
+    .eq('key', 'renewal_weeks_threshold');
+  const raw = thresholdRows?.[0]?.value;
+  const parsed = Number.parseInt(raw ?? '', 10);
+  if (Number.isFinite(parsed)) {
+    portalRenewalThreshold = Math.min(52, Math.max(1, parsed));
+  }
+}
 
 // Pretty labels for the share-type checkboxes.
 const SHARE_LABELS: Record<(typeof TARGETABLE_SHARE_TYPES)[number], string> = {
@@ -66,6 +83,8 @@ if (tplErr) {
 type ClientFilter = {
   share_types: string[];
   newsletter_opt_in: boolean;
+  segment: 'active' | 'renewal_window' | 'lapsed';
+  renewal_weeks_threshold: number | null;
 };
 type ClientTemplate = {
   id: string;
@@ -77,6 +96,8 @@ type ClientTemplate = {
   recipient_filter: ClientFilter;
 };
 
+const SEGMENT_VALUES = ['active', 'renewal_window', 'lapsed'] as const;
+
 /** Coerce a JSONB recipient_filter into a safe ClientFilter shape. */
 function asClientFilter(raw: unknown): ClientFilter {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
@@ -84,12 +105,21 @@ function asClientFilter(raw: unknown): ClientFilter {
     const shares = Array.isArray(o.share_types)
       ? o.share_types.filter((s): s is string => typeof s === 'string')
       : [];
+    const segment = SEGMENT_VALUES.includes(o.segment as (typeof SEGMENT_VALUES)[number])
+      ? (o.segment as ClientFilter['segment'])
+      : 'active';
+    const rwt =
+      typeof o.renewal_weeks_threshold === 'number' && Number.isFinite(o.renewal_weeks_threshold)
+        ? o.renewal_weeks_threshold
+        : null;
     return {
       share_types: shares,
       newsletter_opt_in: o.newsletter_opt_in !== false,
+      segment,
+      renewal_weeks_threshold: rwt,
     };
   }
-  return { share_types: [], newsletter_opt_in: true };
+  return { share_types: [], newsletter_opt_in: true, segment: 'active', renewal_weeks_threshold: null };
 }
 
 const templatesForClient: ClientTemplate[] =
@@ -113,17 +143,33 @@ const templatesForClient: ClientTemplate[] =
         recipient_filter: asClientFilter(t.recipient_filter),
       }));
 
-// Default form values = the Summer/Flex Portal Launch when present (the
-// documented "most-likely tonight blast" — Todd lands ready to send it in
-// one click), else the first template in the library. We pick it
-// explicitly rather than relying on sort order so adding/renaming
-// templates can't silently change the landing default.
+// A ?template=<name> query param (used by the renewal/win-back playbook cards
+// on /admin/campaigns) preselects a specific template. Matched by NAME because
+// template ids are DB-generated UUIDs not known to the linking page; name is
+// UNIQUE (migration 0034) so it's a stable join key.
+const requestedTemplateName = Astro.url.searchParams.get('template');
+const requestedTemplate = requestedTemplateName
+  ? templatesForClient.find((t) => t.name === requestedTemplateName)
+  : undefined;
+
+// Default form values = the requested template (deep-link) when present, else
+// the Summer/Flex Portal Launch (the documented "most-likely tonight blast"),
+// else the first template in the library. We pick it explicitly rather than
+// relying on sort order so adding/renaming templates can't silently change the
+// landing default.
 const defaultTemplate =
+  requestedTemplate ??
   templatesForClient.find(
     (t) =>
       t.recipient_filter.share_types.includes('summer_veg') ||
       t.recipient_filter.share_types.includes('flex')
-  ) ?? templatesForClient[0];
+  ) ??
+  templatesForClient[0];
+
+// Derived audience defaults for the initial render.
+const defaultSegment = defaultTemplate.recipient_filter.segment ?? 'active';
+const defaultWeeksThreshold =
+  defaultTemplate.recipient_filter.renewal_weeks_threshold ?? portalRenewalThreshold;
 
 const templatesJson = JSON.stringify(templatesForClient);
 ---
@@ -153,7 +199,24 @@ const templatesJson = JSON.stringify(templatesForClient);
       </h2>
       <Card padding="lg" elevation="sm">
         <div class="flex flex-col gap-5">
-          <fieldset>
+          {/* Audience selector — swaps the controls below. Test accounts are
+              always excluded server-side in every mode. */}
+          <div class="flex flex-col gap-1.5">
+            <label for="segment-pick" class="text-sm font-semibold text-ts-text">Audience</label>
+            <select
+              id="segment-pick"
+              data-segment
+              class="h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            >
+              <option value="active" selected={defaultSegment === 'active'}>Active members — by share type</option>
+              <option value="renewal_window" selected={defaultSegment === 'renewal_window'}>Renewal window — active members whose season is ending soon</option>
+              <option value="lapsed" selected={defaultSegment === 'lapsed'}>Lapsed members — win-back (had a share, none active now)</option>
+            </select>
+            <p class="text-xs text-ts-text-muted">Test accounts are always excluded. Renewal and win-back audiences are computed from each member's season.</p>
+          </div>
+
+          {/* Share types — 'active' mode only. */}
+          <fieldset data-share-types-block>
             <legend class="text-sm font-semibold text-ts-text">Share types</legend>
             <p class="mt-1 text-xs text-ts-text-muted">Members with at least one active share of these types will receive this email.</p>
             <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -173,7 +236,39 @@ const templatesJson = JSON.stringify(templatesForClient);
             </div>
           </fieldset>
 
-          <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-ts-text">
+          {/* Renewal window threshold — 'renewal_window' mode only. */}
+          <div data-renewal-block class="hidden flex flex-col gap-1.5">
+            <label for="weeks-threshold" class="text-sm font-semibold text-ts-text">
+              Delivery weeks left (or fewer)
+            </label>
+            <input
+              id="weeks-threshold"
+              data-weeks-threshold
+              type="number"
+              min="1"
+              max="52"
+              value={defaultWeeksThreshold}
+              class="h-11 w-28 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+            />
+            <p class="text-xs text-ts-text-muted">
+              Season-derived, inclusive of this week. Early bird ≈ 4, reminder ≈ 2,
+              last call ≈ 1. Only members whose season is currently running are counted.
+            </p>
+          </div>
+
+          {/* Lapsed explainer — 'lapsed' mode only. */}
+          <div
+            data-lapsed-note
+            class="hidden rounded-ts-md border border-ts-border bg-ts-bg-muted/30 px-4 py-3 text-xs leading-relaxed text-ts-text-secondary"
+          >
+            Former members who currently have no active share — either their status
+            was set to lapsed/expired/inactive/cancelled, or their season has ended
+            and they haven't renewed. Anyone who unsubscribed is excluded automatically.
+          </div>
+
+          {/* Opt-in — 'active' + 'renewal_window' modes (lapsed excludes opt-outs
+              by definition). */}
+          <label data-optin-block class="inline-flex cursor-pointer items-center gap-2 text-sm text-ts-text">
             <input
               type="checkbox"
               name="newsletter_opt_in"
@@ -610,6 +705,31 @@ const templatesJson = JSON.stringify(templatesForClient);
       const optInInput = form.querySelector('[data-opt-in]');
       const templatePick = document.getElementById('template-pick');
 
+      // Audience-segment controls (Phase 2 Wave 2).
+      const segmentSelect = form.querySelector('[data-segment]');
+      const weeksThresholdInput = form.querySelector('[data-weeks-threshold]');
+      const shareTypesBlock = form.querySelector('[data-share-types-block]');
+      const renewalBlock = form.querySelector('[data-renewal-block]');
+      const lapsedNote = form.querySelector('[data-lapsed-note]');
+      const optInBlock = form.querySelector('[data-optin-block]');
+
+      // Show/hide the audience controls for the chosen segment. Relies on
+      // Tailwind's `hidden` (display:none) taking precedence when present, so
+      // the display utility on each block resumes when 'hidden' is removed.
+      function currentSegment() {
+        return segmentSelect ? segmentSelect.value : 'active';
+      }
+      function applySegmentUI(segment) {
+        const isActive = segment === 'active';
+        const isRenewal = segment === 'renewal_window';
+        const isLapsed = segment === 'lapsed';
+        if (shareTypesBlock) shareTypesBlock.classList.toggle('hidden', !isActive);
+        if (renewalBlock) renewalBlock.classList.toggle('hidden', !isRenewal);
+        if (lapsedNote) lapsedNote.classList.toggle('hidden', !isLapsed);
+        // Opt-in applies to active + renewal (lapsed excludes opt-outs anyway).
+        if (optInBlock) optInBlock.classList.toggle('hidden', isLapsed);
+      }
+
       // Push body content through the editor (keeps the hidden field in
       // sync). Falls back to writing the field directly if the editor
       // module hasn't attached yet.
@@ -661,10 +781,19 @@ const templatesJson = JSON.stringify(templatesForClient);
         return out;
       }
 
+      function currentWeeksThreshold() {
+        if (!weeksThresholdInput) return undefined;
+        const n = parseInt(weeksThresholdInput.value, 10);
+        if (!isFinite(n)) return undefined;
+        return Math.min(52, Math.max(1, n));
+      }
+
       function currentFilter() {
         return {
           share_types: selectedShareTypes(),
           newsletter_opt_in: !!optInInput.checked,
+          segment: currentSegment(),
+          renewal_weeks_threshold: currentWeeksThreshold(),
         };
       }
 
@@ -702,7 +831,11 @@ const templatesJson = JSON.stringify(templatesForClient);
         const params = new URLSearchParams({
           share_types: filter.share_types.join(','),
           newsletter_opt_in: filter.newsletter_opt_in ? 'true' : 'false',
+          segment: filter.segment,
         });
+        if (filter.segment === 'renewal_window' && filter.renewal_weeks_threshold) {
+          params.set('weeks_threshold', String(filter.renewal_weeks_threshold));
+        }
         try {
           const res = await fetch(`/api/admin/campaigns/recipients-count?${params}`, {
             credentials: 'same-origin',
@@ -742,8 +875,16 @@ const templatesJson = JSON.stringify(templatesForClient);
 
       shareInputs.forEach((el) => el.addEventListener('change', scheduleCount));
       optInInput.addEventListener('change', scheduleCount);
+      if (segmentSelect) {
+        segmentSelect.addEventListener('change', function () {
+          applySegmentUI(currentSegment());
+          scheduleCount();
+        });
+      }
+      if (weeksThresholdInput) weeksThresholdInput.addEventListener('input', scheduleCount);
 
-      // Initial count.
+      // Initial audience UI + count.
+      applySegmentUI(currentSegment());
       refreshCount();
 
       // ── Template picker ───────────────────────────────────────────
@@ -761,6 +902,14 @@ const templatesJson = JSON.stringify(templatesForClient);
           el.checked = t.recipient_filter.share_types.indexOf(el.value) >= 0;
         });
         optInInput.checked = !!t.recipient_filter.newsletter_opt_in;
+        // Audience segment + threshold (Phase 2 Wave 2).
+        if (segmentSelect) {
+          segmentSelect.value = t.recipient_filter.segment || 'active';
+        }
+        if (weeksThresholdInput && t.recipient_filter.renewal_weeks_threshold) {
+          weeksThresholdInput.value = String(t.recipient_filter.renewal_weeks_threshold);
+        }
+        applySegmentUI(currentSegment());
         refreshCount();
         showResult(`Loaded template "${t.label}".`, null);
       });

@@ -21,7 +21,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { requireAdmin } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
-import { renderCampaignHtml } from '../../../../lib/campaign';
+import { renderCampaignHtml, fetchRenewalUrl } from '../../../../lib/campaign';
 import { PORTAL_BASE_URL } from '../../../../lib/weekly-email';
 
 export const prerender = false;
@@ -79,6 +79,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   const { body_html, subject, preview_text, first_name } = parsed.data;
 
+  // Live renewal_url so a preview of a renewal/win-back template shows the real
+  // CTA link (not an empty {{renewal_url}}). Admin cookie client can read
+  // portal_settings (authenticated SELECT policy, migration 0070).
+  const renewalUrl = await fetchRenewalUrl(locals.supabase);
+
   // Preview links use the live portal base + a SHAPE (no real token —
   // we don't mint signed unsubscribe tokens for a preview render). The
   // iframe is sandboxed by the page anyway.
@@ -87,7 +92,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     {
       unsubscribeHref: `${PORTAL_BASE_URL}/unsubscribe`,
       preferencesHref: `${PORTAL_BASE_URL}/account/preferences`,
-      recipient: { first_name: first_name || 'there', email: 'preview@example.com' },
+      recipient: {
+        first_name: first_name || 'there',
+        email: 'preview@example.com',
+        renewal_url: renewalUrl,
+      },
     }
   );
 

@@ -46,9 +46,22 @@ import {
   escapeHtml,
   PORTAL_BASE_URL,
 } from './weekly-email';
+import {
+  SEGMENT_KINDS,
+  DEFAULT_RENEWAL_WEEKS_THRESHOLD,
+  resolveRenewalWindowRaw,
+  resolveLapsedRaw,
+  type SegmentKind,
+} from './campaign-segments';
 
 // Re-export so call sites have one import path for unsubscribe helpers.
 export { signUnsubscribeToken, unsubscribeUrl, escapeHtml };
+// Re-export segment primitives so the campaign endpoints have one import path.
+export {
+  SEGMENT_KINDS,
+  DEFAULT_RENEWAL_WEEKS_THRESHOLD,
+  type SegmentKind,
+} from './campaign-segments';
 
 // ─────────────────────────────────────────────────────────────────────
 // Types
@@ -102,6 +115,16 @@ export type TargetableShareType = (typeof TARGETABLE_SHARE_TYPES)[number];
 export interface RecipientFilter {
   share_types: readonly TargetableShareType[];
   newsletter_opt_in: boolean;
+  /**
+   * Audience-selection mode (Phase 2 Wave 2). Absent/`'active'` = the legacy
+   * share_types + newsletter_opt_in model. `'renewal_window'` and `'lapsed'`
+   * are season-derived segments resolved in lib/campaign-segments.ts.
+   * Optional so pre-existing recipient_filter JSON (no segment) is valid and
+   * treated as 'active'.
+   */
+  segment?: SegmentKind;
+  /** Weeks-left cutoff for `segment='renewal_window'` (≤N weeks remaining). */
+  renewal_weeks_threshold?: number;
 }
 
 export interface ResolvedRecipient {
@@ -133,9 +156,16 @@ export const TEST_EXCLUDES: ReadonlySet<string> = new Set(
  * returns a SAFE filter even if the input is garbage.
  */
 export function normalizeRecipientFilter(input: unknown): RecipientFilter {
-  const out: { share_types: TargetableShareType[]; newsletter_opt_in: boolean } = {
+  const out: {
+    share_types: TargetableShareType[];
+    newsletter_opt_in: boolean;
+    segment: SegmentKind;
+    renewal_weeks_threshold: number;
+  } = {
     share_types: [],
     newsletter_opt_in: true,
+    segment: 'active',
+    renewal_weeks_threshold: DEFAULT_RENEWAL_WEEKS_THRESHOLD,
   };
   if (input && typeof input === 'object' && !Array.isArray(input)) {
     const obj = input as Record<string, unknown>;
@@ -157,8 +187,28 @@ export function normalizeRecipientFilter(input: unknown): RecipientFilter {
     } else if (typeof obj.newsletter_opt_in === 'string') {
       out.newsletter_opt_in = obj.newsletter_opt_in === 'true';
     }
+    // Segment — validate against the known set, default 'active'.
+    const allowedSegments = new Set<SegmentKind>(SEGMENT_KINDS);
+    if (typeof obj.segment === 'string' && allowedSegments.has(obj.segment as SegmentKind)) {
+      out.segment = obj.segment as SegmentKind;
+    }
+    // Renewal weeks threshold — clamp to a sane [1, 52] range.
+    const rawThreshold =
+      typeof obj.renewal_weeks_threshold === 'number'
+        ? obj.renewal_weeks_threshold
+        : typeof obj.renewal_weeks_threshold === 'string'
+          ? Number.parseInt(obj.renewal_weeks_threshold, 10)
+          : Number.NaN;
+    if (Number.isFinite(rawThreshold)) {
+      out.renewal_weeks_threshold = Math.min(52, Math.max(1, Math.round(rawThreshold)));
+    }
   }
-  return { share_types: out.share_types, newsletter_opt_in: out.newsletter_opt_in };
+  return {
+    share_types: out.share_types,
+    newsletter_opt_in: out.newsletter_opt_in,
+    segment: out.segment,
+    renewal_weeks_threshold: out.renewal_weeks_threshold,
+  };
 }
 
 /** First-name heuristic from a contact_name. Falls back to "there". */
@@ -177,27 +227,45 @@ interface CountResult {
 }
 
 /**
- * Walk the join member_preferences → members → customers, applying the
- * share_type filter + newsletter_opt_in filter + active-only filters
- * (customers.is_active, members.status='active'), and de-duping by
- * customer_id. Used by both the live recipient-count UI and sendCampaign.
+ * THE single recipient-resolution function — the one place that turns a
+ * RecipientFilter into a de-duped recipient list, BEFORE test-account excludes.
  *
- * IMPORTANT: a customer with multiple active members (e.g. summer_veg +
- * flex) is returned ONCE — they get one campaign email, not two.
+ * This is the shared source of truth the spec requires: the live recipient
+ * COUNT (`countRecipients`) and the actual SEND (`resolveRecipients`, called by
+ * `sendCampaign`) both go through it, so the number the picker previews is
+ * exactly the set that gets mailed — no drift.
+ *
+ * Segment dispatch:
+ *   - 'renewal_window' → resolveRenewalWindowRaw (season-derived, ≤N weeks).
+ *   - 'lapsed'         → resolveLapsedRaw (win-back pool).
+ *   - 'active'/absent  → the legacy share_type + newsletter_opt_in join below.
+ *
+ * IMPORTANT: a customer with multiple active members (e.g. summer_veg + flex)
+ * is returned ONCE — they get one campaign email, not two.
  */
-export async function resolveRecipients(
+export async function resolveRecipientsRaw(
   supabase: SupabaseClient<Database>,
   filter: RecipientFilter
 ): Promise<ResolvedRecipient[]> {
+  const segment = filter.segment ?? 'active';
+
+  if (segment === 'renewal_window') {
+    return resolveRenewalWindowRaw(supabase, {
+      newsletterOptIn: filter.newsletter_opt_in,
+      weeksThreshold: filter.renewal_weeks_threshold ?? DEFAULT_RENEWAL_WEEKS_THRESHOLD,
+    });
+  }
+  if (segment === 'lapsed') {
+    return resolveLapsedRaw(supabase);
+  }
+
+  // ── 'active' — the legacy share_type + newsletter_opt_in model ──────
   if (filter.share_types.length === 0) return [];
 
   // We anchor the query on member_preferences when newsletter_opt_in is
   // required (so the inner-join on a true value is the cheap filter), and
   // on members otherwise. Two slightly different queries keep the index
-  // hits efficient.
-  //
-  // The selected projection is identical in both shapes so the
-  // downstream collation code is the same.
+  // hits efficient. The selected projection is identical in both shapes.
   type RecipientRow = {
     member: {
       status: string;
@@ -230,7 +298,7 @@ export async function resolveRecipients(
       )
       .overrideTypes<RecipientRow[], { merge: false }>();
     if (error) {
-      console.error('[campaign] resolveRecipients (opt-in) failed:', error.message);
+      console.error('[campaign] resolveRecipientsRaw (opt-in) failed:', error.message);
       return [];
     }
     rows = data ?? [];
@@ -252,14 +320,15 @@ export async function resolveRecipients(
         { merge: false }
       >();
     if (error) {
-      console.error('[campaign] resolveRecipients (all) failed:', error.message);
+      console.error('[campaign] resolveRecipientsRaw (all) failed:', error.message);
       return [];
     }
     rows = (data ?? []).map((m) => ({ member: m }));
   }
 
-  // De-dupe by customer_id; drop test excludes; drop inactive customers
-  // and non-active members; drop empty/blank emails.
+  // De-dupe by customer_id; drop inactive customers and non-active members;
+  // drop empty/blank emails. TEST_EXCLUDES are applied by the callers so the
+  // raw count can show "matched vs excluded".
   const byCustomer = new Map<string, ResolvedRecipient>();
   for (const row of rows) {
     const m = row.member;
@@ -271,7 +340,6 @@ export async function resolveRecipients(
     if (c.is_active === false) continue;
     const email = (c.email ?? '').trim().toLowerCase();
     if (!email) continue;
-    if (TEST_EXCLUDES.has(email)) continue;
     if (byCustomer.has(c.id)) continue;
     byCustomer.set(c.id, {
       customer_id: c.id,
@@ -286,23 +354,32 @@ export async function resolveRecipients(
 }
 
 /**
- * Cheap count for the live recipient-picker UI. Same logic as
- * resolveRecipients but returns just counts.
+ * The mailable recipient set — `resolveRecipientsRaw` minus TEST_EXCLUDES.
+ * Used by sendCampaign, so the send and the count share resolveRecipientsRaw.
+ */
+export async function resolveRecipients(
+  supabase: SupabaseClient<Database>,
+  filter: RecipientFilter
+): Promise<ResolvedRecipient[]> {
+  const all = await resolveRecipientsRaw(supabase, filter);
+  return all
+    .filter((r) => !TEST_EXCLUDES.has(r.email))
+    .sort((a, b) => a.email.localeCompare(b.email));
+}
+
+/**
+ * Cheap count for the live recipient-picker UI. Runs the SAME
+ * resolveRecipientsRaw as the send, then splits the total into raw match vs
+ * deliverable (after TEST_EXCLUDES).
  *
- * `count` = matching rows before TEST_EXCLUDES (the "raw" filter match —
- * helpful for sanity-checking the filter).
- * `deliverable_count` = after TEST_EXCLUDES (what actually mails).
+ * `count`              = matching customers before TEST_EXCLUDES.
+ * `deliverable_count`  = after TEST_EXCLUDES (what actually mails).
  */
 export async function countRecipients(
   supabase: SupabaseClient<Database>,
   filter: RecipientFilter
 ): Promise<CountResult> {
-  if (filter.share_types.length === 0) {
-    return { count: 0, deliverable_count: 0 };
-  }
-  // We resolve the full list — at 195 members the cost is trivial and we
-  // need to dedupe by customer_id anyway, which requires reading rows.
-  const all = await resolveRecipientsPreExclude(supabase, filter);
+  const all = await resolveRecipientsRaw(supabase, filter);
   let deliverable = 0;
   for (const r of all) {
     if (!TEST_EXCLUDES.has(r.email)) deliverable += 1;
@@ -310,94 +387,36 @@ export async function countRecipients(
   return { count: all.length, deliverable_count: deliverable };
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Renewal URL (portal_settings) — the {{renewal_url}} substitution source
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Internal: same as resolveRecipients but WITHOUT the TEST_EXCLUDES
- * filter. Used by countRecipients so the UI can show "147 customers will
- * receive this email" (deliverable) alongside the raw match (152).
+ * Read the current renewal CTA URL from portal_settings (migration 0070).
+ * Returns '' when the key is absent/blank or the read errors — a template
+ * using {{renewal_url}} then renders an empty href, which the composer preview
+ * surfaces before any send. Used by sendCampaign, the send-test endpoint, and
+ * the preview endpoint so all three substitute the SAME live value.
  */
-async function resolveRecipientsPreExclude(
-  supabase: SupabaseClient<Database>,
-  filter: RecipientFilter
-): Promise<ResolvedRecipient[]> {
-  if (filter.share_types.length === 0) return [];
-
-  type RecipientRow = {
-    member: {
-      status: string;
-      share_type: string;
-      customer: {
-        id: string;
-        email: string;
-        contact_name: string;
-        is_active: boolean;
-      } | null;
-    } | null;
-  };
-
-  let rows: RecipientRow[] = [];
-  if (filter.newsletter_opt_in) {
+export async function fetchRenewalUrl(
+  supabase: SupabaseClient<Database>
+): Promise<string> {
+  try {
     const { data, error } = await supabase
-      .from('member_preferences')
-      .select(
-        `member:members!inner(
-           status,
-           share_type,
-           customer:customers!inner(id, email, contact_name, is_active)
-         )`
-      )
-      .eq('newsletter_opt_in', true)
-      .in(
-        'member.share_type',
-        filter.share_types as unknown as Database['public']['Tables']['members']['Row']['share_type'][]
-      )
-      .overrideTypes<RecipientRow[], { merge: false }>();
+      .from('portal_settings')
+      .select('value')
+      .eq('key', 'renewal_url')
+      .maybeSingle();
     if (error) {
-      console.error('[campaign] count (opt-in) failed:', error.message);
-      return [];
+      console.error('[campaign] fetchRenewalUrl failed:', error.message);
+      return '';
     }
-    rows = data ?? [];
-  } else {
-    const { data, error } = await supabase
-      .from('members')
-      .select(
-        `status,
-         share_type,
-         customer:customers!inner(id, email, contact_name, is_active)`
-      )
-      .in(
-        'share_type',
-        filter.share_types as unknown as Database['public']['Tables']['members']['Row']['share_type'][]
-      )
-      .overrideTypes<
-        Array<RecipientRow['member']>,
-        { merge: false }
-      >();
-    if (error) {
-      console.error('[campaign] count (all) failed:', error.message);
-      return [];
-    }
-    rows = (data ?? []).map((m) => ({ member: m }));
+    const value = (data as { value: string | null } | null)?.value;
+    return (value ?? '').trim();
+  } catch (e) {
+    console.warn('[campaign] fetchRenewalUrl threw (ignored):', e);
+    return '';
   }
-
-  const byCustomer = new Map<string, ResolvedRecipient>();
-  for (const row of rows) {
-    const m = row.member;
-    if (!m) continue;
-    if (m.status !== 'active') continue;
-    if (!filter.share_types.includes(m.share_type as TargetableShareType)) continue;
-    const c = m.customer;
-    if (!c) continue;
-    if (c.is_active === false) continue;
-    const email = (c.email ?? '').trim().toLowerCase();
-    if (!email) continue;
-    if (byCustomer.has(c.id)) continue;
-    byCustomer.set(c.id, {
-      customer_id: c.id,
-      email,
-      first_name: firstName(c.contact_name),
-    });
-  }
-  return Array.from(byCustomer.values());
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -414,13 +433,17 @@ async function resolveRecipientsPreExclude(
  */
 export function personalize(
   raw: string,
-  ctx: { first_name: string; email: string; contact_name?: string }
+  ctx: { first_name: string; email: string; contact_name?: string; renewal_url?: string }
 ): string {
   if (!raw || raw.indexOf('{{') < 0) return raw;
   const safeColumns: Record<string, string> = {
     'first_name': ctx.first_name || 'there',
     'customers.contact_name': ctx.contact_name ?? '',
     'customers.email': ctx.email,
+    // Renewal/win-back CTA target, sourced from portal_settings.renewal_url at
+    // send/preview time (Phase 2 Wave 2). escapeHtml runs on the value below,
+    // so a URL with `&` params renders as href="…&amp;…" — correct + injection-safe.
+    'renewal_url': ctx.renewal_url ?? '',
   };
   return raw.replace(/\{\{\s*([a-zA-Z_.]+)\s*\}\}/g, (match, key) => {
     if (Object.prototype.hasOwnProperty.call(safeColumns, key)) {
@@ -448,8 +471,8 @@ export interface RenderOptions {
   unsubscribeHref: string;
   /** Absolute manage-preferences URL. */
   preferencesHref: string;
-  /** Recipient context for personalization (first_name, email). */
-  recipient?: { first_name: string; email: string; contact_name?: string };
+  /** Recipient context for personalization (first_name, email, renewal_url). */
+  recipient?: { first_name: string; email: string; contact_name?: string; renewal_url?: string };
 }
 
 export interface RenderedEmail {
@@ -665,6 +688,8 @@ export interface SendTestOptions {
   unsubscribeSecret: string;
   toEmail: string;
   campaign: Pick<Campaign, 'subject' | 'preview_text' | 'body_html' | 'name'>;
+  /** Live portal_settings.renewal_url for the {{renewal_url}} substitution. */
+  renewalUrl?: string;
 }
 
 /** Send ONE [TEST] email to the supplied address. NOT logged. */
@@ -683,7 +708,7 @@ export async function sendTestEmail(opts: SendTestOptions): Promise<SendOneResul
     {
       unsubscribeHref: unsub,
       preferencesHref,
-      recipient: { first_name: 'there', email: opts.toEmail },
+      recipient: { first_name: 'there', email: opts.toEmail, renewal_url: opts.renewalUrl },
     }
   );
   return sendOne(
@@ -936,6 +961,11 @@ export async function sendCampaign(
   }
 
   const preferencesHref = `${PORTAL_BASE_URL}/account/preferences`;
+  // Renewal/win-back CTA target — fetched ONCE per run from portal_settings so
+  // {{renewal_url}} substitutes to the live Shopify link for every recipient.
+  // Absent/blank → {{renewal_url}} renders empty (a template using it would show
+  // an empty href; the composer preview surfaces that before Todd sends).
+  const renewalUrl = await fetchRenewalUrl(supabase);
   let sent = 0;
   let failed = 0;
   let attempted = 0;
@@ -956,7 +986,12 @@ export async function sendCampaign(
       {
         unsubscribeHref: unsub,
         preferencesHref,
-        recipient: { first_name: first, email: r.email, contact_name: contactName },
+        recipient: {
+          first_name: first,
+          email: r.email,
+          contact_name: contactName,
+          renewal_url: renewalUrl,
+        },
       }
     );
 

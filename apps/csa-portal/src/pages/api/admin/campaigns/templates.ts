@@ -34,6 +34,7 @@ import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import {
   TARGETABLE_SHARE_TYPES,
   TEMPLATE_CATEGORIES,
+  SEGMENT_KINDS,
   normalizeRecipientFilter,
 } from '../../../../lib/campaign';
 import type { Json } from '../../../../lib/database.types';
@@ -67,6 +68,9 @@ const SaveSchema = z.object({
     .object({
       share_types: z.array(z.enum(TARGETABLE_SHARE_TYPES)).default([]),
       newsletter_opt_in: z.boolean().default(true),
+      // Phase 2 Wave 2 segments — optional so legacy payloads stay valid.
+      segment: z.enum(SEGMENT_KINDS).optional(),
+      renewal_weeks_threshold: z.number().int().min(1).max(52).optional(),
     })
     .default({ share_types: [], newsletter_opt_in: true }),
 });
@@ -130,6 +134,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const filterJson: Json = {
     share_types: [...filter.share_types],
     newsletter_opt_in: filter.newsletter_opt_in,
+    segment: filter.segment ?? 'active',
+    renewal_weeks_threshold: filter.renewal_weeks_threshold ?? null,
   };
   const payload = {
     name: input.name,

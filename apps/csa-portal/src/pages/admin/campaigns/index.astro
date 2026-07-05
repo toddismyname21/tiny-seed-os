@@ -13,10 +13,88 @@
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
 import type { Campaign } from '../../../lib/campaign';
+import {
+  RENEWAL_TEMPLATE_NAMES,
+  WINBACK_TEMPLATE_NAMES,
+} from '../../../lib/campaign-segments';
 
 export const prerender = false;
 
 const supabase = Astro.locals.supabase;
+
+// ─────────────────────────────────────────────────────────────────────
+// Retention playbooks (Phase 2 Wave 2). Read-only guidance + shortcuts —
+// NO automation. Reads the renewal config from portal_settings (migration
+// 0070) so the cards show the current CTA URL + whether the dashboard banner
+// is armed. Fail-soft: any read error just leaves the defaults.
+// ─────────────────────────────────────────────────────────────────────
+let renewalUrl = '';
+let renewalBannerArmed = false;
+let renewalThreshold = 4;
+{
+  const { data: settingRows, error: settingsErr } = await supabase
+    .from('portal_settings')
+    .select('key, value')
+    .in('key', ['renewal_banner_enabled', 'renewal_url', 'renewal_weeks_threshold']);
+  if (settingsErr) {
+    console.error('[admin/campaigns] portal_settings read failed:', settingsErr.message);
+  }
+  const settings = new Map<string, string | null>(
+    (settingRows ?? []).map((r) => [r.key, r.value])
+  );
+  renewalUrl = (settings.get('renewal_url') ?? '').trim();
+  renewalBannerArmed = (settings.get('renewal_banner_enabled') ?? 'false') === 'true';
+  const parsed = Number.parseInt(settings.get('renewal_weeks_threshold') ?? '4', 10);
+  if (Number.isFinite(parsed)) renewalThreshold = parsed;
+}
+
+/** Build a composer deep-link that preselects a template by its unique name. */
+function templateLink(name: string): string {
+  return `/admin/campaigns/new?template=${encodeURIComponent(name)}`;
+}
+
+// Sequence rows rendered by the two playbook cards.
+const renewalSequence = [
+  {
+    when: '~30 days out',
+    audience: `Renewal window · ≈4 weeks left`,
+    name: RENEWAL_TEMPLATE_NAMES.earlyBird,
+    label: 'Early bird',
+  },
+  {
+    when: '~14 days out',
+    audience: 'Renewal window · ≈2 weeks left',
+    name: RENEWAL_TEMPLATE_NAMES.reminder,
+    label: 'Reminder',
+  },
+  {
+    when: 'Final week',
+    audience: 'Renewal window · 1 week left',
+    name: RENEWAL_TEMPLATE_NAMES.lastCall,
+    label: 'Last call',
+  },
+];
+
+const winbackSequence = [
+  {
+    when: 'Day 0',
+    audience: 'Lapsed members',
+    name: WINBACK_TEMPLATE_NAMES.whatsGrowing,
+    label: "What's growing now",
+  },
+  {
+    when: '~30 days later',
+    audience: 'Lapsed members',
+    name: WINBACK_TEMPLATE_NAMES.savedSpot,
+    label: 'We saved you a spot',
+  },
+  {
+    when: '~60–90 days later',
+    audience: 'Lapsed members',
+    name: WINBACK_TEMPLATE_NAMES.finalNote,
+    label: 'Final note',
+  },
+];
 
 const { data: rows, error: listErr } = await supabase
   .from('campaigns')
@@ -121,6 +199,109 @@ function fmtDate(iso: string | null): string {
       Couldn't load campaigns: {listErr.message}
     </div>
   )}
+
+  {/* ════ Retention playbooks — read-only guidance + composer shortcuts ════ */}
+  <section aria-labelledby="playbooks-heading" class="mb-6 flex flex-col gap-3">
+    <h2 id="playbooks-heading" class="sr-only">Retention playbooks</h2>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Renewal playbook */}
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col gap-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-display text-lg font-bold text-ts-text">Renewal sequence</h3>
+              <p class="mt-0.5 text-sm text-ts-text-secondary">
+                Reach current members as their season winds down — held spot,
+                early-bird framing, one button to renew.
+              </p>
+            </div>
+            <span
+              class={[
+                'shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                renewalBannerArmed
+                  ? 'border-ts-primary/30 bg-ts-primary/10 text-ts-primary'
+                  : 'border-ts-border bg-ts-bg-muted/40 text-ts-text-secondary',
+              ].join(' ')}
+              title="Whether the in-portal renewal banner is currently showing to members."
+            >
+              {renewalBannerArmed ? 'Banner armed' : 'Banner off'}
+            </span>
+          </div>
+
+          <dl class="grid grid-cols-1 gap-2 rounded-ts-md border border-ts-border bg-ts-bg-muted/20 px-4 py-3 text-sm sm:grid-cols-2">
+            <div class="flex flex-col">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Renewal link</dt>
+              <dd class="mt-0.5 break-all text-ts-text">
+                {renewalUrl ? (
+                  <a href={renewalUrl} rel="noopener noreferrer" target="_blank" class="text-ts-primary hover:underline">
+                    {renewalUrl}
+                  </a>
+                ) : (
+                  <span class="text-ts-text-muted">Not set — add it in portal settings</span>
+                )}
+              </dd>
+            </div>
+            <div class="flex flex-col">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Banner threshold</dt>
+              <dd class="mt-0.5 text-ts-text tabular-nums">{renewalThreshold} weeks left</dd>
+            </div>
+          </dl>
+
+          <ol class="flex flex-col gap-2">
+            {renewalSequence.map((step) => (
+              <li class="flex flex-wrap items-center justify-between gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-ts-text">{step.label}</span>
+                  <span class="text-xs text-ts-text-muted">{step.when} · {step.audience}</span>
+                </div>
+                <a
+                  href={templateLink(step.name)}
+                  class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  Start →
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </Card>
+
+      {/* Win-back playbook */}
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col gap-4">
+          <div>
+            <h3 class="font-display text-lg font-bold text-ts-text">Win-back sequence</h3>
+            <p class="mt-0.5 text-sm text-ts-text-secondary">
+              Reach members whose share has lapsed — what's fresh now, a spot
+              saved, one light final note. Opt-outs are excluded automatically.
+            </p>
+          </div>
+
+          <div class="rounded-ts-md border border-ts-border bg-ts-bg-muted/20 px-4 py-3 text-sm text-ts-text-secondary">
+            Suggested cadence over a <span class="font-semibold text-ts-text">30–90 day</span> window
+            — space the three notes so it never feels like pressure.
+          </div>
+
+          <ol class="flex flex-col gap-2">
+            {winbackSequence.map((step) => (
+              <li class="flex flex-wrap items-center justify-between gap-2 rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2">
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-ts-text">{step.label}</span>
+                  <span class="text-xs text-ts-text-muted">{step.when} · {step.audience}</span>
+                </div>
+                <a
+                  href={templateLink(step.name)}
+                  class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                >
+                  Start →
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </Card>
+    </div>
+  </section>
 
   {campaigns.length === 0 ? (
     <Card padding="lg" elevation="sm">
