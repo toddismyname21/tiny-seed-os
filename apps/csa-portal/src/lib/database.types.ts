@@ -559,6 +559,64 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['member_notices']['Row']>;
         Relationships: [];
       };
+      // ── Retention Wave 1 (migration 0070) ────────────────────────────
+      // Admin-edited key/value config the member dashboard reads (renewal
+      // banner switch/url/threshold). Authenticated READ + admin FOR ALL. No PII.
+      portal_settings: {
+        Row: {
+          key: string;
+          value: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+        } & Partial<Database['public']['Tables']['portal_settings']['Row']>;
+        Update: Partial<Database['public']['Tables']['portal_settings']['Row']>;
+        Relationships: [];
+      };
+      // Public waitlist submissions (migration 0070). Written by the service-role
+      // /api/waitlist/join endpoint after zod + honeypot validation; admin-only RLS.
+      waitlist_signups: {
+        Row: {
+          id: string;
+          name: string;
+          email: string;
+          phone: string | null;
+          share_interest: string | null;
+          pickup_preference: string | null;
+          notes: string | null;
+          status: 'new' | 'contacted' | 'converted' | 'archived';
+          created_at: string;
+        };
+        Insert: {
+          name: string;
+          email: string;
+        } & Partial<Database['public']['Tables']['waitlist_signups']['Row']>;
+        Update: Partial<Database['public']['Tables']['waitlist_signups']['Row']>;
+        Relationships: [];
+      };
+      // Post-pickup micro-survey rows (migration 0070). Written by the
+      // service-role /api/feedback/submit endpoint after HMAC token verification;
+      // one row per (week_date, customer_id) — repeat taps UPSERT. Admin-only RLS.
+      box_feedback: {
+        Row: {
+          id: string;
+          week_date: string;
+          customer_id: string | null;
+          member_email: string | null;
+          rating: number;
+          comment: string | null;
+          token: string;
+          created_at: string;
+        };
+        Insert: {
+          week_date: string;
+          rating: number;
+          token: string;
+        } & Partial<Database['public']['Tables']['box_feedback']['Row']>;
+        Update: Partial<Database['public']['Tables']['box_feedback']['Row']>;
+        Relationships: [];
+      };
       // Pack & Load per-stop check-off state (migration 0061). One row per
       // (week_starting, stop_id) recording the crew's "stop loaded" toggle.
       // stop_id is the cycle resolver's StopTotals.stop_id (a pickup_location

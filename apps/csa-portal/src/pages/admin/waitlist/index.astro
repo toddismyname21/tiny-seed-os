@@ -1,0 +1,218 @@
+---
+/**
+ * /admin/waitlist — 📋 Waitlist.
+ *
+ * PHASE 2 · WAVE 1 (proposal 2.2). The warm pool the farm reaches into when a
+ * share sells out or a member cancels. Lists every public /waitlist submission
+ * newest-first with its contact details + interest, and moves each along the
+ * lifecycle new → contacted → converted / archived via POST
+ * /api/admin/waitlist/status (requireAdmin + isSameOriginPost + zod).
+ *
+ * Reads via the cookie-aware admin client (waitlist_signups is_admin_caller()
+ * FOR ALL policy, migration 0070). Gated by middleware (admin/staff); the API
+ * re-checks defensively.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import Badge from '../../../components/Badge.astro';
+import { prettyShortDate } from '../../../lib/cycle';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+const ok = url.searchParams.get('ok');
+const errorCode = url.searchParams.get('error');
+
+type WaitlistStatus = 'new' | 'contacted' | 'converted' | 'archived';
+type Row = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  share_interest: string | null;
+  pickup_preference: string | null;
+  notes: string | null;
+  status: WaitlistStatus;
+  created_at: string;
+};
+
+const { data: rows, error: rowsErr } = await supabase
+  .from('waitlist_signups')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .overrideTypes<Row[], { merge: false }>();
+if (rowsErr) {
+  console.error('[admin/waitlist] fetch failed:', rowsErr.message);
+}
+const signups = rows ?? [];
+
+// Live-pool count = anyone still awaiting a spot (new or contacted).
+const openCount = signups.filter(
+  (s) => s.status === 'new' || s.status === 'contacted',
+).length;
+
+// ─── Status → badge variant + label ──────────────────────────────────
+type BadgeVariant = 'green' | 'amber' | 'sky' | 'gray';
+const STATUS_BADGE: Record<WaitlistStatus, { label: string; variant: BadgeVariant }> = {
+  new:       { label: 'New',       variant: 'sky' },
+  contacted: { label: 'Contacted', variant: 'amber' },
+  converted: { label: 'Converted', variant: 'green' },
+  archived:  { label: 'Archived',  variant: 'gray' },
+};
+
+// ─── Available forward transitions per current status ─────────────────
+// new → contacted / archived · contacted → converted / archived ·
+// converted → archived · archived → new (reopen). Each entry is
+// { status, label, style } where style picks the button treatment.
+type Action = { status: WaitlistStatus; label: string; primary: boolean };
+const NEXT_ACTIONS: Record<WaitlistStatus, Action[]> = {
+  new: [
+    { status: 'contacted', label: 'Mark contacted', primary: true },
+    { status: 'archived', label: 'Archive', primary: false },
+  ],
+  contacted: [
+    { status: 'converted', label: 'Mark converted', primary: true },
+    { status: 'archived', label: 'Archive', primary: false },
+  ],
+  converted: [
+    { status: 'archived', label: 'Archive', primary: false },
+  ],
+  archived: [
+    { status: 'new', label: 'Reopen', primary: false },
+  ],
+};
+
+// ─── Banner copy ──────────────────────────────────────────────────────
+const okMsg = ok === 'updated' ? 'Waitlist updated.' : null;
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid_input: 'Something was off with that action. Please try again.',
+  network: 'We hit a snag saving that. Please try again.',
+};
+const errMsg = errorCode ? ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.invalid_input : null;
+
+function shortDate(iso: string): string {
+  return prettyShortDate(iso.slice(0, 10)).replace(/^[A-Za-z]+, /, '');
+}
+---
+
+<AdminShell
+  title="📋 Waitlist"
+  subtitle="People waiting for a CSA spot. Reach out when one opens — new signups come from the public /waitlist form."
+  pageTitle="Waitlist — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/waitlist"
+>
+  {/* ════ Status banner ════ */}
+  {okMsg && (
+    <div
+      role="status"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/10 px-4 py-3 text-sm font-medium text-ts-primary"
+    >
+      {okMsg}
+    </div>
+  )}
+  {errMsg && (
+    <div
+      role="alert"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm font-medium text-ts-danger"
+    >
+      {errMsg}
+    </div>
+  )}
+
+  <section aria-labelledby="waitlist-heading" class="flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="waitlist-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+        Signups
+      </h2>
+      <span class="text-sm text-ts-text-muted tabular-nums">
+        {signups.length} total · {openCount} waiting
+      </span>
+    </div>
+
+    {signups.length === 0 ? (
+      <Card padding="lg" elevation="sm">
+        <div class="flex flex-col items-center gap-3 py-8 text-center">
+          <span class="text-4xl" aria-hidden="true">📋</span>
+          <p class="font-semibold text-ts-text">No signups yet</p>
+          <p class="max-w-md text-sm text-ts-text-secondary">
+            When someone joins the public waitlist at
+            {' '}<span class="font-medium text-ts-text">/waitlist</span>, they'll
+            show up here. Reach out when a share spot opens.
+          </p>
+        </div>
+      </Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <ul class="divide-y divide-ts-border/60">
+          {signups.map((s) => {
+            const badge = STATUS_BADGE[s.status];
+            const actions = NEXT_ACTIONS[s.status];
+            return (
+              <li class="flex flex-col gap-3 px-5 py-4 sm:px-6">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-semibold text-ts-text">{s.name}</span>
+                      <Badge variant={badge.variant} size="sm" uppercase dot>
+                        {badge.label}
+                      </Badge>
+                      {s.share_interest && (
+                        <span class="inline-flex items-center gap-1 rounded-full bg-ts-primary/10 px-2 py-0.5 text-xs font-semibold text-ts-primary">
+                          {s.share_interest}
+                        </span>
+                      )}
+                    </div>
+                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-ts-text-secondary">
+                      <a
+                        href={`mailto:${s.email}`}
+                        class="font-medium text-ts-primary underline-offset-2 hover:underline"
+                      >{s.email}</a>
+                      {s.phone && <span class="tabular-nums">{s.phone}</span>}
+                      <span class="text-xs text-ts-text-muted tabular-nums">
+                        Joined {shortDate(s.created_at)}
+                      </span>
+                    </div>
+                    {(s.pickup_preference || s.notes) && (
+                      <div class="mt-1.5 flex flex-col gap-0.5 text-sm text-ts-text-secondary">
+                        {s.pickup_preference && (
+                          <p><span class="font-medium text-ts-text">Pickup:</span> {s.pickup_preference}</p>
+                        )}
+                        {s.notes && (
+                          <p class="whitespace-pre-wrap break-words">
+                            <span class="font-medium text-ts-text">Notes:</span> {s.notes}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div class="flex shrink-0 flex-wrap items-center gap-2">
+                    {actions.map((a) => (
+                      <form method="POST" action="/api/admin/waitlist/status" class="m-0">
+                        <input type="hidden" name="id" value={s.id} />
+                        <input type="hidden" name="status" value={a.status} />
+                        <button
+                          type="submit"
+                          class:list={[
+                            'inline-flex h-9 items-center justify-center rounded-ts-md px-3 text-xs font-semibold shadow-ts-sm transition-all duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2',
+                            a.primary
+                              ? 'bg-ts-primary text-white hover:bg-ts-primary-dark focus-visible:outline-ts-primary'
+                              : 'border border-ts-border bg-ts-bg-surface text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text focus-visible:outline-ts-primary',
+                          ]}
+                        >
+                          {a.label}
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+    )}
+  </section>
+</AdminShell>

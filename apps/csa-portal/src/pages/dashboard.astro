@@ -39,6 +39,7 @@ import {
   daysUntilStart,
   currentWeekNumber,
   firstDeliveryPretty,
+  lastDelivery,
   type SeasonSchedule,
   type SeasonPhase,
 } from '../lib/season';
@@ -722,6 +723,59 @@ const boxWeekRange = weekRangeLabel(cycleMonday);
 // parity-aware above as their next actual delivery). Empty → omit the clause.
 const boxWeekNextBox = nextDeliveryLong;
 
+// ─────────────────────────────────────────────────────────────────────
+// RENEWAL BANNER (Phase 2 Wave 1, gap 5 / proposal 2.1). READY-TO-ARM:
+// reads three portal_settings keys through the member's OWN cookie-aware RLS
+// client (portal_settings carries an authenticated READ policy — migration
+// 0070 — and holds no PII). When renewal_banner_enabled != 'true' NOTHING
+// renders: this is the resting state until Todd creates next season's Shopify
+// product and flips the switch. When ARMED, we show a warm "reserve your spot"
+// banner IF the member's season-configured share is within `threshold` delivery
+// weeks of its end — capturing renewal intent at its peak (proposal 2.1).
+//
+// WEEKS-REMAINING SIGNAL: we derive it from the SEASON WINDOW (season.ts
+// currentWeekNumber + totalWeeks), NOT the raw members.weeks_remaining column.
+// That column is stale for the ~191 migrated members (it still equals
+// total_weeks — no consumption tracked), which is exactly why the dashboard
+// already prefers the season-derived "Week N of total" over the counter (see
+// the share-card BUG 1 fix). weeksRemainingInSeason is INCLUSIVE of the current
+// delivery week (final week = 1), so at the default threshold of 4 the banner
+// shows across the last four delivery weeks. Only meaningful in the 'active'
+// phase — before → the countdown owns the top; complete → the "that's a wrap"
+// card is the renewal touchpoint.
+// ─────────────────────────────────────────────────────────────────────
+let showRenewalBanner = false;
+let renewalUrl = '';
+let renewalSeasonEndRange = '';
+if (controllingSchedule && phase === 'active') {
+  const { data: settingRows, error: settingsErr } = await supabase
+    .from('portal_settings')
+    .select('key, value')
+    .in('key', ['renewal_banner_enabled', 'renewal_url', 'renewal_weeks_threshold']);
+  if (settingsErr) {
+    console.error('[dashboard] portal_settings fetch failed:', settingsErr.message);
+  }
+  const settings = new Map<string, string | null>(
+    (settingRows ?? []).map((r) => [r.key, r.value]),
+  );
+  const enabled = (settings.get('renewal_banner_enabled') ?? 'false') === 'true';
+  renewalUrl = (settings.get('renewal_url') ?? '').trim();
+  const parsedThreshold = Number.parseInt(
+    settings.get('renewal_weeks_threshold') ?? '4',
+    10,
+  );
+  const thresholdWeeks = Number.isFinite(parsedThreshold) ? parsedThreshold : 4;
+  const weeksRemainingInSeason =
+    controllingSchedule.totalWeeks - currentWeekNumber(controllingSchedule) + 1;
+  if (enabled && renewalUrl && weeksRemainingInSeason <= thresholdWeeks) {
+    showRenewalBanner = true;
+    // "Your season ends the week of <range>" — season-level final delivery
+    // (identical for every member of this season), labelled with the canonical
+    // Mon–Sun range per the glossary.
+    renewalSeasonEndRange = weekRangeLabel(lastDelivery(controllingSchedule));
+  }
+}
+
 // ── Next-delivery banner props (2026-06-05, Todd directive) ──
 // The #1 thing a member sees: a warm "your next delivery is ___" line at the
 // very top. Shows only when we can name a real upcoming date (configured
@@ -1047,6 +1101,81 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
             </p>
           </div>
         </section>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
+          RENEWAL BANNER (Phase 2 Wave 1, gap 5 / proposal 2.1)
+          Ready-to-arm: renders ONLY when portal_settings
+          renewal_banner_enabled='true' AND the member's season is within the
+          configured weeks-remaining threshold. Sits directly below the
+          GO/NO-BOX banner. Warm, prominent, but not shouty. Dismissible
+          per-session (sessionStorage) via the inline script just below — the
+          banner starts visible (works without JS) and the script removes it
+          synchronously before paint if already dismissed this session.
+          ═════════════════════════════════════════════════════════════ */}
+      {showRenewalBanner && (
+        <>
+          <section
+            role="status"
+            aria-label="Reserve your spot for next season"
+            class="overflow-hidden rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+            data-renewal-banner
+          >
+            <div class="flex items-start gap-4">
+              <span
+                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+                aria-hidden="true"
+              >
+                🌱
+              </span>
+              <div class="min-w-0 flex-1">
+                <h2 class="font-display text-lg font-bold tracking-tight text-ts-text sm:text-xl">
+                  Reserve your spot for next season
+                </h2>
+                <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
+                  Your season ends {renewalSeasonEndRange}. Renew now to keep your
+                  share for next season — we'd love to keep growing for you.
+                </p>
+                <a
+                  href={renewalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-5 text-sm font-semibold tracking-tight text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+                >
+                  Reserve my spot <span aria-hidden="true">→</span>
+                </a>
+              </div>
+              <button
+                type="button"
+                class="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ts-text-muted transition-colors duration-150 hover:bg-ts-primary/10 hover:text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                data-renewal-dismiss
+                aria-label="Dismiss renewal banner"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+          </section>
+          <script is:inline>
+            (function () {
+              var KEY = 'ts_renewal_banner_dismissed';
+              var el = document.querySelector('[data-renewal-banner]');
+              if (!el) return;
+              try {
+                if (sessionStorage.getItem(KEY) === '1') {
+                  el.remove();
+                  return;
+                }
+              } catch (e) { /* sessionStorage unavailable — leave banner visible */ }
+              var btn = el.querySelector('[data-renewal-dismiss]');
+              if (btn) {
+                btn.addEventListener('click', function () {
+                  el.remove();
+                  try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+                });
+              }
+            })();
+          </script>
+        </>
       )}
 
       {/* ═════════════════════════════════════════════════════════════

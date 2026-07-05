@@ -1,0 +1,259 @@
+---
+/**
+ * /admin/feedback — 💬 Box feedback.
+ *
+ * PHASE 2 · WAVE 1 (gap 6 / proposal 2.3). Per-week view of the post-pickup
+ * micro-survey: the rating distribution (counts of 1–4), the average, and every
+ * comment with the member's name + rating. Ratings ≤ 2 are surfaced LOUD
+ * (ts-danger) at the very top as "needs follow-up" — closing the loop with a
+ * detractor within 48h is the single highest-signal churn-prevention move.
+ *
+ * Week picker (weekOptions, Monday-keyed) matches the other admin pages. Reads
+ * via the cookie-aware admin client (box_feedback is_admin_caller() FOR ALL
+ * policy, migration 0070); the customer name is embedded via the customer_id FK.
+ * Gated by middleware (admin/staff).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { mondayOfWeek, upcomingMonday, prettyShortDate } from '../../../lib/cycle';
+import { weekOptions, weekRangeLabel } from '../../../lib/cycle-ui';
+import { FEEDBACK_RATINGS } from '../../../lib/feedback';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const url = Astro.url;
+
+// ─── Selected week (Monday). Default = this week; validated to a Monday. ─
+const weekParam = url.searchParams.get('week');
+const thisWeekMonday = mondayOfWeek(upcomingMonday());
+const selectedWeek =
+  weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam)
+    ? mondayOfWeek(weekParam)
+    : thisWeekMonday;
+
+const weekOpts = weekOptions();
+const selectedRange = weekRangeLabel(selectedWeek);
+
+// ─── Load feedback for the selected week (+ member name via FK) ──────────
+type FbRow = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  member_email: string | null;
+  created_at: string;
+  customer: { contact_name: string | null; email: string | null } | null;
+};
+const { data: rows, error: rowsErr } = await supabase
+  .from('box_feedback')
+  .select('id, rating, comment, member_email, created_at, customer:customers ( contact_name, email )')
+  .eq('week_date', selectedWeek)
+  .order('created_at', { ascending: false })
+  .overrideTypes<FbRow[], { merge: false }>();
+if (rowsErr) {
+  console.error('[admin/feedback] fetch failed:', rowsErr.message);
+}
+const feedback = rows ?? [];
+
+// ─── Aggregates ──────────────────────────────────────────────────────────
+const total = feedback.length;
+const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+let sum = 0;
+for (const f of feedback) {
+  if (f.rating >= 1 && f.rating <= 4) {
+    counts[f.rating] += 1;
+    sum += f.rating;
+  }
+}
+const average = total > 0 ? sum / total : 0;
+const maxCount = Math.max(1, ...Object.values(counts));
+
+// Detractors (≤ 2) — the follow-up list, newest first.
+const needsFollowUp = feedback.filter((f) => f.rating <= 2);
+
+// ─── Display helpers ─────────────────────────────────────────────────────
+const EMOJI: Record<number, string> = Object.fromEntries(
+  FEEDBACK_RATINGS.map((r) => [r.value, r.emoji]),
+);
+const RATING_LABEL: Record<number, string> = Object.fromEntries(
+  FEEDBACK_RATINGS.map((r) => [r.value, r.label]),
+);
+function displayName(f: FbRow): string {
+  return f.customer?.contact_name?.trim() || f.member_email || f.customer?.email || 'Member';
+}
+function shortDate(iso: string): string {
+  return prettyShortDate(iso.slice(0, 10)).replace(/^[A-Za-z]+, /, '');
+}
+---
+
+<AdminShell
+  title="💬 Box feedback"
+  subtitle="How members rated their box, by week. Low ratings surface first — reach out within 48h to keep the season."
+  pageTitle="Box feedback — Tiny Seed Admin"
+  canonical="https://csa.tinyseedfarm.com/admin/feedback"
+>
+  {/* ════ Week picker ════ */}
+  <form method="GET" action="/admin/feedback" class="flex flex-wrap items-end gap-3">
+    <div class="flex flex-col gap-1.5">
+      <label for="fb-week" class="text-sm font-semibold text-ts-text">Week</label>
+      <select
+        id="fb-week"
+        name="week"
+        class="h-11 min-w-[16rem] rounded-ts-md border border-ts-border bg-ts-bg-base px-3 text-base text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+      >
+        {weekOpts.map((w) => (
+          <option value={w.value} selected={w.value === selectedWeek}>{w.label}</option>
+        ))}
+      </select>
+    </div>
+    <button
+      type="submit"
+      class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      View week
+    </button>
+  </form>
+
+  {total === 0 ? (
+    <Card padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-3 py-8 text-center">
+        <span class="text-4xl" aria-hidden="true">💬</span>
+        <p class="font-semibold text-ts-text">No feedback for {selectedRange}</p>
+        <p class="max-w-md text-sm text-ts-text-secondary">
+          When members tap the "How was your box?" link in the weekly email for
+          this week, their ratings + comments show up here.
+        </p>
+      </div>
+    </Card>
+  ) : (
+    <div class="flex flex-col gap-6">
+      {/* ════ Needs follow-up (loud) ════ */}
+      {needsFollowUp.length > 0 && (
+        <section aria-labelledby="followup-heading" class="flex flex-col gap-3">
+          <h2
+            id="followup-heading"
+            class="flex items-center gap-2 font-display text-lg font-bold text-ts-danger sm:text-xl"
+          >
+            <span aria-hidden="true">⚠</span>
+            Needs follow-up
+            <span class="text-sm font-normal text-ts-text-muted tabular-nums">
+              {needsFollowUp.length}
+            </span>
+          </h2>
+          <Card padding="none" elevation="sm">
+            <ul class="divide-y divide-ts-border/60">
+              {needsFollowUp.map((f) => (
+                <li class="flex flex-col gap-2 bg-ts-danger/5 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-2xl" aria-hidden="true">{EMOJI[f.rating]}</span>
+                      <span class="font-semibold text-ts-text">{displayName(f)}</span>
+                      <span class="inline-flex items-center rounded-full bg-ts-danger/10 px-2 py-0.5 text-xs font-semibold text-ts-danger">
+                        {RATING_LABEL[f.rating]}
+                      </span>
+                    </div>
+                    {f.comment && (
+                      <p class="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-ts-text-secondary">
+                        "{f.comment}"
+                      </p>
+                    )}
+                    {f.member_email && (
+                      <a
+                        href={`mailto:${f.member_email}?subject=${encodeURIComponent('Your Tiny Seed box')}`}
+                        class="mt-1.5 inline-flex items-center gap-1 text-sm font-semibold text-ts-primary underline-offset-2 hover:underline"
+                      >
+                        ✉ Reach out
+                      </a>
+                    )}
+                  </div>
+                  <span class="shrink-0 text-xs text-ts-text-muted tabular-nums">
+                    {shortDate(f.created_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </section>
+      )}
+
+      {/* ════ Distribution + average ════ */}
+      <section aria-labelledby="dist-heading" class="flex flex-col gap-3">
+        <div class="flex items-baseline justify-between gap-3">
+          <h2 id="dist-heading" class="font-display text-lg font-bold text-ts-text sm:text-xl">
+            {selectedRange}
+          </h2>
+          <span class="text-sm text-ts-text-muted tabular-nums">
+            {total} {total === 1 ? 'response' : 'responses'} · avg {average.toFixed(1)} / 4
+          </span>
+        </div>
+        <Card padding="lg" elevation="sm">
+          <div class="flex flex-col gap-3">
+            {[4, 3, 2, 1].map((rating) => {
+              const c = counts[rating];
+              const pct = Math.round((c / maxCount) * 100);
+              return (
+                <div class="flex items-center gap-3">
+                  <span class="w-8 shrink-0 text-2xl" aria-hidden="true">{EMOJI[rating]}</span>
+                  <span class="w-16 shrink-0 text-sm font-medium text-ts-text-secondary">
+                    {RATING_LABEL[rating]}
+                  </span>
+                  <div class="h-3 flex-1 overflow-hidden rounded-full bg-ts-bg-muted">
+                    <div
+                      class:list={[
+                        'h-full rounded-full',
+                        rating <= 2 ? 'bg-ts-danger' : 'bg-ts-primary',
+                      ]}
+                      style={`width: ${pct}%`}
+                    ></div>
+                  </div>
+                  <span class="w-8 shrink-0 text-right text-sm font-semibold text-ts-text tabular-nums">
+                    {c}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </section>
+
+      {/* ════ All comments ════ */}
+      <section aria-labelledby="comments-heading" class="flex flex-col gap-3">
+        <h2 id="comments-heading" class="font-display text-lg font-bold text-ts-text sm:text-xl">
+          All responses
+        </h2>
+        <Card padding="none" elevation="sm">
+          <ul class="divide-y divide-ts-border/60">
+            {feedback.map((f) => (
+              <li class="flex flex-col gap-1.5 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6">
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-2xl" aria-hidden="true">{EMOJI[f.rating]}</span>
+                    <span class="font-semibold text-ts-text">{displayName(f)}</span>
+                    <span
+                      class:list={[
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+                        f.rating <= 2
+                          ? 'bg-ts-danger/10 text-ts-danger'
+                          : 'bg-ts-primary/10 text-ts-primary',
+                      ]}
+                    >
+                      {RATING_LABEL[f.rating]}
+                    </span>
+                  </div>
+                  {f.comment && (
+                    <p class="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-ts-text-secondary">
+                      "{f.comment}"
+                    </p>
+                  )}
+                </div>
+                <span class="shrink-0 text-xs text-ts-text-muted tabular-nums">
+                  {shortDate(f.created_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </section>
+    </div>
+  )}
+</AdminShell>

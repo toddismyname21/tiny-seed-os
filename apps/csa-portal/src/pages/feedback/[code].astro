@@ -1,0 +1,293 @@
+---
+/**
+ * /feedback/[token] — post-pickup micro-survey (NO login).
+ *
+ * PHASE 2 · WAVE 1 (gap 6 / proposal 2.3). The weekly email links a member here
+ * with a per-(customer, week) HMAC token. This page:
+ *   1. Verifies the token (lib/feedback.verifyFeedbackToken) against
+ *      FEEDBACK_SECRET (falling back to UNSUBSCRIBE_SECRET). Invalid / expired /
+ *      malformed → a gentle "this link isn't valid" message.
+ *   2. On a valid token, shows "How was your box for the week of <range>?" with
+ *      FOUR big tap targets (😞 😐 🙂 😍 = rating 1–4). One tap POSTs the rating
+ *      immediately to /api/feedback/submit, then reveals an optional comment box.
+ *   3. Repeat visits pre-fill the member's prior rating + comment (UPSERT on
+ *      week+customer, so a change just updates the same row).
+ *
+ * Mobile-first, huge targets. PUBLIC route (middleware PUBLIC_TOKEN_PREFIXES) —
+ * a recipient reaches it straight from their inbox with no auth cookie.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { verifyFeedbackToken, FEEDBACK_RATINGS } from '../../lib/feedback';
+import { weekRangeLabel } from '../../lib/cycle-ui';
+import { supabaseAdmin } from '../../lib/supabase';
+import { FEEDBACK_SECRET, UNSUBSCRIBE_SECRET } from 'astro:env/server';
+
+export const prerender = false;
+
+type Outcome = 'ok' | 'invalid' | 'error';
+
+const token = Astro.params.code ?? '';
+const secret = FEEDBACK_SECRET || UNSUBSCRIBE_SECRET;
+
+let outcome: Outcome = 'invalid';
+let weekRange = '';
+let existingRating = 0;
+let existingComment = '';
+
+if (!secret) {
+  console.error('[feedback] no FEEDBACK_SECRET / UNSUBSCRIBE_SECRET configured');
+  outcome = 'error';
+} else {
+  const verified = token ? verifyFeedbackToken(token, secret) : null;
+  if (!verified) {
+    outcome = 'invalid';
+  } else {
+    outcome = 'ok';
+    weekRange = weekRangeLabel(verified.weekDate);
+    // Pre-fill any prior response so a repeat visit shows the member's choice.
+    const { data: prior, error: priorErr } = await supabaseAdmin
+      .from('box_feedback')
+      .select('rating, comment')
+      .eq('week_date', verified.weekDate)
+      .eq('customer_id', verified.customerId)
+      .maybeSingle();
+    if (priorErr) {
+      console.error('[feedback] prior-response lookup failed:', priorErr.message);
+    } else if (prior) {
+      existingRating = prior.rating ?? 0;
+      existingComment = prior.comment ?? '';
+    }
+  }
+}
+---
+
+<BaseLayout
+  title="How was your box? — Tiny Seed Farm CSA"
+  canonical="https://csa.tinyseedfarm.com/feedback"
+>
+  <main class="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-12 sm:py-16">
+    <div class="text-center">
+      <p class="mb-1 text-xs font-semibold uppercase tracking-[0.3em] text-ts-primary">
+        🌱 Tiny Seed Farm
+      </p>
+    </div>
+
+    {outcome === 'invalid' && (
+      <section class="mt-4 text-center">
+        <h1 class="font-display text-2xl font-bold tracking-tight text-ts-text sm:text-3xl">
+          This link isn't valid
+        </h1>
+        <p class="mx-auto mt-3 max-w-sm text-base leading-relaxed text-ts-text-secondary">
+          This feedback link may have been mistyped or is no longer valid. If you'd
+          like to share how your box was, just reply to your weekly email — we read
+          every one.
+        </p>
+        <a
+          href="https://tinyseedfarm.com"
+          class="mt-6 inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-6 text-sm font-semibold text-ts-text-secondary transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Back to the farm
+        </a>
+      </section>
+    )}
+
+    {outcome === 'error' && (
+      <section class="mt-4 text-center">
+        <h1 class="font-display text-2xl font-bold tracking-tight text-ts-text sm:text-3xl">
+          Something went wrong
+        </h1>
+        <p class="mx-auto mt-3 max-w-sm text-base leading-relaxed text-ts-text-secondary">
+          We couldn't load the feedback form right now. Please try again later, or
+          reply to your weekly email and we'll hear you.
+        </p>
+      </section>
+    )}
+
+    {outcome === 'ok' && (
+      <section
+        class="mt-4"
+        data-feedback-root
+        data-token={token}
+        data-existing-rating={String(existingRating)}
+      >
+        <div class="text-center">
+          <h1 class="font-display text-2xl font-bold tracking-tight text-ts-text sm:text-3xl">
+            How was your box?
+          </h1>
+          <p class="mt-2 text-base text-ts-text-secondary">
+            {weekRange}
+          </p>
+        </div>
+
+        {/* Four big tap targets. Real buttons — keyboard + screen-reader friendly. */}
+        <div class="mt-8 grid grid-cols-4 gap-2 sm:gap-3" data-feedback-ratings>
+          {FEEDBACK_RATINGS.map((r) => (
+            <button
+              type="button"
+              data-rating={String(r.value)}
+              aria-label={r.label}
+              aria-pressed="false"
+              class="flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-ts-xl border-2 border-ts-border bg-ts-bg-surface p-2 text-center shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:border-ts-primary/50 hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+            >
+              <span class="text-3xl sm:text-4xl" aria-hidden="true">{r.emoji}</span>
+              <span class="text-xs font-medium text-ts-text-secondary">{r.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Live status line after a tap. */}
+        <p
+          class="mt-5 text-center text-sm font-medium text-ts-primary"
+          data-feedback-status
+          role="status"
+          aria-live="polite"
+          hidden
+        >
+          Thanks — got it!
+        </p>
+
+        {/* Optional comment — revealed after the first tap. */}
+        <div class="mt-6" data-feedback-comment-wrap hidden>
+          <label for="fb-comment" class="text-sm font-semibold text-ts-text">
+            Anything you'd like to add? <span class="font-normal text-ts-text-muted">(optional)</span>
+          </label>
+          <textarea
+            id="fb-comment"
+            data-feedback-comment
+            rows="3"
+            maxlength="2000"
+            placeholder="What you loved, what could be better…"
+            class="mt-1.5 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base leading-relaxed text-ts-text outline-none transition-colors focus:border-ts-primary focus:ring-2 focus:ring-ts-primary/30"
+          >{existingComment}</textarea>
+          <button
+            type="button"
+            data-feedback-comment-submit
+            class="mt-3 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-6 text-sm font-semibold tracking-tight text-white shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation] disabled:opacity-60"
+          >
+            Send comment
+          </button>
+        </div>
+
+        {/* Final thank-you, shown after a comment is sent. */}
+        <div class="mt-6 text-center" data-feedback-done hidden>
+          <p class="text-base font-semibold text-ts-text">Thank you! 🌱</p>
+          <p class="mt-1 text-sm text-ts-text-secondary">
+            Your feedback helps us grow a better box.
+          </p>
+        </div>
+
+        {/* Error line. */}
+        <p
+          class="mt-4 text-center text-sm font-medium text-ts-danger"
+          data-feedback-error
+          role="alert"
+          hidden
+        >
+          We couldn't save that — please try again.
+        </p>
+      </section>
+    )}
+  </main>
+
+  {outcome === 'ok' && (
+    <script>
+      function initFeedback(): void {
+        const root = document.querySelector<HTMLElement>('[data-feedback-root]');
+        if (!root) return;
+        const token = root.dataset.token ?? '';
+        const buttons = Array.from(
+          root.querySelectorAll<HTMLButtonElement>('[data-feedback-ratings] [data-rating]'),
+        );
+        const statusEl = root.querySelector<HTMLElement>('[data-feedback-status]');
+        const commentWrap = root.querySelector<HTMLElement>('[data-feedback-comment-wrap]');
+        const commentEl = root.querySelector<HTMLTextAreaElement>('[data-feedback-comment]');
+        const commentSubmit = root.querySelector<HTMLButtonElement>('[data-feedback-comment-submit]');
+        const doneEl = root.querySelector<HTMLElement>('[data-feedback-done]');
+        const errorEl = root.querySelector<HTMLElement>('[data-feedback-error]');
+
+        let currentRating = Number(root.dataset.existingRating ?? '0') || 0;
+
+        function paintSelection(): void {
+          buttons.forEach((b) => {
+            const on = Number(b.dataset.rating) === currentRating;
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            b.classList.toggle('border-ts-primary', on);
+            b.classList.toggle('bg-ts-primary/5', on);
+            b.classList.toggle('border-ts-border', !on);
+          });
+        }
+
+        function showError(): void {
+          if (errorEl) errorEl.hidden = false;
+        }
+        function clearError(): void {
+          if (errorEl) errorEl.hidden = true;
+        }
+
+        async function post(rating: number, comment?: string): Promise<boolean> {
+          try {
+            const res = await fetch('/api/feedback/submit', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(
+                comment === undefined
+                  ? { token, rating }
+                  : { token, rating, comment },
+              ),
+            });
+            const data = await res.json().catch(() => null) as { ok?: boolean } | null;
+            return res.ok && !!data?.ok;
+          } catch {
+            return false;
+          }
+        }
+
+        async function onRate(rating: number): Promise<void> {
+          clearError();
+          currentRating = rating;
+          paintSelection();
+          buttons.forEach((b) => (b.disabled = true));
+          const ok = await post(rating);
+          buttons.forEach((b) => (b.disabled = false));
+          if (!ok) {
+            showError();
+            return;
+          }
+          if (statusEl) statusEl.hidden = false;
+          if (commentWrap) commentWrap.hidden = false;
+        }
+
+        async function onComment(): Promise<void> {
+          if (!currentRating) return;
+          clearError();
+          if (commentSubmit) commentSubmit.disabled = true;
+          const ok = await post(currentRating, commentEl?.value ?? '');
+          if (commentSubmit) commentSubmit.disabled = false;
+          if (!ok) {
+            showError();
+            return;
+          }
+          if (commentWrap) commentWrap.hidden = true;
+          if (statusEl) statusEl.hidden = true;
+          if (doneEl) doneEl.hidden = false;
+        }
+
+        buttons.forEach((b) => {
+          b.addEventListener('click', () => {
+            void onRate(Number(b.dataset.rating));
+          });
+        });
+        commentSubmit?.addEventListener('click', () => void onComment());
+
+        // Repeat visit: pre-highlight the prior rating + reveal the comment box.
+        if (currentRating) {
+          paintSelection();
+          if (commentWrap) commentWrap.hidden = false;
+        }
+      }
+
+      initFeedback();
+      document.addEventListener('astro:page-load', initFeedback);
+    </script>
+  )}
+</BaseLayout>

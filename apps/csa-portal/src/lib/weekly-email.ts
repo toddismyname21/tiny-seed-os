@@ -332,6 +332,14 @@ export interface RenderOptions {
   unsubscribeHref: string;
   /** Absolute manage-preferences URL. */
   preferencesHref: string;
+  /**
+   * Absolute per-member post-pickup feedback URL (Phase 2 Wave 1, proposal
+   * 2.3). OPTIONAL: rendered as a "How was your box?" block only when present.
+   * The send loop mints it per recipient (lib/feedback.makeFeedbackUrl); it's
+   * omitted when the feedback secret isn't configured or the recipient's
+   * customer id can't be resolved, so the email degrades gracefully.
+   */
+  feedbackHref?: string;
 }
 
 /**
@@ -383,6 +391,16 @@ export function renderWeeklyEmailHtml(email: ComposedEmail, opts: RenderOptions)
     `</div>` +
     `</div>` +
 
+    // Post-pickup feedback prompt (Phase 2 Wave 1) — rendered only when a
+    // per-member feedback link is supplied.
+    (opts.feedbackHref
+      ? `<div style="text-align:center;margin-top:20px;padding:22px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">` +
+        `<p style="margin:0 0 4px;font-weight:700;font-size:17px;color:#0f172a">How was your box? 🌱</p>` +
+        `<p style="margin:0 0 16px;font-size:14px;line-height:1.55;color:#475569">Tap to tell us — it takes two seconds and helps us grow a better box for you.</p>` +
+        `<a href="${escapeHtml(opts.feedbackHref)}" style="display:inline-block;background:#166534;color:#fff;font-weight:600;font-size:15px;text-decoration:none;padding:11px 22px;border-radius:8px">Rate this week's box →</a>` +
+        `</div>`
+      : '') +
+
     // Footer — unsubscribe + manage prefs + physical address (CAN-SPAM)
     `<div style="text-align:center;margin-top:32px;color:#64748b;font-size:13px;line-height:1.6">` +
     `<p style="margin:0">You're receiving this because you opted in to Tiny Seed Farm CSA updates.</p>` +
@@ -433,6 +451,11 @@ export function renderWeeklyEmailText(email: ComposedEmail, opts: RenderOptions)
   lines.push('');
   lines.push('Thanks for growing with us this season.');
   lines.push('— Todd & the Tiny Seed crew');
+  if (opts.feedbackHref) {
+    lines.push('');
+    lines.push('HOW WAS YOUR BOX? Tap to tell us — it takes two seconds:');
+    lines.push(opts.feedbackHref);
+  }
   lines.push('');
   lines.push(`Unsubscribe: ${opts.unsubscribeHref}`);
   lines.push(`Manage preferences: ${opts.preferencesHref}`);

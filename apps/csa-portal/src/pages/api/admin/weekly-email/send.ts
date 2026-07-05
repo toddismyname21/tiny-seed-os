@@ -52,10 +52,13 @@ import {
   WEEKLY_EMAIL_TYPE,
   PORTAL_BASE_URL,
 } from '../../../../lib/weekly-email';
+import { makeFeedbackUrl } from '../../../../lib/feedback';
+import { mondayOfWeek } from '../../../../lib/cycle';
 import {
   RESEND_API_KEY,
   RESEND_FROM_EMAIL,
   UNSUBSCRIBE_SECRET,
+  FEEDBACK_SECRET,
 } from 'astro:env/server';
 
 export const prerender = false;
@@ -140,6 +143,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const weekDate = upcomingWednesdayET();
   const preferencesHref = `${PORTAL_BASE_URL}/account/preferences`;
 
+  // Per-member post-pickup feedback link (Phase 2 Wave 1, proposal 2.3). The
+  // token is keyed by the cycle MONDAY (canonical week key — matches
+  // box_contents + the admin feedback week picker). The secret falls back to
+  // UNSUBSCRIBE_SECRET so the block works before a distinct FEEDBACK_SECRET is
+  // provisioned; when neither is set (or a recipient's customer id can't be
+  // resolved) feedbackHref stays undefined and the email omits the block.
+  const feedbackSecret = FEEDBACK_SECRET || UNSUBSCRIBE_SECRET;
+  const feedbackWeek = mondayOfWeek(weekDate);
+
   // Compose once (same body for everyone — only the unsubscribe link differs).
   const composed = await composeWeeklyEmail(supabaseAdmin, weekDate);
 
@@ -147,8 +159,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (mode === 'test') {
     if (!adminEmail) return json({ ok: false, error: 'no_admin_email' }, 400);
     const unsub = unsubscribeUrl(adminEmail, UNSUBSCRIBE_SECRET);
-    const html = renderWeeklyEmailHtml(composed, { unsubscribeHref: unsub, preferencesHref });
-    const text = renderWeeklyEmailText(composed, { unsubscribeHref: unsub, preferencesHref });
+    // Resolve the admin's own customer id so the preview shows a real, working
+    // feedback link (fail-soft: omitted if not found / no secret).
+    let adminFeedbackHref: string | undefined;
+    if (feedbackSecret) {
+      const { data: adminCust } = await supabaseAdmin
+        .from('customers')
+        .select('id')
+        .eq('email', adminEmail)
+        .maybeSingle();
+      if (adminCust?.id) {
+        adminFeedbackHref = makeFeedbackUrl(adminCust.id, feedbackWeek, feedbackSecret);
+      }
+    }
+    const html = renderWeeklyEmailHtml(composed, { unsubscribeHref: unsub, preferencesHref, feedbackHref: adminFeedbackHref });
+    const text = renderWeeklyEmailText(composed, { unsubscribeHref: unsub, preferencesHref, feedbackHref: adminFeedbackHref });
     const res = await sendOne(adminEmail, `[TEST] ${composed.subject}`, html, text);
     if (!res.ok) {
       console.error(`[weekly-email/send] test send failed (HTTP ${res.status}): ${res.error}`);
@@ -176,14 +201,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     newsletter_opt_in: boolean;
     member: {
       status: string;
-      customer: { email: string; is_active: boolean } | null;
+      customer: { id: string; email: string; is_active: boolean } | null;
     } | null;
   };
   const { data: prefRows, error: prefErr } = await supabaseAdmin
     .from('member_preferences')
     .select(
       `newsletter_opt_in,
-       member:members!inner(status, customer:customers!inner(email, is_active))`
+       member:members!inner(status, customer:customers!inner(id, email, is_active))`
     )
     .eq('newsletter_opt_in', true)
     .overrideTypes<RecipientRow[], { merge: false }>();
@@ -194,6 +219,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const recipientEmails = new Set<string>();
+  // email → customer id, so the per-recipient feedback link can be minted in the
+  // send loop (the loop is email-keyed; first customer id wins for an email).
+  const customerIdByEmail = new Map<string, string>();
   for (const row of prefRows ?? []) {
     if (!row.newsletter_opt_in) continue;
     const m = row.member;
@@ -202,6 +230,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!email) continue;
     if (m.customer?.is_active === false) continue;
     recipientEmails.add(email);
+    if (m.customer?.id && !customerIdByEmail.has(email)) {
+      customerIdByEmail.set(email, m.customer.id);
+    }
   }
 
   // Idempotency: load emails already logged 'sent' for (type, week).
@@ -233,8 +264,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (processed >= MAX_PER_RUN) break; // per-run cap
 
     const unsub = unsubscribeUrl(email, UNSUBSCRIBE_SECRET);
-    const html = renderWeeklyEmailHtml(composed, { unsubscribeHref: unsub, preferencesHref });
-    const text = renderWeeklyEmailText(composed, { unsubscribeHref: unsub, preferencesHref });
+    // Per-member feedback link (fail-soft: omitted if no secret / no customer id).
+    const custId = customerIdByEmail.get(email);
+    const feedbackHref =
+      feedbackSecret && custId
+        ? makeFeedbackUrl(custId, feedbackWeek, feedbackSecret)
+        : undefined;
+    const html = renderWeeklyEmailHtml(composed, { unsubscribeHref: unsub, preferencesHref, feedbackHref });
+    const text = renderWeeklyEmailText(composed, { unsubscribeHref: unsub, preferencesHref, feedbackHref });
 
     const res = await sendOne(email, composed.subject, html, text);
 

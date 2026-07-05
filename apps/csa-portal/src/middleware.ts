@@ -71,7 +71,22 @@ const PROTECTED_PREFIXES = [
 // opaque per-recipient token IS the access — it's validated server-side
 // (service-role) inside the endpoint, which always returns a 1×1 GIF (never
 // 404/500) so it never leaks token existence. Must NEVER redirect to /login.
-const PUBLIC_TOKEN_PREFIXES = ['/order', '/api/order', '/api/track'];
+// `/feedback` + `/api/feedback` (Todd 2026-07-05 — post-pickup micro-survey,
+// Phase 2 Wave 1) are ALSO public token routes: the weekly email links a member
+// to /feedback/<token> and the page/submit endpoint self-gate on the HMAC token
+// (lib/feedback.ts verifyFeedbackToken) — the token IS the access, no login. A
+// recipient tapping the link from their inbox carries no auth cookie, so these
+// must NEVER redirect to /login and the member gates (onboarding/phone/pickup)
+// must never apply. (The public waitlist at /waitlist + /api/waitlist is
+// deliberately NOT token-gated — it's an open, honeypot-protected form — and is
+// simply absent from PROTECTED_PREFIXES, so it already passes straight through.)
+const PUBLIC_TOKEN_PREFIXES = [
+  '/order',
+  '/api/order',
+  '/api/track',
+  '/feedback',
+  '/api/feedback',
+];
 
 function isPublicTokenRoute(pathname: string): boolean {
   return PUBLIC_TOKEN_PREFIXES.some(
