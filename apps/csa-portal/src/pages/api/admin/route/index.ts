@@ -7,11 +7,12 @@
  * Seeding rules (per spec):
  *   - `is_delivery_zone = true AND host_name IS NOT NULL`
  *       → one stop per location with `pickup_location_id` set.
- *   - `is_delivery_zone = true AND host_name IS NULL`
- *       → one stop per ACTIVE member at that "home delivery"
- *         pickup_location with `member_id` set. (No, wait — home
- *         delivery members typically have NO pickup_location_id at
- *         all. We handle both legacy and modern shapes below.)
+ *   - Home-delivery members (NO pickup_location_id + a delivery_address)
+ *       → one stop per household with `member_id` set, but ONLY for those
+ *         receiving a box THIS week. Membership is taken from resolveCycle's
+ *         'home_delivery' bucket (biweekly A/B parity + vacation holds +
+ *         season/payment applied) — NOT a raw members query — so off-week
+ *         biweekly members are excluded. Wednesday only.
  *   - `is_delivery_zone = false` → SKIP (self-pickup at farm).
  *
  * In our current data set:
@@ -21,7 +22,8 @@
  *     skipped.
  *   - Home-delivery members typically have `pickup_location_id = NULL`
  *     and a `delivery_address` populated. We seed ONE STOP PER such
- *     ACTIVE member on Wednesdays.
+ *     household on Wednesdays — but only for households resolveCycle says
+ *     receive a box this week (off-week biweekly members are skipped).
  *
  * Idempotency:
  *   - If a route for `today` already exists, the endpoint returns 409
@@ -44,6 +46,7 @@ import { requireAdmin } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { todayET, todayWeekdayET, isFarmPickup } from '../../../../lib/delivery';
 import { routeRank, extractZip } from '../../../../lib/route-order';
+import { resolveCycle, mondayOfWeek, type CycleMember } from '../../../../lib/cycle';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../../../lib/database.types';
 
@@ -127,7 +130,8 @@ interface SeedPlan {
  */
 async function buildSeedPlan(
   supabase: SupabaseClient<Database>,
-  weekday: string
+  weekday: string,
+  today: string
 ): Promise<SeedPlan | { error: string }> {
   // 1. Host stops: active, delivery-zone pickup_locations on this weekday with
   //    a host_name. We pull address/city/zip so we can rank each by its
@@ -180,50 +184,58 @@ async function buildSeedPlan(
       } satisfies SeedStop;
     });
 
-  // 2. Home-delivery stops: active members with NO pickup_location_id AND a
-  //    delivery_address. We don't filter by weekday for these — home
-  //    deliveries happen on the canonical CSA delivery day (Wed) regardless of
-  //    member.pickup_day. If you're a home-delivery member, you're on
-  //    Wednesday's route.
+  // 2. Home-delivery stops — derived from resolveCycle, the SINGLE SOURCE OF
+  //    TRUTH for who receives a box in a given week. resolveCycle's
+  //    'home_delivery' bucket already applies biweekly A/B parity, vacation
+  //    holds, season windows and payment state — so a biweekly member on their
+  //    OFF week is correctly EXCLUDED. (Audit fix, functionality item 2: the
+  //    old code queried `members` raw — every active home-delivery member,
+  //    including off-week biweekly members, wrongly got a truck stop.) This is
+  //    the SAME source /admin/route-plan uses via route-optimizer
+  //    gatherDayStops → cycle.byStop.get('home_delivery').
   //
-  //    We only seed these on Wednesday (the canonical day) so a Saturday
-  //    admin-tap doesn't accidentally create a home-delivery route. The driver
-  //    app supports other days too but only via explicit Mon/Thu wholesale
-  //    flows.
+  //    Home deliveries ride the canonical Wednesday route, so we only seed them
+  //    on Wednesdays (a Saturday admin-tap must not create a home route). The
+  //    cycle is resolved for the route's own week (Monday of `today`).
   let homeStops: SeedStop[] = [];
   if (weekday === 'Wed') {
-    type MemberRow = {
-      id: string;
-      legacy_id: string | null;
-      delivery_address: string | null;
-      pickup_location_id: string | null;
-      status: string;
-    };
-    const { data: hd, error: hdErr } = await supabase
-      .from('members')
-      .select('id, legacy_id, delivery_address, pickup_location_id, status')
-      .eq('status', 'active')
-      .is('pickup_location_id', null)
-      .not('delivery_address', 'is', null)
-      .overrideTypes<MemberRow[], { merge: false }>();
-
-    if (hdErr) {
-      console.error('[api/admin/route] home-delivery member fetch failed:', hdErr.message);
+    let cycle: Awaited<ReturnType<typeof resolveCycle>>;
+    try {
+      cycle = await resolveCycle(supabase, mondayOfWeek(today));
+    } catch (e) {
+      console.error('[api/admin/route] resolveCycle failed:', (e as Error)?.message);
       return { error: 'fetch_failed' };
     }
-    // Defensive: require delivery_address to actually have content. Rank each
-    // home stop by the zip parsed from its delivery_address so it interleaves
-    // with host stops in farm-loop order. legacy_id is the final tiebreak so
-    // two members with the same zip stay in a stable, deterministic order.
-    homeStops = (hd ?? [])
-      .filter((m) => m.delivery_address && m.delivery_address.trim().length > 0)
-      .map((m) => ({
+    const hd = cycle.byStop.get('home_delivery') ?? [];
+    // A household can have SEVERAL rows in this bucket: the box row that carries
+    // the delivery_address PLUS any add-ons that ride the same box (some created
+    // with a null address). Group by customer and pick the representative row
+    // that actually HAS an address — prefer the summer_veg box row — mirroring
+    // route-optimizer.gatherDayStops so the driver route and the optimizer agree
+    // on the stop set. Skip a household only when NO row carries an address.
+    const rowsByCustomer = new Map<string, CycleMember[]>();
+    for (const m of hd) {
+      const arr = rowsByCustomer.get(m.customer_id);
+      if (arr) arr.push(m);
+      else rowsByCustomer.set(m.customer_id, [m]);
+    }
+    for (const rows of rowsByCustomer.values()) {
+      const rep =
+        rows.find((r) => r.delivery_address && r.share_type === 'summer_veg') ??
+        rows.find((r) => r.delivery_address) ??
+        rows[0];
+      if (!rep || !rep.delivery_address || rep.delivery_address.trim().length === 0) continue;
+      // Rank each home stop by the zip parsed from its delivery_address so it
+      // interleaves with host stops in farm-loop order. member id is the final
+      // tiebreak so two members with the same zip stay in a stable order.
+      homeStops.push({
         pickup_location_id: null,
-        member_id: m.id,
+        member_id: rep.id,
         scheduled_time: null,
-        zip: extractZip(m.delivery_address),
-        tiebreak: m.legacy_id ?? m.id,
-      } satisfies SeedStop));
+        zip: extractZip(rep.delivery_address),
+        tiebreak: rep.id,
+      } satisfies SeedStop);
+    }
   }
 
   // 3. Merge BOTH kinds into one list and sort by the farm-loop sequence.
@@ -281,7 +293,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   // 2. Build the seed plan from active pickup_locations + members.
-  const plan = await buildSeedPlan(supabase, weekday);
+  const plan = await buildSeedPlan(supabase, weekday, today);
   if ('error' in plan) {
     return jsonResponse({ ok: false, error: plan.error }, 500);
   }

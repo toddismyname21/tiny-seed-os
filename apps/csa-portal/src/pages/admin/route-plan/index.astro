@@ -18,7 +18,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { mondayOfWeek, currentDeliveryWeek, isMonday, prettyWeekHeader } from '../../../lib/cycle';
 import { weekOptions } from '../../../lib/cycle-ui';
 import { addDaysYMD } from '../../../lib/wholesale-order';
-import { gatherDayStops, DEPOT } from '../../../lib/route-optimizer';
+import { gatherDayStops, gatherManualStops, DEPOT, type RouteStop } from '../../../lib/route-optimizer';
 
 export const prerender = false;
 
@@ -32,7 +32,7 @@ const day = (['Tue', 'Wed', 'Sat'].includes(dayRaw) ? dayRaw : 'Wed') as 'Tue' |
 // Delivery date for this day = the week's Monday + offset (Tue+1, Wed+2, Sat+5).
 const route_date = addDaysYMD(week_starting, ({ Tue: 1, Wed: 2, Sat: 5 } as const)[day]);
 
-let stops: any[] = [];
+let stops: RouteStop[] = [];
 let skipped: string[] = [];
 let gatherError: string | null = null;
 if (!GOOGLE_MAPS_API_KEY) {
@@ -46,6 +46,17 @@ if (!GOOGLE_MAPS_API_KEY) {
     gatherError = (e as Error)?.message ?? 'Could not load stops for this day.';
   }
 }
+
+// Manual / not-routable stops — separate read, NEVER fed to the optimizer.
+// (a) customers flagged routable=false; (b) wholesale accounts with an address.
+let manualStops: Awaited<ReturnType<typeof gatherManualStops>> = [];
+try {
+  manualStops = await gatherManualStops(supabaseAdmin);
+} catch {
+  manualStops = [];
+}
+const manualErrorParam = url.searchParams.get('routable_error');
+const manualOkParam = url.searchParams.get('routable_ok');
 
 const options = weekOptions();
 const groups = [
@@ -118,6 +129,19 @@ const groups = [
                       {s.address && <div class="truncate text-xs text-gray-600">📍 {s.address}</div>}
                       {s.detail && <div class="text-xs text-gray-400">{s.detail}</div>}
                     </div>
+                    {g.kind === 'home' && (
+                      <form method="POST" action="/api/admin/route/routable" class="shrink-0">
+                        <input type="hidden" name="customer_id" value={s.key} />
+                        <input type="hidden" name="routable" value="false" />
+                        <input type="hidden" name="week" value={week_starting} />
+                        <input type="hidden" name="day" value={day} />
+                        <button
+                          type="submit"
+                          class="inline-flex h-8 items-center justify-center rounded-md border border-amber-300 bg-amber-50 px-2 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 active:scale-[0.98]"
+                          title="Take off the optimizer — deliver by hand (reversible)"
+                        >📌 Not routable</button>
+                      </form>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -144,6 +168,73 @@ const groups = [
       </div>
     </div>
   )}
+
+  {/* ── Manual / not-routable stops — deliver by hand, NOT optimized ── */}
+  <Card padding="md" elevation="sm" as="section" class="mt-6 border border-amber-200">
+    <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-lg font-semibold text-amber-800">📌 Manual / not-routable stops</h2>
+      <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">{manualStops.length}</span>
+    </div>
+    <p class="mb-3 text-xs text-gray-500">
+      Deliver these by hand — they are <b>NOT</b> sent to the route optimizer. Wholesale
+      accounts are off the CSA route by design; flagged customers were taken off by you.
+    </p>
+
+    {manualOkParam && (
+      <div class="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-800">
+        ✅ {manualOkParam === 'off' ? 'Customer moved to manual stops (off the optimizer).' : 'Customer restored to the optimizer.'}
+      </div>
+    )}
+    {manualErrorParam && (
+      <div class="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+        Couldn’t update routable: {manualErrorParam}
+      </div>
+    )}
+
+    {manualStops.length === 0 ? (
+      <div class="rounded-ts-md border border-dashed border-gray-200 px-4 py-8 text-center">
+        <div class="mb-1 text-2xl">📭</div>
+        <p class="text-sm font-medium text-gray-700">No manual stops</p>
+        <p class="text-xs text-gray-500">
+          Wholesale accounts with an address and any customer you mark “not routable” will appear here.
+        </p>
+      </div>
+    ) : (
+      <ul class="divide-y divide-gray-100">
+        {manualStops.map((m) => (
+          <li class="flex items-center gap-3 py-3">
+            <span class={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${m.kind === 'wholesale' ? 'bg-orange-100 text-orange-800' : 'bg-sky-100 text-sky-800'}`}>
+              {m.kind === 'wholesale' ? '🍽 Wholesale' : '🏠 Home'}
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-medium text-gray-900">{m.name}</div>
+              <div class="truncate text-xs text-gray-600">📍 {m.address}</div>
+              {m.phone && (
+                <div class="text-xs text-gray-400">
+                  📞 <a href={`tel:${m.phone}`} class="hover:underline">{m.phone}</a>
+                </div>
+              )}
+            </div>
+            {m.toggleable ? (
+              <form method="POST" action="/api/admin/route/routable" class="shrink-0">
+                <input type="hidden" name="customer_id" value={m.id} />
+                <input type="hidden" name="routable" value="true" />
+                <input type="hidden" name="week" value={week_starting} />
+                <input type="hidden" name="day" value={day} />
+                <button
+                  type="submit"
+                  class="inline-flex h-10 items-center justify-center rounded-ts-md border border-emerald-300 bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 active:scale-[0.98]"
+                  title="Put this customer back on the route optimizer"
+                >↩︎ Make routable</button>
+              </form>
+            ) : (
+              <span class="shrink-0 text-xs text-gray-400" title="Wholesale accounts are off the CSA optimizer by design">off route by design</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    )}
+  </Card>
 </AdminShell>
 
 <script is:inline define:vars={{ allStops: stops, depot: DEPOT, routeDate: route_date }}>
@@ -153,6 +244,14 @@ const groups = [
 
   const fmtClock = (sec) => { const h=Math.floor(sec/3600)%24,m=Math.floor((sec%3600)/60),ap=h>=12?'PM':'AM',h12=((h+11)%12)+1; return `${h12}:${String(m).padStart(2,'0')} ${ap}`; };
   const mins = (s) => Math.round(s/60);
+
+  // Escape untrusted strings before they hit innerHTML. Stop name/address/detail
+  // come from member-supplied delivery addresses + Shopify contact names, and
+  // save/optimize error strings are API-derived — all could contain markup that
+  // would otherwise execute as stored XSS in Todd's admin browser (audit H4/L2).
+  const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
 
   // paint the A/B/Off segmented control for a stop
   function paint(key) {
@@ -195,9 +294,9 @@ const groups = [
       <li draggable="true" data-key="${r.s.key}" class="route-row flex items-center gap-2 py-2 ${r.violated?'bg-red-50':''}" style="cursor:grab">
         <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style="background:${color}">${i+1}</span>
         <div class="min-w-0 flex-1">
-          <div class="text-sm font-medium text-gray-900 truncate">${r.s.name}</div>
-          ${r.s.address?`<div class="text-xs text-gray-500 truncate">📍 ${r.s.address}</div>`:''}
-          <div class="text-xs text-gray-400">~${fmtClock(r.arrival)} · +${mins(r.leg)}m drive${r.s.detail?' · '+r.s.detail:''}${r.violated?' · ⚠️ AFTER CUTOFF':''}</div>
+          <div class="text-sm font-medium text-gray-900 truncate">${escapeHtml(r.s.name)}</div>
+          ${r.s.address?`<div class="text-xs text-gray-500 truncate">📍 ${escapeHtml(r.s.address)}</div>`:''}
+          <div class="text-xs text-gray-400">~${fmtClock(r.arrival)} · +${mins(r.leg)}m drive${r.s.detail?' · '+escapeHtml(r.s.detail):''}${r.violated?' · ⚠️ AFTER CUTOFF':''}</div>
         </div>
         <div class="flex shrink-0 flex-col">
           <button data-mv="up" class="px-1 text-gray-400 hover:text-gray-700 leading-none">▲</button>
@@ -262,11 +361,11 @@ const groups = [
     try {
       const res = await fetch('/api/admin/route/save-optimized', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ route_date: routeDate, leg: letter, stops }) });
       const d = await res.json();
-      if (!res.ok || d.error) { out.innerHTML = `<span class="text-red-600">Save failed: ${d.detail || d.error || res.status}</span>`; return; }
+      if (!res.ok || d.error) { out.innerHTML = `<span class="text-red-600">Save failed: ${escapeHtml(d.detail || d.error || res.status)}</span>`; return; }
       const link = location.origin + d.url;
       out.innerHTML = `<div class="rounded bg-green-50 px-3 py-2 text-green-800">✅ Saved Route ${letter} (${d.stops} stops)${missing ? ` · ${missing} skipped (no link)` : ''}. The driver opens this — it auto-updates when you re-save.<br><a href="${d.url}" target="_blank" class="font-semibold underline">Open driver view →</a> <button data-copy="${link}" class="ml-2 rounded border bg-white px-2 py-0.5 text-xs">Copy link</button></div>`;
       out.querySelector('[data-copy]')?.addEventListener('click', (e) => { navigator.clipboard?.writeText(e.target.getAttribute('data-copy')); e.target.textContent = 'Copied!'; });
-    } catch (e) { out.innerHTML = `<span class="text-red-600">Error: ${e?.message || e}</span>`; }
+    } catch (e) { out.innerHTML = `<span class="text-red-600">Error: ${escapeHtml(e?.message || e)}</span>`; }
   }
 
   async function optimizeRoute(letter, stops, startSec) {
@@ -275,10 +374,12 @@ const groups = [
     el.innerHTML = '<p class="text-gray-500 text-sm">Optimizing…</p>';
     const res = await fetch('/api/admin/optimize-route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stops, startSec }) });
     const d = await res.json();
-    if (!res.ok || d.error) { el.innerHTML = `<p class="text-red-600 text-sm">Couldn't optimize: ${d.detail || d.error || res.status}</p>`; return; }
+    if (!res.ok || d.error) { el.innerHTML = `<p class="text-red-600 text-sm">Couldn't optimize: ${escapeHtml(d.detail || d.error || res.status)}</p>`; return; }
     state[letter] = { order: d.stops.map((s) => s.key), matrix: d.matrix, keys: d.keys, startSec };
     render(letter);
-    if (d.warnings && d.warnings.length) el.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">${d.warnings.join('<br>')}</div>`);
+    // Warnings can embed a stop's name (home deliveries carry the member's
+    // Shopify contact_name) — escape each line, keep the <br> joiner literal.
+    if (d.warnings && d.warnings.length) el.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">${d.warnings.map(escapeHtml).join('<br>')}</div>`);
   }
 
   document.getElementById('optimize-btn')?.addEventListener('click', async () => {

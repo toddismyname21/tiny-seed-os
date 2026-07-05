@@ -49,8 +49,21 @@ const CSV_HEADERS: Record<string, string[]> = {
 
 function csvEscape(value: unknown): string {
   if (value === null || value === undefined) return '';
-  const s = String(value);
+  const isNumber = typeof value === 'number';
+  let s = String(value);
   if (s.length === 0) return '';
+  // Formula-injection guard (CSV injection / DDE) — audit M1. A cell whose
+  // text begins with = + - @ (or a leading TAB/CR) is executed as a formula
+  // by Excel and Google Sheets when the file is opened. Member-entered fields
+  // (contact_name, delivery_address, email, …) can start with those chars —
+  // e.g. contact_name = "=HYPERLINK(\"http://evil\",\"click\")". Prefix such
+  // STRING cells with a single quote so the spreadsheet treats them as literal
+  // text. We deliberately skip this for JS `number` values (counts, weeks,
+  // days-since, etc.) so a legitimate negative number like -3 is emitted
+  // unmodified — only member-supplied strings are ever prefixed.
+  if (!isNumber && /^[=+\-@\t\r]/.test(s)) {
+    s = `'${s}`;
+  }
   // Quote if contains comma, quote, newline, or starts with leading space.
   if (/[",\r\n]/.test(s) || s.startsWith(' ')) {
     return `"${s.replace(/"/g, '""')}"`;

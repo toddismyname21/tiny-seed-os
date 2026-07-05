@@ -12,9 +12,10 @@
  *   2. If RESEND_WEBHOOK_SECRET is set, verify the
  *      svix-id / svix-timestamp / svix-signature headers against it via
  *      the `svix` Webhook verifier. On failure → 401.
- *      If the secret is UNSET, we gracefully no-op-ACCEPT (200) so
- *      Resend's delivery attempts don't hard-fail before Todd has wired
- *      the secret into Vercel. (Documented trade-off — see report.)
+ *      If the secret is UNSET, we return 200 { ok:true, skipped:'no_secret' }
+ *      WITHOUT applying the event — Resend keeps the endpoint healthy, but a
+ *      forged/unverified payload can no longer mutate campaign metrics
+ *      (audit H5). Wire RESEND_WEBHOOK_SECRET in Vercel to enable applying.
  *   3. Parse the event `{ type, created_at, data: { email_id } }` and
  *      apply it via applyResendEvent (lib/campaign.ts): advances the
  *      matching campaign_recipients row status (delivered → opened →
@@ -88,15 +89,19 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ ok: false, error: 'invalid_signature' }, 401);
     }
   } else {
-    // No secret configured yet — accept WITHOUT acting on unsigned data
-    // would be safest, but Resend needs a 200 to keep the endpoint
-    // healthy. We DO still apply the event (the email_id lookup is the
-    // only thing that can change state, and email_ids are unguessable
-    // UUIDs), and log a loud warning so this isn't silently permanent.
+    // No secret configured yet — we CANNOT trust this payload, so we must
+    // NOT apply it. A forged POST to this public endpoint would otherwise
+    // corrupt campaign delivery/open/click/bounce metrics (audit H5). We
+    // still return 200 (not 4xx) so Resend considers the endpoint healthy
+    // and keeps it registered — it just becomes a no-op until the secret is
+    // wired. The loud warning makes this state visible so it isn't silently
+    // permanent. NOTE: email_ids being "unguessable UUIDs" is NOT auth — an
+    // attacker can replay/forge real event bodies harvested elsewhere.
     console.warn(
-      '[campaigns/webhook] RESEND_WEBHOOK_SECRET unset — accepting UNVERIFIED webhook. ' +
-        'Set the secret in Vercel after registering the endpoint in Resend.'
+      '[campaigns/webhook] RESEND_WEBHOOK_SECRET unset — SKIPPING unverified webhook ' +
+        '(no event applied). Set the secret in Vercel after registering the endpoint in Resend.'
     );
+    return json({ ok: true, skipped: 'no_secret' });
   }
 
   // 3. Parse + apply.
