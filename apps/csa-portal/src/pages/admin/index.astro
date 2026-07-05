@@ -118,7 +118,7 @@ const [
   totalMembersRes,
 ] = await Promise.all([
   supabase.from('members').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-  supabase.from('members').select('share_type, share_size, biweekly_week, status').eq('status', 'active'),
+  supabase.from('members').select('share_type, share_size, biweekly_week, cadence, status').eq('status', 'active'),
   supabase.from('members')
     .select('pickup_location_id, pickup_location:pickup_locations(name, day_of_week, max_capacity)')
     .eq('status', 'active'),
@@ -159,6 +159,7 @@ type ShareBreakdownRow = {
   share_type: string;
   share_size: string | null;
   biweekly_week: 'A' | 'B' | null;
+  cadence: 'weekly' | 'biweekly';
   status: string;
 };
 const shareBreakdownRows = (byShareTypeRes.data ?? []) as unknown as ShareBreakdownRow[];
@@ -168,10 +169,14 @@ for (const row of shareBreakdownRows) {
 }
 const bucketCounts = countByBucket(shareBreakdownRows as ReadonlyArray<MemberShareRow>);
 
-// How many active members still need a Week A/B assignment? Drives
-// the "Auto-assign" panel below.
+// How many active members still need a Week A/B assignment? Drives the
+// "Auto-assign" panel below. Migration 0073: ONLY biweekly-cadence members
+// with a NULL parity are "unassigned" — a WEEKLY member (cadence='weekly',
+// biweekly_week NULL) is fully assigned and must NOT inflate this counter
+// (that was the Phase-0 blocked bug: every weekly member counted as needing
+// a week).
 const unassignedBiweeklyCount = shareBreakdownRows.filter(
-  (r) => r.biweekly_week === null
+  (r) => r.cadence === 'biweekly' && r.biweekly_week === null
 ).length;
 
 // ─── Location breakdown ─────────────────────────────────────────────
@@ -636,7 +641,7 @@ const pendingTaskCount =
         Members by share
       </h2>
       <span class="text-xs text-ts-text-muted">
-        Every member is bi-weekly · Week A · Week B · Unassigned = needs assignment
+        Week A · Week B · Unassigned = a bi-weekly member still needs a week
       </span>
     </div>
     <Card padding="none" elevation="sm">

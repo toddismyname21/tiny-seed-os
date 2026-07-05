@@ -102,6 +102,9 @@ export interface Database {
           payment_status: string | null;
           amount_paid: number | null;
           biweekly_week: 'A' | 'B' | null;
+          /** Migration 0073 — THE source of truth for weekly-vs-biweekly.
+           *  biweekly_week is only meaningful when cadence='biweekly'. */
+          cadence: 'weekly' | 'biweekly';
           notes: string | null;
           created_at: string;
           updated_at: string;

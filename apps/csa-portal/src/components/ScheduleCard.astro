@@ -24,8 +24,12 @@ import type { DeliveryCadence } from '../lib/schedule';
 
 interface Props {
   cadence: DeliveryCadence;
-  /** 'A' | 'B' for biweekly; null for weekly. Drives the "Why" copy. */
+  /** 'A' | 'B' for biweekly; null for weekly OR biweekly-unassigned. */
   biweeklyWeek: 'A' | 'B' | null;
+  /** Migration 0073 — TRUE when biweekly but not yet assigned an A/B week.
+   *  The card shows a gentle "your week will be confirmed soon" note and a
+   *  link to pick a week, instead of committing to Week A/B copy. */
+  needsAssignment?: boolean;
   /** "Wednesday, June 10" — the member's first delivery. */
   firstDeliveryLong: string;
   /** "October 7" — season end (member's last delivery). */
@@ -39,6 +43,7 @@ interface Props {
 const {
   cadence,
   biweeklyWeek,
+  needsAssignment = false,
   firstDeliveryLong,
   seasonEndShort,
   upcomingShort,
@@ -96,7 +101,7 @@ const isWeekly = cadence === 'weekly';
       {/* Upcoming-dates chips — only for biweekly, where the rhythm isn't
           obvious. Weekly members don't need a list ("every Wednesday"
           says it all). */}
-      {!isWeekly && upcomingShort.length > 0 && (
+      {!isWeekly && !needsAssignment && upcomingShort.length > 0 && (
         <div class="mt-4">
           <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
             Your upcoming boxes
@@ -114,8 +119,25 @@ const isWeekly = cadence === 'weekly';
         </div>
       )}
 
-      {/* Plain-language "why" — answers the email that prompted this work. */}
-      {!isWeekly && (
+      {/* Biweekly but not yet assigned a week — gentle "confirming soon" note
+          (migration 0073). We DON'T claim Week A or Week B until it's picked. */}
+      {!isWeekly && needsAssignment && (
+        <p class="mt-4 rounded-ts-md border border-ts-warning/30 bg-ts-warning/5 px-3 py-2.5 text-xs leading-relaxed text-ts-text-secondary">
+          <span class="font-medium text-ts-text">Your delivery week will be confirmed soon.</span>{' '}
+          You're on a bi-weekly share — you'll get a box every other Wednesday. We're
+          lining up whether that's the Week A or Week B rhythm.{' '}
+          <a
+            href="/account/biweekly-schedule"
+            class="font-semibold text-ts-primary underline decoration-ts-primary/40 underline-offset-2 hover:decoration-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Pick your week
+          </a>.
+        </p>
+      )}
+
+      {/* Plain-language "why" — answers the email that prompted this work.
+          Only when an actual A/B parity is assigned. */}
+      {!isWeekly && !needsAssignment && (
         <p class="mt-4 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-ts-text-secondary">
           <span class="font-medium text-ts-text">Why every other week?</span>{' '}
           You signed up for a bi-weekly share, so we pack you a box on

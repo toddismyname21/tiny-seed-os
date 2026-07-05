@@ -123,6 +123,22 @@ test('biweekly detected via reduced total_weeks (no explicit A/B) ', () => {
   assertEqual(vacationWeeksUsed(bw9, '2026-06-15', '2026-06-19'), 0);
 });
 
+// ─── cadence column authority (migration 0073) ───────────────────────
+
+test('cadence=weekly overrides a stray biweekly_week (counts every held week)', () => {
+  // A weekly member wrongly carrying biweekly_week='B'. The cadence column
+  // makes them weekly → their 6/17 (a "B" week) box IS suppressed → 1.
+  const strayB: VacationMember = { share_type: 'summer_veg', biweekly_week: 'B', cadence: 'weekly' };
+  assertEqual(vacationWeeksUsed(strayB, '2026-06-15', '2026-06-19'), 1);
+});
+
+test('cadence=biweekly + A parity counts only on-parity weeks', () => {
+  const bwA: VacationMember = { share_type: 'summer_veg', biweekly_week: 'A', cadence: 'biweekly' };
+  // Hold over an A week (6/24) → 1; hold over a B week (6/17) → 0.
+  assertEqual(vacationWeeksUsed(bwA, '2026-06-22', '2026-06-26'), 1);
+  assertEqual(vacationWeeksUsed(bwA, '2026-06-15', '2026-06-19'), 0);
+});
+
 // ─── Season boundaries ───────────────────────────────────────────────
 
 test('hold extending past the last delivery counts only in-season weeks', () => {

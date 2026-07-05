@@ -70,12 +70,13 @@ type ShareRow = {
   share_size: string | null;
   status: string;
   biweekly_week: 'A' | 'B' | null;
+  cadence: 'weekly' | 'biweekly';
 };
 let liveShares: ShareRow[] = [];
 if (account) {
   const { data: memberRows, error: membersError } = await supabase
     .from('members')
-    .select('id, share_type, share_size, status, biweekly_week')
+    .select('id, share_type, share_size, status, biweekly_week, cadence')
     .eq('customer_id', account.id)
     .overrideTypes<ShareRow[], { merge: false }>();
   if (membersError) {
@@ -127,6 +128,7 @@ if (controllingSchedule && primaryShare) {
   const resolved = resolveMemberSchedule({
     schedule: controllingSchedule,
     biweeklyWeek: primaryShare.biweekly_week,
+    cadence: primaryShare.cadence,
   });
   allDeliveryCount = resolved.allDeliveries.length;
 

@@ -70,6 +70,14 @@ export interface VacationMember {
    * See `memberIsBiweekly`. Optional; null/undefined → rely on biweekly_week.
    */
   total_weeks?: number | null;
+  /**
+   * members.cadence (migration 0073) — THE source of truth for weekly vs
+   * biweekly. When present it is authoritative (a weekly member costs a
+   * vacation week for EVERY held delivery week; a biweekly member only for
+   * their on-parity weeks). Optional for back-compat: when omitted we fall
+   * back to the `memberIsBiweekly` total_weeks heuristic below.
+   */
+  cadence?: 'weekly' | 'biweekly' | null;
 }
 
 /**
@@ -128,15 +136,21 @@ export function vacationWeeksUsed(
   // charging them vacation weeks would be meaningless.)
   if (!schedule) return 0;
 
-  // Biweekly detection mirrors the member-facing copy (schedule.ts): a member
-  // is biweekly if biweekly_week is set OR their total_weeks is a reduced
-  // (≈ half-season) plan. A weekly member counts every week; a biweekly one
-  // counts only their A/B parity weeks.
-  const biweekly = memberIsBiweekly({
-    biweeklyWeek: member.biweekly_week,
-    totalWeeks: member.total_weeks ?? null,
-    schedule,
-  });
+  // Biweekly detection. The cadence column (migration 0073) is authoritative
+  // when present — a weekly member counts every held delivery week, a biweekly
+  // one only their A/B parity weeks. When cadence is absent we fall back to
+  // the member-facing heuristic (schedule.ts): biweekly if biweekly_week is
+  // set OR total_weeks is a reduced (≈ half-season) plan.
+  const biweekly =
+    member.cadence === 'weekly'
+      ? false
+      : member.cadence === 'biweekly'
+        ? true
+        : memberIsBiweekly({
+            biweeklyWeek: member.biweekly_week,
+            totalWeeks: member.total_weeks ?? null,
+            schedule,
+          });
 
   const resolved = resolveMemberSchedule({
     schedule,

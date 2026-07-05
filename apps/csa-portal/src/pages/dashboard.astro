@@ -139,6 +139,7 @@ type ActiveShare = {
   swap_credits: number;
   vacation_weeks_used: number;
   biweekly_week: 'A' | 'B' | null;
+  cadence: 'weekly' | 'biweekly';
   notes: string | null;
   pickup_location: {
     name: string;
@@ -193,6 +194,7 @@ if (account) {
       swap_credits,
       vacation_weeks_used,
       biweekly_week,
+      cadence,
       notes,
       pickup_location:pickup_locations (
         name,
@@ -618,6 +620,7 @@ const primarySchedule = primaryShare ? getSchedule(primaryShare.share_type) : nu
 
 let scheduleCadence: 'weekly' | 'biweekly' = 'weekly';
 let scheduleBiweeklyWeek: 'A' | 'B' | null = null;
+let scheduleNeedsAssignment = false;
 let scheduleFirstLong = '';
 let scheduleSeasonEndShort = '';
 let scheduleUpcomingShort: string[] = [];
@@ -631,9 +634,11 @@ if (primaryShare && primarySchedule) {
   const resolved = resolveMemberSchedule({
     schedule: primarySchedule,
     biweeklyWeek: primaryShare.biweekly_week,
+    cadence: primaryShare.cadence,
   });
   scheduleCadence = resolved.cadence;
   scheduleBiweeklyWeek = primaryShare.biweekly_week;
+  scheduleNeedsAssignment = resolved.needsAssignment;
   const firstDate = firstMemberDelivery(resolved);
   scheduleFirstLong = firstDate ? prettyDeliveryLong(firstDate) : '';
   scheduleSeasonEndShort = prettyDeliveryShort(seasonEndDate(resolved, primarySchedule));
@@ -711,7 +716,7 @@ if (showBoxSection && primaryShare) {
   }
   if (holdOverlaps) {
     boxWeekStatus = 'on_hold';
-  } else if (!isMemberOnThisWeek({ biweekly_week: primaryShare.biweekly_week }, cycleMonday)) {
+  } else if (!isMemberOnThisWeek({ biweekly_week: primaryShare.biweekly_week, cadence: primaryShare.cadence }, cycleMonday)) {
     boxWeekStatus = 'off_week';
   } else {
     boxWeekStatus = 'box';
@@ -1256,6 +1261,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
         <ScheduleCard
           cadence={scheduleCadence}
           biweeklyWeek={scheduleBiweeklyWeek}
+          needsAssignment={scheduleNeedsAssignment}
           firstDeliveryLong={scheduleFirstLong}
           seasonEndShort={scheduleSeasonEndShort}
           upcomingShort={scheduleUpcomingShort}
@@ -1372,6 +1378,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                   const resolved = resolveMemberSchedule({
                     schedule: sched,
                     biweeklyWeek: share.biweekly_week,
+                    cadence: share.cadence,
                   });
                   const nextDate = upcomingDeliveries(resolved, 1)[0] ?? null;
                   const pickupDay = (share.pickup_location?.day_of_week ?? null) as

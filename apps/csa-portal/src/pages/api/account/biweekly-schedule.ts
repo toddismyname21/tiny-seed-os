@@ -12,10 +12,16 @@
  * On failure: 303 → /account/biweekly-schedule?error=<code>
  *
  * Auth: middleware sets locals.user + locals.supabase (RLS-scoped to
- * the auth'd member). We update EVERY live member row tied to that
- * customer — if Todd has Summer Veg + Flower, both should follow the
- * same Week A/B schedule. The members_self_write RLS policy lets the
+ * the auth'd member). We update ONLY the auth'd customer's BIWEEKLY-cadence
+ * member rows (cadence='biweekly', migration 0073). A mixed household with a
+ * WEEKLY share + a BIWEEKLY share must keep the weekly share weekly — the
+ * old code stamped the chosen A/B parity onto EVERY live row, which turned
+ * the household's weekly share into a half-frequency biweekly one (bug d, two
+ * Shopify-proven live cases). The members_self_write RLS policy lets the
  * auth'd member update their own rows.
+ *
+ * Never changes cadence itself — cadence is purchase-defined and admin-only.
+ * This endpoint only assigns the A/B parity of an already-biweekly share.
  *
  * Why no separate "preference" column: members.biweekly_week IS the
  * assignment. When a member chooses Week A via this endpoint, they're
@@ -61,16 +67,19 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const dbValue: 'A' | 'B' | null =
     parsed.data.week === 'unassigned' ? null : parsed.data.week;
 
-  // ─── Find every LIVE member row for this customer ────────────────
-  // We update ALL active/paused/onboarding rows so a multi-share
-  // customer (Summer Veg + Flower) stays on a single schedule. RLS
-  // (members_self_*) restricts the SELECT to the auth'd customer's
-  // own rows.
+  // ─── Find every LIVE BIWEEKLY-cadence member row for this customer ─
+  // We update ONLY cadence='biweekly' rows (migration 0073) so a mixed
+  // household (e.g. weekly Flower + biweekly Veg) keeps its WEEKLY share
+  // weekly. A weekly-only customer matches zero rows here → the picker page
+  // never even offers the form to them (it shows the "every week" info
+  // state), so this is defense in depth. RLS (members_self_*) restricts the
+  // SELECT to the auth'd customer's own rows.
   type MemberStub = { id: string };
   const { data: memberRows, error: fetchErr } = await locals.supabase
     .from('members')
     .select('id')
     .in('status', ['active', 'paused', 'onboarding'])
+    .eq('cadence', 'biweekly')
     .overrideTypes<MemberStub[], { merge: false }>();
 
   if (fetchErr) {
@@ -80,9 +89,9 @@ export const POST: APIRoute = async ({ request, redirect, locals }) => {
 
   const memberIds = (memberRows ?? []).map((m) => m.id);
 
-  // No live shares — nothing to update. Still 303-back-to-OK so the
-  // page renders a clean state; the page itself will show the "no
-  // active share" empty state.
+  // No live BIWEEKLY shares — nothing to assign (a weekly-only member has no
+  // A/B to pick). 303-back with a clear code; the page renders the "you get a
+  // box every week" info state instead of the picker.
   if (memberIds.length === 0) {
     return redirect('/account/biweekly-schedule?error=no_active_share', 303);
   }

@@ -90,6 +90,9 @@ export interface CycleMember {
   size_bucket: SizeBucket;
   /** members.biweekly_week */
   biweekly_week: 'A' | 'B' | null;
+  /** members.cadence (migration 0073) — THE source of truth for weekly vs
+   *  biweekly. biweekly_week is only meaningful when cadence='biweekly'. */
+  cadence: 'weekly' | 'biweekly';
   /** Whether this member is RECEIVING a box this cycle (true) or it's
    *  their off-week (false). False members are EXCLUDED from `members[]`
    *  in the result — this is exposed on the row itself for tests + audits. */
@@ -301,14 +304,22 @@ export function mondayOfWeek(date: string): string {
  * Determine whether `member` is receiving a box in the cycle that starts
  * `weekStarting` (a Monday).
  *
- * Rules (spec §5.2):
- *   - Members with `biweekly_week` NULL are treated as on-week (legacy
- *     migrated members without an A/B assignment — admin assigns later,
- *     but they shouldn't be silently excluded in the meantime).
- *   - Members with biweekly_week='A' or 'B' alternate weeks based on the
- *     ISO week-of-year parity of `weekStarting`. Even-week (parity=0)
- *     = Week A; odd-week (parity=1) = Week B. This is a deterministic
- *     calendar function, independent of any DB state.
+ * Rules (spec §5.2, cadence-aware after migration 0073):
+ *   - cadence='weekly' → ALWAYS on, regardless of any stray biweekly_week
+ *     tag. This fixes weekly members who carried a leftover A/B parity and
+ *     were receiving HALF their boxes. cadence is THE source of truth for
+ *     weekly-vs-biweekly (migration 0073).
+ *   - cadence='biweekly' with biweekly_week NULL → on-week (legacy-safe):
+ *     a biweekly member who hasn't been assigned A/B yet still receives a
+ *     box until admin assigns them, so nobody is silently excluded.
+ *   - cadence='biweekly' with biweekly_week='A'/'B' → alternate weeks based
+ *     on the week parity of `weekStarting` (parity 0 = Week A, parity 1 =
+ *     Week B). Deterministic calendar function, independent of DB state.
+ *
+ * Back-compat: `cadence` is OPTIONAL. When it is absent (legacy callers /
+ * unit fixtures that only carry biweekly_week), the function derives the
+ * old behavior exactly — NULL week → on, A/B → parity — so existing
+ * callers and tests are unaffected.
  *
  * Note: this is the *PER-MEMBER* gate. The cycle resolver also subtracts
  * `vacation_holds` overlapping the distribution week.
@@ -317,9 +328,12 @@ export function mondayOfWeek(date: string): string {
  * unit tests (see cycle.test.ts) to prove the biweekly exclusion.
  */
 export function isMemberOnThisWeek(
-  member: { biweekly_week: 'A' | 'B' | null },
+  member: { biweekly_week: 'A' | 'B' | null; cadence?: 'weekly' | 'biweekly' | null },
   weekStarting: string
 ): boolean {
+  // Weekly cadence → always on, ignoring any stray A/B parity tag.
+  if (member.cadence === 'weekly') return true;
+  // Biweekly (or legacy/unknown cadence): unassigned parity → still receive.
   if (!member.biweekly_week) return true; // unassigned → still receive
   const parity = weekParity(weekStarting);
   // parity 0 == Week A, parity 1 == Week B.
@@ -533,7 +547,7 @@ export function deriveAddon(notes: string | null | undefined): {
  * biweekly ships only on the member's A/B week.
  */
 export function isAddonOnThisWeek(
-  member: { biweekly_week: 'A' | 'B' | null },
+  member: { biweekly_week: 'A' | 'B' | null; cadence?: 'weekly' | 'biweekly' | null },
   freq: AddOnFrequency,
   weekStarting: string
 ): boolean {
@@ -587,6 +601,7 @@ export async function resolveCycle(
     share_type: string;
     share_size: string | null;
     biweekly_week: 'A' | 'B' | null;
+    cadence: 'weekly' | 'biweekly';
     payment_status: string | null;
     pickup_location_id: string | null;
     delivery_address: string | null;
@@ -611,7 +626,7 @@ export async function resolveCycle(
   const memberFetch = supabase
     .from('members')
     .select(`
-      id, customer_id, share_type, share_size, biweekly_week,
+      id, customer_id, share_type, share_size, biweekly_week, cadence,
       payment_status, pickup_location_id, delivery_address, notes,
       customization_allowed, swap_credits, status,
       customer:customers ( contact_name, email ),
@@ -882,6 +897,7 @@ export async function resolveCycle(
       share_size: m.share_size,
       size_bucket: bucketSize(m.share_size),
       biweekly_week: m.biweekly_week,
+      cadence: m.cadence,
       on_this_week: isMemberOnThisWeek(m, week_starting),
       contact_name: m.customer?.contact_name ?? '(unknown)',
       email: m.customer?.email ?? '',

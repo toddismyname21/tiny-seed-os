@@ -101,6 +101,45 @@ test('A and B partition the season with no overlap', () => {
   assertEqual(a.length + b.length, 18); // every week covered exactly once
 });
 
+// ─── cadence column awareness (migration 0073) ──────────────────────
+
+test('explicit cadence=weekly overrides a stray biweeklyWeek (every week)', () => {
+  // A weekly member carrying a leftover biweekly_week='B' must project EVERY
+  // week, not half. cadence is the source of truth.
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'B', cadence: 'weekly' });
+  assertEqual(r.cadence, 'weekly');
+  assertEqual(r.needsAssignment, false);
+  assertEqual(r.allDeliveries.length, 18);
+  assertEqual(r.allDeliveries[1], '2026-06-17'); // consecutive Wednesdays
+});
+
+test('biweekly-unassigned (cadence=biweekly, null week) → needsAssignment + weekly projection', () => {
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: null, cadence: 'biweekly' });
+  assertEqual(r.cadence, 'biweekly');
+  assertEqual(r.needsAssignment, true);
+  assertEqual(r.biweeklyWeek, null);
+  // Legacy-safe superset: every season week until a parity is chosen.
+  assertEqual(r.allDeliveries.length, 18);
+});
+
+test('assigned biweekly still honors parity even with explicit cadence', () => {
+  const r = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'A', cadence: 'biweekly' });
+  assertEqual(r.cadence, 'biweekly');
+  assertEqual(r.needsAssignment, false);
+  assertEqual(r.allDeliveries.length, 9); // only A parity weeks
+  assertEqual(r.allDeliveries.slice(0, 2), ['2026-06-10', '2026-06-24']);
+});
+
+test('omitted cadence derives the legacy behavior (back-compat)', () => {
+  // No cadence passed: null → weekly, A/B → biweekly. needsAssignment false.
+  const weekly = resolveMemberSchedule({ schedule: summer, biweeklyWeek: null });
+  assertEqual(weekly.cadence, 'weekly');
+  assertEqual(weekly.needsAssignment, false);
+  const bw = resolveMemberSchedule({ schedule: summer, biweeklyWeek: 'A' });
+  assertEqual(bw.cadence, 'biweekly');
+  assertEqual(bw.needsAssignment, false);
+});
+
 // ─── upcomingDeliveries: relative-to-date filtering ─────────────────
 
 test('upcomingDeliveries returns the next N on/after fromDate (inclusive)', () => {

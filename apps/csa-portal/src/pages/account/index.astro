@@ -57,6 +57,7 @@ type AccountMember = {
   pickup_location_id: string | null;
   delivery_address: string | null;
   biweekly_week: 'A' | 'B' | null;
+  cadence: 'weekly' | 'biweekly';
   notes: string | null;
   pickup_location: {
     name: string;
@@ -108,6 +109,7 @@ if (account) {
       pickup_location_id,
       delivery_address,
       biweekly_week,
+      cadence,
       notes,
       pickup_location:pickup_locations (
         name,
@@ -258,20 +260,23 @@ const pickupSummary: string = (() => {
 })();
 
 // ─── Delivery cadence (weekly vs bi-weekly) ──────────────────────────
-// CANONICAL RULE (matches lib/schedule.ts + the dashboard ScheduleCard):
-// a member with biweekly_week === null is WEEKLY (a box every week), UNLESS
-// they were sold a reduced-week biweekly plan but haven't picked A/B yet
-// (memberIsBiweekly resolves that ambiguity via total_weeks). A true weekly
-// member must NEVER see "biweekly" / "Week A/B" framing — that was the bug
-// (Jason Smith, weekly, was shown "Not yet assigned"). The bi-weekly card is
-// only rendered for members who are ACTUALLY on a bi-weekly share.
+// CANONICAL RULE (migration 0073): the members.cadence column is THE source
+// of truth. A weekly member (cadence='weekly') must NEVER see "biweekly" /
+// "Week A/B" framing — that was the bug (Jason Smith, weekly, was shown "Not
+// yet assigned"). The bi-weekly card is only rendered for cadence='biweekly'
+// members. memberIsBiweekly (total_weeks heuristic) is kept only as a
+// belt-and-suspenders fallback if cadence is ever missing.
 const primarySchedule = primary ? getSchedule(primary.share_type) : null;
 const primaryIsBiweekly = primary
-  ? memberIsBiweekly({
-      biweeklyWeek: primary.biweekly_week,
-      totalWeeks: primary.total_weeks,
-      schedule: primarySchedule,
-    })
+  ? primary.cadence === 'biweekly'
+    ? true
+    : primary.cadence === 'weekly'
+      ? false
+      : memberIsBiweekly({
+          biweeklyWeek: primary.biweekly_week,
+          totalWeeks: primary.total_weeks,
+          schedule: primarySchedule,
+        })
   : false;
 
 const biweeklySummary: string = (() => {
@@ -294,6 +299,7 @@ if (primary && primarySchedule && seasonPhase(primarySchedule) !== 'complete') {
   const resolved = resolveMemberSchedule({
     schedule: primarySchedule,
     biweeklyWeek: primary.biweekly_week,
+    cadence: primary.cadence,
   });
   const nextDate = upcomingDeliveries(resolved, 1)[0] ?? null;
   if (nextDate) {

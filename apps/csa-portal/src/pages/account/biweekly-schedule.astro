@@ -50,11 +50,12 @@ type MemberRow = {
   share_type: string;
   status: string;
   biweekly_week: 'A' | 'B' | null;
+  cadence: 'weekly' | 'biweekly';
 };
 
 const { data: memberRows, error: memberErr } = await supabase
   .from('members')
-  .select('id, share_type, status, biweekly_week')
+  .select('id, share_type, status, biweekly_week, cadence')
   .in('status', ['active', 'paused', 'onboarding'])
   .order('start_date', { ascending: false })
   .overrideTypes<MemberRow[], { merge: false }>();
@@ -64,10 +65,21 @@ if (memberErr) {
 }
 
 const liveMembers = memberRows ?? [];
-const primary = liveMembers[0] ?? null;
 
-// Detect cross-member drift (rare, but possible after admin overrides).
-const distinctWeeks = new Set(liveMembers.map((m) => m.biweekly_week));
+// Migration 0073: the picker only applies to BIWEEKLY-cadence shares. A
+// weekly-only household has nothing to pick (they get a box every week) — we
+// show an info state instead of the A/B picker, and the POST endpoint only
+// ever touches cadence='biweekly' rows, so a weekly share can never be flipped
+// to a parity. `primary` is the first biweekly share (the source of the
+// currently-selected week); `hasActiveShare` gates the "no share" empty state.
+const hasActiveShare = liveMembers.length > 0;
+const biweeklyMembers = liveMembers.filter((m) => m.cadence === 'biweekly');
+const hasBiweeklyShare = biweeklyMembers.length > 0;
+const primary = biweeklyMembers[0] ?? null;
+
+// Detect cross-member drift among BIWEEKLY shares (rare, but possible after
+// admin overrides). Weekly shares are excluded — they have no parity.
+const distinctWeeks = new Set(biweeklyMembers.map((m) => m.biweekly_week));
 const isMixed = distinctWeeks.size > 1;
 
 const currentWeek: 'A' | 'B' | null = primary?.biweekly_week ?? null;
@@ -195,13 +207,37 @@ const CHOICES: Array<{
         </p>
       </section>
 
-      {!primary ? (
+      {!hasActiveShare ? (
         <EmptyState title="No active share" icon="🌱" tone="default" dashed={false}>
           You'll be able to set your bi-weekly schedule once your CSA share is active.
           <Fragment slot="action">
             <Button href="/account" variant="secondary" size="md">Back to account</Button>
           </Fragment>
         </EmptyState>
+      ) : !hasBiweeklyShare ? (
+        <Card padding="md" elevation="sm" tone="muted">
+          <div class="flex items-start gap-3">
+            <span class="mt-0.5 text-lg" aria-hidden="true">📦</span>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ts-text">You get a box every week</p>
+              <p class="mt-1 text-sm leading-relaxed text-ts-text-secondary">
+                Your share is on our <strong class="font-medium text-ts-text">weekly</strong> rhythm —
+                a box every Wednesday through the season. There's no Week A / Week B to pick.
+                If you think this should be a bi-weekly share, reach out and we'll sort it out.
+              </p>
+              <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row">
+                <Button href="/account" variant="secondary" size="md">Back to account</Button>
+                <Button
+                  href="mailto:todd@tinyseedfarmpgh.com?subject=CSA%20schedule%20question"
+                  variant="ghost"
+                  size="md"
+                >
+                  Contact the farm
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
       ) : (
         <>
           {/* CURRENT */}

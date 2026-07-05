@@ -34,12 +34,13 @@ type MemberRow = {
   total_weeks: number;
   vacation_weeks_used: number;
   biweekly_week: 'A' | 'B' | null;
+  cadence: 'weekly' | 'biweekly';
   status: string;
 };
 
 const { data: memberRows, error: memberErr } = await supabase
   .from('members')
-  .select('id, share_type, total_weeks, vacation_weeks_used, biweekly_week, status')
+  .select('id, share_type, total_weeks, vacation_weeks_used, biweekly_week, cadence, status')
   .in('status', ['active', 'paused', 'onboarding'])
   .order('start_date', { ascending: false })
   .overrideTypes<MemberRow[], { merge: false }>();
@@ -91,14 +92,23 @@ const canMove = moveTargetOptions.length > 0;
 const previewSchedule = primary ? getSchedule(primary.share_type) : null;
 const deliveryWeeks: Array<{ monday: string; sunday: string }> = (() => {
   if (!primary || !previewSchedule) return [];
-  const biweekly = memberIsBiweekly({
-    biweeklyWeek: primary.biweekly_week,
-    totalWeeks: primary.total_weeks,
-    schedule: previewSchedule,
-  });
+  // Migration 0073: the cadence column is authoritative. Fall back to the
+  // total_weeks heuristic only if cadence is somehow absent — keeps the
+  // vacation-week preview consistent with the ops resolver + vacation.ts.
+  const biweekly =
+    primary.cadence === 'weekly'
+      ? false
+      : primary.cadence === 'biweekly'
+        ? true
+        : memberIsBiweekly({
+            biweeklyWeek: primary.biweekly_week,
+            totalWeeks: primary.total_weeks,
+            schedule: previewSchedule,
+          });
   const resolved = resolveMemberSchedule({
     schedule: previewSchedule,
     biweeklyWeek: biweekly ? (primary.biweekly_week ?? 'A') : null,
+    cadence: biweekly ? 'biweekly' : 'weekly',
   });
   return resolved.allDeliveries.map((d) => {
     const monday = mondayOfWeek(d);

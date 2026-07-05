@@ -155,6 +155,37 @@ test('isMemberOnThisWeek: Week A and Week B together cover every week', () => {
   }
 });
 
+// ═══ isMemberOnThisWeek — CADENCE AWARENESS (migration 0073) ═════════
+// cadence is THE source of truth for weekly-vs-biweekly. These lock in the
+// new matrix: weekly+strayparity → on EVERY week; biweekly+NULL → on;
+// biweekly+A/B → parity. Back-compat (cadence absent) is covered above.
+
+test('isMemberOnThisWeek: cadence=weekly IGNORES a stray A/B parity (on every week)', () => {
+  // The bug (c): a weekly member carrying a leftover biweekly_week='B' was
+  // getting HALF their boxes. With cadence='weekly' the parity tag is ignored.
+  const strayB = { biweekly_week: 'B' as const, cadence: 'weekly' as const };
+  assertTrue(isMemberOnThisWeek(strayB, '2026-06-08'), 'weekly+stray B ships week A');
+  assertTrue(isMemberOnThisWeek(strayB, '2026-06-15'), 'weekly+stray B ships week B');
+  assertTrue(isMemberOnThisWeek(strayB, '2026-06-22'), 'weekly+stray B ships next week A');
+  const strayA = { biweekly_week: 'A' as const, cadence: 'weekly' as const };
+  assertTrue(isMemberOnThisWeek(strayA, '2026-06-15'), 'weekly+stray A ships a week-B week too');
+});
+
+test('isMemberOnThisWeek: cadence=biweekly + NULL week → on-week (legacy-safe, still unassigned)', () => {
+  const unassigned = { biweekly_week: null, cadence: 'biweekly' as const };
+  assertTrue(isMemberOnThisWeek(unassigned, '2026-06-08'), 'biweekly-unassigned ships week A');
+  assertTrue(isMemberOnThisWeek(unassigned, '2026-06-15'), 'biweekly-unassigned ships week B');
+});
+
+test('isMemberOnThisWeek: cadence=biweekly + A/B → parity math (unchanged)', () => {
+  const a = { biweekly_week: 'A' as const, cadence: 'biweekly' as const };
+  const b = { biweekly_week: 'B' as const, cadence: 'biweekly' as const };
+  assertTrue(isMemberOnThisWeek(a, '2026-06-08'),  'biweekly A ships week A');
+  assertTrue(!isMemberOnThisWeek(a, '2026-06-15'), 'biweekly A skips week B');
+  assertTrue(!isMemberOnThisWeek(b, '2026-06-08'), 'biweekly B skips week A');
+  assertTrue(isMemberOnThisWeek(b, '2026-06-15'),  'biweekly B ships week B');
+});
+
 // ═══ Add-on frequency override ═══════════════════════════════════════
 
 test('isAddonOnThisWeek: WEEKLY add-on ships every cycle regardless of biweekly_week', () => {
@@ -835,6 +866,116 @@ asyncTest('resolveCycle FLEX: a flex member tagged week A is INCLUDED on a week-
              'summer_veg A member NOT receiving on Week B (parity preserved)');
   assertTrue(c2.excluded_biweekly.some((m) => m.id === 'vegA'),
              'summer_veg A member IS excluded_biweekly on Week B (control)');
+});
+
+// ═══ resolveCycle — CADENCE (migration 0073) ════════════════════════
+//
+// End-to-end proof that the resolver honors the cadence column: a weekly
+// member with a stray A/B parity receives a box on BOTH parities; a
+// biweekly member still alternates; a biweekly-unassigned member is on.
+
+asyncTest('resolveCycle CADENCE: weekly member with a stray B parity RECEIVES on both weeks', async () => {
+  // The bug (b): weekly members carrying a leftover biweekly_week='B' were
+  // getting HALF their boxes. cadence='weekly' must override the stray tag.
+  const weeklyStrayB = memberRow({ id: 'w1', cadence: 'weekly', biweekly_week: 'B' });
+  const sb = makeSupabase({ members: [weeklyStrayB], vacation_holds: [] });
+
+  const wkA = await resolveCycle(sb, '2026-06-08'); // Week A cycle
+  assertTrue(wkA.members.some((m) => m.id === 'w1'), 'weekly member receives on Week A cycle');
+  assertTrue(!wkA.excluded_biweekly.some((m) => m.id === 'w1'), 'not biweekly-excluded on Week A');
+
+  const wkB = await resolveCycle(sb, '2026-06-15'); // Week B cycle
+  assertTrue(wkB.members.some((m) => m.id === 'w1'), 'weekly member ALSO receives on Week B cycle');
+  assertTrue(!wkB.excluded_biweekly.some((m) => m.id === 'w1'), 'not biweekly-excluded on Week B');
+});
+
+asyncTest('resolveCycle CADENCE: biweekly A member still alternates (parity preserved)', async () => {
+  const bwA = memberRow({ id: 'ba', cadence: 'biweekly', biweekly_week: 'A' });
+  const sb = makeSupabase({ members: [bwA], vacation_holds: [] });
+
+  const wkA = await resolveCycle(sb, '2026-06-08'); // Week A
+  assertTrue(wkA.members.some((m) => m.id === 'ba'), 'biweekly A receives on Week A');
+  const wkB = await resolveCycle(sb, '2026-06-15'); // Week B
+  assertTrue(!wkB.members.some((m) => m.id === 'ba'), 'biweekly A NOT receiving on Week B');
+  assertTrue(wkB.excluded_biweekly.some((m) => m.id === 'ba'), 'biweekly A excluded on Week B');
+});
+
+asyncTest('resolveCycle CADENCE: biweekly member with NULL week is ON (legacy-safe, unassigned)', async () => {
+  const unassigned = memberRow({ id: 'u1', cadence: 'biweekly', biweekly_week: null });
+  const sb = makeSupabase({ members: [unassigned], vacation_holds: [] });
+
+  const wkA = await resolveCycle(sb, '2026-06-08');
+  const wkB = await resolveCycle(sb, '2026-06-15');
+  assertTrue(wkA.members.some((m) => m.id === 'u1'), 'biweekly-unassigned receives on Week A');
+  assertTrue(wkB.members.some((m) => m.id === 'u1'), 'biweekly-unassigned receives on Week B (until assigned)');
+});
+
+// ═══ resolveCycle — SUNDAY MARKET (South Side) source-of-truth ═══════
+//
+// THE BUG (2026-06-29 week): the Sunday "South Side Market" stop silently
+// resolved as { stop_name:'(unknown)', day_of_week:null } and fell out of the
+// weekend pack run. Two root causes, both fixed at the source:
+//   Bug 1 — totalsByStop took stop_name/day from stopMembers[0], which can be
+//           an ADD-ON row that rode to its customer's box stop with a NULL
+//           pickup_location → the whole stop inherited '(unknown)'/null.
+//   Bug 2 — byDistributionDay only seeded Tue/Wed/Sat and FORCED any other day
+//           (incl. Sun) into Wed → Sunday members were hidden in the Wed run.
+// These tests lock in: (a) the stop is named/dayed from a real-pickup member
+// even when an add-on row sorts first, and (b) Sun members bucket into Sun,
+// NOT Wed — while counts stay exactly the same.
+
+asyncTest('resolveCycle SUNDAY: a Sunday-market stop resolves its real name + day even when an add-on row is first', async () => {
+  // A summer_veg box at South Side (Sun) + an add-on row for the SAME customer
+  // that has NO pickup of its own (rides to the box stop). The add-on row is
+  // listed FIRST so stopMembers[0] is the null-pickup add-on — the exact
+  // condition that used to poison the stop name/day.
+  const sunStop = {
+    id: 'ss', name: 'South Side Market', city: 'Pittsburgh', zip: '15203',
+    day_of_week: 'Sun', time_start: null, time_end: null,
+    host_name: null, host_phone: null,
+  };
+  const addon = memberRow({
+    id: 'a1', customer_id: 'cSS', share_type: 'add_on',
+    notes: '2026 Mushroom CSA Add-On - Weekly',
+    pickup_location_id: null, pickup_location: null, // rides to box stop
+  });
+  const box = memberRow({
+    id: 'b1', customer_id: 'cSS', share_type: 'summer_veg', share_size: 'small',
+    pickup_location_id: 'ss', pickup_location: sunStop,
+  });
+  // Add-on FIRST so it lands at stopMembers[0] for the customer's box stop.
+  const sb = makeSupabase({ members: [addon, box], vacation_holds: [] });
+
+  const c = await resolveCycle(sb, '2026-06-29'); // a Monday
+  const ss = c.activeStops.find((s) => s.stop_id === 'ss');
+  assertTrue(!!ss, 'South Side stop present in activeStops');
+  assertEqual(ss!.stop_name, 'South Side Market', 'stop named from the real-pickup member, NOT (unknown)');
+  assertEqual(ss!.day_of_week, 'Sun', 'stop day is Sun, NOT null');
+  assertEqual(ss!.boxes_small, 1, 'one small box (count unchanged by the name/day fix)');
+  assertEqual(ss!.boxes_large, 0, 'no large boxes');
+  assertEqual(ss!.addons.mushroom, 1, 'the add-on still counted at this stop');
+});
+
+asyncTest('resolveCycle SUNDAY: a Sunday member buckets into the Sun distribution day, NOT Wed', async () => {
+  const sunStop = {
+    id: 'ss', name: 'South Side Market', city: 'Pittsburgh', zip: '15203',
+    day_of_week: 'Sun', time_start: null, time_end: null,
+    host_name: null, host_phone: null,
+  };
+  const sunMember = memberRow({
+    id: 'b1', customer_id: 'cSS', share_type: 'summer_veg',
+    pickup_location_id: 'ss', pickup_location: sunStop,
+  });
+  // A control Wed member so we can prove the Sun member did NOT land in Wed.
+  const wedMember = memberRow({ id: 'b2', customer_id: 'cW' }); // default stop1 = Wed
+  const sb = makeSupabase({ members: [sunMember, wedMember], vacation_holds: [] });
+
+  const c = await resolveCycle(sb, '2026-06-29');
+  const sun = c.byDistributionDay.get('Sun') ?? [];
+  const wed = c.byDistributionDay.get('Wed') ?? [];
+  assertTrue(sun.some((m) => m.id === 'b1'), 'Sun member is in the Sun bucket');
+  assertTrue(!wed.some((m) => m.id === 'b1'), 'Sun member is NOT forced into the Wed bucket');
+  assertTrue(wed.some((m) => m.id === 'b2'), 'the Wed control member is still in Wed');
 });
 
 // ═══ Done ════════════════════════════════════════════════════════════

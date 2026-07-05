@@ -6,7 +6,10 @@
  *   POST              → commits the assignment (writes to members.biweekly_week)
  *
  * Algorithm: see lib/biweekly-assign.ts
- *   1. Pull all members with status='active' AND biweekly_week IS NULL
+ *   1. Pull all members with status='active' AND cadence='biweekly' AND
+ *      biweekly_week IS NULL (migration 0073 — only genuinely biweekly
+ *      members need an A/B parity; a WEEKLY member with a NULL week is NOT
+ *      "unassigned" and must never be auto-assigned a parity)
  *   2. Pull current Week A/B counts grouped by pickup_location_id
  *   3. computeAssignments() → Map<member_id, 'A'|'B'>
  *   4. (POST only) UPDATE every assigned member in chunks of 200
@@ -67,12 +70,15 @@ async function loadState(supabase: App.Locals['supabase']): Promise<
   | { ok: true; unassigned: MemberToAssign[]; current: LocationCurrent[]; names: Map<string, string> }
   | { ok: false; error: string }
 > {
-  // 1. Unassigned active members.
+  // 1. Unassigned active BIWEEKLY members (migration 0073). A weekly member
+  //    with a NULL biweekly_week is NOT unassigned — cadence='biweekly' is the
+  //    gate so we never stamp an A/B parity onto a weekly member.
   type UnassignedRow = { id: string; pickup_location_id: string | null; legacy_id: string | null };
   const { data: unassignedData, error: unassignedErr } = await supabase
     .from('members')
     .select('id, pickup_location_id, legacy_id')
     .eq('status', 'active')
+    .eq('cadence', 'biweekly')
     .is('biweekly_week', null)
     .overrideTypes<UnassignedRow[], { merge: false }>();
 

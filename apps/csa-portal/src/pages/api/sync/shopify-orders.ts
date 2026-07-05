@@ -297,6 +297,10 @@ interface PlannedMember {
   legacy_id: string;
   share_type: MemberShareType;
   share_size: MemberShareSize;
+  /** Purchase-defined delivery cadence (migration 0073). Comes straight from
+   *  categorize().freq — a biweekly order lands cadence='biweekly' with a NULL
+   *  biweekly_week (member/admin assigns A/B later, visible in the counter). */
+  cadence: 'weekly' | 'biweekly';
   season: 'Spring' | 'Summer';
   start_date: string;
   end_date: string;
@@ -364,6 +368,7 @@ function planOrder(order: ShopifyOrder): OrderPlan {
       legacy_id: `SYNC-${order.id}-${li.id}`,
       share_type: cat.share_type as MemberShareType,
       share_size: cat.share_size as MemberShareSize,
+      cadence: cat.freq,
       season: dates.season,
       start_date: dates.start_date,
       end_date: dates.end_date,
@@ -767,6 +772,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
               legacy_id: m.legacy_id,
               share_type: m.share_type,
               share_size: m.share_size,
+              cadence: m.cadence,
               season: m.season,
               start_date: m.start_date,
               end_date: m.end_date,
@@ -866,6 +872,11 @@ async function handle(request: Request, url: URL): Promise<Response> {
           customer_id: customerId,
           share_type: m.share_type,
           share_size: m.share_size,
+          // cadence is purchase-defined (migration 0073). A biweekly order
+          // lands cadence='biweekly' + biweekly_week NULL → it shows in the
+          // admin "Unassigned Week A/B" counter and is treated on-week until
+          // assigned, so a new biweekly purchaser never loses boxes.
+          cadence: m.cadence,
           season: m.season,
           start_date: m.start_date,
           end_date: m.end_date,

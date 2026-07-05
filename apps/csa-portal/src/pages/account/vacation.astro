@@ -38,12 +38,13 @@ type MemberRow = {
   total_weeks: number;
   vacation_weeks_used: number;
   biweekly_week: 'A' | 'B' | null;
+  cadence: 'weekly' | 'biweekly';
   status: string;
 };
 
 const { data: memberRows, error: memberErr } = await supabase
   .from('members')
-  .select('id, share_type, total_weeks, vacation_weeks_used, biweekly_week, status')
+  .select('id, share_type, total_weeks, vacation_weeks_used, biweekly_week, cadence, status')
   .in('status', ['active', 'paused', 'onboarding'])
   .order('start_date', { ascending: false })
   .overrideTypes<MemberRow[], { merge: false }>();
@@ -302,6 +303,7 @@ const totalAvailable = primary != null
                       share_type: holdMember.share_type,
                       biweekly_week: holdMember.biweekly_week,
                       total_weeks: holdMember.total_weeks,
+                      cadence: holdMember.cadence,
                     },
                     h.start_date,
                     h.end_date,

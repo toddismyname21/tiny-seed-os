@@ -148,21 +148,39 @@ export interface MemberScheduleInput {
   schedule: SeasonSchedule;
   /**
    * members.biweekly_week:
-   *   - null → WEEKLY (a box every delivery week)
+   *   - null → no A/B parity assigned yet
    *   - 'A'  → biweekly on parity-0 weeks (starts the first delivery)
    *   - 'B'  → biweekly on parity-1 weeks (starts one week later)
    */
   biweeklyWeek: 'A' | 'B' | null;
+  /**
+   * members.cadence (migration 0073) — THE source of truth for weekly vs
+   * biweekly. OPTIONAL for back-compat: when omitted, cadence is derived
+   * from biweeklyWeek exactly as before (set → biweekly, null → weekly), so
+   * legacy callers and tests are unaffected. Pass it from the DB column so a
+   * biweekly member who hasn't picked A/B is framed as biweekly (not weekly).
+   */
+  cadence?: DeliveryCadence;
 }
 
 export interface ResolvedSchedule {
   cadence: DeliveryCadence;
-  /** 'A' | 'B' for biweekly members; null for weekly. */
+  /** 'A' | 'B' for biweekly members; null for weekly OR biweekly-unassigned. */
   biweeklyWeek: 'A' | 'B' | null;
   /**
+   * TRUE when the member is on a biweekly cadence but has NOT yet been
+   * assigned an A/B parity (cadence='biweekly' + biweeklyWeek null). The
+   * member's exact dates aren't final yet — callers should render a gentle
+   * "your week will be confirmed soon" note. `allDeliveries` in this state
+   * is the WEEKLY projection (every season week), the legacy-safe superset
+   * that mirrors the ops resolver treating unassigned biweekly as on-week.
+   */
+  needsAssignment: boolean;
+  /**
    * EVERY delivery date for this member across the whole season, in
-   * 'YYYY-MM-DD' order. For a weekly member this is one date per season
-   * week; for a biweekly member it's only their parity weeks.
+   * 'YYYY-MM-DD' order. For a weekly member (or a biweekly-unassigned
+   * member) this is one date per season week; for an assigned biweekly
+   * member it's only their parity weeks.
    */
   allDeliveries: string[];
 }
@@ -185,27 +203,38 @@ export function deliveryParity(deliveryDate: string): 0 | 1 {
  * Walks every season delivery week (firstDelivery + 7n for n in
  * [0, totalWeeks)) and keeps the date when the member is "on" that week:
  *   - weekly members keep every week,
- *   - biweekly members keep only weeks whose parity matches their
- *     biweekly_week (A↔0, B↔1).
+ *   - ASSIGNED biweekly members keep only weeks whose parity matches their
+ *     biweekly_week (A↔0, B↔1),
+ *   - UNASSIGNED biweekly members (cadence='biweekly', biweeklyWeek null)
+ *     keep every week (the weekly projection) and set needsAssignment=true —
+ *     their exact parity isn't chosen yet, so we show the legacy-safe
+ *     superset rather than guessing A or B.
+ *
+ * `cadence` is taken from the input column (migration 0073) and only falls
+ * back to `biweeklyWeek ? 'biweekly' : 'weekly'` when the caller omits it.
  */
 export function resolveMemberSchedule(input: MemberScheduleInput): ResolvedSchedule {
   const { schedule, biweeklyWeek } = input;
-  const cadence: DeliveryCadence = biweeklyWeek ? 'biweekly' : 'weekly';
+  const cadence: DeliveryCadence =
+    input.cadence ?? (biweeklyWeek ? 'biweekly' : 'weekly');
+  const needsAssignment = cadence === 'biweekly' && !biweeklyWeek;
 
   const allDeliveries: string[] = [];
   for (let n = 0; n < schedule.totalWeeks; n += 1) {
     const deliveryDate = addDays(schedule.firstDelivery, n * 7);
-    if (cadence === 'weekly') {
+    // Weekly, OR biweekly-but-unassigned → project every week (unassigned is
+    // the legacy-safe superset until admin/member picks A or B).
+    if (cadence === 'weekly' || needsAssignment) {
       allDeliveries.push(deliveryDate);
       continue;
     }
-    // Biweekly: keep only the member's parity.
+    // Assigned biweekly: keep only the member's parity.
     const parity = deliveryParity(deliveryDate);
     const memberParity = biweeklyWeek === 'A' ? 0 : 1;
     if (parity === memberParity) allDeliveries.push(deliveryDate);
   }
 
-  return { cadence, biweeklyWeek, allDeliveries };
+  return { cadence, biweeklyWeek, needsAssignment, allDeliveries };
 }
 
 /**
