@@ -192,6 +192,7 @@ export interface ResolvedCycle {
     Tue: string;
     Wed: string;
     Sat: string;
+    Sun: string;
   };
   /** Active members RECEIVING a box this cycle (biweekly + hold filtered). */
   members: CycleMember[];
@@ -391,8 +392,14 @@ export function weekParity(weekStarting: string): 0 | 1 {
 /**
  * Vacation hold overlaps any day in [weekStart, weekStart + 6] (the
  * Mon–Sun distribution range).
+ *
+ * Exported as the SINGLE source of truth for "does this hold suppress the
+ * member's box this cycle?" — the resolver uses it to EXCLUDE members, and the
+ * member dashboard's GO/NO-BOX banner reuses it so the two can never disagree.
+ * Only 'active'/'scheduled' holds count (a cancelled/completed hold never
+ * suppresses a box).
  */
-function holdOverlapsWeek(
+export function holdOverlapsWeek(
   hold: { start_date: string; end_date: string; status: string },
   weekStarting: string
 ): boolean {
@@ -568,6 +575,7 @@ export async function resolveCycle(
     Tue: addDays(week_starting, 1),
     Wed: addDays(week_starting, 2),
     Sat: addDays(week_starting, 5),
+    Sun: addDays(week_starting, 6),
   };
 
   // ─── 1. Fetch active members + their joins (parallel) ──────────
@@ -1027,6 +1035,10 @@ export async function resolveCycle(
   byDistributionDay.set('Tue', []);
   byDistributionDay.set('Wed', []);
   byDistributionDay.set('Sat', []);
+  // Sun is part of the WEEKEND run (packed alongside the Saturday markets —
+  // e.g. South Side Market). It gets its own bucket so a Sunday member is no
+  // longer forced into Wed (which silently hid South Side from the weekend).
+  byDistributionDay.set('Sun', []);
 
   // Each customer → their BOX row's stop key. An add-on ships INSIDE the box,
   // so an add-on row with no pickup of its own must ride to the SAME stop its
@@ -1093,10 +1105,13 @@ export async function resolveCycle(
     } else if (member.delivery_address) {
       day = 'Wed';
     }
-    if (day !== 'Tue' && day !== 'Wed' && day !== 'Sat') {
-      // Some stops still have Wed default — anything outside Tue/Wed/Sat
-      // is treated as Wed (matches the seeded data: all CSA stops Wed,
-      // markets Sat, Lawrenceville will be Tue once added).
+    if (day !== 'Tue' && day !== 'Wed' && day !== 'Sat' && day !== 'Sun') {
+      // Seeded distribution days are Tue (Lawrenceville), Wed (CSA stops +
+      // home delivery), Sat (Bloomfield + Sewickley markets) and Sun (South
+      // Side Market — packed with the weekend run). Any OTHER weekday (Mon/
+      // Thu/Fri — none seeded today) defaults to Wed so it stays visible.
+      // Sun is NO LONGER forced to Wed — that bug bucketed South Side into
+      // Wed and hid it from the weekend.
       day = 'Wed';
     }
     byDistributionDay.get(day)!.push(member);
@@ -1176,7 +1191,6 @@ export async function resolveCycle(
   // ─── 12. Per-stop totals ───────────────────────────────────────
   const totalsByStop = new Map<string, StopTotals>();
   for (const [stopKey, stopMembers] of byStop) {
-    const first = stopMembers[0];
     let stop_name: string;
     let day_of_week: WeekdayCode | null = null;
     if (stopKey === HOME_DELIVERY_STOP_ID) {
@@ -1186,8 +1200,20 @@ export async function resolveCycle(
       stop_name = 'No pickup set';
       day_of_week = null;
     } else {
-      stop_name = first?.pickup_location?.name ?? '(unknown)';
-      day_of_week = first?.pickup_location?.day_of_week ?? null;
+      // Derive name/day from the first member that ACTUALLY carries a pickup
+      // location — NOT stopMembers[0]. An add-on row that "rode to its
+      // customer's box stop" (see the byStop keying above) has
+      // pickup_location_id=null → pickup_location=null; if such a row is first,
+      // reading stopMembers[0].pickup_location yields '(unknown)'/null and the
+      // whole stop loses its name/day (root cause of South Side Market — a
+      // Sunday market — silently resolving as '(unknown)'/null and falling out
+      // of the weekend pack run). Find the first real-pickup member instead.
+      // Counts are unaffected — only the cover name/day come from `named`.
+      const named =
+        stopMembers.find((m) => m.pickup_location_id && m.pickup_location) ??
+        stopMembers[0];
+      stop_name = named?.pickup_location?.name ?? '(unknown)';
+      day_of_week = named?.pickup_location?.day_of_week ?? null;
     }
 
     const totals: StopTotals = {

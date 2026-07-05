@@ -17,7 +17,8 @@
  *   3. Existing box_swaps for those (member, week) pairs — so we know
  *      what's already been swapped
  *
- * Customization closes Tuesday 8 AM Eastern. The cutoff state is
+ * Customization closes at the unified, pickup-day-aware deadline (Mon 7 AM ET
+ * for the Wednesday run, Thu 7 AM ET for weekend markets). The cutoff state is
  * computed once on the server and rendered as either:
  *   - "Customization closes <date>" (informational)
  *   - "Customization closed for this week" (read-only banner + all
@@ -50,6 +51,7 @@ import {
   resolveBoxContentsBuckets,
 } from '../../lib/box';
 import { pickupDateForWeek, type PickupDay } from '../../lib/schedule';
+import { closeLabel } from '../../lib/flex-order';
 import { mondayOfWeek } from '../../lib/cycle';
 
 const user = Astro.locals.user;
@@ -79,7 +81,9 @@ const boxContentsWeek = mondayOfWeek(targetWeek);
 // Owner can override for QA via ?override_cutoff=true.
 const overrideRequested = Astro.url.searchParams.get('override_cutoff') === 'true';
 const isOwnerOverride = overrideRequested && user.email === OWNER_EMAIL;
-const cutoffPassed = !isOwnerOverride && isCutoffPassed(targetWeek, new Date());
+// NOTE: cutoffPassed is computed BELOW, once we know the member's controlling
+// pickup day — the unified cutoff is pickup-day-aware (Mon 7 AM for the
+// Wednesday run, Thu 7 AM for weekend-market members).
 
 // ─── Customer + members ──────────────────────────────────────────────
 type ActiveMember = {
@@ -160,6 +164,15 @@ const titlePickupDay = (titlePickupMember?.pickup_location?.day_of_week ?? null)
 const titleDisplayDate = pickupDateForWeek(targetWeek, titlePickupDay);
 const titleDisplayPretty = prettyDateET(titleDisplayDate);
 
+// ─── Cutoff state (pickup-day-aware, unified with Flex) ──────────────
+// Now that the controlling pickup day is known, evaluate the swap cutoff:
+// Sat/Sun pickups → Thursday 7 AM ET; everything else → Monday 7 AM ET.
+const cutoffPassed = !isOwnerOverride && isCutoffPassed(targetWeek, new Date(), titlePickupDay);
+// Member-facing label for the swap deadline — derived from the SAME unified
+// cutoff (Mon 7 AM for the Wednesday run; Thu 7 AM for weekend markets), so the
+// box page can never show a deadline that disagrees with what's enforced.
+const swapCloseLabel = closeLabel(boxContentsWeek, titlePickupDay);
+
 // Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). The /box query doesn't
 // carry pickup_location_id / delivery_address, so use the shared RLS-scoped
 // helper (selects 2 cols on active rows — cheap). Shows a persistent top
@@ -187,7 +200,11 @@ if (activeMembers.length > 0) {
     .from('vacation_holds')
     .select('member_id, start_date, end_date, status, disposition, move_to_week')
     .in('member_id', activeMembers.map((m) => m.id))
-    .in('status', ['active', 'paused', 'onboarding']);
+    // Hold statuses are active/scheduled/completed/cancelled (NOT member
+    // statuses — the old ['active','paused','onboarding'] filter silently
+    // missed 'scheduled' holds, so a hold booked ahead never showed on the
+    // box page for that week). Matches the dashboard GO/NO banner's query.
+    .in('status', ['active', 'scheduled']);
   if (holdErr) console.error('[/box] vacation_holds fetch failed:', holdErr.message);
   for (const h of (holdRows ?? []) as Array<{ start_date: string; end_date: string; disposition: 'skip' | 'move' | 'donate' | null; move_to_week: string | null }>) {
     if (h.start_date <= weekEndYMD && h.end_date >= boxContentsWeek) {
@@ -441,9 +458,9 @@ const boxNotPosted = !noShare && boxItems.length === 0;
           icon="📋"
           tone="default"
         >
-          We post each week's box contents by Monday. You'll get a text when
-          your box is on its way Wednesday — open this page any time before
-          Tuesday 8 AM to see what's coming and make swaps.
+          We post each week's box contents ahead of time. You'll get a text when
+          your box is on its way — open this page any time before {swapCloseLabel}
+          Eastern to see what's coming and make swaps.
         </EmptyState>
       )}
 
@@ -470,7 +487,7 @@ const boxNotPosted = !noShare && boxItems.length === 0;
                 <p class="mt-0.5 text-sm leading-snug text-ts-text-secondary">
                   {cutoffPassed
                     ? "The box ships as shown. We'll see you on pickup day."
-                    : 'Swaps close Tuesday at 8:00 AM Eastern, the day before delivery.'
+                    : `Swaps close ${swapCloseLabel} Eastern.`
                   }
                 </p>
               </div>
@@ -567,8 +584,8 @@ const boxNotPosted = !noShare && boxItems.length === 0;
 
               <p slot="footer" class="text-xs text-ts-text-muted">
                 {cutoffPassed
-                  ? 'Customization closed Tuesday at 8 AM Eastern. The box ships as shown.'
-                  : 'Customization closes Tuesday at 8 AM Eastern. After that, the box ships as shown.'
+                  ? `Customization closed ${swapCloseLabel} Eastern. The box ships as shown.`
+                  : `Customization closes ${swapCloseLabel} Eastern. After that, the box ships as shown.`
                 }
               </p>
             </Card>
@@ -647,6 +664,40 @@ const boxNotPosted = !noShare && boxItems.length === 0;
         data-confirm-swap
       >
         <span data-confirm-label>Yes, swap</span>
+      </button>
+    </div>
+  </BottomSheet>
+
+  {/* Undo-swap confirmation — replaces the old native confirm() so the undo
+      path matches the polished swap sheet above (audit M-05). */}
+  <BottomSheet id="sheet-undo-confirm" titleId="sheet-undo-confirm-title" size="sm">
+    <h2
+      slot="title"
+      id="sheet-undo-confirm-title"
+      class="font-display text-xl font-semibold text-ts-text"
+    >
+      Undo this swap?
+    </h2>
+    <p class="text-base leading-relaxed text-ts-text">
+      Undo the swap of <strong data-undo-original>—</strong> and put the original item back?
+    </p>
+    <p class="mt-2 text-sm text-ts-text-secondary">
+      Your swap credit will be refunded. You can swap again until the cutoff.
+    </p>
+    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        class="inline-flex h-11 items-center justify-center rounded-ts-md px-5 text-base font-semibold text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+        data-bottom-sheet-close
+      >
+        Keep the swap
+      </button>
+      <button
+        type="button"
+        class="inline-flex h-11 min-w-[8rem] items-center justify-center gap-2 rounded-ts-md bg-ts-danger px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-danger/90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+        data-undo-confirm
+      >
+        <span data-undo-label>Yes, undo</span>
       </button>
     </div>
   </BottomSheet>
@@ -889,9 +940,37 @@ const boxNotPosted = !noShare && boxItems.length === 0;
         openOptionsSheet(li, btn);
       } else if (action === 'undo') {
         const original = li.dataset.item ?? '';
-        if (original && confirm(`Undo the swap of ${original}? Your credit will be refunded.`)) {
-          performUndo(li, original);
-        }
+        if (original) openUndoSheet(li, original, btn);
+      }
+    });
+
+    // ─── Undo confirmation sheet ───────────────────────────────────
+    // Replaces the native confirm() so the undo path matches the swap sheet.
+    const undoOriginalEl = document.querySelector<HTMLElement>('[data-undo-original]');
+    const undoConfirmBtn = document.querySelector<HTMLButtonElement>('[data-undo-confirm]');
+    const undoLabel = document.querySelector<HTMLElement>('[data-undo-label]');
+
+    type PendingUndo = { li: HTMLLIElement; original: string };
+    let pendingUndo: PendingUndo | null = null;
+
+    function openUndoSheet(li: HTMLLIElement, original: string, trigger: HTMLElement): void {
+      if (!undoOriginalEl) return;
+      pendingUndo = { li, original };
+      undoOriginalEl.textContent = original;
+      window.BottomSheet.open('sheet-undo-confirm', trigger);
+    }
+
+    undoConfirmBtn?.addEventListener('click', async () => {
+      if (!pendingUndo || !undoConfirmBtn || !undoLabel) return;
+      undoConfirmBtn.disabled = true;
+      undoLabel.textContent = 'Undoing…';
+      try {
+        await performUndo(pendingUndo.li, pendingUndo.original);
+        window.BottomSheet.close('sheet-undo-confirm');
+      } finally {
+        undoConfirmBtn.disabled = false;
+        undoLabel.textContent = 'Yes, undo';
+        pendingUndo = null;
       }
     });
 

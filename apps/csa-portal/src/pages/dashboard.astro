@@ -57,8 +57,15 @@ import FlexWallet from '../components/FlexWallet.astro';
 import PickupNudgeBanner from '../components/PickupNudgeBanner.astro';
 import PickupCard from '../components/PickupCard.astro';
 import { resolveAccountCustomer } from '../lib/account';
-import { closeLabel } from '../lib/flex-order';
-import { upcomingMonday, mondayOfWeek, isShareInSeasonForWeek } from '../lib/cycle';
+import { closeLabel, type PickupDay as FlexPickupDay } from '../lib/flex-order';
+import {
+  upcomingMonday,
+  mondayOfWeek,
+  isShareInSeasonForWeek,
+  isMemberOnThisWeek,
+  holdOverlapsWeek,
+} from '../lib/cycle';
+import { weekRangeLabel } from '../lib/cycle-ui';
 import { shareDisplayLabel } from '../lib/addon';
 import ScheduleCard from '../components/ScheduleCard.astro';
 import NextDeliveryBanner from '../components/NextDeliveryBanner.astro';
@@ -457,11 +464,37 @@ const SHARE_TYPE_LABELS: Record<string, string> = {
   wholesale_csa: 'Wholesale CSA',
 };
 
+// Size → display label. CANONICAL terms per CSA_GLOSSARY_OF_TRUTH §3:
+//   • Summer Veg → "Large" / "Small" ONLY.
+//   • Flower     → "Petite" / "Full" ONLY.
+// The glossary BANS "family / regular / light" (stale Summer-Veg labels). Those
+// legacy DB values are remapped here to their canonical BUCKET label (per
+// lib/share-buckets: regular/family → large bucket; light → small bucket) so a
+// member NEVER sees a banned term — even before the DB data is migrated.
+// (petite/full are NOT banned — they are the canonical Flower sizes — so they
+// keep their own labels.) The remaining sizes have no glossary rule; kept as-is
+// so a known enum never falls through to its raw value.
+const BANNED_LEGACY_SIZES = new Set(['regular', 'family', 'light']);
 const SHARE_SIZE_LABELS: Record<string, string> = {
-  small: 'Small', regular: 'Regular', family: 'Family', petite: 'Petite',
-  large: 'Large', light: 'Light', full: 'Full', half: 'Half',
-  quarter: 'Quarter', single: 'Single', double: 'Double',
+  // Canonical
+  small: 'Small', large: 'Large', petite: 'Petite', full: 'Full',
+  // Banned Summer-Veg legacy values → canonical bucket label
+  regular: 'Large', family: 'Large', light: 'Small',
+  // Other legacy enum values (no glossary rule)
+  half: 'Half', quarter: 'Quarter', single: 'Single', double: 'Double',
 };
+
+// Track the data-migration debt: if any live share still carries a banned
+// legacy size value, log it (server-side) so the cleanup can be followed. The
+// member still sees the correct canonical label above — this is diagnostic only.
+const bannedSizeInUse = activeShares
+  .map((s) => s.share_size)
+  .filter((sz): sz is string => typeof sz === 'string' && BANNED_LEGACY_SIZES.has(sz));
+if (bannedSizeInUse.length > 0) {
+  console.warn(
+    `[dashboard] banned legacy share_size values in use (remapped to canonical for display): ${Array.from(new Set(bannedSizeInUse)).join(', ')}`,
+  );
+}
 
 type BadgeVariant = 'green' | 'amber' | 'sky' | 'gray';
 const STATUS_PILL: Record<string, { label: string; variant: BadgeVariant }> = {
@@ -627,6 +660,67 @@ if (primaryShare && primarySchedule) {
     : null;
   nextDeliveryLong = nextPickupDate ? prettyDeliveryLong(nextPickupDate) : '';
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// BOX-SWAP CUTOFF LABEL (FIX 1.3 / audit M-03).
+// The empty-box copy must state the member's REAL swap cutoff, which is
+// pickup-day-aware: Sat/Sun-market members (weekend run) lock Thursday 7 AM;
+// everyone else (Tue market / Wed CSA / home delivery) locks Monday 7 AM. We
+// derive it from the SAME source of truth the swap endpoint enforces —
+// lib/flex-order `closeLabel` (which lib/box `isCutoffPassed` also delegates
+// to) — so the copy can never disagree with what the API actually gates on.
+// The old hardcoded "Tuesday 8 AM" was wrong for weekend-market members AND
+// stale for everyone else.
+// ─────────────────────────────────────────────────────────────────────
+const boxPickupDay = (primaryShare?.pickup_location?.day_of_week ?? null) as FlexPickupDay;
+const boxCutoffLabel = closeLabel(cycleMonday, boxPickupDay);
+
+// ─────────────────────────────────────────────────────────────────────
+// GO / NO-BOX STATUS for the resolved delivery week (FIX 1.4 / audit M-09).
+// One impossible-to-miss banner answering the #1 support question: "am I
+// getting a box this week?". Determined with the EXACT backend rules so the
+// dashboard can never disagree with what actually packs:
+//   • vacation hold  → holdOverlapsWeek() (cycle.ts) — the same overlap
+//     resolveCycle uses to SUPPRESS a member's box.
+//   • biweekly parity → isMemberOnThisWeek() (cycle.ts) — the same A/B gate
+//     resolveCycle uses to INCLUDE / EXCLUDE a member.
+// Precedence: a hold the member scheduled is the most specific signal, then
+// biweekly off-week, else they have a box. Only shown for a box-bearing
+// (primary) share during the ACTIVE season; flex-only members and the
+// before/after-season states keep their own banners.
+// ─────────────────────────────────────────────────────────────────────
+type BoxWeekStatus = 'box' | 'off_week' | 'on_hold';
+let boxWeekStatus: BoxWeekStatus | null = null;
+if (showBoxSection && primaryShare) {
+  let holdOverlaps = false;
+  const memberIds = activeShares.map((s) => s.id);
+  if (memberIds.length > 0) {
+    // active + scheduled holds only (matches the resolver's exclusion set).
+    const { data: holdRows, error: holdErr } = await supabase
+      .from('vacation_holds')
+      .select('member_id, start_date, end_date, status')
+      .in('member_id', memberIds)
+      .in('status', ['active', 'scheduled']);
+    if (holdErr) {
+      console.error('[dashboard] vacation_holds fetch failed:', holdErr.message);
+    }
+    for (const h of (holdRows ?? []) as Array<{ start_date: string; end_date: string; status: string }>) {
+      if (holdOverlapsWeek(h, cycleMonday)) { holdOverlaps = true; break; }
+    }
+  }
+  if (holdOverlaps) {
+    boxWeekStatus = 'on_hold';
+  } else if (!isMemberOnThisWeek({ biweekly_week: primaryShare.biweekly_week }, cycleMonday)) {
+    boxWeekStatus = 'off_week';
+  } else {
+    boxWeekStatus = 'box';
+  }
+}
+// The single canonical week label ("Week of Jun 22 – Jun 28") for the banner.
+const boxWeekRange = weekRangeLabel(cycleMonday);
+// For the off-week case, the member's NEXT on-parity box date (already computed
+// parity-aware above as their next actual delivery). Empty → omit the clause.
+const boxWeekNextBox = nextDeliveryLong;
 
 // ── Next-delivery banner props (2026-06-05, Todd directive) ──
 // The #1 thing a member sees: a warm "your next delivery is ___" line at the
@@ -889,9 +983,71 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           Welcome back, {firstName}.
         </h1>
         <p class="mt-2 text-base text-ts-text-secondary">
-          Here's what's happening with your share this week.
+          Here's what's happening with your share — {boxWeekRange}.
         </p>
       </section>
+
+      {/* ═════════════════════════════════════════════════════════════
+          GO / NO-BOX STATUS (FIX 1.4 / audit M-09)
+          The single "am I getting a box this week?" answer, impossible to
+          miss at the top of the dashboard. Resolved server-side with the
+          SAME rules the backend packs from (isMemberOnThisWeek +
+          holdOverlapsWeek). Colour-coded: green = box coming, gold = on
+          hold, muted = biweekly off-week. Date-range labelled per glossary.
+          ═════════════════════════════════════════════════════════════ */}
+      {boxWeekStatus && (
+        <section
+          role="status"
+          aria-label="Your box status for this delivery week"
+          class:list={[
+            'flex items-center gap-4 rounded-ts-xl border p-5 shadow-ts-sm sm:p-6',
+            boxWeekStatus === 'box'
+              ? 'border-ts-primary/40 bg-ts-primary/5'
+              : boxWeekStatus === 'on_hold'
+                ? 'border-ts-accent/40 bg-ts-accent/5'
+                : 'border-ts-border bg-ts-bg-muted/50',
+          ]}
+        >
+          <span
+            aria-hidden="true"
+            class:list={[
+              'flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl',
+              boxWeekStatus === 'box'
+                ? 'bg-ts-primary/15'
+                : boxWeekStatus === 'on_hold'
+                  ? 'bg-ts-accent/15'
+                  : 'bg-ts-bg-muted',
+            ]}
+          >
+            {boxWeekStatus === 'box' ? '📦' : boxWeekStatus === 'on_hold' ? '🌴' : '🗓️'}
+          </span>
+          <div class="min-w-0">
+            <p
+              class:list={[
+                'font-display text-lg font-bold sm:text-xl',
+                boxWeekStatus === 'box'
+                  ? 'text-ts-primary'
+                  : boxWeekStatus === 'on_hold'
+                    ? 'text-ts-accent'
+                    : 'text-ts-text',
+              ]}
+            >
+              {boxWeekStatus === 'box'
+                ? 'You have a box coming'
+                : boxWeekStatus === 'on_hold'
+                  ? 'Your box is on hold'
+                  : 'No box this cycle'}
+            </p>
+            <p class="mt-0.5 text-sm text-ts-text-secondary">
+              {boxWeekRange}{boxWeekStatus === 'off_week' && boxWeekNextBox
+                ? ` — your next box is ${boxWeekNextBox}`
+                : boxWeekStatus === 'on_hold'
+                  ? ' — you scheduled a vacation hold'
+                  : ''}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ═════════════════════════════════════════════════════════════
           THIS WEEK'S ORDER — flex members (FIX 1, 2026-06-08)
@@ -1236,7 +1392,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
           <div class="flex items-baseline justify-between gap-4">
             <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h2 id="box-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
-                This week's box
+                Your box
               </h2>
               {controllingSchedule && seasonWeekNumber > 0 && (
                 <span class="text-sm font-medium text-ts-text-muted">
@@ -1244,7 +1400,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                 </span>
               )}
             </div>
-            <span class="text-sm text-ts-text-muted tabular-nums">{targetWeekPretty}</span>
+            <span class="text-sm text-ts-text-muted tabular-nums">{boxWeekRange}</span>
           </div>
 
           {boxItems.length === 0 ? (
@@ -1255,7 +1411,7 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
                 Your box for {targetWeekPretty} is being planned.
               </p>
               <p class="mt-1 text-sm text-ts-text-muted">
-                We post box contents by Monday — open it any time before Tuesday 8 AM to see what's coming and make swaps.
+                Once it's posted, open it before your swap cutoff — {boxCutoffLabel} — to see what's coming and make swaps.
               </p>
             </div>
           ) : (

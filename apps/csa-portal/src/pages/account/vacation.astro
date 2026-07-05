@@ -15,6 +15,7 @@ import Card from '../../components/Card.astro';
 import Button from '../../components/Button.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import Disclosure from '../../components/Disclosure.astro';
+import BottomSheet from '../../components/BottomSheet.astro';
 import {
   prettyDate,
   todayET,
@@ -346,7 +347,7 @@ const totalAvailable = primary != null
                         action="/api/account/vacation/cancel"
                         class="m-0"
                         data-cancel-form
-                        onsubmit={`return confirm('Cancel this vacation hold? Your weeks will be ${display === 'active' ? 'partially refunded (only the future portion)' : 'refunded'}.');`}
+                        data-refund={display === 'active' ? 'partial' : 'full'}
                       >
                         <input type="hidden" name="hold_id" value={h.id} />
                         <input type="hidden" name="member_id" value={h.member_id} />
@@ -397,4 +398,78 @@ const totalAvailable = primary != null
           </Disclosure>
         </section>
       )}
+
+  <Fragment slot="overlays">
+    {/* CANCEL-HOLD CONFIRMATION SHEET (audit M-07) — replaces the archaic
+        inline onsubmit=confirm(). One shared sheet serves every hold row; the
+        refund terms (partial for an already-active hold, full for a scheduled
+        one) are filled in per-row when the sheet opens. */}
+    <BottomSheet id="sheet-cancel-hold" titleId="sheet-cancel-hold-title" size="sm">
+      <h2
+        slot="title"
+        id="sheet-cancel-hold-title"
+        class="font-display text-xl font-semibold text-ts-text"
+      >
+        Cancel this vacation hold?
+      </h2>
+      <p class="text-base leading-relaxed text-ts-text">
+        We'll remove the hold and pack your box as usual during those weeks.
+      </p>
+      <p class="mt-3 rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-4 py-3 text-sm font-medium text-ts-text" data-cancel-hold-refund>
+        &mdash;
+      </p>
+      <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          class="inline-flex h-11 items-center justify-center rounded-ts-md px-5 text-base font-semibold text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+          data-bottom-sheet-close
+        >
+          Keep the hold
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-11 min-w-[8rem] items-center justify-center gap-2 rounded-ts-md bg-ts-danger px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-danger/90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+          data-cancel-hold-confirm
+        >
+          <span data-cancel-hold-label>Yes, cancel hold</span>
+        </button>
+      </div>
+    </BottomSheet>
+  </Fragment>
+
+  <script>
+    // ─── Cancel-hold confirmation wiring ───────────────────────────────
+    // Every hold row's cancel form intercepts its submit to open the shared
+    // BottomSheet with the correct refund copy; the sheet's "Yes" button then
+    // submits that form programmatically (form.submit() bypasses this listener,
+    // so there's no re-confirm loop). Replaces the inline onsubmit=confirm().
+    const sheet = (window as unknown as {
+      BottomSheet?: { open: (id: string, trigger?: HTMLElement) => void; close: (id: string) => void };
+    }).BottomSheet;
+    const refundEl = document.querySelector<HTMLElement>('[data-cancel-hold-refund]');
+    const confirmBtn = document.querySelector<HTMLButtonElement>('[data-cancel-hold-confirm]');
+    const confirmLabel = document.querySelector<HTMLElement>('[data-cancel-hold-label]');
+    let pendingForm: HTMLFormElement | null = null;
+
+    document.querySelectorAll<HTMLFormElement>('[data-cancel-form]').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        pendingForm = form;
+        if (refundEl) {
+          refundEl.textContent = form.dataset.refund === 'partial'
+            ? 'This hold has already started, so only the future weeks are refunded to your vacation budget.'
+            : 'Your held weeks are refunded to your vacation budget.';
+        }
+        const trigger = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        sheet?.open('sheet-cancel-hold', trigger ?? undefined);
+      });
+    });
+
+    confirmBtn?.addEventListener('click', () => {
+      if (!pendingForm) return;
+      confirmBtn.disabled = true;
+      if (confirmLabel) confirmLabel.textContent = 'Cancelling…';
+      pendingForm.submit(); // native submit — does NOT re-trigger the listener
+    });
+  </script>
 </MemberShell>

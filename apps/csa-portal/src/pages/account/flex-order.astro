@@ -45,12 +45,14 @@ import Badge from '../../components/Badge.astro';
 import Disclosure from '../../components/Disclosure.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import FlexWallet from '../../components/FlexWallet.astro';
+import BottomSheet from '../../components/BottomSheet.astro';
 import { supabaseAdmin } from '../../lib/supabase';
 import {
   formatCents, categoryEmoji, cutoffEpochMs, opensEpochMs,
   isPastCutoff, isBeforeOpen, closeLabel, stockTier, prettyWeek,
   currentOrderWeek, windowLabels,
 } from '../../lib/flex-order';
+import { weekRangeLabel } from '../../lib/cycle-ui';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -128,6 +130,9 @@ const NOW: number = (() => {
 // ET, so currentOrderWeek must use THEIR cutoff (else it would jump them to
 // next week early on Tuesday).
 const week = currentOrderWeek(NOW, pickupDay);
+// Canonical glossary week label ("Week of Jun 22 – Jun 28") for the
+// cancel/skip confirmation copy — never "this week" (glossary §3).
+const flexWeekRange = weekRangeLabel(week);
 const cutoffMs = cutoffEpochMs(week, pickupDay);
 const opensMs = opensEpochMs(week);
 const pastCutoff = isPastCutoff(week, NOW, pickupDay);
@@ -349,26 +354,27 @@ const savedReassurance = hasLocked
   ? "It's locked for packing — contact us if you need a change."
   : `You can update it until the ${closeCopy} cutoff — just change your cart below and tap Update my order.`;
 
-// ─── Pickup-day-aware member copy (Todd 2026-06-12). ─────────────────
-// Weekend-market members (Sat/Sun pickup) get a LATER cutoff (Wed midnight)
-// and pick up on their market day; Wed/home members order by Tuesday and pick
-// up Wednesday. These strings drive the header explainer, the How-Flex bullet,
-// and the empty state so every member reads THEIR OWN deadline + pickup.
+// ─── Pickup-day-aware member copy (Todd 2026-06-26, unified cutoff). ──
+// Every member reads THEIR OWN deadline + pickup day. The deadline text comes
+// from `closeCopy` (closeLabel → "Monday 7 AM" for the Wednesday run, "Thursday
+// 7 AM" for weekend markets), so it can never drift from the real cutoff. The
+// pickup-day text comes from the member's ACTUAL pickup weekday — so a Tuesday
+// (Lawrenceville) member finally reads "pick up Tuesday", not "Wednesday".
 const pickupDayLongMap: Record<string, string> = {
   Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
   Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday',
 };
 const pickupDayLong = pickupDay ? pickupDayLongMap[pickupDay] ?? null : null;
-// "Order by Wednesday midnight; pick up Saturday." vs the Wed/home default.
-const headerDeadlineLine = isWeekendMarketMember
-  ? `Order by ${closeCopy}; pick up ${pickupDayLong ?? 'at the market'}.`
-  : 'Order by Tuesday; pick up Wednesday.';
+// Fallback when there's no pickup weekday: weekend members → "at the market";
+// everyone else (incl. home delivery, which runs Wednesday) → "Wednesday".
+const pickupWhen = pickupDayLong ?? (isWeekendMarketMember ? 'at the market' : 'Wednesday');
+const headerDeadlineLine = `Order by ${closeCopy}; pick up ${pickupWhen}.`;
 // The "pick up" phrase reused in the How-Flex bullet.
-const pickupPhrase = isWeekendMarketMember
-  ? `Pick up your box ${pickupDayLong ? `on ${pickupDayLong}` : 'at the market'} at your stop.`
-  : 'Pick up your box on Wednesday at your stop.';
-// Empty-state window phrasing ("open Thursday and close <member cutoff>").
-const emptyStateCloseCopy = isWeekendMarketMember ? 'Thursday 6 AM' : 'Tuesday 6 AM';
+const pickupPhrase = `Pick up your box ${
+  pickupDayLong ? `on ${pickupDayLong}` : isWeekendMarketMember ? 'at the market' : 'on Wednesday'
+} at your stop.`;
+// Empty-state window phrasing — same derived cutoff label.
+const emptyStateCloseCopy = closeCopy;
 ---
 
 <MemberShell
@@ -802,6 +808,48 @@ const emptyStateCloseCopy = isWeekendMarketMember ? 'Thursday 6 AM' : 'Tuesday 6
       </div>
     )}
 
+    {/* CANCEL / SKIP CONFIRMATION SHEET (audit M-06 / X-01) — replaces the
+        two native confirm() dialogs. Cancel and Skip are mutually exclusive
+        (hasPending), so ONE sheet carries the right copy per load. Both use the
+        glossary date-range label — never "this week". */}
+    {windowOpen && orderable.length > 0 && (
+      <BottomSheet id="sheet-flex-confirm" titleId="sheet-flex-confirm-title" size="sm">
+        <h2
+          slot="title"
+          id="sheet-flex-confirm-title"
+          class="font-display text-xl font-semibold text-ts-text"
+        >
+          {hasPending ? 'Cancel your order?' : 'Skip your box?'}
+        </h2>
+        <p class="text-base leading-relaxed text-ts-text">
+          {hasPending
+            ? `Cancel your order for ${flexWeekRange}?`
+            : `Skip ${flexWeekRange}?`}
+        </p>
+        <p class="mt-2 text-sm text-ts-text-secondary">
+          {hasPending
+            ? 'Your Flex balance is refunded and carries forward.'
+            : 'Nothing will be packed for you, and your Flex balance is untouched.'}
+        </p>
+        <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            class="inline-flex h-11 items-center justify-center rounded-ts-md px-5 text-base font-semibold text-ts-text-secondary transition-colors duration-150 hover:bg-ts-bg-muted hover:text-ts-text active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+            data-bottom-sheet-close
+          >
+            {hasPending ? 'Keep my order' : 'Not now'}
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-11 min-w-[8rem] items-center justify-center gap-2 rounded-ts-md bg-ts-danger px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-danger/90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]"
+            data-flex-confirm
+          >
+            <span data-flex-confirm-label>{hasPending ? 'Yes, cancel' : 'Yes, skip'}</span>
+          </button>
+        </div>
+      </BottomSheet>
+    )}
+
     {/* ONBOARDING MODAL (M5) — shown once (localStorage-gated). Only when
         the window is open and there's something orderable. */}
     {windowOpen && orderable.length > 0 && (
@@ -1091,30 +1139,39 @@ const emptyStateCloseCopy = isWeekendMarketMember ? 'Thursday 6 AM' : 'Tuesday 6
       if (label) label.textContent = 'Submitting…';
     });
 
-    // Cancel an existing pending order — confirm, then let the form POST to
-    // /api/account/flex-order/cancel. A plain confirm() keeps this a single
-    // deliberate action (no accidental cancels).
-    const cancelForm = document.querySelector<HTMLFormElement>('[data-cancel-form]');
-    cancelForm?.addEventListener('submit', (e) => {
-      const ok = window.confirm(
-        "Cancel your order for this week? Your Flex balance is refunded and carries forward.",
-      );
-      if (!ok) { e.preventDefault(); return; }
-      const btn = cancelForm.querySelector<HTMLButtonElement>('[data-cancel-order]');
-      if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+    // Cancel / skip an order — the two highest-stakes destructive actions on
+    // this page. They're mutually exclusive (cancel when a pending order
+    // exists, skip otherwise), so exactly ONE destructive form is in the DOM.
+    // A submit attempt opens the styled confirmation BottomSheet (audit M-06);
+    // the sheet's "Yes" button submits the form programmatically (form.submit()
+    // bypasses this listener, so no re-confirm loop).
+    const destructiveForm =
+      document.querySelector<HTMLFormElement>('[data-cancel-form]') ??
+      document.querySelector<HTMLFormElement>('[data-skip-form]');
+    const flexConfirmBtn = document.querySelector<HTMLButtonElement>('[data-flex-confirm]');
+    const flexConfirmLabel = document.querySelector<HTMLElement>('[data-flex-confirm-label]');
+    const destructiveActionBtn = destructiveForm?.querySelector<HTMLButtonElement>(
+      '[data-cancel-order], [data-skip-order]',
+    );
+    const isCancel = Boolean(destructiveForm?.matches('[data-cancel-form]'));
+    const sheet = (window as unknown as {
+      BottomSheet?: { open: (id: string, trigger?: HTMLElement) => void; close: (id: string) => void };
+    }).BottomSheet;
+
+    destructiveForm?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sheet?.open('sheet-flex-confirm', destructiveActionBtn ?? undefined);
     });
 
-    // Skip this week — no items required. A light confirm() guards against an
-    // accidental skip mid-build; on confirm the form POSTs to .../skip and the
-    // member lands on ?ok=skipped. (Shown only when there's no pending order.)
-    const skipForm = document.querySelector<HTMLFormElement>('[data-skip-form]');
-    skipForm?.addEventListener('submit', (e) => {
-      const ok = window.confirm(
-        "Skip this week? Nothing will be packed for you and your Flex balance is untouched.",
-      );
-      if (!ok) { e.preventDefault(); return; }
-      const btn = skipForm.querySelector<HTMLButtonElement>('[data-skip-order]');
-      if (btn) { btn.disabled = true; btn.textContent = 'Skipping…'; }
+    flexConfirmBtn?.addEventListener('click', () => {
+      if (!destructiveForm) return;
+      if (destructiveActionBtn) {
+        destructiveActionBtn.disabled = true;
+        destructiveActionBtn.textContent = isCancel ? 'Cancelling…' : 'Skipping…';
+      }
+      flexConfirmBtn.disabled = true;
+      if (flexConfirmLabel) flexConfirmLabel.textContent = 'Working…';
+      destructiveForm.submit(); // native submit — does NOT re-trigger the listener
     });
 
     render();

@@ -70,6 +70,10 @@ import {
   type CycleMember, type StopTotals, type AddOnType,
 } from '../../../lib/cycle';
 import { loadWeekRoutes } from '../../../lib/saved-route';
+// Spanish support for the pack floor (audit X-02) — mirrors the pick-pack
+// pattern: parseLang + a strings object + an EN/ES toggle link. parseLang is
+// the shared 'en'|'es' parser already used by /admin/pick-pack.
+import { parseLang, type Lang } from '../../../lib/pick-pack';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -98,6 +102,143 @@ const typeFilter: 'flower' | 'box' | null =
   : (typeParam === 'other' || typeParam === 'box' || typeParam === 'veg') ? 'box'
   : null;
 
+// ─── Language (audit X-02) ──────────────────────────────────────────
+// ?lang=es renders the crew-facing chrome + the printed-label strings in
+// Spanish (member names + product names stay as-is). Mirrors pick-pack.
+const lang: Lang = parseLang(url.searchParams.get('lang'));
+
+/** Crew-facing strings for the labels page + the printed stickers, EN + ES.
+ *  Member names, stop names and product/crop names are NEVER translated. */
+const LABEL_STRINGS: Record<Lang, {
+  langToggle: string;
+  title: string;
+  averyPrefix: string;
+  labelWord: (n: number) => string;
+  sheetWord: (n: number) => string;
+  filtered: string;
+  print: string;
+  changeWeek: string;
+  // Filter notice
+  filteredView: string;
+  stopWord: string;
+  memberWord: string;
+  clearFilter: string;
+  // Dropped-add-on notice
+  droppedHdr: (n: number) => string;
+  droppedBody: string;
+  // Print-preview card
+  previewHdr: string;
+  previewBody: string;
+  printOrderBody: string;
+  stopColorCode: string;
+  sizeColorCode: string;
+  addonColorCode: string;
+  otherAddon: string;
+  noStops: string;
+  // Empty states
+  emptyFiltered: string;
+  emptyNoMembers: string;
+  // Printed-label strings
+  homeDelivery: string;
+  alsoFlower: string;
+  flexHdr: string;
+  allergy: string;
+  paymentDue: string;
+  thisBox: string;
+  swapWord: string;
+  weekOf: string;
+  // Size badge words
+  size: Record<'small' | 'large' | 'family' | 'regular' | 'flower' | 'flex' | 'spring' | 'addon' | 'share', string>;
+  // Day words for the stop band
+  day: Record<'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun', string>;
+}> = {
+  en: {
+    langToggle: 'Español',
+    title: 'Box labels',
+    averyPrefix: 'Avery 5164',
+    labelWord: (n) => `${n} label${n === 1 ? '' : 's'}`,
+    sheetWord: (n) => `${n} sheet${n === 1 ? '' : 's'}`,
+    filtered: 'filtered',
+    print: '🖨 Print labels',
+    changeWeek: '← Change week',
+    filteredView: 'Filtered view:',
+    stopWord: 'Stop',
+    memberWord: 'Member',
+    clearFilter: 'Clear filter — show whole week',
+    droppedHdr: (n) => `⚠ ${n} add-on${n === 1 ? '' : 's'} dropped — no box this week`,
+    droppedBody: "An add-on ships inside the member's box, so a member with no box this cycle (box excluded by season window or biweekly off-week, or no box share at all) gets no add-on label. Verify these are expected; if a member should have a box this week, fix their share on the member page.",
+    previewHdr: 'Print preview:',
+    previewBody: "set your browser's Print options to Letter, Portrait, Margins: None (or default), Scale: 100%. Verify alignment on a blank Avery 5164 sheet before committing to a full run.",
+    printOrderBody: 'Print order: REVERSE delivery order (last stop first) — so as you label + stack boxes, the FIRST delivery ends up on top and loads into the van first-out. One label per member — a member\'s add-ons appear as color chips on their box label (never as standalone labels), and flex orders print as a tick-as-you-pack checklist. Home-delivery members print a 🏠 HOME DELIVERY band with their street address.',
+    stopColorCode: 'Stop color code',
+    sizeColorCode: 'Box size color code',
+    addonColorCode: 'Add-on color code',
+    otherAddon: 'Other add-on',
+    noStops: 'No active stops for this week.',
+    emptyFiltered: 'No labels match this filter for this week. Try clearing the filter or picking another week.',
+    emptyNoMembers: 'No active members in this cycle. Pick a different week.',
+    homeDelivery: '🏠 HOME DELIVERY',
+    alsoFlower: '🌸 Also gets FLOWER CSA — separate label',
+    flexHdr: 'FLEX — check as packed',
+    allergy: 'ALLERGY',
+    paymentDue: 'PAYMENT: balance due',
+    thisBox: 'This box:',
+    swapWord: 'swap',
+    weekOf: 'Week of',
+    size: {
+      small: 'SMALL', large: 'LARGE', family: 'FAMILY', regular: 'REGULAR',
+      flower: 'FLOWER', flex: 'FLEX', spring: 'SPRING', addon: 'ADD-ON', share: 'SHARE',
+    },
+    day: {
+      Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+      Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+    },
+  },
+  es: {
+    langToggle: 'English',
+    title: 'Etiquetas de caja',
+    averyPrefix: 'Avery 5164',
+    labelWord: (n) => `${n} etiqueta${n === 1 ? '' : 's'}`,
+    sheetWord: (n) => `${n} hoja${n === 1 ? '' : 's'}`,
+    filtered: 'filtrado',
+    print: '🖨 Imprimir etiquetas',
+    changeWeek: '← Cambiar semana',
+    filteredView: 'Vista filtrada:',
+    stopWord: 'Parada',
+    memberWord: 'Miembro',
+    clearFilter: 'Quitar filtro — mostrar toda la semana',
+    droppedHdr: (n) => `⚠ ${n} extra${n === 1 ? '' : 's'} omitido${n === 1 ? '' : 's'} — sin caja esta semana`,
+    droppedBody: 'Un extra se empaca dentro de la caja del miembro, así que un miembro sin caja este ciclo (caja excluida por temporada o semana alterna, o sin caja) no recibe etiqueta de extra. Verifique que sea lo esperado; si el miembro debería tener caja esta semana, corrija su plan en la página del miembro.',
+    previewHdr: 'Vista previa de impresión:',
+    previewBody: 'configure las opciones de impresión del navegador en Carta, Vertical, Márgenes: Ninguno (o predeterminado), Escala: 100%. Verifique la alineación en una hoja Avery 5164 en blanco antes de una tirada completa.',
+    printOrderBody: 'Orden de impresión: orden INVERSO de entrega (última parada primero) — así, al etiquetar y apilar cajas, la PRIMERA entrega queda arriba y se carga primero en la camioneta. Una etiqueta por miembro — los extras del miembro aparecen como fichas de color en su etiqueta de caja (nunca como etiquetas aparte), y los pedidos flex se imprimen como una lista para marcar al empacar. Los miembros a domicilio imprimen una banda 🏠 ENTREGA A DOMICILIO con su dirección.',
+    stopColorCode: 'Código de color de parada',
+    sizeColorCode: 'Código de color de tamaño',
+    addonColorCode: 'Código de color de extras',
+    otherAddon: 'Otro extra',
+    noStops: 'No hay paradas activas esta semana.',
+    emptyFiltered: 'Ninguna etiqueta coincide con este filtro esta semana. Quite el filtro o elija otra semana.',
+    emptyNoMembers: 'No hay miembros activos en este ciclo. Elija otra semana.',
+    homeDelivery: '🏠 ENTREGA A DOMICILIO',
+    alsoFlower: '🌸 También recibe FLOR CSA — etiqueta aparte',
+    flexHdr: 'FLEX — marque al empacar',
+    allergy: 'ALERGIA',
+    paymentDue: 'PAGO: saldo pendiente',
+    thisBox: 'Esta caja:',
+    swapWord: 'cambio',
+    weekOf: 'Semana del',
+    size: {
+      small: 'PEQUEÑA', large: 'GRANDE', family: 'FAMILIAR', regular: 'REGULAR',
+      flower: 'FLOR', flex: 'FLEX', spring: 'PRIMAVERA', addon: 'EXTRA', share: 'SHARE',
+    },
+    day: {
+      Mon: 'lunes', Tue: 'martes', Wed: 'miércoles',
+      Thu: 'jueves', Fri: 'viernes', Sat: 'sábado', Sun: 'domingo',
+    },
+  },
+};
+const t = LABEL_STRINGS[lang];
+
 const cycle = await resolveCycle(supabase, week_starting);
 
 // PACK ORDER TIED TO ROUTE: the saved, optimized route (planner → "Save & send
@@ -111,9 +252,11 @@ const weekRoutes = await loadWeekRoutes(supabase, week_starting);
 // non-summer share as its own label so the host has one sticker per
 // item handed to the member).
 //
-// Pack order: stop by distribution-day (Tue → Wed → Sat), then
-// alphabetical within stop.
-const DAY_RANK: Record<string, number> = { Tue: 1, Wed: 2, Sat: 3 };
+// Pack order: stop by distribution-day (Tue → Wed → Sat → Sun), then
+// alphabetical within stop. Sun (South Side Market) sorts WITH the weekend,
+// right after Sat — not at the end. Without the Sun rank it fell to 99 and
+// printed after every other stop, away from its Sat-market siblings.
+const DAY_RANK: Record<string, number> = { Tue: 1, Wed: 2, Sat: 3, Sun: 4 };
 const stopsOrdered = cycle.activeStops.slice().sort((a, b) => {
   const da = a.day_of_week ? (DAY_RANK[a.day_of_week] ?? 99) : 99;
   const db = b.day_of_week ? (DAY_RANK[b.day_of_week] ?? 99) : 99;
@@ -274,29 +417,37 @@ const SIZE_BADGE_NEUTRAL: SizeBadge = {
 /** The size badge for a label's primary share. summer_veg uses its raw size
  *  (small/large/family/regular); non-veg primaries get a neutral badge whose
  *  label is the share descriptor (Flower / Flex / Spring / Add-on). */
+// The displayed size WORD is localized via `t.size` (audit X-02) while the
+// print-friendly COLORS stay fixed (the packer learns a fixed color code).
 function sizeBadgeFor(m: CycleMember): SizeBadge {
   if (m.share_type === 'summer_veg') {
     const raw = (m.share_size ?? '').trim().toLowerCase();
     const direct = SIZE_BADGES[raw];
-    if (direct) return direct;
+    if (direct) {
+      const word = t.size[raw as keyof typeof t.size];
+      return word ? { ...direct, label: word } : direct;
+    }
     // Unknown raw size → fall back to the bucket so it still color-codes.
-    return m.size_bucket === 'large' ? SIZE_BADGES.large : SIZE_BADGES.small;
+    return m.size_bucket === 'large'
+      ? { ...SIZE_BADGES.large, label: t.size.large }
+      : { ...SIZE_BADGES.small, label: t.size.small };
   }
-  // Non-veg primary: neutral badge carrying the share descriptor.
-  let label = 'SHARE';
+  // Non-veg primary: neutral badge carrying the (localized) share descriptor.
+  let label = t.size.share;
   if (m.share_type === 'flower') {
     const sz = (m.share_size ?? '').trim();
-    label = sz ? `FLOWER · ${sz.toUpperCase()}` : 'FLOWER';
+    label = sz ? `${t.size.flower} · ${sz.toUpperCase()}` : t.size.flower;
   }
-  else if (m.share_type === 'flex') label = 'FLEX';
-  else if (m.share_type === 'spring_veg') label = 'SPRING';
-  else if (m.share_type === 'add_on') label = 'ADD-ON';
+  else if (m.share_type === 'flex') label = t.size.flex;
+  else if (m.share_type === 'spring_veg') label = t.size.spring;
+  else if (m.share_type === 'add_on') label = t.size.addon;
   return { ...SIZE_BADGE_NEUTRAL, label };
 }
 
 function distDateForStop(stop: StopTotals): string {
   if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
   if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  if (stop.day_of_week === 'Sun') return cycle.distribution_dates.Sun;
   return cycle.distribution_dates.Wed;
 }
 
@@ -649,14 +800,15 @@ const orderedForPrint = routeOrdered.slice().reverse();
 const PADDED_LENGTH = totalSheets * 6;
 const padded: Array<LabelData | null> = [...orderedForPrint, ...Array(PADDED_LENGTH - totalLabels).fill(null)];
 
-const DAY_LONG: Record<string, string> = {
-  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
-  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
-};
+// Day words for the stop band — localized (audit X-02). Keyed by the short
+// weekday code the resolver stores on each stop.
+const dayLong: Record<string, string> = t.day;
 
 // Compact week label for the logo header: "Week of Jun 8" (no weekday/year —
-// the label is tight and the Monday date alone identifies the cycle).
-const weekShort = 'Week of ' + new Intl.DateTimeFormat('en-US', {
+// the label is tight and the Monday date alone identifies the cycle). The
+// "Week of" prefix is localized; the month/day stays numeric/short. Spanish
+// uses the es locale so the month abbreviates in Spanish (e.g. "jun").
+const weekShort = `${t.weekOf} ` + new Intl.DateTimeFormat(lang === 'es' ? 'es-ES' : 'en-US', {
   month: 'short', day: 'numeric', timeZone: 'UTC',
 }).format(new Date(`${week_starting}T12:00:00Z`));
 
@@ -666,45 +818,61 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
 ---
 
 <AdminShell
-  title="Box labels"
-  subtitle={`Avery 5164 · ${prettyWeekHeader(week_starting)} · ${totalLabels} label${totalLabels === 1 ? '' : 's'} (${totalSheets} sheet${totalSheets === 1 ? '' : 's'})${filterActive ? ' · filtered' : ''}`}
+  title={t.title}
+  subtitle={`${t.averyPrefix} · ${prettyWeekHeader(week_starting)} · ${t.labelWord(totalLabels)} (${t.sheetWord(totalSheets)})${filterActive ? ` · ${t.filtered}` : ''}`}
   pageTitle="Box labels — Tiny Seed Admin"
 >
   <Fragment slot="actions">
+    {/* EN/ES toggle — mirrors pick-pack. Preserves the current filters
+        (stop/member/type) while flipping the language. */}
+    <a
+      href={(() => {
+        const p = new URLSearchParams();
+        if (lang !== 'es') p.set('lang', 'es'); // en → es; es → (drop = en)
+        if (stopFilter) p.set('stop', stopFilter);
+        if (memberFilter) p.set('member', memberFilter);
+        if (typeParam) p.set('type', typeParam);
+        const qs = p.toString();
+        return `/admin/labels/${week_starting}${qs ? `?${qs}` : ''}`;
+      })()}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary"
+    >
+      🌐 {t.langToggle}
+    </a>
     <button
       type="button"
       onclick="window.print()"
       class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark"
     >
-      🖨 Print labels
+      {t.print}
     </button>
     <a
       href="/admin/labels"
       class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
     >
-      ← Change week
+      {t.changeWeek}
     </a>
   </Fragment>
 
   {filterActive && (
     <Card padding="md" elevation="sm" class="screen-only">
       <div class="flex flex-wrap items-center gap-2 text-sm text-ts-text">
-        <span class="font-semibold">Filtered view:</span>
+        <span class="font-semibold">{t.filteredView}</span>
         {filterStopName && (
           <span class="inline-flex items-center rounded-ts-md bg-ts-primary/10 px-2 py-0.5 text-ts-primary">
-            Stop: {filterStopName}
+            {t.stopWord}: {filterStopName}
           </span>
         )}
         {memberFilter && (
           <span class="inline-flex items-center rounded-ts-md bg-ts-primary/10 px-2 py-0.5 text-ts-primary">
-            Member: {filterMemberName ?? memberFilter}
+            {t.memberWord}: {filterMemberName ?? memberFilter}
           </span>
         )}
         <a
-          href={`/admin/labels/${week_starting}`}
+          href={`/admin/labels/${week_starting}${lang === 'es' ? '?lang=es' : ''}`}
           class="text-ts-text-secondary underline hover:text-ts-primary"
         >
-          Clear filter — show whole week
+          {t.clearFilter}
         </a>
       </div>
     </Card>
@@ -714,13 +882,10 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
     <Card padding="md" elevation="sm" class="screen-only" tone="warning">
       <div class="text-sm text-ts-text">
         <p class="font-semibold">
-          ⚠ {droppedOrphanSummary.length} add-on{droppedOrphanSummary.length === 1 ? '' : 's'} dropped — no box this week
+          {t.droppedHdr(droppedOrphanSummary.length)}
         </p>
         <p class="mt-1 text-xs text-ts-text-secondary">
-          An add-on ships <em>inside</em> the member's box, so a member with no box this
-          cycle (box excluded by season window or biweekly off-week, or no box share at
-          all) gets no add-on label. Verify these are expected; if a member should have a
-          box this week, fix their share on the member page.
+          {t.droppedBody}
         </p>
         <ul class="mt-2 list-disc space-y-0.5 pl-5 text-xs text-ts-text">
           {droppedOrphanSummary.map((o) => (
@@ -733,26 +898,20 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
 
   <Card padding="md" elevation="sm" class="screen-only">
     <p class="text-sm text-ts-text">
-      <strong class="font-semibold">Print preview:</strong> set your browser's Print options
-      to <em>Letter</em>, <em>Portrait</em>, <em>Margins: None</em> (or default),
-      <em>Scale: 100%</em>. Verify alignment on a blank Avery 5164 sheet before
-      committing to a full run.
+      <strong class="font-semibold">{t.previewHdr}</strong> {t.previewBody}
     </p>
     <p class="mt-2 text-xs text-ts-text-secondary">
-      Print order: REVERSE delivery order (last stop first) — so as you label + stack boxes, the FIRST delivery ends up on top and loads into the van first-out.
-      One label per <strong>member</strong> — a member's add-ons appear as color chips on their box
-      label (never as standalone labels), and flex orders print as a tick-as-you-pack checklist.
-      Home-delivery members print a <strong>🏠 HOME DELIVERY</strong> band with their street address.
+      {t.printOrderBody}
     </p>
 
     <!-- Color legends (screen-only; staff learn the printed code). -->
     <!-- Stop color code: the EXACT band color each active stop prints. -->
     <div class="mt-3 border-t border-ts-border pt-3">
       <div class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
-        Stop color code
+        {t.stopColorCode}
       </div>
       {cycle.activeStops.length === 0 ? (
-        <p class="text-xs text-ts-text-secondary">No active stops for this week.</p>
+        <p class="text-xs text-ts-text-secondary">{t.noStops}</p>
       ) : (
         <div class="flex flex-wrap gap-2">
           {cycle.activeStops
@@ -773,7 +932,7 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
     <!-- Size color code: the 4 box-size badge colors. -->
     <div class="mt-3 border-t border-ts-border pt-3">
       <div class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
-        Box size color code
+        {t.sizeColorCode}
       </div>
       <div class="flex flex-wrap gap-2">
         {(['small', 'large', 'family', 'regular'] as const).map((k) => (
@@ -781,7 +940,7 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
             class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold"
             style={`background:${SIZE_BADGES[k].bg};color:${SIZE_BADGES[k].text};border:1px solid ${SIZE_BADGES[k].border};`}
           >
-            {SIZE_BADGES[k].label}
+            {t.size[k]}
           </span>
         ))}
       </div>
@@ -790,16 +949,16 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
     <!-- Add-on color legend. -->
     <div class="mt-3 border-t border-ts-border pt-3">
       <div class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
-        Add-on color code
+        {t.addonColorCode}
       </div>
       <div class="flex flex-wrap gap-2">
-        {(['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'] as AddOnType[]).map((t) => (
+        {(['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'] as AddOnType[]).map((addonKey) => (
           <span
             class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
-            style={`background:${ADDON_STYLE[t].bg};color:${ADDON_STYLE[t].text};border:1px solid ${ADDON_STYLE[t].border};`}
+            style={`background:${ADDON_STYLE[addonKey].bg};color:${ADDON_STYLE[addonKey].text};border:1px solid ${ADDON_STYLE[addonKey].border};`}
           >
-            <span aria-hidden="true">{ADDON_STYLE[t].emoji}</span>
-            {t === 'unknown' ? 'Other add-on' : ADDON_STYLE[t].label}
+            <span aria-hidden="true">{ADDON_STYLE[addonKey].emoji}</span>
+            {addonKey === 'unknown' ? t.otherAddon : ADDON_STYLE[addonKey].label}
           </span>
         ))}
       </div>
@@ -809,9 +968,7 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
   {visibleLabels.length === 0 ? (
     <Card tone="muted" padding="lg" elevation="sm">
       <p class="text-center text-sm text-ts-text-secondary">
-        {filterActive
-          ? 'No labels match this filter for this week. Try clearing the filter or picking another week.'
-          : 'No active members in this cycle. Pick a different week.'}
+        {filterActive ? t.emptyFiltered : t.emptyNoMembers}
       </p>
     </Card>
   ) : (
@@ -847,9 +1004,9 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                           class="label-stop-band label-delivery-band"
                           style={`background:${HOME_DELIVERY_BAND.bg};color:${HOME_DELIVERY_BAND.text};`}
                         >
-                          <span class="label-stop-name">🏠 HOME DELIVERY</span>
+                          <span class="label-stop-name">{t.homeDelivery}</span>
                           {label.stop.day_of_week && (
-                            <span class="label-stop-day">{DAY_LONG[label.stop.day_of_week]}</span>
+                            <span class="label-stop-day">{dayLong[label.stop.day_of_week]}</span>
                           )}
                         </div>
                         <div class="label-delivery-addr">{label.member.delivery_address}</div>
@@ -861,7 +1018,7 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                       >
                         <span class="label-stop-name">{label.stop.stop_name}</span>
                         {label.stop.day_of_week && (
-                          <span class="label-stop-day">{DAY_LONG[label.stop.day_of_week]}</span>
+                          <span class="label-stop-day">{dayLong[label.stop.day_of_week]}</span>
                         )}
                       </div>
                     )}
@@ -879,7 +1036,7 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                       })()}
                     </div>
                     {label.kind === 'box' && label.hasFlower && (
-                      <div class="label-flower-note">🌸 Also gets FLOWER CSA — separate label</div>
+                      <div class="label-flower-note">{t.alsoFlower}</div>
                     )}
                     {label.addonChips.length > 0 && (
                       <div class="label-chips">
@@ -896,7 +1053,7 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                     )}
                     {label.flexLines.length > 0 && (
                       <div class="label-flex">
-                        <div class="label-flex-hdr">FLEX — check as packed</div>
+                        <div class="label-flex-hdr">{t.flexHdr}</div>
                         <ul class={`label-flex-list${label.flexLines.length >= 4 ? ' is-two-col' : ''}`}>
                           {label.flexLines.map((l) => (
                             <li class="label-flex-item">
@@ -909,21 +1066,21 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                     )}
                     {label.member.allergies.length > 0 && (
                       <div class="label-flag">
-                        ⚠ ALLERGY: {label.member.allergies.join(', ')}
+                        ⚠ {t.allergy}: {label.member.allergies.join(', ')}
                       </div>
                     )}
                     {label.owes && (
-                      <div class="label-flag">⚠ PAYMENT: balance due</div>
+                      <div class="label-flag">⚠ {t.paymentDue}</div>
                     )}
                     {label.composition && label.composition.items.length > 0 && (
                       <div class="label-contents">
-                        <div class="label-contents-hdr">This box:</div>
+                        <div class="label-contents-hdr">{t.thisBox}</div>
                         <div class="label-contents-body">
                           {label.composition.items.map((it) => it.crop).join(' · ')}
                         </div>
                         {label.composition.swapped_in.length > 0 && (
                           <div class="label-swap">
-                            (swap: {label.composition.swapped_out.join(', ')} → {label.composition.swapped_in.join(', ')})
+                            ({t.swapWord}: {label.composition.swapped_out.join(', ')} → {label.composition.swapped_in.join(', ')})
                           </div>
                         )}
                       </div>

@@ -8,7 +8,8 @@
  * organised into 6 task groups (plus a standalone Home link). The sidebar
  * scrolls independently of the page body. On narrow screens the sidebar is
  * hidden behind a hamburger button and slides in as a drawer over a dimmed
- * backdrop (Escape / backdrop tap to close).
+ * backdrop (Escape / backdrop tap to close). The former 15-item "Pack Week"
+ * group is split into Box Planning / Pack Day / Delivery (audit A-05).
  *
  * Navigation:
  *   - Every destination from the old flat strip is preserved (same href,
@@ -88,23 +89,37 @@ const homeItem: NavItem = {
  */
 const navGroups: NavGroup[] = [
   {
-    label: 'Pack Week',
+    // Planning tools — used DAYS before pack day (Nielsen chunking: keep the
+    // old 15-item "Pack Week" group under working-memory size — audit A-05).
+    label: 'Box Planning',
+    items: [
+      { href: '/admin/box-contents',   label: 'Box editor',  match: '/admin/box-contents',   icon: '✏️' },
+      { href: '/admin/share-contents', label: 'Share list',  match: '/admin/share-contents', icon: '🥬' },
+      { href: '/admin/substitutions',  label: 'Substitutions', match: '/admin/substitutions', icon: '🚫' },
+    ],
+  },
+  {
+    // Same-morning pack-floor operations.
+    label: 'Pack Day',
     items: [
       { href: '/admin/handoff',        label: 'Handoff',     match: '/admin/handoff',        icon: '🔁' },
       { href: '/admin/cooler',         label: 'Cooler',      match: '/admin/cooler',         icon: '🧊' },
+      { href: '/admin/pick-pack',      label: 'Pick & Pack', match: '/admin/pick-pack',      icon: '🧺' },
       { href: '/admin/pack-day',       label: 'Pack day',    match: '/admin/pack-day',       icon: '⭐' },
       { href: '/admin/pack-load',      label: 'Pack & Load', match: '/admin/pack-load',      icon: '🚚' },
-      { href: '/admin/substitutions',  label: 'Substitutions', match: '/admin/substitutions', icon: '🚫' },
-      { href: '/admin/pick-pack',      label: 'Pick & Pack', match: '/admin/pick-pack',      icon: '🧺' },
       { href: '/admin/harvest',        label: 'Harvest',     match: '/admin/harvest',        icon: '🌾' },
       { href: '/admin/floral',         label: 'Floral',      match: '/admin/floral',         icon: '🌸' },
       { href: '/admin/pack-sheet',     label: 'Pack sheet',  match: '/admin/pack-sheet',     icon: '📋' },
       { href: '/admin/pack-check',     label: 'Pack check',  match: '/admin/pack-check',     icon: '✅' },
       { href: '/admin/labels',         label: 'Labels',      match: '/admin/labels',         icon: '🏷️' },
+    ],
+  },
+  {
+    // Getting the packed boxes to the stops.
+    label: 'Delivery',
+    items: [
       { href: '/admin/stop-manifest',  label: 'Manifests',   match: '/admin/stop-manifest',  icon: '🚚' },
       { href: '/admin/host-sheets',    label: 'Host sheets', match: '/admin/host-sheets',    icon: '📇' },
-      { href: '/admin/box-contents',   label: 'Box editor',  match: '/admin/box-contents',   icon: '✏️' },
-      { href: '/admin/share-contents', label: 'Share list',  match: '/admin/share-contents', icon: '🥬' },
     ],
   },
   {

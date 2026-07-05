@@ -21,6 +21,24 @@ export interface WeekOption {
 }
 
 /**
+ * The single canonical WEEK label — a Mon–Sun date RANGE, e.g.
+ * "Week of Jun 22 – Jun 28" (CSA_GLOSSARY_OF_TRUTH §3/§5: always a range,
+ * NEVER "this / last / next week"). `input` may be any day in the week; we
+ * snap to the cycle Monday first, so callers can pass a Monday OR a delivery
+ * Wednesday and get the same range. Weekday + year are stripped from
+ * `prettyShortDate` so the two ends read cleanly ("Jun 22 – Jun 28").
+ *
+ * This is the ONE builder of the glossary range string — `weekOptions` and
+ * the member dashboard both call it so they can never drift.
+ */
+export function weekRangeLabel(input: string): string {
+  const mon = mondayOfWeek(input);
+  const sun = addDays(mon, 6);
+  const strip = (d: string): string => prettyShortDate(d).replace(/^[A-Za-z]+, /, '');
+  return `Week of ${strip(mon)} – ${strip(sun)}`;
+}
+
+/**
  * Build a friendly week-picker list anchored at the current cycle.
  *
  * Returns 5 options: 1 past week, current week, and 3 upcoming weeks.
@@ -35,11 +53,11 @@ export function weekOptions(now: Date = new Date()): WeekOption[] {
     // Date-RANGE label — no ambiguous "this/last/next week" (Todd 2026-06-18).
     // A CSA week runs Mon–Sun and has FOUR pickup days (Tue Lawrenceville,
     // Wed delivery, Sat markets, Sun South Side), so we name the whole range
-    // rather than implying a single Wednesday.
-    const sun = addDays(wk, 6);
+    // rather than implying a single Wednesday. weekRangeLabel is the shared
+    // builder of this glossary string (also used by the member dashboard).
     out.push({
       value: wk,
-      label: `Week of ${prettyShortDate(wk).replace(/^[A-Za-z]+, /, '')} – ${prettyShortDate(sun).replace(/^[A-Za-z]+, /, '')}`,
+      label: weekRangeLabel(wk),
     });
   }
   return out;
