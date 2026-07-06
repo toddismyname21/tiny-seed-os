@@ -69,6 +69,31 @@ export default defineConfig({
         optional: true,
       }),
 
+      // ── Gmail auto-ingest (Monday Harvie PO → /api/cron/harvie-ingest) ──
+      // OAuth refresh-token flow against the todd@ / tinyseedorders@ mailbox:
+      // the cron exchanges GMAIL_REFRESH_TOKEN for a short-lived access token
+      // (POST oauth2.googleapis.com/token) then reads the weekly Harvie PO
+      // attachment via the Gmail API (gmail.readonly). All THREE live as Vercel
+      // env vars and are SERVER-SECRET — they must never reach the client
+      // bundle. `optional` so a local build/check (where they're absent) still
+      // succeeds; the cron guards their presence at runtime and fail-softs
+      // (logs + notifies, never 500s) when any is missing.
+      GOOGLE_CLIENT_ID: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      GOOGLE_CLIENT_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      GMAIL_REFRESH_TOKEN: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+
       // ── Google Maps Platform (route optimizer) ──
       // Geocoding API + Routes API (computeRouteMatrix), used server-side by
       // /api/admin/optimize-route. Lives as a Vercel env var; optional so a
