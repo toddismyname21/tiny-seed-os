@@ -1,0 +1,68 @@
+---
+/**
+ * /sms-policy — PUBLIC SMS program disclosure (TCPA / A2P 10DLC compliance).
+ *
+ * WHY THIS PAGE EXISTS: Twilio/carrier A2P campaign reviewers must be able to
+ * VERIFY our SMS opt-in without a login. The previous campaign submission
+ * (error 30909) was rejected because the message-flow URL pointed at a
+ * login-gated page. This page publicly documents the program: who sends, what
+ * members receive, how consent is collected (the unchecked SMS checkbox in
+ * member Communication Preferences), frequency, rates, STOP/HELP, and links
+ * to the privacy policy. It is referenced in the campaign's MessageFlow.
+ *
+ * PUBLIC by design (listed in middleware PUBLIC pass-through via not being in
+ * PROTECTED_PREFIXES — verify /sms-policy is not protected). No member data,
+ * no business data — pure program disclosure.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="SMS Program Policy — Tiny Seed Farm">
+  <main class="mx-auto max-w-2xl px-4 py-10">
+    <h1 class="text-2xl font-bold text-ts-text">Tiny Seed Farm — SMS Program Policy</h1>
+    <p class="mt-2 text-sm text-ts-text-muted">Program name: <strong>Tiny Seed Farm Notifications</strong></p>
+
+    <section class="mt-6 space-y-4 text-[15px] leading-7 text-ts-text">
+      <h2 class="text-lg font-semibold">What we send</h2>
+      <p>
+        Tiny Seed Farm sends SMS notifications to CSA members and wholesale customers who
+        opt in: delivery updates, pickup-day reminders, weekly box information, occasional
+        farm announcements, and login verification codes.
+      </p>
+
+      <h2 class="text-lg font-semibold">How you opt in</h2>
+      <p>
+        Consent is collected in the member portal at
+        <a class="text-ts-primary underline" href="https://csa.tinyseedfarm.com/account/preferences">csa.tinyseedfarm.com/account/preferences</a>
+        (Communication Preferences): members check an <strong>unchecked</strong> "Text messages (SMS)"
+        option and save. Members may also provide a mobile number and opt in during account
+        setup. Opting in is never required to buy a share or receive service. Consent is not
+        shared with or sold to third parties.
+      </p>
+      <p class="rounded-ts-md border border-ts-border bg-ts-bg-surface p-3 text-sm">
+        The opt-in control reads: <em>"Text messages (SMS) — delivery updates and pickup
+        reminders from Tiny Seed Farm. Message frequency varies (typically 1–4 msgs/week in
+        season). Message &amp; data rates may apply. Reply STOP to cancel, HELP for help."</em>
+      </p>
+
+      <h2 class="text-lg font-semibold">Frequency &amp; rates</h2>
+      <p>Message frequency varies — typically 1–4 messages per week during the growing season.
+        Message and data rates may apply.</p>
+
+      <h2 class="text-lg font-semibold">Opting out &amp; help</h2>
+      <p>Reply <strong>STOP</strong> to any message to unsubscribe at any time. Reply
+        <strong>HELP</strong> for help. You can also change your preference anytime in the
+        member portal, or email
+        <a class="text-ts-primary underline" href="mailto:tinyseedcsa@gmail.com">tinyseedcsa@gmail.com</a>.</p>
+
+      <h2 class="text-lg font-semibold">Privacy</h2>
+      <p>Mobile information is used only to deliver the notifications described above. No mobile
+        information is shared with third parties or affiliates for marketing purposes. See our
+        <a class="text-ts-primary underline" href="https://www.tinyseedfarm.com/policies/privacy-policy">privacy policy</a>.</p>
+
+      <p class="pt-4 text-sm text-ts-text-muted">
+        Tiny Seed Farm · Pittsburgh, PA · <a class="text-ts-primary underline" href="https://www.tinyseedfarm.com">tinyseedfarm.com</a>
+      </p>
+    </section>
+  </main>
+</BaseLayout>
