@@ -1,0 +1,1021 @@
+---
+/**
+ * TodayFlow — the DAY-AWARE "Today" flow that renders at the TOP of the admin
+ * HOME (/admin), where Todd already lands.
+ *
+ * REWORK (owner feedback, 2026-07-06): the first cut of this shipped as a NEW
+ * /admin/monday PAGE + a "Monday" nav item. Todd: "Building another page may
+ * not be the best idea. The workflow is already confusing and there are a ton
+ * of tabs — our research would suggest this is bad UX." He's right (our
+ * CORE_UX_PRINCIPLES: 3–5 nav items, progressive disclosure). So the whole
+ * command-deck moved HERE, above the existing admin-home cards, with ZERO new
+ * tabs. He also asked for the SAME flow on Thursday: "get the market, csa, flex,
+ * wholesale ready for pick and pack and move it along."
+ *
+ * ONE component, THREE day-modes (America/New_York):
+ *
+ *   MONDAY  → the full Wednesday-run command deck, 8 numbered steps, each with a
+ *             LIVE status computed server-side from the same tables the rest of
+ *             ops reads (no new source of truth). The ONLY state-writing action
+ *             is the Harvie "import now" button, which reuses the exact cron
+ *             engine (skip-if-exists safe). Steps track the real Monday flow:
+ *               1. Flex window closed (Mon 7 AM ET)         → flex_orders
+ *               2. Harvie order imported                     → wholesale_orders source='harvie'
+ *               3. Market Wagon order in                     → wholesale_orders source='market_wagon'
+ *               4. Chef orders in (cutoff Tue 7 AM)          → wholesale_orders (non-vendor)
+ *               5. Market list set (Tuesday market)          → market_offerings (Tue market)
+ *               6. Print & hand out + live harvest progress  → pick_pack_progress section='harvest'
+ *               7. Cooler distribution                       → cooler_pallets
+ *               8. End of day: Friday list + handoff         → notification_log friday_list_reminder
+ *
+ *   THURSDAY → the weekend-run MIRROR, 6 numbered steps:
+ *               1. Weekend flex window closed (Thu 7 AM ET)  → flex_orders (Sat/Sun-pickup members)
+ *               2. Friday wholesale orders (cutoff Thu 7 AM) → wholesale_orders (non-vendor, Fri)
+ *               3. Weekend market lists set                  → market_offerings (Sat/Sun markets)
+ *               4. Print & hand out (?day=thu) + harvest     → pick_pack_progress scope_day thu
+ *               5. Cooler staging (weekend rules)            → cooler_pallets
+ *               6. End of day: handoff                       → /admin/handoff/new
+ *
+ *   ANY OTHER DAY → a SLIM strip: the delivery-day route link (Tue/Wed/Sat/Sun),
+ *             the chef-cutoff countdown on Tuesday morning, and the handoff link.
+ *             The heavy checklist is NOT rendered; the home page's own cards
+ *             (route, setup, tasks) carry the rest.
+ *
+ * Todd/staff-facing (NOT crew) — this is the command deck, not a pack-floor
+ * page. Mobile-first: steps stack into one column; every touch target ≥ 44px.
+ * On Mon/Thu the whole deck lives in a <details open> so Todd can collapse it
+ * once the day's rolling; the slim strip is a single always-visible card.
+ */
+import Card from './Card.astro';
+import { todayWeekdayET } from '../lib/delivery';
+import { currentDeliveryWeek, prettyWeekHeader } from '../lib/cycle';
+import {
+  currentDeliveryWednesday, nextDeliveryFriday, prettyDeliveryDate,
+  CUTOFF_LABEL, CUTOFF_LABEL_FRIDAY,
+} from '../lib/wholesale-order';
+import { isPastCutoff } from '../lib/flex-order';
+
+const supabase = Astro.locals.supabase;
+const now = Date.now();
+const weekday = todayWeekdayET(); // 'Sun'..'Sat', ET.
+
+type Mode = 'mon' | 'thu' | 'slim';
+const mode: Mode = weekday === 'Mon' ? 'mon' : weekday === 'Thu' ? 'thu' : 'slim';
+
+// ── Anchor dates (shared) ───────────────────────────────────────────
+const week = currentDeliveryWeek();          // Monday of the current delivery week
+const deliveryWed = currentDeliveryWednesday();
+const fridayDate = nextDeliveryFriday();
+const weekHeader = prettyWeekHeader(week);
+const wedPretty = prettyDeliveryDate(deliveryWed);
+const fridayPretty = prettyDeliveryDate(fridayDate);
+
+// ── Vendor sources are NOT chef orders (they're the PO imports). ────
+const VENDOR_SOURCES = new Set(['harvie', 'market_wagon']);
+
+/* ── ET date/time helpers (DST-aware) — shared by both modes ── */
+/** ET UTC-offset in minutes for an instant (e.g. -240 EDT). DST-aware. */
+function etOffsetMinutes(at: Date): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  });
+  const parts = dtf.formatToParts(at);
+  const get = (t: string): number => Number.parseInt(parts.find((p) => p.type === t)?.value ?? '0', 10);
+  const asUTC = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+  return Math.round((asUTC - at.getTime()) / 60_000);
+}
+/** Epoch-ms for `dateYMD` at `hour`:00 ET (DST-aware). */
+function etInstant(dateYMD: string, hour: number): number {
+  const [y, m, d] = dateYMD.split('-').map((s) => Number.parseInt(s, 10));
+  const naiveUTC = Date.UTC(y, m - 1, d, hour, 0, 0);
+  const offMin = etOffsetMinutes(new Date(naiveUTC));
+  return naiveUTC - offMin * 60_000;
+}
+/** "YYYY-MM-DD" one day before a date (the Tuesday before a Wed delivery). */
+function dayBefore(dateYMD: string): string {
+  const [y, m, d] = dateYMD.split('-').map((s) => Number.parseInt(s, 10));
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0) - 86_400_000);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+}
+/** Warm relative countdown to a future ET instant, or a "closed" note. */
+function countdownTo(targetMs: number, closedLabel: string): { open: boolean; text: string } {
+  const diff = targetMs - now;
+  if (diff <= 0) return { open: false, text: closedLabel };
+  const hrs = diff / 3_600_000;
+  if (hrs >= 24) {
+    const days = Math.floor(hrs / 24);
+    const rem = Math.round(hrs - days * 24);
+    return { open: true, text: `about ${days}d ${rem}h left` };
+  }
+  if (hrs >= 1) return { open: true, text: `about ${Math.round(hrs)}h left` };
+  return { open: true, text: 'less than an hour left' };
+}
+/** ET calendar date ('YYYY-MM-DD') of an ISO timestamp. */
+function etDateOf(iso: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date(iso));
+}
+/** Format dollars as "$4.50". */
+function money(dollars: number | null): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2,
+  }).format(dollars ?? 0);
+}
+
+// ── Shared status-pill model + link classes ─────────────────────────
+type PillTone = 'done' | 'pending' | 'info';
+const PILL: Record<PillTone, string> = {
+  done: 'bg-ts-primary/10 text-ts-primary',
+  pending: 'bg-ts-warning-bg text-ts-warning',
+  info: 'bg-ts-bg-muted text-ts-text-secondary',
+};
+const primaryBtn =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+const ghostBtn =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+
+// ── Shared row types ────────────────────────────────────────────────
+type OrderRow = { id: string; source: string | null; status: string; total_amount: number | null; external_ref: string | null };
+type FlexRow = { member_id: string; status: string };
+type ProgressRow = { status: string };
+type PalletRow = { id: string; move_it: boolean };
+type LogRow = { status: string; sent_at: string };
+
+// ════════════════════════════════════════════════════════════════════
+// MONDAY data (Wednesday run) — verbatim from the original /admin/monday.
+// ════════════════════════════════════════════════════════════════════
+let mFlexClosed = false;
+let mFlexCount = 0;
+let mHarvieOrder: OrderRow | null = null;
+let mHarvieLines = 0;
+let mMwOrder: OrderRow | null = null;
+let mMwLines = 0;
+let mChefCount = 0;
+let mChefCountdown: { open: boolean; text: string } = { open: false, text: '' };
+let mTueOfferingCount = 0;
+let mMarketDone = false;
+let mHarvestTodo = 0, mHarvestGoing = 0, mHarvestDone = 0, mHarvestTotal = 0;
+let mActivePallets = 0, mMoveItCount = 0;
+let mFridayReminderSentToday = false;
+let mFridayChefCount = 0;
+let mDoneSteps = 0;
+const mTrackedSteps = 4;
+let mPct = 0;
+
+if (mode === 'mon') {
+  mFlexClosed = isPastCutoff(week, now, null); // Monday 7 AM ET (Wednesday run)
+
+  type MonOfferingRow = { id: string; is_active: boolean; market: { day_of_week: string | null } | null };
+  const [
+    flexRes, wedOrdersRes, offeringsRes, progressRes, palletsRes, fridayLogRes, fridayOrdersRes,
+  ] = await Promise.all([
+    supabase.from('flex_orders')
+      .select('member_id, status')
+      .eq('week_starting', week)
+      .in('status', ['pending', 'locked', 'fulfilled'])
+      .overrideTypes<FlexRow[], { merge: false }>(),
+    supabase.from('wholesale_orders')
+      .select('id, source, status, total_amount, external_ref')
+      .eq('delivery_date', deliveryWed)
+      .overrideTypes<OrderRow[], { merge: false }>(),
+    supabase.from('market_offerings')
+      .select('id, is_active, market:pickup_locations(day_of_week)')
+      .eq('week_starting', week)
+      .overrideTypes<MonOfferingRow[], { merge: false }>(),
+    supabase.from('pick_pack_progress')
+      .select('status')
+      .eq('week_date', week)
+      .eq('section', 'harvest')
+      .overrideTypes<ProgressRow[], { merge: false }>(),
+    supabase.from('cooler_pallets')
+      .select('id, move_it')
+      .eq('status', 'active')
+      .overrideTypes<PalletRow[], { merge: false }>(),
+    supabase.from('notification_log')
+      .select('status, sent_at')
+      .eq('notification_type', 'friday_list_reminder')
+      .order('sent_at', { ascending: false })
+      .limit(1)
+      .overrideTypes<LogRow[], { merge: false }>(),
+    supabase.from('wholesale_orders')
+      .select('id, source, status, total_amount, external_ref')
+      .eq('delivery_date', fridayDate)
+      .overrideTypes<OrderRow[], { merge: false }>(),
+  ]);
+
+  const flexMembers = new Set((flexRes.data ?? []).map((r) => r.member_id));
+  mFlexCount = flexMembers.size;
+
+  const wedOrders = (wedOrdersRes.data ?? []).filter((o) => o.status !== 'cancelled');
+  mHarvieOrder = wedOrders.find((o) => (o.source ?? '').toLowerCase() === 'harvie') ?? null;
+  mMwOrder = wedOrders.find((o) => (o.source ?? '').toLowerCase() === 'market_wagon') ?? null;
+  mChefCount = wedOrders.filter((o) => !VENDOR_SOURCES.has((o.source ?? '').toLowerCase())).length;
+
+  async function lineCount(orderId: string | undefined): Promise<number> {
+    if (!orderId) return 0;
+    const { count } = await supabase
+      .from('wholesale_order_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('order_id', orderId);
+    return count ?? 0;
+  }
+  [mHarvieLines, mMwLines] = await Promise.all([lineCount(mHarvieOrder?.id), lineCount(mMwOrder?.id)]);
+
+  mChefCountdown = countdownTo(etInstant(dayBefore(deliveryWed), 7), `closed (${CUTOFF_LABEL})`);
+
+  const tueOfferings = (offeringsRes.data ?? []).filter((o) => o.market?.day_of_week === 'Tue');
+  mTueOfferingCount = tueOfferings.length;
+  mMarketDone = mTueOfferingCount > 0;
+
+  const progress = progressRes.data ?? [];
+  mHarvestTodo = progress.filter((p) => p.status === 'todo').length;
+  mHarvestGoing = progress.filter((p) => p.status === 'harvesting').length;
+  mHarvestDone = progress.filter((p) => p.status === 'done').length;
+  mHarvestTotal = progress.length;
+
+  const pallets = palletsRes.data ?? [];
+  mActivePallets = pallets.length;
+  mMoveItCount = pallets.filter((p) => p.move_it).length;
+
+  const todayStr = todayWeekdayET() === 'Mon' ? new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date()) : '';
+  const latestFridayLog = (fridayLogRes.data ?? [])[0] ?? null;
+  mFridayReminderSentToday =
+    latestFridayLog !== null && latestFridayLog.status === 'sent' && etDateOf(latestFridayLog.sent_at) === todayStr;
+
+  const fridayOrders = (fridayOrdersRes.data ?? []).filter(
+    (o) => o.status !== 'cancelled' && !VENDOR_SOURCES.has((o.source ?? '').toLowerCase())
+  );
+  mFridayChefCount = fridayOrders.length;
+
+  mDoneSteps =
+    (mFlexClosed ? 1 : 0) + (mHarvieOrder !== null ? 1 : 0) + (mMwOrder !== null ? 1 : 0) + (mMarketDone ? 1 : 0);
+  mPct = Math.round((mDoneSteps / mTrackedSteps) * 100);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// THURSDAY data (weekend run — Sat + Sun markets).
+// ════════════════════════════════════════════════════════════════════
+let tFlexClosed = false;
+let tFlexCount = 0;
+let tFridayChefCount = 0;
+let tFridayCountdown: { open: boolean; text: string } = { open: false, text: '' };
+type WeekendMarket = { name: string; day: string; count: number };
+let tWeekendMarkets: WeekendMarket[] = [];
+let tMarketDone = false;
+let tHarvestTodo = 0, tHarvestGoing = 0, tHarvestDone = 0, tHarvestTotal = 0;
+let tActivePallets = 0, tMoveItCount = 0;
+let tDoneSteps = 0;
+const tTrackedSteps = 3;
+let tPct = 0;
+
+if (mode === 'thu') {
+  // Weekend-market members get the Thursday 7 AM ET cutoff (flex-order.ts
+  // pickup-day-aware helper). 'Sat' is representative of the weekend run.
+  tFlexClosed = isPastCutoff(week, now, 'Sat');
+  // The Friday-delivery order cutoff is the Thursday before, 7 AM ET
+  // (fridayDate − 1 day) — CUTOFF_LABEL_FRIDAY.
+  tFridayCountdown = countdownTo(etInstant(dayBefore(fridayDate), 7), `closed (${CUTOFF_LABEL_FRIDAY})`);
+
+  type WeekendLocRow = { id: string };
+  type MemberRow = { id: string };
+  type ThuOfferingRow = {
+    id: string; is_active: boolean;
+    market: { id: string; name: string; day_of_week: string | null } | null;
+  };
+
+  const [weekendLocsRes, fridayOrdersRes, offeringsRes, progressRes, palletsRes] = await Promise.all([
+    supabase.from('pickup_locations')
+      .select('id')
+      .eq('is_delivery_zone', false)
+      .in('day_of_week', ['Sat', 'Sun'])
+      .overrideTypes<WeekendLocRow[], { merge: false }>(),
+    supabase.from('wholesale_orders')
+      .select('id, source, status, total_amount, external_ref')
+      .eq('delivery_date', fridayDate)
+      .overrideTypes<OrderRow[], { merge: false }>(),
+    supabase.from('market_offerings')
+      .select('id, is_active, market:pickup_locations(id, name, day_of_week)')
+      .eq('week_starting', week)
+      .overrideTypes<ThuOfferingRow[], { merge: false }>(),
+    supabase.from('pick_pack_progress')
+      .select('status')
+      .eq('week_date', week)
+      .eq('section', 'harvest')
+      .in('scope_day', ['all', 'thu'])
+      .overrideTypes<ProgressRow[], { merge: false }>(),
+    supabase.from('cooler_pallets')
+      .select('id, move_it')
+      .eq('status', 'active')
+      .overrideTypes<PalletRow[], { merge: false }>(),
+  ]);
+
+  // Weekend flex count = distinct weekend-market members with an order this week.
+  const weekendLocIds = (weekendLocsRes.data ?? []).map((l) => l.id);
+  if (weekendLocIds.length > 0) {
+    const { data: weekendMemberRows } = await supabase
+      .from('members')
+      .select('id')
+      .in('pickup_location_id', weekendLocIds)
+      .overrideTypes<MemberRow[], { merge: false }>();
+    const weekendMemberIds = new Set((weekendMemberRows ?? []).map((m) => m.id));
+    if (weekendMemberIds.size > 0) {
+      const { data: flexRows } = await supabase
+        .from('flex_orders')
+        .select('member_id, status')
+        .eq('week_starting', week)
+        .in('status', ['pending', 'locked', 'fulfilled'])
+        .overrideTypes<FlexRow[], { merge: false }>();
+      tFlexCount = new Set(
+        (flexRows ?? []).filter((r) => weekendMemberIds.has(r.member_id)).map((r) => r.member_id),
+      ).size;
+    }
+  }
+
+  const fridayOrders = (fridayOrdersRes.data ?? []).filter(
+    (o) => o.status !== 'cancelled' && !VENDOR_SOURCES.has((o.source ?? '').toLowerCase())
+  );
+  tFridayChefCount = fridayOrders.length;
+
+  // One line per weekend market (Sat/Sun), with its offering count this week.
+  const DAY_ORDER: Record<string, number> = { Sat: 0, Sun: 1 };
+  const byMarket = new Map<string, WeekendMarket>();
+  for (const o of offeringsRes.data ?? []) {
+    const day = o.market?.day_of_week ?? '';
+    if (day !== 'Sat' && day !== 'Sun') continue;
+    const key = o.market?.id ?? o.market?.name ?? '(unknown)';
+    const existing = byMarket.get(key);
+    if (existing) existing.count += 1;
+    else byMarket.set(key, { name: o.market?.name ?? '(unknown market)', day, count: 1 });
+  }
+  tWeekendMarkets = Array.from(byMarket.values()).sort((a, b) => {
+    const da = DAY_ORDER[a.day] ?? 9, db = DAY_ORDER[b.day] ?? 9;
+    return da !== db ? da - db : a.name.localeCompare(b.name);
+  });
+  tMarketDone = tWeekendMarkets.length > 0;
+
+  const progress = progressRes.data ?? [];
+  tHarvestTodo = progress.filter((p) => p.status === 'todo').length;
+  tHarvestGoing = progress.filter((p) => p.status === 'harvesting').length;
+  tHarvestDone = progress.filter((p) => p.status === 'done').length;
+  tHarvestTotal = progress.length;
+
+  const pallets = palletsRes.data ?? [];
+  tActivePallets = pallets.length;
+  tMoveItCount = pallets.filter((p) => p.move_it).length;
+
+  tDoneSteps = (tFlexClosed ? 1 : 0) + (tFridayChefCount > 0 ? 1 : 0) + (tMarketDone ? 1 : 0);
+  tPct = Math.round((tDoneSteps / tTrackedSteps) * 100);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SLIM strip (Tue/Wed/Sat/Sun + everything else).
+// ════════════════════════════════════════════════════════════════════
+// Delivery days run Tue (Lawrenceville), Wed (CSA + home delivery), Sat/Sun
+// (weekend markets) — the same set the home page's "Today's route" card uses.
+const DELIVERY_WEEKDAYS = new Set(['Tue', 'Wed', 'Sat', 'Sun']);
+const slimIsDeliveryDay = DELIVERY_WEEKDAYS.has(weekday);
+// Chef cutoff for the Wednesday delivery is Tuesday 7 AM ET — surface a live
+// countdown on Tuesday morning so the last-call is impossible to miss.
+const slimShowChefCountdown = weekday === 'Tue';
+const slimChefCountdown = slimShowChefCountdown
+  ? countdownTo(etInstant(dayBefore(deliveryWed), 7), `closed (${CUTOFF_LABEL})`)
+  : { open: false, text: '' };
+const DAY_LONG: Record<string, string> = {
+  Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+};
+const slimDayLong = DAY_LONG[weekday] ?? weekday;
+---
+
+{/* ════════════════════ MONDAY — Wednesday-run command deck ════════════════════ */}
+{mode === 'mon' && (
+  <section aria-labelledby="today-flow-heading" class="flex flex-col gap-4">
+    <h2 id="today-flow-heading" class="sr-only">Today's flow — Monday</h2>
+    <details open class="group flex flex-col gap-4">
+      <summary class="flex cursor-pointer list-none items-center gap-3 rounded-ts-lg border border-ts-primary/25 bg-ts-primary/5 px-4 py-3 transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">
+        <span class="text-2xl" aria-hidden="true">🌅</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-display text-lg font-bold text-ts-text">Monday — get the day moving</p>
+          <p class="mt-0.5 text-sm text-ts-text-secondary">
+            {weekHeader} · Wed delivery {wedPretty} · <span class="tabular-nums">{mDoneSteps}/{mTrackedSteps}</span> key gates set
+          </p>
+        </div>
+        <span class="today-chevron shrink-0 text-ts-text-muted transition-transform duration-200 group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+
+      <div class="mt-4 flex flex-col gap-4">
+        {/* Day-progress meter */}
+        <Card padding="md" elevation="sm">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-semibold text-ts-text">The whole Monday flow, in order</p>
+              <p class="mt-0.5 text-sm text-ts-text-secondary">Work top to bottom.</p>
+            </div>
+            <div class="shrink-0 text-right">
+              <div class="font-display text-2xl font-bold text-ts-text tabular-nums">{mDoneSteps}/{mTrackedSteps}</div>
+              <div class="text-xs text-ts-text-muted">key gates set</div>
+            </div>
+          </div>
+          <div
+            class="mt-3 h-2 w-full overflow-hidden rounded-full bg-ts-bg-muted"
+            role="progressbar" aria-valuenow={mPct} aria-valuemin="0" aria-valuemax="100"
+            aria-label={`${mPct}% of the key Monday gates are set`}
+          >
+            <div class="h-full rounded-full bg-ts-primary transition-[width] duration-500" style={`width: ${mPct}%`}></div>
+          </div>
+        </Card>
+
+        <ol class="flex list-none flex-col gap-4 p-0">
+          {/* 1. Flex window */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">1</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Flex window</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${mFlexClosed ? PILL.done : PILL.info}`}>
+                      {mFlexClosed ? '✓ Closed' : '○ Open until 7 AM'}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    {mFlexClosed
+                      ? <>Closed as of Monday 7 AM ET. <span class="font-semibold text-ts-text tabular-nums">{mFlexCount}</span> flex order{mFlexCount === 1 ? '' : 's'} in for this week.</>
+                      : <>Still open — members can order until <span class="font-semibold text-ts-text">Monday 7 AM ET</span>. <span class="font-semibold text-ts-text tabular-nums">{mFlexCount}</span> in so far.</>}
+                  </p>
+                  <div class="mt-3">
+                    <a href="/admin/flex-orders" class={ghostBtn}>View flex orders →</a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 2. Harvie order */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">2</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Harvie order</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${mHarvieOrder ? PILL.done : PILL.pending}`}>
+                      {mHarvieOrder ? '✓ Imported' : '⏳ Not yet'}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    {mHarvieOrder
+                      ? <>Imported for {wedPretty} — <span class="font-semibold text-ts-text tabular-nums">{mHarvieLines}</span> line{mHarvieLines === 1 ? '' : 's'}, <span class="font-semibold text-ts-text tabular-nums">{money(mHarvieOrder.total_amount)}</span>{mHarvieOrder.external_ref ? <> (PO {mHarvieOrder.external_ref})</> : null}.</>
+                      : <>No Harvie PO imported for {wedPretty} yet. Auto-import runs 11:45a, 12:45p &amp; 1:45p — or pull it now.</>}
+                  </p>
+                  <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <button type="button" data-harvie-now class={primaryBtn}>
+                      <span data-harvie-label>Check inbox &amp; import now</span>
+                    </button>
+                    <a href="/admin/wholesale/import" class={ghostBtn}>Manual upload →</a>
+                  </div>
+                  <p
+                    data-harvie-result
+                    role="status" aria-live="polite"
+                    hidden
+                    class="mt-2 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-3 py-2 text-sm text-ts-text"
+                  ></p>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 3. Market Wagon order */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">3</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Market Wagon order</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${mMwOrder ? PILL.done : PILL.pending}`}>
+                      {mMwOrder ? '✓ In' : '⏳ Not yet'}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    {mMwOrder
+                      ? <>Fill ticket in for {wedPretty} — <span class="font-semibold text-ts-text tabular-nums">{mMwLines}</span> line{mMwLines === 1 ? '' : 's'}, <span class="font-semibold text-ts-text tabular-nums">{money(mMwOrder.total_amount)}</span>.</>
+                      : <>No Market Wagon fill ticket imported for {wedPretty} yet.</>}
+                  </p>
+                  <div class="mt-3">
+                    <a href="/admin/wholesale/import" class={ghostBtn}>Upload fill ticket →</a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 4. Chef orders */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">4</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Chef orders</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${mChefCount > 0 ? PILL.done : PILL.info}`}>
+                      <span class="tabular-nums">{mChefCount}</span> in
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    {mChefCount} chef order{mChefCount === 1 ? '' : 's'} for {wedPretty}.
+                    {' '}Ordering closes <span class="font-semibold text-ts-text">{CUTOFF_LABEL} ET</span> —{' '}
+                    <span class={mChefCountdown.open ? 'font-semibold text-ts-text' : 'font-semibold text-ts-text-muted'}>{mChefCountdown.text}</span>.
+                  </p>
+                  <p class="mt-1 text-xs text-ts-text-muted">The reminder to chefs who haven't ordered went out automatically at 9:05.</p>
+                  <div class="mt-3">
+                    <a href={`/admin/wholesale/orders?date=${deliveryWed}`} class={ghostBtn}>Chef orders →</a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 5. Market list (Tuesday market) */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">5</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Market list — Tuesday market</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${mMarketDone ? PILL.done : PILL.pending}`}>
+                      {mMarketDone ? <><span class="tabular-nums">{mTueOfferingCount}</span> items</> : '⏳ Not set'}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    {mMarketDone
+                      ? <><span class="font-semibold text-ts-text tabular-nums">{mTueOfferingCount}</span> item{mTueOfferingCount === 1 ? '' : 's'} on the Tuesday market list this week.</>
+                      : <>No Tuesday-market items set for this week yet.</>}
+                  </p>
+                  <div class="mt-3">
+                    <a href={`/admin/market?week=${week}`} class={mMarketDone ? ghostBtn : primaryBtn}>
+                      {mMarketDone ? 'Edit the list →' : 'Set the list →'}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 6. Print & hand out */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">6</span>
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-display text-lg font-semibold text-ts-text">Print &amp; hand out</h3>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    Get the right sheet to the right person. Each opens in a new tab, ready to print.
+                  </p>
+                  <div class="mt-3 rounded-ts-md border border-ts-border bg-ts-bg-muted/30 px-3 py-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-sm font-semibold text-ts-text">Harvest progress</span>
+                      <span class="text-xs text-ts-text-muted">live from Pick &amp; Pack</span>
+                    </div>
+                    {mHarvestTotal === 0 ? (
+                      <p class="mt-1 text-sm text-ts-text-muted">No harvest lines checked off yet — the crew's board is clear.</p>
+                    ) : (
+                      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
+                        <span class="text-ts-primary"><span class="font-bold">{mHarvestDone}</span> done</span>
+                        <span class="text-ts-warning"><span class="font-bold">{mHarvestGoing}</span> harvesting</span>
+                        <span class="text-ts-text-secondary"><span class="font-bold">{mHarvestTodo}</span> to do</span>
+                        <span class="text-ts-text-muted">of {mHarvestTotal} lines</span>
+                      </div>
+                    )}
+                  </div>
+                  <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Harvest crew</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pick-pack/${week}?day=mon`} target="_blank" rel="noopener" class={ghostBtn}>Pick &amp; Pack (EN) ↗</a>
+                        <a href={`/admin/pick-pack/${week}?day=mon&lang=es`} target="_blank" rel="noopener" class={ghostBtn}>Español ↗</a>
+                      </div>
+                    </li>
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Pack crew</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pack-sheet/${week}`} target="_blank" rel="noopener" class={ghostBtn}>Pack sheet ↗</a>
+                        <a href={`/admin/pack-load/${week}`} target="_blank" rel="noopener" class={ghostBtn}>Pack &amp; Load ↗</a>
+                      </div>
+                    </li>
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3 sm:col-span-2">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Label station</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/labels/${week}`} target="_blank" rel="noopener" class={ghostBtn}>Labels ↗</a>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 7. Cooler distribution */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">7</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Cooler distribution</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${mMoveItCount > 0 ? PILL.pending : PILL.done}`}>
+                      {mMoveItCount > 0 ? <><span class="tabular-nums">{mMoveItCount}</span> to move</> : '✓ Nothing flagged'}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    <span class="font-semibold text-ts-text tabular-nums">{mActivePallets}</span> active pallet{mActivePallets === 1 ? '' : 's'} in the coolers.
+                    {mMoveItCount > 0
+                      ? <> <span class="font-semibold text-ts-warning tabular-nums">{mMoveItCount}</span> flagged to move.</>
+                      : <> Nothing flagged to move right now.</>}
+                  </p>
+                  <div class="mt-3">
+                    <a href="/admin/cooler" class={mMoveItCount > 0 ? primaryBtn : ghostBtn}>Open cooler board →</a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 8. End of day */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">8</span>
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-display text-lg font-semibold text-ts-text">End of day</h3>
+                  <div class="mt-3 rounded-ts-md border border-ts-border p-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-semibold text-ts-text">Send the Friday list</span>
+                      <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${mFridayReminderSentToday ? PILL.done : PILL.info}`}>
+                        {mFridayReminderSentToday ? '✓ Reminder sent' : '○ Reminder 3:30 PM'}
+                      </span>
+                    </div>
+                    <p class="mt-1 text-sm text-ts-text-secondary">
+                      Send chefs the availability for <span class="font-semibold text-ts-text">Friday {fridayPretty}</span>.
+                      {' '}Friday ordering closes <span class="font-semibold text-ts-text">{CUTOFF_LABEL_FRIDAY} ET</span>.
+                      {' '}<span class="tabular-nums">{mFridayChefCount}</span> Friday order{mFridayChefCount === 1 ? '' : 's'} in so far.
+                      {mFridayReminderSentToday
+                        ? <> Your 3:30 PM reminder already went out today.</>
+                        : <> Your reminder is scheduled for 3:30 PM.</>}
+                    </p>
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                      <a href={`/admin/wholesale?date=${fridayDate}`} class={primaryBtn}>Update &amp; send the list →</a>
+                      <a href={`/admin/wholesale/orders?date=${fridayDate}`} class={ghostBtn}>Friday chef orders →</a>
+                    </div>
+                  </div>
+                  <div class="mt-3 rounded-ts-md border border-ts-border p-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-semibold text-ts-text">Fill the handoff</span>
+                    </div>
+                    <p class="mt-1 text-sm text-ts-text-secondary">
+                      Log the end-of-day handoff so tomorrow's crew starts with everything they need.
+                    </p>
+                    <div class="mt-3">
+                      <a href="/admin/handoff/new" class={ghostBtn}>New handoff →</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+        </ol>
+      </div>
+    </details>
+  </section>
+)}
+
+{/* ════════════════════ THURSDAY — weekend-run command deck ════════════════════ */}
+{mode === 'thu' && (
+  <section aria-labelledby="today-flow-heading" class="flex flex-col gap-4">
+    <h2 id="today-flow-heading" class="sr-only">Today's flow — Thursday</h2>
+    <details open class="group flex flex-col gap-4">
+      <summary class="flex cursor-pointer list-none items-center gap-3 rounded-ts-lg border border-ts-primary/25 bg-ts-primary/5 px-4 py-3 transition-colors duration-150 hover:bg-ts-primary/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary">
+        <span class="text-2xl" aria-hidden="true">🌤️</span>
+        <div class="min-w-0 flex-1">
+          <p class="font-display text-lg font-bold text-ts-text">Thursday — get the weekend run moving</p>
+          <p class="mt-0.5 text-sm text-ts-text-secondary">
+            {weekHeader} · Fri delivery {fridayPretty} · <span class="tabular-nums">{tDoneSteps}/{tTrackedSteps}</span> key gates set
+          </p>
+        </div>
+        <span class="today-chevron shrink-0 text-ts-text-muted transition-transform duration-200 group-open:rotate-90" aria-hidden="true">›</span>
+      </summary>
+
+      <div class="mt-4 flex flex-col gap-4">
+        {/* Day-progress meter */}
+        <Card padding="md" elevation="sm">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-semibold text-ts-text">Market · CSA · flex · wholesale — ready for pick &amp; pack</p>
+              <p class="mt-0.5 text-sm text-ts-text-secondary">The weekend run, in order. Work top to bottom.</p>
+            </div>
+            <div class="shrink-0 text-right">
+              <div class="font-display text-2xl font-bold text-ts-text tabular-nums">{tDoneSteps}/{tTrackedSteps}</div>
+              <div class="text-xs text-ts-text-muted">key gates set</div>
+            </div>
+          </div>
+          <div
+            class="mt-3 h-2 w-full overflow-hidden rounded-full bg-ts-bg-muted"
+            role="progressbar" aria-valuenow={tPct} aria-valuemin="0" aria-valuemax="100"
+            aria-label={`${tPct}% of the key Thursday gates are set`}
+          >
+            <div class="h-full rounded-full bg-ts-primary transition-[width] duration-500" style={`width: ${tPct}%`}></div>
+          </div>
+        </Card>
+
+        <ol class="flex list-none flex-col gap-4 p-0">
+          {/* 1. Weekend flex window */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">1</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Weekend flex window</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${tFlexClosed ? PILL.done : PILL.info}`}>
+                      {tFlexClosed ? '✓ Closed' : '○ Open until 7 AM'}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    {tFlexClosed
+                      ? <>Closed as of Thursday 7 AM ET for weekend-market members. <span class="font-semibold text-ts-text tabular-nums">{tFlexCount}</span> weekend flex order{tFlexCount === 1 ? '' : 's'} in for this week.</>
+                      : <>Still open — weekend-market members can order until <span class="font-semibold text-ts-text">Thursday 7 AM ET</span>. <span class="font-semibold text-ts-text tabular-nums">{tFlexCount}</span> in so far.</>}
+                  </p>
+                  <div class="mt-3">
+                    <a href="/admin/flex-orders" class={ghostBtn}>View flex orders →</a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 2. Friday wholesale orders */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">2</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Friday wholesale orders</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${tFridayChefCount > 0 ? PILL.done : PILL.info}`}>
+                      <span class="tabular-nums">{tFridayChefCount}</span> in
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    {tFridayChefCount} chef order{tFridayChefCount === 1 ? '' : 's'} for {fridayPretty}.
+                    {' '}Ordering closes <span class="font-semibold text-ts-text">{CUTOFF_LABEL_FRIDAY} ET</span> —{' '}
+                    <span class={tFridayCountdown.open ? 'font-semibold text-ts-text' : 'font-semibold text-ts-text-muted'}>{tFridayCountdown.text}</span>.
+                  </p>
+                  <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <a href={`/admin/wholesale?date=${fridayDate}`} class={primaryBtn}>Update &amp; send the list →</a>
+                    <a href={`/admin/wholesale/orders?date=${fridayDate}`} class={ghostBtn}>Friday chef orders →</a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 3. Weekend market lists */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">3</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Weekend market lists</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${tMarketDone ? PILL.done : PILL.pending}`}>
+                      {tMarketDone ? <><span class="tabular-nums">{tWeekendMarkets.length}</span> set</> : '⏳ Not set'}
+                    </span>
+                  </div>
+                  {tMarketDone ? (
+                    <ul class="mt-2 flex flex-col gap-1">
+                      {tWeekendMarkets.map((mkt) => (
+                        <li class="flex items-center justify-between gap-3 text-sm">
+                          <span class="min-w-0 truncate text-ts-text">
+                            <span class="font-medium">{mkt.name}</span>
+                            <span class="ml-1 text-ts-text-muted">· {DAY_LONG[mkt.day] ?? mkt.day}</span>
+                          </span>
+                          <span class="shrink-0 tabular-nums text-ts-text-secondary">{mkt.count} item{mkt.count === 1 ? '' : 's'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p class="mt-1 text-sm text-ts-text-secondary">No Saturday/Sunday market items set for this week yet.</p>
+                  )}
+                  <div class="mt-3">
+                    <a href={`/admin/market?week=${week}`} class={tMarketDone ? ghostBtn : primaryBtn}>
+                      {tMarketDone ? 'Edit the lists →' : 'Set the lists →'}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 4. Print & hand out (weekend / Thursday harvest) */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">4</span>
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-display text-lg font-semibold text-ts-text">Print &amp; hand out</h3>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    Weekend run (Sat + Sun). Get the right sheet to the right person — each opens in a new tab, ready to print.
+                  </p>
+                  <div class="mt-3 rounded-ts-md border border-ts-border bg-ts-bg-muted/30 px-3 py-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-sm font-semibold text-ts-text">Thursday harvest progress</span>
+                      <span class="text-xs text-ts-text-muted">live from Pick &amp; Pack</span>
+                    </div>
+                    {tHarvestTotal === 0 ? (
+                      <p class="mt-1 text-sm text-ts-text-muted">No harvest lines checked off yet — the crew's board is clear.</p>
+                    ) : (
+                      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
+                        <span class="text-ts-primary"><span class="font-bold">{tHarvestDone}</span> done</span>
+                        <span class="text-ts-warning"><span class="font-bold">{tHarvestGoing}</span> harvesting</span>
+                        <span class="text-ts-text-secondary"><span class="font-bold">{tHarvestTodo}</span> to do</span>
+                        <span class="text-ts-text-muted">of {tHarvestTotal} lines</span>
+                      </div>
+                    )}
+                  </div>
+                  <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Harvest crew</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pick-pack/${week}?day=thu`} target="_blank" rel="noopener" class={ghostBtn}>Pick &amp; Pack (EN) ↗</a>
+                        <a href={`/admin/pick-pack/${week}?day=thu&lang=es`} target="_blank" rel="noopener" class={ghostBtn}>Español ↗</a>
+                      </div>
+                    </li>
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Pack crew — Saturday</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pack-sheet/${week}?day=sat`} target="_blank" rel="noopener" class={ghostBtn}>Sat pack sheet ↗</a>
+                      </div>
+                    </li>
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Pack crew — Sunday</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pack-sheet/${week}?day=sun`} target="_blank" rel="noopener" class={ghostBtn}>Sun pack sheet ↗</a>
+                      </div>
+                    </li>
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Label station</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/labels/${week}`} target="_blank" rel="noopener" class={ghostBtn}>Labels ↗</a>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 5. Cooler staging (weekend rules) */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">5</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="font-display text-lg font-semibold text-ts-text">Cooler staging</h3>
+                    <span class={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${tMoveItCount > 0 ? PILL.pending : PILL.done}`}>
+                      {tMoveItCount > 0 ? <><span class="tabular-nums">{tMoveItCount}</span> to move</> : '✓ Nothing flagged'}
+                    </span>
+                  </div>
+                  <p class="mt-1 text-sm text-ts-text-secondary">
+                    <span class="font-semibold text-ts-text tabular-nums">{tActivePallets}</span> active pallet{tActivePallets === 1 ? '' : 's'} in the coolers.
+                    {tMoveItCount > 0
+                      ? <> <span class="font-semibold text-ts-warning tabular-nums">{tMoveItCount}</span> flagged to move.</>
+                      : <> Nothing flagged to move right now.</>}
+                  </p>
+                  <ul class="mt-2 flex flex-col gap-1 rounded-ts-md border border-ts-border bg-ts-bg-muted/30 px-3 py-2.5 text-sm text-ts-text-secondary">
+                    <li>Sewickley leaves Saturday — that unblocks South Side for Sunday.</li>
+                    <li>PH-1 / PH-2 / PH-3 clear by Friday EOD so returns have a home.</li>
+                  </ul>
+                  <div class="mt-3">
+                    <a href="/admin/cooler" class={tMoveItCount > 0 ? primaryBtn : ghostBtn}>Open cooler board →</a>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+
+          {/* 6. End of day */}
+          <li>
+            <Card padding="md" elevation="sm">
+              <div class="flex items-start gap-4">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-primary/10 font-display text-base font-bold text-ts-primary" aria-hidden="true">6</span>
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-display text-lg font-semibold text-ts-text">End of day</h3>
+                  <div class="mt-3 rounded-ts-md border border-ts-border p-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="font-semibold text-ts-text">Fill the handoff</span>
+                    </div>
+                    <p class="mt-1 text-sm text-ts-text-secondary">
+                      Log the end-of-day handoff so the weekend crew starts with everything they need.
+                    </p>
+                    <div class="mt-3">
+                      <a href="/admin/handoff/new" class={ghostBtn}>New handoff →</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </li>
+        </ol>
+      </div>
+    </details>
+  </section>
+)}
+
+{/* ════════════════════ SLIM strip (all other days) ════════════════════ */}
+{mode === 'slim' && (
+  <section aria-labelledby="today-flow-heading" class="flex flex-col gap-3">
+    <h2 id="today-flow-heading" class="sr-only">Today</h2>
+    <Card padding="md" elevation="sm">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-ts-text">{slimDayLong}</p>
+          <p class="mt-0.5 text-sm text-ts-text-secondary">
+            {slimShowChefCountdown
+              ? <>Chef ordering for {wedPretty} closes <span class="font-semibold text-ts-text">{CUTOFF_LABEL} ET</span> — <span class={slimChefCountdown.open ? 'font-semibold text-ts-text' : 'font-semibold text-ts-text-muted'}>{slimChefCountdown.text}</span>.</>
+              : slimIsDeliveryDay
+                ? <>Delivery day — check today's route and keep the stops moving.</>
+                : <>No pack or delivery run today. The full Monday and Thursday flows appear here on those days.</>}
+          </p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          {slimIsDeliveryDay && <a href="/admin/route" class={primaryBtn}>Today's route →</a>}
+          <a href="/admin/handoff" class={ghostBtn}>Handoff →</a>
+        </div>
+      </div>
+    </Card>
+  </section>
+)}
+
+{mode === 'mon' && (
+  <script is:inline>
+    // Step 2 — "Check inbox & import now": POST to the admin endpoint that reuses
+    // the cron engine (skip-if-exists safe). Optimistic busy state, inline result.
+    (function () {
+      const btn = document.querySelector('[data-harvie-now]');
+      const label = document.querySelector('[data-harvie-label]');
+      const result = document.querySelector('[data-harvie-result]');
+      if (!btn || !label || !result) return;
+
+      function show(msg, ok) {
+        result.hidden = false;
+        result.textContent = msg;
+        result.classList.remove('border-ts-primary/40', 'border-ts-danger/40');
+        result.classList.add(ok ? 'border-ts-primary/40' : 'border-ts-danger/40');
+      }
+
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const original = label.textContent;
+        label.textContent = 'Checking inbox…';
+        result.hidden = true;
+        fetch('/api/admin/harvie-ingest-now', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { accept: 'application/json' },
+          body: new FormData(),
+        })
+          .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
+          .then(function (res) {
+            const body = res.body || {};
+            if (res.status !== 200 || body.ok !== true) {
+              show((body && body.error) || 'Import failed. Try the manual upload.', false);
+              btn.disabled = false;
+              label.textContent = original;
+              return;
+            }
+            show(body.detail || 'Done.', true);
+            if (body.imported && body.imported > 0) {
+              label.textContent = 'Imported — refreshing…';
+              setTimeout(function () { window.location.reload(); }, 1200);
+            } else {
+              btn.disabled = false;
+              label.textContent = original;
+            }
+          })
+          .catch(function () {
+            show('Network error. Try again, or use the manual upload.', false);
+            btn.disabled = false;
+            label.textContent = original;
+          });
+      });
+    })();
+  </script>
+)}

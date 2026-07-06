@@ -1,0 +1,18 @@
+---
+/**
+ * /admin/monday — REDIRECT (owner rework, 2026-07-06).
+ *
+ * This used to be a standalone "Monday Ops" page reached via a "Monday" nav tab.
+ * Todd's feedback: "Building another page may not be the best idea. The workflow
+ * is already confusing and there are a ton of tabs — our research would suggest
+ * this is bad UX." (CORE_UX_PRINCIPLES: 3–5 nav items, progressive disclosure.)
+ *
+ * The whole command deck moved INTO the admin HOME as the day-aware TodayFlow
+ * component (src/components/TodayFlow.astro), rendered at the top of /admin. The
+ * "Monday" nav tab is gone. This route stays as a permanent-safe 303 redirect so
+ * any existing bookmark or muscle-memory link still lands somewhere useful.
+ */
+export const prerender = false;
+
+return Astro.redirect('/admin', 303);
+---

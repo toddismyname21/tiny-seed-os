@@ -29,6 +29,7 @@
  */
 import AdminShell from '../../components/AdminShell.astro';
 import Card from '../../components/Card.astro';
+import TodayFlow from '../../components/TodayFlow.astro';
 import { DISPLAY_ORDER, countByBucket, type MemberShareRow } from '../../lib/share-buckets';
 import { todayET, todayWeekdayET } from '../../lib/delivery';
 import { resolveWeekSetup, upcomingSetupWeek } from '../../lib/week-setup';
@@ -317,6 +318,11 @@ const pendingTaskCount =
   pageTitle="Admin overview — Tiny Seed"
   canonical="https://csa.tinyseedfarm.com/admin"
 >
+  {/* ════ Today's flow (day-aware: Monday deck · Thursday deck · slim strip) ════
+       Owner rework 2026-07-06: the /admin/monday page + its nav tab folded in
+       here, above the existing home cards. Zero new tabs (CORE_UX_PRINCIPLES). */}
+  <TodayFlow />
+
   {/* ════ Set up next week (box · flex · market) ════ */}
   <section aria-labelledby="setup-heading" class="flex flex-col gap-3">
     <h2 id="setup-heading" class="sr-only">Next week setup</h2>
