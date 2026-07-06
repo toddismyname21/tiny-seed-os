@@ -1,42 +1,38 @@
 ---
 /**
- * /admin/market — the weekly MARKET LIST editor.
+ * /admin/market — the weekly MARKET LIST editor, rebuilt around Todd's brief:
+ * "check off what we have → it lands on the plan; repeat last week and tweak
+ * the numbers; make changes on the fly." (2026-07-06)
  *
- * The farmers-market channel of the unified catalog. Each week, staff pick
- * which master products (product_library) are sold at the market stall and
- * set the retail UNIT + PRICE. CRUD over `market_offerings` for a selected
- * `week_starting` (the cycle Monday).
+ * The page works in the context of ONE (week, market): pick the farmers-market
+ * (Lawrenceville/Bloomfield/Sewickley/South Side) and the cycle week, then:
  *
- * KEY: a product can have MULTIPLE offerings in one week (e.g. Beets by the
- * bunch AND by the pound). So we do NOT dedupe the "Add from your products"
- * list by library_id, and we do NOT hide products already on the week —
- * adding the same product again just creates a second offering with its own
- * unit + price.
+ *   1. COPY LAST WEEK — one tap brings over every item from this market's most
+ *      recent prior week (skipping anything already here). The button states
+ *      exactly what it will add ("Copy 14 items from Week of Jun 29").
+ *   2. ADD FROM PRODUCTS — every master product as a tap-to-check list; check
+ *      off everything the farm has and "Add N items" creates a row each. Items
+ *      already on this week's list for this market show checked + disabled.
+ *   3. ON-THE-FLY EDITING — inline planned-qty / unit / price / show-at-market,
+ *      each auto-saving optimistically (revert-on-failure, like Pick & Pack); a
+ *      one-tap remove (styled inline confirm); and a quick add-single search at
+ *      the top of the list.
  *
- * MARKET TAGGING: each offering is tagged to ONE of the 4 farmers-markets
- * (pickup_locations rows with is_delivery_zone=false AND day_of_week IN
- * ('Tue','Sat','Sun')): Lawrenceville (Tue), Bloomfield (Sat), Sewickley
- * (Sat), South Side (Sun). The market day determines the PACK DAY:
- *   Tue market → MONDAY pack;  Sat/Sun market → THURSDAY pack.
- * A product can be added to multiple markets (each its own offering row).
+ * SOURCE OF TRUTH: market_offerings (id, library_id → product_library,
+ * week_starting = cycle Monday, market_location_id → pickup_locations,
+ * name override, unit, price_cents, planned_qty, is_active, sort_order). NO
+ * schema change — the printable price list, product signs, and Pick & Pack all
+ * read the SAME columns and keep working unchanged.
  *
- * Layout:
- *   1. Week selector (this Monday + next 4 + custom date) — mirrors flex.
- *   2. "➕ Add from your products" — every product_library row with an
- *      instant client-side search; each row carries an inline MARKET select +
- *      unit + price + planned qty and an "Add to market" button (op=add).
- *   3. "This week at market" — offerings GROUPED BY MARKET (a subheading per
- *      market with its pack day), and within each: photo (library-first),
- *      name (offering.name ?? library name), editable unit (datalist) + price
- *      + planned qty, an active toggle, and a remove button. Each row is its
- *      own op=update form; remove is a separate op=remove form.
+ * Markets = pickup_locations with is_delivery_zone=false AND day_of_week IN
+ * ('Tue','Sat','Sun'); the market day sets the PACK DAY (Tue→Mon, Sat/Sun→Thu).
  *
  * Reads with the cookie-aware admin RLS client (market_offerings_staff =
- * is_admin_caller, FOR ALL). The save API re-checks via requireAdmin.
- *
- * This is the product/price LIST — distinct from /admin/market-checkout (the
- * flex-spend point-of-sale tool). No price-list printing or harvest wiring
- * yet (separate roadmap items).
+ * is_admin_caller, FOR ALL). Writes go through:
+ *   /api/admin/market/copy-week   (form → 303)  repeat last week
+ *   /api/admin/market/bulk-add    (form → 303)  check-off + quick add
+ *   /api/admin/market/update-row  (JSON)        inline qty / unit / price / active
+ *   /api/admin/market/delete-row  (JSON)        one-tap remove
  */
 import AdminShell from '../../../components/AdminShell.astro';
 import Card from '../../../components/Card.astro';
@@ -44,8 +40,9 @@ import FormRow from '../../../components/FormRow.astro';
 import Badge from '../../../components/Badge.astro';
 import {
   centsToDollars, formatCents,
-  upcomingMondayET, addWeeksYMD, prettyWeek, isYMD, categoryEmoji,
+  addWeeksYMD, prettyWeek, isYMD, categoryEmoji,
 } from '../../../lib/flex-order';
+import { mondayOfWeek } from '../../../lib/cycle';
 
 const supabase = Astro.locals.supabase;
 const url = Astro.url;
@@ -61,9 +58,28 @@ function packDayLabel(day: string | null): string {
 }
 /** Stable Tue→Sat→Sun ordering for the 4 markets. */
 const MARKET_DAY_ORDER: Record<string, number> = { Tue: 0, Sat: 1, Sun: 2 };
+/** Sun..Sat index for "next-up market" resolution from ET today. */
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+};
 
 // ─── Week resolution (mirrors flex-inventory) ───────────────────────
-const defaultWeek = upcomingMondayET();
+// Default to the CURRENT market cycle-week (the week whose Tue/Sat/Sun markets
+// are next up). mondayOfWeek(ET today) stays on the live week through Sunday.
+function currentMondayET(now: Date = new Date()): string {
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now);
+  const g = (t: string): string => p.find((x) => x.type === t)?.value ?? '';
+  return mondayOfWeek(`${g('year')}-${g('month')}-${g('day')}`);
+}
+/** Short ET weekday ('Sun'..'Sat') for choosing the default market. */
+function etWeekdayShort(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', weekday: 'short',
+  }).format(now);
+}
+const defaultWeek = currentMondayET();
 const weekParam = url.searchParams.get('week');
 const week = weekParam && isYMD(weekParam) ? weekParam : defaultWeek;
 
@@ -78,9 +94,7 @@ if (!weekOptions.some((o) => o.value === week)) {
   weekOptions.unshift({ value: week, label: `${prettyWeek(week)} (selected)` });
 }
 
-// ─── The 4 farmers-markets (for the tag selector + grouping headers) ─
-// pickup_locations with is_delivery_zone=false AND day_of_week IN Tue/Sat/Sun.
-// Lawrenceville (Tue), Bloomfield (Sat), Sewickley (Sat), South Side (Sun).
+// ─── The 4 farmers-markets ──────────────────────────────────────────
 type MarketRow = {
   id: string;
   name: string;
@@ -95,7 +109,6 @@ const { data: marketLocationRows, error: marketsErr } = await supabase
 if (marketsErr) {
   console.error('[admin/market] markets fetch failed:', marketsErr.message);
 }
-// Order Tue → Sat → Sun, then by name (Bloomfield before Sewickley on Sat).
 const markets: MarketRow[] = (marketLocationRows ?? []).slice().sort((a, b) => {
   const da = MARKET_DAY_ORDER[a.day_of_week ?? ''] ?? 99;
   const db = MARKET_DAY_ORDER[b.day_of_week ?? ''] ?? 99;
@@ -104,12 +117,31 @@ const markets: MarketRow[] = (marketLocationRows ?? []).slice().sort((a, b) => {
 });
 const marketById = new Map<string, MarketRow>(markets.map((m) => [m.id, m]));
 
-// ─── This week's offerings (library-first photo + identity) ─────────
+// ─── Selected market ────────────────────────────────────────────────
+// ?market=<uuid> (validated) wins; otherwise default to the market whose day is
+// soonest from ET today (today counts as delta 0 → its market is "next up").
+function nextUpMarketId(): string | null {
+  if (markets.length === 0) return null;
+  const today = WEEKDAY_INDEX[etWeekdayShort()] ?? 0;
+  let best: MarketRow = markets[0];
+  let bestDelta = 99;
+  for (const m of markets) {
+    const di = WEEKDAY_INDEX[m.day_of_week ?? ''] ?? 99;
+    const delta = di === 99 ? 99 : (di - today + 7) % 7;
+    if (delta < bestDelta) { bestDelta = delta; best = m; }
+  }
+  return best.id;
+}
+const marketParam = url.searchParams.get('market');
+const selectedMarketId = marketParam && marketById.has(marketParam)
+  ? marketParam
+  : nextUpMarketId();
+const selectedMarket = selectedMarketId ? marketById.get(selectedMarketId) ?? null : null;
+
+// ─── This week's offerings for the selected market ──────────────────
 type OfferingRow = {
   id: string;
   library_id: string;
-  week_starting: string;
-  market_location_id: string | null;
   name: string | null;
   unit: string;
   price_cents: number;
@@ -118,55 +150,29 @@ type OfferingRow = {
   sort_order: number;
   library: { name: string; category: string | null; photo_url: string | null } | null;
 };
-
-const { data: offeringRows, error: offeringsErr } = await supabase
-  .from('market_offerings')
-  .select(
-    'id, library_id, week_starting, market_location_id, name, unit, price_cents, planned_qty, is_active, sort_order, ' +
-    'library:product_library ( name, category, photo_url )'
-  )
-  .eq('week_starting', week)
-  .order('sort_order', { ascending: true })
-  .order('price_cents', { ascending: true })
-  .overrideTypes<OfferingRow[], { merge: false }>();
-
-if (offeringsErr) {
-  console.error('[admin/market] offerings fetch failed:', offeringsErr.message);
-}
-const offerings: OfferingRow[] = offeringRows ?? [];
-
-// ─── Group offerings by market (in the Tue→Sat→Sun market order) ─────
-// Each group is one market subheading + its rows. Offerings whose market is
-// missing/unknown (legacy rows pre-tagging) fall into an "Untagged" group at
-// the end so they remain visible + editable.
-type OfferingGroup = { market: MarketRow | null; key: string; offerings: OfferingRow[] };
-const offeringsByMarketId = new Map<string, OfferingRow[]>();
-const untaggedOfferings: OfferingRow[] = [];
-for (const o of offerings) {
-  if (o.market_location_id && marketById.has(o.market_location_id)) {
-    const list = offeringsByMarketId.get(o.market_location_id) ?? [];
-    list.push(o);
-    offeringsByMarketId.set(o.market_location_id, list);
-  } else {
-    untaggedOfferings.push(o);
+let offerings: OfferingRow[] = [];
+if (selectedMarketId) {
+  const { data: offeringRows, error: offeringsErr } = await supabase
+    .from('market_offerings')
+    .select(
+      'id, library_id, name, unit, price_cents, planned_qty, is_active, sort_order, ' +
+      'library:product_library ( name, category, photo_url )'
+    )
+    .eq('week_starting', week)
+    .eq('market_location_id', selectedMarketId)
+    .order('sort_order', { ascending: true })
+    .order('price_cents', { ascending: true })
+    .overrideTypes<OfferingRow[], { merge: false }>();
+  if (offeringsErr) {
+    console.error('[admin/market] offerings fetch failed:', offeringsErr.message);
   }
-}
-const offeringGroups: OfferingGroup[] = [];
-for (const m of markets) {
-  const list = offeringsByMarketId.get(m.id);
-  if (list && list.length > 0) {
-    offeringGroups.push({ market: m, key: m.id, offerings: list });
-  }
-}
-if (untaggedOfferings.length > 0) {
-  offeringGroups.push({ market: null, key: 'untagged', offerings: untaggedOfferings });
+  offerings = offeringRows ?? [];
 }
 
 /** Display name: offering override → library name → fallback. */
 function offeringName(o: OfferingRow): string {
   return o.name ?? o.library?.name ?? 'Untitled product';
 }
-/** Display photo, library-first (the shared master photo). */
 function offeringPhoto(o: OfferingRow): string | null {
   return o.library?.photo_url ?? null;
 }
@@ -174,63 +180,116 @@ function offeringCategory(o: OfferingRow): string | null {
   return o.library?.category ?? null;
 }
 
-// ─── Master products (for "Add from your products") ─────────────────
-// EVERY product is shown — a product can be added MULTIPLE times in one week
-// (by the bunch AND the pound), so we intentionally do NOT hide products that
-// are already on the week.
-type LibRow = {
-  id: string;
-  name: string;
-  category: string | null;
-  photo_url: string | null;
-};
+/** library_ids already on this market's list this week (for the checklist). */
+const presentLibIds = new Set(offerings.map((o) => o.library_id));
 
+// ─── Master products (for the "Add from products" checklist) ────────
+type LibRow = { id: string; name: string; category: string | null; photo_url: string | null };
 const { data: libRows, error: libErr } = await supabase
   .from('product_library')
   .select('id, name, category, photo_url')
   .order('category', { ascending: true, nullsFirst: false })
   .order('name', { ascending: true })
   .overrideTypes<LibRow[], { merge: false }>();
-
 if (libErr) {
   console.error('[admin/market] product_library fetch failed:', libErr.message);
 }
 const products: LibRow[] = libRows ?? [];
 
-/** How many offerings already exist this week per library_id (a hint chip). */
-const offeringCountByLib = new Map<string, number>();
-for (const o of offerings) {
-  offeringCountByLib.set(o.library_id, (offeringCountByLib.get(o.library_id) ?? 0) + 1);
+// Last-known unit + price per product (its most recent offering at ANY market)
+// — a helpful hint on the checklist, and what bulk-add seeds new rows with.
+type PriceHint = { unit: string; price_cents: number };
+const lastKnownByLib = new Map<string, PriceHint>();
+{
+  const { data: priceRows } = await supabase
+    .from('market_offerings')
+    .select('library_id, unit, price_cents, week_starting')
+    .order('week_starting', { ascending: false });
+  for (const r of priceRows ?? []) {
+    if (!lastKnownByLib.has(r.library_id)) {
+      lastKnownByLib.set(r.library_id, { unit: r.unit, price_cents: r.price_cents });
+    }
+  }
+}
+
+// ─── Copy-last-week preview (per selected market) ───────────────────
+// The most recent week BEFORE this one that has rows for this market, and how
+// many of its items are NOT already on the current week (what Copy would add).
+let copyFromWeek: string | null = null;
+let copyWillAdd = 0;
+let copySourceCount = 0;
+if (selectedMarketId) {
+  const { data: srcWeekRow } = await supabase
+    .from('market_offerings')
+    .select('week_starting')
+    .eq('market_location_id', selectedMarketId)
+    .lt('week_starting', week)
+    .order('week_starting', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (srcWeekRow?.week_starting) {
+    copyFromWeek = srcWeekRow.week_starting;
+    const { data: srcRows } = await supabase
+      .from('market_offerings')
+      .select('library_id')
+      .eq('market_location_id', selectedMarketId)
+      .eq('week_starting', copyFromWeek);
+    const srcLibs = (srcRows ?? []).map((r) => r.library_id);
+    copySourceCount = srcLibs.length;
+    copyWillAdd = srcLibs.filter((id) => !presentLibIds.has(id)).length;
+  }
 }
 
 // ─── Flash ──────────────────────────────────────────────────────────
 const okFlag = url.searchParams.get('ok');
 const errorFlag = url.searchParams.get('error');
-const OK_COPY: Record<string, string> = {
-  added: 'Added to this week at market.',
-  saved: 'Offering updated.',
-  removed: 'Offering removed.',
-};
+const nParam = Number(url.searchParams.get('n'));
+const fromParam = url.searchParams.get('from');
+const nCount = Number.isFinite(nParam) ? nParam : 0;
+const selectedMarketName = selectedMarket?.name ?? 'this market';
+
+let okMessage: string | null = null;
+if (okFlag === 'added') {
+  okMessage = nCount > 0
+    ? `Added ${nCount} ${nCount === 1 ? 'item' : 'items'} to ${selectedMarketName}. Tweak the quantities below.`
+    : `Those products were already on ${selectedMarketName}'s list — nothing to add.`;
+} else if (okFlag === 'copied') {
+  const fromLabel = fromParam && isYMD(fromParam) ? prettyWeek(fromParam) : 'last week';
+  okMessage = nCount > 0
+    ? `Copied ${nCount} ${nCount === 1 ? 'item' : 'items'} from ${fromLabel}. Tweak the quantities below.`
+    : `Last week's items are all already on ${selectedMarketName}'s list.`;
+}
+
 const ERROR_COPY: Record<string, string> = {
   invalid_input: 'Some fields were invalid — please check and try again.',
-  invalid_price: 'Enter a valid price in dollars (e.g. 4.50).',
-  invalid_qty: 'Enter a valid planned quantity (a number 0 or greater).',
+  bad_week: 'That week looked wrong — pick a market week and try again.',
   invalid_market: 'Pick one of the four farmers-markets.',
-  add_failed: "Couldn't add that product to the week.",
-  save_failed: "Couldn't save that offering. Please try again.",
-  remove_failed: "Couldn't remove that offering.",
+  invalid_price: 'Enter a valid price in dollars (e.g. 4.50).',
+  nothing_selected: 'Check at least one product before adding.',
+  no_prior_week: "There's no earlier week to copy for this market yet.",
+  add_failed: "Couldn't add those products. Please try again.",
+  copy_failed: "Couldn't copy last week's list. Please try again.",
 };
-const okMessage = okFlag ? OK_COPY[okFlag] ?? null : null;
 const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
+
+const subtitle = selectedMarket
+  ? `${selectedMarket.name} · ${prettyWeek(week)}`
+  : prettyWeek(week);
 ---
 
 <AdminShell
   title="Market list"
-  subtitle={prettyWeek(week)}
+  subtitle={subtitle}
   pageTitle="Market list — Tiny Seed Admin"
   canonical="https://csa.tinyseedfarm.com/admin/market"
 >
   <Fragment slot="actions">
+    <a
+      href={`/admin/market/labels/${week}`}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🏷 Print product signs
+    </a>
     <a
       href={`/admin/market/price-list/${week}`}
       class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
@@ -257,14 +316,55 @@ const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
     </div>
   )}
 
-  {/* Shared units datalist (used by add + every edit row). */}
+  {/* Shared datalists: retail units + every product (quick add). */}
   <datalist id="market-units">
     {MARKET_UNITS.map((u) => <option value={u}></option>)}
   </datalist>
+  <datalist id="market-all-products">
+    {products.map((p) => <option value={p.name} data-lib-id={p.id}></option>)}
+  </datalist>
 
-  {/* ════ Week selector ════ */}
+  {markets.length === 0 ? (
+    <Card padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-2 py-8 text-center">
+        <span class="text-4xl" aria-hidden="true">🛒</span>
+        <p class="text-base font-semibold text-ts-text">No farmers-markets are set up yet.</p>
+        <p class="max-w-md text-sm text-ts-text-secondary">
+          Add the Tuesday / Saturday / Sunday market pickup locations first, then come back to plan what you're selling.
+        </p>
+      </div>
+    </Card>
+  ) : (
+  <>
+  {/* ════ Market picker + week selector ════ */}
   <Card padding="md" elevation="sm">
-    <form method="GET" action="/admin/market" class="flex flex-col gap-4 sm:flex-row sm:items-end">
+    {/* Market tabs (preserve the selected week). */}
+    <nav aria-label="Choose a farmers-market" class="-mx-1 flex gap-2 overflow-x-auto pb-1">
+      {markets.map((m) => {
+        const isSel = m.id === selectedMarketId;
+        return (
+          <a
+            href={`/admin/market?week=${week}&market=${m.id}`}
+            aria-current={isSel ? 'page' : undefined}
+            class={[
+              'inline-flex min-h-11 shrink-0 flex-col justify-center rounded-ts-md border px-4 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary',
+              isSel
+                ? 'border-ts-primary bg-ts-primary/10 text-ts-primary'
+                : 'border-ts-border bg-ts-bg-surface text-ts-text hover:border-ts-primary/40 hover:text-ts-primary',
+            ].join(' ')}
+          >
+            <span class="text-sm font-semibold">{m.name}</span>
+            <span class="text-xs font-medium text-ts-text-muted">
+              {m.day_of_week} → {packDayLabel(m.day_of_week)}
+            </span>
+          </a>
+        );
+      })}
+    </nav>
+
+    {/* Week selector (preserve the selected market). */}
+    <form method="GET" action="/admin/market" class="mt-4 flex flex-col gap-4 border-t border-ts-border pt-4 sm:flex-row sm:items-end">
+      {selectedMarketId && <input type="hidden" name="market" value={selectedMarketId} />}
       <div class="flex-1">
         <FormRow label="Market week (Monday)" htmlFor="week-select">
           <select
@@ -306,160 +406,176 @@ const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
     </script>
   </Card>
 
-  {/* ════ This week at market — grouped by market ════ */}
+  {/* ════ Copy last week ════ */}
+  {selectedMarketId && copyFromWeek && copyWillAdd > 0 && (
+    <Card padding="md" elevation="sm">
+      <form method="POST" action="/api/admin/market/copy-week" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <input type="hidden" name="week_starting" value={week} />
+        <input type="hidden" name="market_location_id" value={selectedMarketId} />
+        <div class="min-w-0">
+          <p class="font-display text-base font-bold text-ts-text">📋 Repeat last week</p>
+          <p class="mt-0.5 text-sm text-ts-text-secondary">
+            Bring over <span class="font-semibold text-ts-text">{copyWillAdd} {copyWillAdd === 1 ? 'item' : 'items'}</span>
+            {' '}from <span class="font-semibold text-ts-text">{prettyWeek(copyFromWeek)}</span>
+            {copySourceCount !== copyWillAdd && (
+              <span class="text-ts-text-muted"> ({copySourceCount - copyWillAdd} already here)</span>
+            )}. Then just tweak the numbers.
+          </p>
+        </div>
+        <button
+          type="submit"
+          class="inline-flex h-11 shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Copy {copyWillAdd} {copyWillAdd === 1 ? 'item' : 'items'}
+        </button>
+      </form>
+    </Card>
+  )}
+
+  {/* ════ This week at market (interactive list) ════ */}
   <Card padding="none" elevation="sm">
-    <div class="flex items-center justify-between gap-3 border-b border-ts-border px-5 py-4">
-      <h2 class="font-display text-lg font-bold text-ts-text">
-        {offerings.length === 0
-          ? 'Nothing at market yet'
-          : `${offerings.length} ${offerings.length === 1 ? 'offering' : 'offerings'} this week`}
-      </h2>
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-ts-border px-5 py-4">
+      <div class="min-w-0">
+        <h2 class="font-display text-lg font-bold text-ts-text">
+          {selectedMarket?.name ?? 'Market'} — this week
+        </h2>
+        <p class="mt-0.5 text-sm text-ts-text-secondary">
+          <span data-list-count>{offerings.length}</span> {offerings.length === 1 ? 'item' : 'items'} ·
+          {' '}{selectedMarket?.day_of_week} → {packDayLabel(selectedMarket?.day_of_week ?? null)}
+        </p>
+      </div>
+    </div>
+
+    {/* Quick add a single product. */}
+    <div class="border-b border-ts-border px-5 py-4">
+      <form method="POST" action="/api/admin/market/bulk-add" class="flex flex-col gap-2 sm:flex-row sm:items-end" data-quick-add-form>
+        <input type="hidden" name="week_starting" value={week} />
+        <input type="hidden" name="market_location_id" value={selectedMarketId ?? ''} />
+        <input type="hidden" name="library_ids" value="" data-quick-add-id />
+        <div class="flex-1">
+          <label for="quick-add" class="block text-sm font-semibold text-ts-text">Quick add a product</label>
+          <input
+            id="quick-add"
+            type="search"
+            list="market-all-products"
+            autocomplete="off"
+            placeholder="Type a product name…"
+            class="mt-2 block h-11 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+            data-quick-add-input
+          />
+        </div>
+        <button
+          type="submit"
+          disabled
+          class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-primary bg-ts-primary/5 px-4 text-sm font-semibold text-ts-primary transition-all duration-150 hover:bg-ts-primary/10 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-50"
+          data-quick-add-btn
+        >
+          Add
+        </button>
+      </form>
     </div>
 
     {offerings.length === 0 ? (
-      <div class="px-5 py-10 text-center">
+      <div class="px-5 py-10 text-center" data-list-empty>
         <p class="text-3xl" aria-hidden="true">🛒</p>
-        <p class="mt-2 text-sm font-medium text-ts-text">No market offerings for this week yet.</p>
-        <p class="mt-1 text-xs text-ts-text-muted">Add products below — pick a market, unit, price, and planned qty for each.</p>
+        <p class="mt-2 text-sm font-medium text-ts-text">Nothing on {selectedMarket?.name ?? 'this market'} yet.</p>
+        <p class="mt-1 text-xs text-ts-text-muted">
+          {copyFromWeek ? 'Copy last week above, or check' : 'Check'} off what you have in
+          <span class="font-medium text-ts-text"> Add from products</span> below.
+        </p>
       </div>
     ) : (
-      <div>
-        {offeringGroups.map((group) => (
-          <section aria-label={group.market ? group.market.name : 'Untagged offerings'}>
-            {/* Market subheading + pack-day chip. */}
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-ts-border bg-ts-bg-muted/30 px-5 py-2.5">
-              <h3 class="font-display text-sm font-bold text-ts-text">
-                {group.market ? group.market.name : 'Untagged'}
-              </h3>
-              {group.market ? (
-                <span class="inline-flex items-center gap-1 text-xs font-medium text-ts-text-secondary">
-                  <span class="text-ts-text-muted">{group.market.day_of_week}</span>
-                  <span aria-hidden="true">→</span>
-                  <span class="rounded-ts-sm bg-ts-primary/10 px-1.5 py-0.5 font-semibold text-ts-primary">
-                    {packDayLabel(group.market.day_of_week)}
-                  </span>
-                </span>
-              ) : (
-                <span class="text-xs font-medium text-ts-text-muted">
-                  No market assigned — edit each row to retag, or remove.
-                </span>
-              )}
-              <span class="ml-auto text-xs text-ts-text-muted tabular-nums">
-                {group.offerings.length} {group.offerings.length === 1 ? 'item' : 'items'}
-              </span>
-            </div>
+      <ul role="list" class="divide-y divide-ts-border" data-offering-list>
+        {offerings.map((o) => {
+          const thumb = offeringPhoto(o);
+          const cat = offeringCategory(o);
+          return (
+            <li
+              data-offering-row
+              data-id={o.id}
+              class={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center ${o.is_active ? '' : 'opacity-60'}`}
+            >
+              <div class="flex min-w-0 flex-1 items-center gap-4">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-2xl">
+                  {thumb
+                    ? <img src={thumb} alt="" width="56" height="56" loading="lazy" class="h-full w-full object-cover" />
+                    : <span aria-hidden="true">{categoryEmoji(cat)}</span>}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-semibold text-ts-text">{offeringName(o)}</p>
+                    <span class="hidden text-xs font-semibold text-ts-primary" data-row-saved>✓ saved</span>
+                  </div>
+                  {cat && <p class="mt-0.5 text-xs text-ts-text-muted">{cat}</p>}
+                </div>
+              </div>
 
-            <ul role="list" class="divide-y divide-ts-border">
-              {group.offerings.map((o) => {
-                const thumb = offeringPhoto(o);
-                const cat = offeringCategory(o);
-                return (
-                  <li class={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center ${o.is_active ? '' : 'opacity-60'}`}>
-                    <div class="flex min-w-0 flex-1 items-center gap-4">
-                      <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-2xl">
-                        {thumb
-                          ? <img src={thumb} alt="" width="56" height="56" loading="lazy" class="h-full w-full object-cover" />
-                          : <span aria-hidden="true">{categoryEmoji(cat)}</span>}
-                      </div>
-                      <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center gap-2">
-                          <p class="font-semibold text-ts-text">{offeringName(o)}</p>
-                          {!o.is_active && <Badge variant="gray" size="xs" uppercase>Off</Badge>}
-                        </div>
-                        <p class="mt-0.5 text-sm text-ts-text-secondary tabular-nums">
-                          {formatCents(o.price_cents)} · {o.unit}
-                          {cat && <span class="text-ts-text-muted"> · {cat}</span>}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Edit unit + price + planned qty + active (op=update). */}
-                    <form
-                      method="POST"
-                      action="/api/admin/market/save"
-                      class="flex flex-wrap items-end gap-3 sm:shrink-0"
-                    >
-                      <input type="hidden" name="op" value="update" />
-                      <input type="hidden" name="id" value={o.id} />
-                      <input type="hidden" name="week_starting" value={week} />
-
-                      <div class="w-24">
-                        <label for={`unit-${o.id}`} class="block text-xs font-medium text-ts-text-secondary">Unit</label>
-                        <input
-                          id={`unit-${o.id}`} type="text" name="unit" required list="market-units" maxlength="30"
-                          value={o.unit}
-                          class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
-                        />
-                      </div>
-                      <div class="w-24">
-                        <label for={`price-${o.id}`} class="block text-xs font-medium text-ts-text-secondary">Price</label>
-                        <div class="relative mt-1">
-                          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
-                          <input
-                            id={`price-${o.id}`} type="text" inputmode="decimal" name="price_dollars" required
-                            value={centsToDollars(o.price_cents)}
-                            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-3 py-2 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
-                          />
-                        </div>
-                      </div>
-                      <div class="w-24">
-                        <label for={`qty-${o.id}`} class="block text-xs font-medium text-ts-text-secondary">Planned qty</label>
-                        <input
-                          id={`qty-${o.id}`} type="text" inputmode="decimal" name="planned_qty"
-                          placeholder="—"
-                          value={o.planned_qty ?? ''}
-                          class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
-                        />
-                      </div>
-                      <label class="flex h-11 items-center gap-2 self-end text-sm text-ts-text">
-                        <input type="checkbox" name="is_active" value="true" checked={o.is_active} class="h-4 w-4 rounded border-ts-border text-ts-primary focus:ring-ts-primary/30" />
-                        <span>Active</span>
-                      </label>
-                      <button
-                        type="submit"
-                        class="inline-flex h-11 items-center justify-center self-end rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
-                      >
-                        Save
-                      </button>
-                    </form>
-
-                    {/* Remove (op=remove). */}
-                    <form method="POST" action="/api/admin/market/save" class="self-end sm:shrink-0" data-remove-form>
-                      <input type="hidden" name="op" value="remove" />
-                      <input type="hidden" name="id" value={o.id} />
-                      <input type="hidden" name="week_starting" value={week} />
-                      <button
-                        type="submit"
-                        class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 text-sm font-medium text-ts-danger transition-colors duration-150 hover:bg-ts-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
-                        aria-label={`Remove ${offeringName(o)} from market`}
-                      >
-                        Remove
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
+              {/* Inline edits — each auto-saves (optimistic). */}
+              <div class="flex flex-wrap items-end gap-3 sm:shrink-0">
+                <div class="w-24">
+                  <label class="block text-xs font-medium text-ts-text-secondary" for={`qty-${o.id}`}>Planned qty</label>
+                  <input
+                    id={`qty-${o.id}`} type="text" inputmode="decimal" placeholder="—"
+                    value={o.planned_qty ?? ''}
+                    data-field="planned_qty"
+                    aria-label={`Planned quantity for ${offeringName(o)}`}
+                    class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                  />
+                </div>
+                <div class="w-24">
+                  <label class="block text-xs font-medium text-ts-text-secondary" for={`unit-${o.id}`}>Unit</label>
+                  <input
+                    id={`unit-${o.id}`} type="text" list="market-units" maxlength="30"
+                    value={o.unit}
+                    data-field="unit"
+                    aria-label={`Unit for ${offeringName(o)}`}
+                    class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                  />
+                </div>
+                <div class="w-24">
+                  <label class="block text-xs font-medium text-ts-text-secondary" for={`price-${o.id}`}>Price</label>
+                  <div class="relative mt-1">
+                    <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
+                    <input
+                      id={`price-${o.id}`} type="text" inputmode="decimal"
+                      value={o.price_cents > 0 ? centsToDollars(o.price_cents) : ''}
+                      placeholder="0.00"
+                      data-field="price_dollars"
+                      aria-label={`Price for ${offeringName(o)}`}
+                      class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-3 py-2 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                    />
+                  </div>
+                </div>
+                <label class="flex h-11 items-center gap-2 self-end text-sm text-ts-text">
+                  <input type="checkbox" checked={o.is_active} data-field="is_active" class="h-4 w-4 rounded border-ts-border text-ts-primary focus:ring-ts-primary/30" />
+                  <span>At market</span>
+                </label>
+                <div class="self-end" data-remove-wrap>
+                  <button
+                    type="button"
+                    data-remove-btn
+                    aria-label={`Remove ${offeringName(o)} from ${selectedMarket?.name ?? 'market'}`}
+                    class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 text-sm font-medium text-ts-danger transition-colors duration-150 hover:bg-ts-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     )}
   </Card>
 
-  {/* ════ Add from your products ════ */}
+  {/* ════ Add from products (bulk checklist) ════ */}
   <Card padding="none" elevation="sm">
     <div class="border-b border-ts-border px-5 py-4">
-      <h2 class="font-display text-lg font-bold text-ts-text">➕ Add from your products</h2>
+      <h2 class="font-display text-lg font-bold text-ts-text">➕ Add from products</h2>
       <p class="mt-1 text-sm text-ts-text-secondary">
-        Pick a product, choose <span class="font-semibold text-ts-text">which market</span>, set its unit + price + planned qty,
-        and add it to <span class="font-semibold text-ts-text">{prettyWeek(week)}</span>.
-        Add the same product to more than one market (each is its own line).
+        Check off everything the farm has for <span class="font-semibold text-ts-text">{selectedMarket?.name ?? 'this market'}</span>,
+        then tap <span class="font-semibold text-ts-text">Add</span>. Items already on this week's list are checked and locked.
       </p>
-      {markets.length === 0 && (
-        <p class="mt-2 rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-3 py-2 text-xs font-medium text-ts-danger">
-          No farmers-markets are configured yet — set up the Tue/Sat/Sun market pickup locations before adding offerings.
-        </p>
-      )}
     </div>
 
     {products.length === 0 ? (
@@ -471,148 +587,146 @@ const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
         </p>
       </div>
     ) : (
-      <div>
-        {/* Instant search */}
-        <div class="border-b border-ts-border px-5 py-4">
-          <label for="market-product-search" class="text-sm font-semibold text-ts-text">Find a product</label>
-          <input
-            id="market-product-search"
-            type="search"
-            autocomplete="off"
-            placeholder="Name or category…"
-            class="mt-2 block h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
-            data-market-search
-          />
-          <p class="mt-2 text-xs text-ts-text-muted">
-            <span data-market-count>{products.length} {products.length === 1 ? 'product' : 'products'}</span> in the master catalog.
-          </p>
+      <form method="POST" action="/api/admin/market/bulk-add" data-add-form>
+        <input type="hidden" name="week_starting" value={week} />
+        <input type="hidden" name="market_location_id" value={selectedMarketId ?? ''} />
+
+        {/* Search + select-all controls. */}
+        <div class="flex flex-col gap-3 border-b border-ts-border px-5 py-4">
+          <div>
+            <label for="add-search" class="text-sm font-semibold text-ts-text">Find a product</label>
+            <input
+              id="add-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Name or category…"
+              class="mt-2 block h-12 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              data-add-search
+            />
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              data-add-checkall
+              class="inline-flex min-h-11 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              Check all shown
+            </button>
+            <button
+              type="button"
+              data-add-clear
+              class="inline-flex min-h-11 items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              Clear
+            </button>
+            <p class="text-xs text-ts-text-muted">
+              <span data-add-shown>{products.length}</span> shown · <span data-add-selected>0</span> checked
+            </p>
+          </div>
         </div>
 
-        <ul role="list" class="divide-y divide-ts-border" data-market-list>
+        <ul role="list" class="divide-y divide-ts-border" data-add-list>
           {products.map((p) => {
-            const already = offeringCountByLib.get(p.id) ?? 0;
+            const already = presentLibIds.has(p.id);
+            const hint = lastKnownByLib.get(p.id);
             return (
               <li
-                data-market-row
+                data-add-row
                 data-name={p.name.toLowerCase()}
                 data-category={(p.category ?? '').toLowerCase()}
-                class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center"
               >
-                <div class="flex min-w-0 flex-1 items-center gap-4">
-                  <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-xl">
+                <label class={`flex items-center gap-4 px-5 py-3 ${already ? 'opacity-60' : 'cursor-pointer hover:bg-ts-bg-muted/40'}`}>
+                  <input
+                    type="checkbox"
+                    name="library_ids"
+                    value={p.id}
+                    checked={already}
+                    disabled={already}
+                    data-add-check
+                    class="h-5 w-5 shrink-0 rounded border-ts-border text-ts-primary focus:ring-ts-primary/30"
+                  />
+                  <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-lg">
                     {p.photo_url
-                      ? <img src={p.photo_url} alt="" width="48" height="48" loading="lazy" class="h-full w-full object-cover" />
+                      ? <img src={p.photo_url} alt="" width="44" height="44" loading="lazy" class="h-full w-full object-cover" />
                       : <span aria-hidden="true">{categoryEmoji(p.category)}</span>}
                   </div>
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
                       <p class="truncate text-sm font-medium text-ts-text">{p.name}</p>
-                      {already > 0 && (
-                        <Badge variant="green" size="xs">{already} on this week</Badge>
+                      {already && <Badge variant="green" size="xs">On the list</Badge>}
+                    </div>
+                    <p class="truncate text-xs text-ts-text-muted">
+                      {p.category ?? 'Uncategorized'}
+                      {hint && hint.price_cents > 0 && (
+                        <span> · last {formatCents(hint.price_cents)}/{hint.unit}</span>
                       )}
-                    </div>
-                    {p.category && <p class="truncate text-xs text-ts-text-muted">{p.category}</p>}
+                    </p>
                   </div>
-                </div>
-
-                {/* Add this product to a market (op=add) with its own
-                    market + unit + price + planned qty. */}
-                <form
-                  method="POST"
-                  action="/api/admin/market/save"
-                  class="flex flex-wrap items-end gap-3 sm:shrink-0"
-                >
-                  <input type="hidden" name="op" value="add" />
-                  <input type="hidden" name="library_id" value={p.id} />
-                  <input type="hidden" name="week_starting" value={week} />
-
-                  <div class="w-40">
-                    <label for={`add-market-${p.id}`} class="block text-xs font-medium text-ts-text-secondary">Market</label>
-                    <select
-                      id={`add-market-${p.id}`} name="market_location_id" required disabled={markets.length === 0}
-                      class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11 disabled:opacity-50"
-                    >
-                      <option value="" selected disabled>Pick a market…</option>
-                      {markets.map((m) => (
-                        <option value={m.id}>{m.name} ({m.day_of_week} → {packDayLabel(m.day_of_week)})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div class="w-24">
-                    <label for={`add-unit-${p.id}`} class="block text-xs font-medium text-ts-text-secondary">Unit</label>
-                    <input
-                      id={`add-unit-${p.id}`} type="text" name="unit" required list="market-units" maxlength="30"
-                      value="each"
-                      class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
-                    />
-                  </div>
-                  <div class="w-24">
-                    <label for={`add-price-${p.id}`} class="block text-xs font-medium text-ts-text-secondary">Price</label>
-                    <div class="relative mt-1">
-                      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ts-text-muted">$</span>
-                      <input
-                        id={`add-price-${p.id}`} type="text" inputmode="decimal" name="price_dollars"
-                        placeholder="0.00"
-                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base pl-7 pr-3 py-2 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
-                      />
-                    </div>
-                  </div>
-                  <div class="w-24">
-                    <label for={`add-qty-${p.id}`} class="block text-xs font-medium text-ts-text-secondary">Planned qty</label>
-                    <input
-                      id={`add-qty-${p.id}`} type="text" inputmode="decimal" name="planned_qty"
-                      placeholder="—"
-                      class="mt-1 block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={markets.length === 0}
-                    class="inline-flex h-11 items-center justify-center self-end rounded-ts-md border border-ts-primary bg-ts-primary/5 px-4 text-sm font-semibold text-ts-primary transition-all duration-150 hover:bg-ts-primary/10 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Add to market
-                  </button>
-                </form>
+                </label>
               </li>
             );
           })}
         </ul>
 
-        {/* Empty state shown by the client script when a search matches nobody. */}
-        <div class="px-5 py-10 text-center" data-market-empty hidden>
+        {/* Empty state when a search matches nobody. */}
+        <div class="px-5 py-10 text-center" data-add-empty hidden>
           <p class="text-3xl" aria-hidden="true">🔍</p>
-          <p class="mt-2 text-sm font-medium text-ts-text">No products match "<strong class="text-ts-text" data-market-empty-q></strong>".</p>
+          <p class="mt-2 text-sm font-medium text-ts-text">No products match "<strong class="text-ts-text" data-add-empty-q></strong>".</p>
           <p class="mt-1 text-xs text-ts-text-muted">Try a different spelling, or search by category.</p>
         </div>
-      </div>
+
+        {/* Sticky Add bar. */}
+        <div class="sticky bottom-0 flex items-center justify-between gap-3 border-t border-ts-border bg-ts-bg-surface/95 px-5 py-4 backdrop-blur">
+          <p class="text-xs text-ts-text-muted">New items start with a blank quantity — set it after adding.</p>
+          <button
+            type="submit"
+            disabled
+            data-add-submit
+            class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Add <span data-add-submit-count>0</span> items
+          </button>
+        </div>
+      </form>
     )}
   </Card>
+  </>
+  )}
 
-  {/* ════ Confirm remove ════ */}
-  <script>
-    document.querySelectorAll<HTMLFormElement>('[data-remove-form]').forEach((form) => {
-      form.addEventListener('submit', (e) => {
-        if (!window.confirm('Remove this offering from the market list?')) {
-          e.preventDefault();
-        }
-      });
-    });
-  </script>
+  {/* Save toast (screen). */}
+  <div id="market-toast" class="market-toast" role="status" aria-live="polite"></div>
 
-  {/* ════ Instant search over the master products ════ */}
+  {/* ════ Checklist: search + selection counter + select-all ════ */}
   <script is:inline>
     (function () {
-      var input = document.querySelector('[data-market-search]');
-      var list = document.querySelector('[data-market-list]');
-      if (!input || !list) return;
-      var rows = Array.prototype.slice.call(list.querySelectorAll('[data-market-row]'));
-      var countEl = document.querySelector('[data-market-count]');
-      var emptyWrap = document.querySelector('[data-market-empty]');
-      var emptyQ = document.querySelector('[data-market-empty-q]');
-      var total = rows.length;
+      var form = document.querySelector('[data-add-form]');
+      if (!form) return;
+      var search = form.querySelector('[data-add-search]');
+      var rows = Array.prototype.slice.call(form.querySelectorAll('[data-add-row]'));
+      var shownEl = form.querySelector('[data-add-shown]');
+      var selectedEl = form.querySelector('[data-add-selected]');
+      var submitBtn = form.querySelector('[data-add-submit]');
+      var submitCount = form.querySelector('[data-add-submit-count]');
+      var emptyWrap = form.querySelector('[data-add-empty]');
+      var emptyQ = form.querySelector('[data-add-empty-q]');
+      var checkAllBtn = form.querySelector('[data-add-checkall]');
+      var clearBtn = form.querySelector('[data-add-clear]');
+
+      function checkboxOf(row) { return row.querySelector('[data-add-check]'); }
+
+      function refreshCount() {
+        var n = 0;
+        for (var i = 0; i < rows.length; i++) {
+          var cb = checkboxOf(rows[i]);
+          if (cb && cb.checked && !cb.disabled) n++;
+        }
+        if (selectedEl) selectedEl.textContent = String(n);
+        if (submitCount) submitCount.textContent = String(n);
+        if (submitBtn) submitBtn.disabled = n === 0;
+      }
 
       function applyFilter() {
-        var q = (input.value || '').trim().toLowerCase();
+        var q = (search && search.value ? search.value : '').trim().toLowerCase();
         var shown = 0;
         for (var i = 0; i < rows.length; i++) {
           var row = rows[i];
@@ -622,18 +736,273 @@ const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
           row.hidden = !match;
           if (match) shown++;
         }
-        if (countEl) {
-          countEl.textContent = q === ''
-            ? total + (total === 1 ? ' product' : ' products')
-            : 'Showing ' + shown + ' of ' + total + (total === 1 ? ' product' : ' products');
-        }
+        if (shownEl) shownEl.textContent = String(shown);
         if (emptyWrap) {
-          var noneShown = shown === 0 && total > 0;
-          emptyWrap.hidden = !noneShown;
-          if (noneShown && emptyQ) emptyQ.textContent = input.value.trim();
+          var none = shown === 0 && rows.length > 0;
+          emptyWrap.hidden = !none;
+          if (none && emptyQ) emptyQ.textContent = (search && search.value ? search.value : '').trim();
         }
       }
-      input.addEventListener('input', applyFilter);
+
+      if (search) search.addEventListener('input', applyFilter);
+      form.addEventListener('change', function (e) {
+        if (e.target && e.target.matches && e.target.matches('[data-add-check]')) refreshCount();
+      });
+      if (checkAllBtn) checkAllBtn.addEventListener('click', function () {
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i].hidden) continue;
+          var cb = checkboxOf(rows[i]);
+          if (cb && !cb.disabled) cb.checked = true;
+        }
+        refreshCount();
+      });
+      if (clearBtn) clearBtn.addEventListener('click', function () {
+        for (var i = 0; i < rows.length; i++) {
+          var cb = checkboxOf(rows[i]);
+          if (cb && !cb.disabled) cb.checked = false;
+        }
+        refreshCount();
+      });
+      refreshCount();
     })();
   </script>
+
+  {/* ════ Quick-add: resolve typed name → product id ════ */}
+  <script is:inline>
+    (function () {
+      var form = document.querySelector('[data-quick-add-form]');
+      if (!form) return;
+      var input = form.querySelector('[data-quick-add-input]');
+      var idField = form.querySelector('[data-quick-add-id]');
+      var btn = form.querySelector('[data-quick-add-btn]');
+      var datalist = document.getElementById('market-all-products');
+      if (!input || !idField || !btn || !datalist) return;
+
+      var byName = {};
+      var opts = datalist.querySelectorAll('option');
+      for (var i = 0; i < opts.length; i++) {
+        var nm = opts[i].value;
+        var id = opts[i].getAttribute('data-lib-id');
+        if (nm && id) byName[nm.toLowerCase()] = id;
+      }
+      function resolve() {
+        var v = (input.value || '').trim().toLowerCase();
+        var id = byName[v] || '';
+        idField.value = id;
+        btn.disabled = !id;
+      }
+      input.addEventListener('input', resolve);
+      input.addEventListener('change', resolve);
+      form.addEventListener('submit', function (e) {
+        resolve();
+        if (!idField.value) e.preventDefault();
+      });
+    })();
+  </script>
+
+  {/* ════ Interactive list: inline edits + one-tap remove (optimistic) ════ */}
+  <script is:inline>
+    (function () {
+      var list = document.querySelector('[data-offering-list]');
+      if (!list) return;
+      var toast = document.getElementById('market-toast');
+      var countEl = document.querySelector('[data-list-count]');
+
+      function showToast(msg, danger) {
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.className = 'market-toast show' + (danger ? ' danger' : '');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(function () { toast.className = 'market-toast'; }, 2000);
+      }
+      function flashSaved(row) {
+        var s = row.querySelector('[data-row-saved]');
+        if (!s) return;
+        s.classList.remove('hidden');
+        clearTimeout(s._t);
+        s._t = setTimeout(function () { s.classList.add('hidden'); }, 1400);
+      }
+      function updateCount() {
+        var n = list.querySelectorAll('[data-offering-row]').length;
+        if (countEl) countEl.textContent = String(n);
+      }
+
+      function postJSON(body) {
+        return fetch('/api/admin/market/update-row', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+      }
+
+      // ── Inline field edits (qty / unit / price / active) ──
+      function saveField(input) {
+        var row = input.closest('[data-offering-row]');
+        if (!row) return;
+        var id = row.getAttribute('data-id');
+        var field = input.getAttribute('data-field');
+        var prev = input.getAttribute('data-prev');
+        var body = { id: id };
+
+        if (field === 'planned_qty') {
+          var raw = (input.value || '').trim();
+          if (raw === '') { body.planned_qty = null; }
+          else {
+            var n = Number(raw);
+            if (!isFinite(n) || n < 0) { input.value = prev || ''; showToast('Quantity must be 0 or more', true); return; }
+            body.planned_qty = n;
+          }
+        } else if (field === 'unit') {
+          var u = (input.value || '').trim();
+          if (!u) { input.value = prev || 'each'; showToast('Unit can’t be blank', true); return; }
+          body.unit = u;
+        } else if (field === 'price_dollars') {
+          body.price_dollars = (input.value || '').trim();
+        }
+
+        input.disabled = true;
+        postJSON(body).then(function (res) {
+          input.disabled = false;
+          if (!res.ok || !res.j || !res.j.ok) throw new Error('save_failed');
+          // Reflect server-normalized values.
+          if (field === 'planned_qty') input.value = res.j.planned_qty == null ? '' : String(res.j.planned_qty);
+          if (field === 'unit') input.value = res.j.unit;
+          if (field === 'price_dollars') input.value = res.j.price_cents > 0 ? (res.j.price_cents / 100).toFixed(2) : '';
+          input.setAttribute('data-prev', input.value);
+          flashSaved(row);
+          showToast('Saved');
+        }).catch(function () {
+          input.disabled = false;
+          input.value = prev || '';
+          showToast('Couldn’t save — try again', true);
+        });
+      }
+
+      function saveActive(cb) {
+        var row = cb.closest('[data-offering-row]');
+        if (!row) return;
+        var id = row.getAttribute('data-id');
+        var want = cb.checked;
+        cb.disabled = true;
+        postJSON({ id: id, is_active: want }).then(function (res) {
+          cb.disabled = false;
+          if (!res.ok || !res.j || !res.j.ok) throw new Error('save_failed');
+          row.classList.toggle('opacity-60', !want);
+          flashSaved(row);
+          showToast(want ? 'Showing at market' : 'Hidden from market');
+        }).catch(function () {
+          cb.disabled = false;
+          cb.checked = !want;
+          showToast('Couldn’t save — try again', true);
+        });
+      }
+
+      list.addEventListener('focusin', function (e) {
+        var t = e.target;
+        if (t && t.matches && t.matches('input[data-field]:not([type=checkbox])')) {
+          t.setAttribute('data-prev', t.value);
+        }
+      });
+      list.addEventListener('change', function (e) {
+        var t = e.target;
+        if (!t || !t.matches) return;
+        if (t.matches('input[data-field=is_active]')) { saveActive(t); return; }
+        if (t.matches('input[data-field]:not([type=checkbox])')) { saveField(t); }
+      });
+      list.addEventListener('keydown', function (e) {
+        var t = e.target;
+        if (e.key === 'Enter' && t && t.matches && t.matches('input[data-field]:not([type=checkbox])')) {
+          e.preventDefault(); t.blur();
+        }
+      });
+
+      // ── One-tap remove (styled inline confirm) ──
+      function resetRemove(wrap, row) {
+        wrap.innerHTML = '';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('data-remove-btn', '');
+        btn.className = 'inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 text-sm font-medium text-ts-danger transition-colors duration-150 hover:bg-ts-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger';
+        btn.textContent = 'Remove';
+        wrap.appendChild(btn);
+      }
+
+      list.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t || !t.closest) return;
+
+        var removeBtn = t.closest('[data-remove-btn]');
+        if (removeBtn) {
+          var wrap = removeBtn.closest('[data-remove-wrap]');
+          var row = removeBtn.closest('[data-offering-row]');
+          if (!wrap || !row) return;
+          // Swap to a Yes / No confirm.
+          wrap.innerHTML = '';
+          var yes = document.createElement('button');
+          yes.type = 'button';
+          yes.setAttribute('data-remove-yes', '');
+          yes.className = 'inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-danger px-3 text-sm font-semibold text-white active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-danger';
+          yes.textContent = 'Remove?';
+          var no = document.createElement('button');
+          no.type = 'button';
+          no.setAttribute('data-remove-no', '');
+          no.className = 'ml-2 inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+          no.textContent = 'Cancel';
+          wrap.appendChild(yes);
+          wrap.appendChild(no);
+          return;
+        }
+
+        var no = t.closest('[data-remove-no]');
+        if (no) {
+          var wrap2 = no.closest('[data-remove-wrap]');
+          var row2 = no.closest('[data-offering-row]');
+          if (wrap2 && row2) resetRemove(wrap2, row2);
+          return;
+        }
+
+        var yes = t.closest('[data-remove-yes]');
+        if (yes) {
+          var wrap3 = yes.closest('[data-remove-wrap]');
+          var row3 = yes.closest('[data-offering-row]');
+          if (!wrap3 || !row3) return;
+          yes.disabled = true;
+          yes.textContent = 'Removing…';
+          fetch('/api/admin/market/delete-row', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ id: row3.getAttribute('data-id') }),
+          }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+            .then(function (res) {
+              if (!res.ok || !res.j || !res.j.ok) throw new Error('delete_failed');
+              row3.style.transition = 'opacity 0.15s';
+              row3.style.opacity = '0';
+              setTimeout(function () {
+                row3.remove();
+                updateCount();
+                var remaining = list.querySelectorAll('[data-offering-row]').length;
+                if (remaining === 0) { try { location.reload(); } catch (err) {} }
+              }, 150);
+              showToast('Removed');
+            }).catch(function () {
+              resetRemove(wrap3, row3);
+              showToast('Couldn’t remove — try again', true);
+            });
+        }
+      });
+    })();
+  </script>
+
+  <style is:global>
+    .market-toast {
+      position: fixed; left: 50%; bottom: 1.5rem; transform: translate(-50%, 1rem);
+      z-index: 50; background: #16a34a; color: #fff; font-size: 0.9rem; font-weight: 700;
+      padding: 0.6rem 1.2rem; border-radius: 999px; box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+      opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+    }
+    .market-toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .market-toast.danger { background: #dc2626; }
+  </style>
 </AdminShell>

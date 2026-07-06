@@ -152,12 +152,19 @@ async function handle(request: Request): Promise<Response> {
   const deliveryDate = currentDeliveryWednesday();
 
   // Accounts + which already ordered for this Wednesday + their contacts.
+  //
+  // AUDIENCE (Todd's explicit call, 2026-07-06): "the overall list — anyone
+  // who has not ordered yet." Every account with an order token, minus those
+  // that ALREADY have an order for this delivery date (excluded further down
+  // via skipped_already_ordered), minus vendor + test accounts.
+  // NOTE: no `.eq('status','active')` — 55 of 56 prod accounts are
+  // status='draft' (the field was never used operationally), so filtering on
+  // it made the first armed run consider 0 accounts.
   type Acct = { id: string; restaurant_name: string; email: string | null; order_token: string | null; status: string };
   const { data: acctData, error: acctErr } = await supabaseAdmin
     .from('wholesale_accounts')
     .select('id, restaurant_name, email, order_token, status')
     .not('order_token', 'is', null)
-    .eq('status', 'active')
     .overrideTypes<Acct[], { merge: false }>();
   if (acctErr) {
     console.error('[chef-order-reminder] accounts query failed:', acctErr.message);
