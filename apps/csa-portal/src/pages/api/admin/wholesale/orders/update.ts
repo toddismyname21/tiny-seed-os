@@ -1,15 +1,18 @@
 /**
  * POST /api/admin/wholesale/orders/update   (admin only, JSON)
  *
- * Edit a MANUAL wholesale order (one keyed in via /create). Replaces the order's
- * line items and recomputes the total through the SAME RPC as /create
- * (place_wholesale_order_admin, migration 0065) — passing p_order_id switches
- * the RPC into "replace this order's items" mode, so the pricing math is
- * byte-for-byte identical to a fresh order (no forked logic).
+ * Edit ANY wholesale order. Replaces the order's line items and recomputes the
+ * total through the SAME RPC as /create (place_wholesale_order_admin, migrations
+ * 0065 + 0079) — passing p_order_id switches the RPC into "replace this order's
+ * items" mode, so the pricing math is byte-for-byte identical to a fresh order
+ * (no forked logic).
  *
- * Only a source='manual' order may be edited here. The RPC re-checks this, and
- * we ALSO check it up-front (defense in depth) so a chef_portal / import order
- * can never be rewritten through the admin manual path.
+ * WHY any order (Todd 2026-07-06): accuracy edits are needed on imported /
+ * chef-portal orders too (a chef phones a correction, a vendor PDF had a wrong
+ * qty). 0079 relaxed the RPC's edit guard from source='manual' to "any existing
+ * order", and — critically — the edit path PRESERVES the order's `source`
+ * (provenance is never rewritten by an edit). We no longer pre-check source
+ * here; we only confirm the order EXISTS (below) before calling the RPC.
  *
  * Body shape (validated with zod):
  *   { order_id, delivery_date? (YYYY-MM-DD), status?,
@@ -99,8 +102,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   const { order_id } = parsed.data;
 
-  // ── Load the existing order: must exist, must be source='manual', and gives
-  //    us the account + fallbacks for delivery_date / status. ────────────────
+  // ── Load the existing order: must exist (ANY source is editable now), and
+  //    gives us the account + source + fallbacks for delivery_date / status. ──
   type OrderRow = {
     account_id: string | null;
     source: string | null;
@@ -120,12 +123,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!existing) {
     return json({ ok: false, error: 'not_found', message: 'That order no longer exists.' }, 404);
   }
-  if (existing.source !== 'manual') {
-    return json(
-      { ok: false, error: 'not_editable', message: 'Only manually-entered orders can be edited here.' },
-      403,
-    );
-  }
   if (!existing.account_id) {
     return json({ ok: false, error: 'no_account', message: 'That order is not linked to a chef account.' }, 400);
   }
@@ -141,12 +138,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return out;
   });
 
+  // p_source is IGNORED on the edit path (0079 preserves the row's existing
+  // source), but we pass the order's real source for clarity rather than
+  // forcing 'manual' — an edit must never rewrite a chef/import order's
+  // provenance.
   const { data, error } = await callPlaceOrderAdmin({
     p_account_id: existing.account_id,
     p_lines: lines,
     p_delivery_date: delivery_date,
     p_status: status,
-    p_source: 'manual',
+    p_source: existing.source ?? 'manual',
     p_order_id: order_id,
   });
 

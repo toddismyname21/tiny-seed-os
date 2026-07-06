@@ -6,6 +6,26 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-06] CSA — Wholesale pack readability + edit ANY order (FULLSTACK_BUILDER)
+
+Two fixes from Todd watching a confused pack crew. NOT DEPLOYED, migration NOT applied.
+
+**FIX 1 — `/admin/wholesale/pack` readability.** `src/pages/admin/wholesale/pack/index.astro` rewritten for the pack crew.
+- **Page break per order (print):** each customer order is an `.order-block`; every block except the last gets `.order-break` → `break-after: page` + `page-break-after: always`. The Pick/Harvest totals section also breaks after, so every restaurant prints on its own fresh sheet.
+- **Bold, unmissable header band:** each order now leads with the RESTAURANT NAME at 1.5rem/800 in a green header band, plus delivery date, order total, and a source badge (Manual / Chef portal / Market Wagon / Harvie / Email / Import(x)). Name still resolves from `wholesale_accounts.restaurant_name` via `account_id` — the SAME resolution the importer uses, so imported orders show their real restaurant (added `source` to the orders `select`; orphan account_id=NULL now reads "(no account linked)" instead of the old terse "(no account)"). BEFORE it was a single small `font-semibold text-gray-900` gray line with no date/total/source context — correct name, but easy for a confused crew to miss/misread.
+- **Crew-readable rows:** large tick-off checkbox (1.375rem bordered square, prints), item name at 1.125rem/600 dark, and a BOXED LARGE right-aligned qty (1.375rem/800, tabular-nums, unit beneath). Pick totals rows got the same treatment. Empty state upgraded to icon + message + "New order" action.
+- **Per-order "Edit order" link (screen only, `no-print`)** in the header band → the edit URL, so the crew/Todd jump straight from a wrong sheet to the fix.
+
+**FIX 2 — edit ANY wholesale order (records & accuracy).**
+- **NEW `supabase/migrations/0079_edit_any_wholesale_order.sql`** — `CREATE OR REPLACE place_wholesale_order_admin` relaxing the edit guard: `p_order_id` may now target ANY existing `wholesale_orders` row (0065 required `source='manual'`); still requires the row to EXIST → else `not_editable`. Critically, the edit UPDATE no longer stamps `source='manual'` — it PRESERVES the order's existing source (provenance never rewritten by an edit) and stamps `updated_at`. All pricing rules, the txn-safe delete+re-insert replace, the RAISE-on-zero-valid-items rollback, and the CENTS math are byte-identical to 0065. REVOKE/GRANT service_role-only block re-stated verbatim. Header documents the safety notes: harvie auto-ingest commits with `onExisting='skip'` so it can never clobber an edit; a manual `/import` re-upload IS a deliberate replace and WILL overwrite edits (documented behavior).
+- **`src/pages/api/admin/wholesale/orders/update.ts`** — removed the `source !== 'manual'` pre-check (any existing order editable; still `requireAdmin` + same-origin + existence check). Passes `p_source: existing.source ?? 'manual'` (ignored on the edit path, but never forces 'manual').
+- **`src/pages/admin/wholesale/orders/index.astro`** — Edit control now shows on EVERY order (was manual-only); a per-order source label sits on the left of the footer. DELETE stays MANUAL-ONLY (unchanged) — a chef/import order is never deleted from this path.
+- **`src/pages/admin/wholesale/orders/new.astro`** edit loader — dropped the manual-only guard (loads any order); account select stays LOCKED to the order's account; added an amber provenance banner for non-manual edits noting the source is preserved and a later vendor re-import would overwrite.
+
+**Verification.** `npm run build` → Complete (0 errors). `npx astro check` → 11 errors / 0 warnings / 61 hints — IDENTICAL to the pre-existing baseline, zero new (the sole error touching a changed file, orders/index.astro:58, is the pre-existing stale-`database.types` `portal_visit_count` issue on the unchanged accounts `select`; pack/index.astro, orders/new.astro, and update.ts produce zero errors). Delete confirmed manual-only; RPC edit path confirmed to preserve `source`.
+
+---
+
 ## [2026-07-06] CSA — Pick & Pack: new PACK HOUSE distribution matrix (crop × destination) (FULLSTACK_BUILDER)
 
 Todd's need: "All of a certain crop comes off the field at the same time. The pack crew's job is to get the right amount of the right product to the correct destination." The existing Pick & Pack views answer "how much of each crop do we pick?"; this new `?view=packhouse` view answers "…and where does every unit of it go?" — a per-crop × per-destination MATRIX so a crew member holding a crate of one crop reads ACROSS the row and splits it to its final homes. NOT DEPLOYED.

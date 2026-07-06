@@ -11,8 +11,10 @@
  *   - CREATE (default): pick a chef account + delivery date, build line items
  *     (catalog products auto-priced at the account's tier discount, or custom
  *     off-catalog items), POST to /api/admin/wholesale/orders/create.
- *   - EDIT (?edit=<order_id>): loads an existing source='manual' order and its
- *     items, POSTs to /update. Chef-portal / import orders are NOT editable here.
+ *   - EDIT (?edit=<order_id>): loads ANY existing order and its items, POSTs to
+ *     /update (accuracy edits on chef-portal / imported orders too, Todd
+ *     2026-07-06). The chef account stays LOCKED to the order's account; the
+ *     order's `source` provenance is preserved server-side (0079).
  *
  * All pricing is display-only in the browser; the server (RPC
  * place_wholesale_order_admin, 0065) re-computes authoritative prices. All
@@ -76,13 +78,16 @@ const { data: productsData } = await supabaseAdmin
   .order('name', { ascending: true });
 const products = (productsData ?? []) as ProductRow[];
 
-// ─── EDIT mode: load the order + its items (must be source='manual') ─
+// ─── EDIT mode: load ANY order + its items (Todd 2026-07-06). Chef-portal /
+//     imported orders are editable for accuracy; the account stays locked and
+//     the server preserves the order's source provenance (0079). ─────────────
 type EditLine = { product_id: string | null; product_name: string; qty: number; price_cents: number };
 let editData: {
   order_id: string;
   account_id: string | null;
   delivery_date: string;
   status: string;
+  source: string | null;
   lines: EditLine[];
 } | null = null;
 let editError = '';
@@ -95,8 +100,6 @@ if (editOrderId) {
     .maybeSingle<{ id: string; account_id: string | null; delivery_date: string; status: string; source: string | null }>();
   if (!ord) {
     editError = 'That order could not be found.';
-  } else if (ord.source !== 'manual') {
-    editError = 'Only manually-entered orders can be edited here. This one came from the chef portal or an import.';
   } else {
     const { data: itemRows } = await supabaseAdmin
       .from('wholesale_order_items')
@@ -113,9 +116,23 @@ if (editOrderId) {
       account_id: ord.account_id,
       delivery_date: ord.delivery_date,
       status: ord.status,
+      source: ord.source,
       lines,
     };
   }
+}
+
+// Human label for an order's provenance (edit mode banner).
+const SOURCE_LABELS: Record<string, string> = {
+  manual: 'Manually entered',
+  chef_portal: 'Chef portal (self-serve)',
+  market_wagon: 'Market Wagon import',
+  harvie: 'Harvie import',
+  email: 'Email order',
+};
+function sourceLabel(s: string | null): string {
+  if (!s) return 'Unknown source';
+  return SOURCE_LABELS[s] ?? `Imported (${s})`;
 }
 
 // ─── Defaults / mode ────────────────────────────────────────────────
@@ -137,7 +154,7 @@ const pageTitle = isEdit ? 'Edit wholesale order' : 'New wholesale order';
 <AdminShell
   title={pageTitle}
   subtitle={isEdit
-    ? 'Editing a manually-entered order'
+    ? `Editing an existing order · ${sourceLabel(editData?.source ?? null)}`
     : `Key in a phoned, texted or emailed chef order · cutoff ${CUTOFF_LABEL}`}
   pageTitle={`${pageTitle} — Tiny Seed Admin`}
 >
@@ -159,6 +176,15 @@ const pageTitle = isEdit ? 'Edit wholesale order' : 'New wholesale order';
     </Card>
   ) : (
     <form id="order-form" class="space-y-4">
+      {isEdit && editData?.source && editData.source !== 'manual' && (
+        <div class="rounded-ts-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span class="font-semibold">Editing a {sourceLabel(editData.source)} order.</span>{' '}
+          Your changes are saved for records &amp; accuracy and the order keeps its
+          original source. Note: re-importing the same vendor file later will
+          overwrite these edits.
+        </div>
+      )}
+
       {/* ── Who + when ──────────────────────────────────────────── */}
       <Card padding="lg" elevation="sm">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -180,7 +206,7 @@ const pageTitle = isEdit ? 'Edit wholesale order' : 'New wholesale order';
               ))}
             </select>
             {isEdit && (
-              <span class="mt-1 block text-xs text-gray-400">The chef can’t be changed on an existing order — delete and re-enter to move it.</span>
+              <span class="mt-1 block text-xs text-gray-400">The chef can’t be changed on an existing order — create a new one to move it to a different account.</span>
             )}
           </label>
           <label class="block">
