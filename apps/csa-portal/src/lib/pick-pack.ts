@@ -262,6 +262,153 @@ export function channelCount(r: MergedCropRow): number {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+ * PACK-HOUSE DESTINATION MATRIX — destination-preserving grouping.
+ *
+ * The overall merge (mergeCropDemand) FLATTENS every channel into ONE per-crop
+ * row: it answers "how much of this crop do we pick in total?" The pack-house
+ * view needs the OPPOSITE decomposition — keep each PHYSICAL destination (CSA,
+ * each market by name, each wholesale account by restaurant, Flex) as its own
+ * column so a crew member holding 30 bunches of kale can read across the row
+ * and split it to its final homes as it comes off the field.
+ *
+ * The per-destination granularity ALREADY EXISTS upstream (market_offerings are
+ * per market; wholesale_order_items join to an account; CSA + Flex are single
+ * destinations) — the overall merge just discards it. buildDestinationMatrix
+ * re-expresses that SAME demand as a crop × destination matrix, keyed on the
+ * SAME normCrop() the merge dedupes on. Because a matrix row is looked up by
+ * normCrop against the caller's already-computed `merged` rows, EACH ROW REUSES
+ * the merged row's `totalQty` verbatim — no separate math. And when the caller
+ * feeds the SAME scoped demand into both the merge and this matrix, the row's
+ * destination cells SUM to that same total by construction (CSA + Σmarkets +
+ * Σwholesale-accounts + Flex). So the two sheets can never disagree.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** The physical destination a unit of demand is packed to. */
+export type DestKind = 'csa' | 'market' | 'wholesale' | 'flex';
+
+/** One unit of demand tagged with the destination column it belongs to. */
+export interface DestDemandInput {
+  /** Crop/product name (matched to a merged row via normCrop). */
+  crop: string;
+  /** Quantity headed to this destination. */
+  qty: number;
+  /** Unit for THIS destination's qty (a market's bunch vs wholesale lb differ). */
+  unit: string;
+  /** Which family of destination this column is. */
+  kind: DestKind;
+  /** Stable column id — 'csa' / market id / wholesale account id / 'flex'.
+   *  Two demand rows sharing a destKey merge into ONE cell (e.g. a restaurant
+   *  with two orders this week, or a market with two offerings of a crop). */
+  destKey: string;
+  /** Column header text (market name / restaurant name; 'CSA' / 'Flex'). */
+  destLabel: string;
+}
+
+/** One filled cell of the matrix — qty going to a destination for a crop. */
+export interface MatrixCell { qty: number; unit: string; }
+/** A destination column of the matrix. */
+export interface MatrixColumn { key: string; label: string; kind: DestKind; }
+/** One crop row of the matrix (aligned 1:1 with a merged harvest row). */
+export interface MatrixRow {
+  /** Display crop name (the merged row's spelling). */
+  crop: string;
+  category: string | null;
+  /** True when this crop is a tender green (rows stay tender-first). */
+  tender: boolean;
+  /** Row total — REUSED verbatim from the merged row (same merge, no re-add). */
+  totalQty: number;
+  /** The unit carrying the most demand on the row — shown once at row level;
+   *  a cell prints its own unit only when it differs from this. '' when empty. */
+  dominantUnit: string;
+  /** True when the row's cells don't all share `dominantUnit` (mixed units, so
+   *  `totalQty` is a bare count the caller should flag rather than unit-label). */
+  mixedUnits: boolean;
+  /** destKey → cell, only for the destinations that actually take this crop. */
+  cells: Map<string, MatrixCell>;
+}
+/** The assembled crop × destination matrix. */
+export interface DestinationMatrix {
+  columns: MatrixColumn[];
+  rows: MatrixRow[];
+}
+
+/** Column ordering: CSA, then markets, then wholesale accounts, then Flex. */
+const DEST_KIND_ORDER: Record<DestKind, number> = {
+  csa: 0, market: 1, wholesale: 2, flex: 3,
+};
+
+/**
+ * Build the crop × destination matrix.
+ *
+ * `merged` supplies the ROW SET, ROW ORDER (tender-first, as mergeCropDemand
+ * already sorted it) and the authoritative per-row `totalQty`. `dests` supplies
+ * the per-destination cells. A matrix row is emitted for EVERY merged row, in
+ * merged order; its cells are whatever `dests` contributed under the same
+ * normCrop key (empty when a destination doesn't take that crop).
+ *
+ * Only destinations that received ANY demand become columns (no empty columns).
+ * Within a destination kind, columns keep the FIRST-SEEN order of `dests`, so
+ * the caller controls intra-kind ordering (e.g. markets by day, restaurants by
+ * name) simply by ordering the array it passes.
+ *
+ * Pure + dependency-free — reuses only normCrop, so it can never drift from the
+ * merge's crop identity.
+ */
+export function buildDestinationMatrix(
+  merged: MergedCropRow[],
+  dests: DestDemandInput[],
+): DestinationMatrix {
+  // 1. Accumulate cells per normCrop → destKey; remember each column's metadata
+  //    and first-seen order so intra-kind ordering is the caller's to control.
+  const cellsByCrop = new Map<string, Map<string, MatrixCell>>();
+  const colMeta = new Map<string, { label: string; kind: DestKind; seen: number }>();
+  let seq = 0;
+  for (const d of dests) {
+    const cropKey = normCrop(d.crop);
+    if (!cropKey || !d.destKey || !(d.qty > 0)) continue;
+    if (!colMeta.has(d.destKey)) {
+      colMeta.set(d.destKey, { label: d.destLabel, kind: d.kind, seen: seq++ });
+    }
+    let byDest = cellsByCrop.get(cropKey);
+    if (!byDest) { byDest = new Map(); cellsByCrop.set(cropKey, byDest); }
+    const cell = byDest.get(d.destKey);
+    // Same destKey twice (two orders for a restaurant, two market offerings of a
+    // crop) SUMS into one cell — so Σcells still equals the channel's merge qty.
+    if (cell) cell.qty += d.qty;
+    else byDest.set(d.destKey, { qty: d.qty, unit: d.unit });
+  }
+
+  // 2. Order columns: by kind (CSA → markets → wholesale → Flex), then the
+  //    first-seen order within each kind.
+  const columns: MatrixColumn[] = Array.from(colMeta.entries())
+    .sort((a, b) => {
+      const ka = DEST_KIND_ORDER[a[1].kind];
+      const kb = DEST_KIND_ORDER[b[1].kind];
+      if (ka !== kb) return ka - kb;
+      return a[1].seen - b[1].seen;
+    })
+    .map(([key, m]) => ({ key, label: m.label, kind: m.kind }));
+
+  // 3. One matrix row per merged row, IN MERGED ORDER, total reused verbatim.
+  const rows: MatrixRow[] = merged.map((mr) => {
+    const cells = cellsByCrop.get(normCrop(mr.crop)) ?? new Map<string, MatrixCell>();
+    // Dominant unit = the unit carrying the most qty across this row's cells.
+    const byUnit = new Map<string, number>();
+    for (const c of cells.values()) byUnit.set(c.unit, (byUnit.get(c.unit) ?? 0) + c.qty);
+    let dominantUnit = '';
+    let best = -1;
+    for (const [u, q] of byUnit) if (q > best) { best = q; dominantUnit = u; }
+    const mixedUnits = byUnit.size > 1;
+    return {
+      crop: mr.crop, category: mr.category, tender: mr.tender,
+      totalQty: mr.totalQty, dominantUnit, mixedUnits, cells,
+    };
+  });
+
+  return { columns, rows };
+}
+
+/* ──────────────────────────────────────────────────────────────────
  * Spanish (?lang=es) — overall harvest list translation
  * ────────────────────────────────────────────────────────────────── */
 
@@ -289,6 +436,13 @@ export const PICK_PACK_STRINGS: Record<Lang, {
   nothing: string;
   pickOnce: string;
   langToggle: string;
+  /* ── Pack House distribution matrix (crop × destination) ── */
+  packhouseTab: string;      // view-switcher label
+  packhouseTitle: string;    // doc heading
+  packhouseSubtitle: string; // doc sub-line
+  packhouseHint: string;     // footnote under the matrix
+  notesCol: string;          // blank pen column header (wash / attention notes)
+  cropCol: string;           // first column header
   /* ── Live check-off (migration 0069) — button + status + summary labels. ──
    * Consumed by the browser controller on /admin/pick-pack/[week], which builds
    * the interactive Harvesting/Done + Packed controls client-side. */
@@ -324,6 +478,12 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     nothing: 'Nothing to harvest this week yet.',
     pickOnce: 'Harvest each crop once for everyone, then split it to the CSA / market / wholesale packs.',
     langToggle: 'Español',
+    packhouseTab: 'Pack House',
+    packhouseTitle: 'Pack House — where each crop goes',
+    packhouseSubtitle: 'As each crop comes off the field, split the row across its destinations. Row total = pick it all once (matches the harvest sheet).',
+    packhouseHint: 'Each row totals to the same number as the overall harvest sheet. Cells show where that crop is headed; use the Wash / notes box for anything that needs attention before it leaves.',
+    notesCol: 'Wash / notes',
+    cropCol: 'Crop',
     live: {
       progress: 'Progress',
       toGo: 'to go',
@@ -356,6 +516,12 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     nothing: 'Aún no hay nada que cosechar esta semana.',
     pickOnce: 'Coseche cada cultivo una vez para todos, luego divídalo entre los empaques de CSA / mercado / mayoreo.',
     langToggle: 'English',
+    packhouseTab: 'Casa de empaque',
+    packhouseTitle: 'Casa de empaque — a dónde va cada cultivo',
+    packhouseSubtitle: 'Al salir cada cultivo del campo, divida la fila entre sus destinos. El total de la fila = cosecharlo todo una vez (coincide con la hoja de cosecha).',
+    packhouseHint: 'Cada fila suma el mismo número que la hoja de cosecha total. Las celdas muestran a dónde va ese cultivo; use la casilla Lavar / notas para lo que necesite atención antes de salir.',
+    notesCol: 'Lavar / notas',
+    cropCol: 'Cultivo',
     live: {
       progress: 'Progreso',
       toGo: 'por hacer',

@@ -87,8 +87,10 @@ function formatUsd(dollars: number): string {
  * Gmail (OAuth refresh-token flow) — server-only, tokens never leave here.
  * ──────────────────────────────────────────────────────────────────── */
 
-/** Exchange the long-lived refresh token for a short-lived access token. */
-async function getGmailAccessToken(): Promise<string> {
+/** Exchange the long-lived refresh token for a short-lived access token.
+ *  Exported so sibling read-only Gmail helpers (e.g. mw-ticket.ts) reuse the
+ *  identical OAuth refresh flow instead of duplicating token handling. */
+export async function getGmailAccessToken(): Promise<string> {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN) {
     throw new Error('gmail_not_configured');
   }
@@ -112,22 +114,30 @@ async function getGmailAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-interface GmailPart {
+export interface GmailPart {
   mimeType?: string;
   filename?: string;
   body?: { attachmentId?: string; size?: number; data?: string };
   parts?: GmailPart[];
 }
-interface GmailMessage {
+export interface GmailMessage {
   id: string;
+  /** Epoch-ms (as a string) the message arrived — present on `format=full`. */
+  internalDate?: string;
   payload?: GmailPart;
 }
 
-/** List message ids matching the Harvie query (most recent first). */
-async function gmailSearch(accessToken: string): Promise<string[]> {
+/** List message ids matching a Gmail query (most recent first). Defaults to the
+ *  Harvie PO query so the cron caller's behavior is byte-identical; sibling
+ *  read-only helpers pass their own query + maxResults. */
+export async function gmailSearch(
+  accessToken: string,
+  query: string = GMAIL_QUERY,
+  maxResults = 25,
+): Promise<string[]> {
   const url =
     `https://gmail.googleapis.com/gmail/v1/users/me/messages` +
-    `?q=${encodeURIComponent(GMAIL_QUERY)}&maxResults=25`;
+    `?q=${encodeURIComponent(query)}&maxResults=${maxResults}`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!resp.ok) {
     const detail = await resp.text().catch(() => '');
@@ -137,8 +147,8 @@ async function gmailSearch(accessToken: string): Promise<string[]> {
   return (data.messages ?? []).map((m) => m.id);
 }
 
-/** Fetch a full message (to walk its MIME tree for the PDF part). */
-async function gmailGetMessage(accessToken: string, id: string): Promise<GmailMessage> {
+/** Fetch a full message (to walk its MIME tree for the PDF part or body text). */
+export async function gmailGetMessage(accessToken: string, id: string): Promise<GmailMessage> {
   const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!resp.ok) {

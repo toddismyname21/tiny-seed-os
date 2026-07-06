@@ -29,8 +29,8 @@ import {
 } from '../../../lib/cycle';
 import {
   mergeCropDemand, channelCount, parseLang, normCrop, PICK_PACK_STRINGS,
-  pickPackLineKey,
-  type CropDemandInput,
+  pickPackLineKey, buildDestinationMatrix,
+  type CropDemandInput, type DestDemandInput,
 } from '../../../lib/pick-pack';
 import {
   fetchAllOpenDueNoticesWithMember, isNoticeOverdue, HOME_DELIVERY_HINT,
@@ -63,8 +63,9 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
 const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
 
 const viewRaw = Astro.url.searchParams.get('view') ?? 'overall';
-const view: 'overall' | 'csa' | 'wholesale' | 'market' =
-  viewRaw === 'csa' || viewRaw === 'wholesale' || viewRaw === 'market' ? viewRaw : 'overall';
+const view: 'overall' | 'csa' | 'wholesale' | 'market' | 'packhouse' =
+  viewRaw === 'csa' || viewRaw === 'wholesale' || viewRaw === 'market' || viewRaw === 'packhouse'
+    ? viewRaw : 'overall';
 const marketIdParam = Astro.url.searchParams.get('market') ?? '';
 const lang = parseLang(Astro.url.searchParams.get('lang'));
 const t = PICK_PACK_STRINGS[lang];
@@ -255,11 +256,11 @@ interface WholesaleItemRow {
   qty: number;
   product: { unit: string | null; photo_url: string | null; library: { photo_url: string | null; category: string | null } | null } | null;
 }
-interface WholesaleOrderRow { id: string; delivery_date: string; items: WholesaleItemRow[] | null; }
+interface WholesaleOrderRow { id: string; delivery_date: string; account_id: string | null; items: WholesaleItemRow[] | null; }
 const { data: wholesaleOrderRows, error: wholesaleErr } = await db
   .from('wholesale_orders')
   .select(
-    'id, delivery_date, ' +
+    'id, delivery_date, account_id, ' +
     'items:wholesale_order_items ( product_name, qty, ' +
       'product:wholesale_products ( unit, photo_url, library:product_library ( photo_url, category ) ) )',
   )
@@ -507,6 +508,98 @@ const selectedMarket = view === 'market'
   ? marketGroupsSorted.find((g) => g.id === marketIdParam) ?? marketGroupsSorted[0] ?? null
   : null;
 
+/* ──────────────────────────────────────────────────────────────────
+ * PACK HOUSE DISTRIBUTION MATRIX (?view=packhouse) — crop × destination.
+ *
+ * The overall harvest sheet says "pick this much of each crop." This sheet says
+ * "…and here's where every unit of it goes." It is the SAME demand, decomposed
+ * back into the physical destinations that already exist in the four loads:
+ *   • CSA           — one column (the whole box aggregate for the crop).
+ *   • each market   — one column per in-scope market (identity from
+ *                     market_offerings → pickup_locations).
+ *   • each wholesale account — one column per restaurant (each order is its own
+ *                     pallet; multiple orders for one restaurant SUM into its
+ *                     column). restaurant_name resolved from wholesale_accounts.
+ *   • Flex          — one column (à-la-carte aggregate for the crop).
+ *
+ * CONSISTENCY: buildDestinationMatrix takes the SAME `merged` rows the overall
+ * view renders, so a matrix row REUSES that row's `totalQty` verbatim (no
+ * separate math). Every destination cell below is fed from the SAME scoped
+ * source + SAME scope filter the merge used (csaRows, the marketInScope
+ * offerings, the inScope wholesale items, flexRows), so a row's cells SUM to
+ * that same total — CSA + Σmarkets + Σwholesale + Flex — by construction.
+ *
+ * Built ONLY for this view (it needs one extra read — the account names).
+ * ────────────────────────────────────────────────────────────────── */
+let packhouseMatrix: ReturnType<typeof buildDestinationMatrix> | null = null;
+if (view === 'packhouse') {
+  const destInputs: DestDemandInput[] = [];
+
+  // CSA — one column. csaRows is already day-scoped (built via inScope above);
+  // summing its per-unit rows into destKey 'csa' reproduces merged.csa.qty.
+  for (const r of csaRows) {
+    destInputs.push({ crop: r.crop, qty: r.qty, unit: r.unit, kind: 'csa', destKey: 'csa', destLabel: t.csaCol });
+  }
+
+  // MARKETS — one column per in-scope market (incl. an "Untagged" bucket, which
+  // marketInScope keeps on 'all' and drops on mon/thu, exactly like marketAllMap
+  // that feeds merged.market). Ordered by marketGroupsSorted (day, then name).
+  for (const g of marketGroupsSorted) {
+    if (!marketInScope(g.day)) continue;
+    for (const it of g.items) {
+      if (!(it.qty > 0)) continue;
+      destInputs.push({ crop: it.name, qty: it.qty, unit: it.unit, kind: 'market', destKey: `mkt:${g.id}`, destLabel: g.name });
+    }
+  }
+
+  // WHOLESALE — one column per account (restaurant). Resolve restaurant_name
+  // from wholesale_accounts (mirrors the labels page's account lookup); orders
+  // with no account land in a shared "(no account)" column so nothing is lost
+  // from the wholesale total. Same delivery-day scope + item gates as
+  // wholesaleMap (which feeds merged.wholesale), so Σaccounts = merged.wholesale.
+  const wsAcctIds = Array.from(new Set(
+    (wholesaleOrderRows ?? []).map((o) => o.account_id).filter(Boolean),
+  )) as string[];
+  const wsAcctName = new Map<string, string>();
+  if (wsAcctIds.length > 0) {
+    const { data: acctRows } = await db
+      .from('wholesale_accounts')
+      .select('id, restaurant_name')
+      .in('id', wsAcctIds)
+      .overrideTypes<{ id: string; restaurant_name: string }[], { merge: false }>();
+    for (const a of acctRows ?? []) wsAcctName.set(a.id, a.restaurant_name);
+  }
+  const NO_ACCT_KEY = 'ws:none';
+  // Order wholesale columns by restaurant name for a predictable sheet.
+  const wsOrdered = (wholesaleOrderRows ?? []).slice().sort((a, b) => {
+    const na = a.account_id ? (wsAcctName.get(a.account_id) ?? '') : '~';
+    const nb = b.account_id ? (wsAcctName.get(b.account_id) ?? '') : '~';
+    return na.localeCompare(nb);
+  });
+  for (const o of wsOrdered) {
+    if (!inScope(wholesaleTabFor(o.delivery_date))) continue;
+    const acctName = o.account_id ? wsAcctName.get(o.account_id) : undefined;
+    const destKey = acctName ? `ws:${o.account_id}` : NO_ACCT_KEY;
+    const destLabel = acctName ?? '(no account)';
+    for (const it of o.items ?? []) {
+      const name = it.product_name?.trim();
+      if (!name) continue;
+      const unit = it.product?.unit?.trim() || 'each';
+      const qty = Number(it.qty) || 0;
+      if (qty <= 0) continue;
+      destInputs.push({ crop: name, qty, unit, kind: 'wholesale', destKey, destLabel });
+    }
+  }
+
+  // FLEX — one column. flexRows is already day-scoped; destKey 'flex' aggregates
+  // to merged.flex.qty.
+  for (const r of flexRows) {
+    destInputs.push({ crop: r.crop, qty: r.qty, unit: r.unit, kind: 'flex', destKey: 'flex', destLabel: t.flexCol });
+  }
+
+  packhouseMatrix = buildDestinationMatrix(merged, destInputs);
+}
+
 /* ── Per-view combined-harvest groups (package variants → one weighed line) ──
  * Built here so the templates stay thin. Each view feeds combineHarvest() the
  * SAME flat row list it renders (in the same order), then renders the returned
@@ -571,6 +664,7 @@ let docTitle: string;
 if (view === 'csa') docTitle = 'CSA harvest';
 else if (view === 'wholesale') docTitle = 'Wholesale harvest';
 else if (view === 'market') docTitle = `Market — ${selectedMarket?.name ?? 'market'}`;
+else if (view === 'packhouse') docTitle = t.packhouseTitle;
 else docTitle = t.overallTitle;
 
 const totalCsaBoxes = cycle.members.filter(
@@ -655,7 +749,7 @@ const dayScopeLabel =
   : 'All week';
 
 /** View-switcher href that preserves the current day scope + language. */
-function viewHref(v: 'overall' | 'csa' | 'wholesale' | 'market', marketId?: string): string {
+function viewHref(v: 'overall' | 'csa' | 'wholesale' | 'market' | 'packhouse', marketId?: string): string {
   const p = new URLSearchParams();
   if (v !== 'overall') p.set('view', v);
   if (v === 'market' && marketId) p.set('market', marketId);
@@ -679,8 +773,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *  (week,section,scope,market,line) UNIQUE dedupes — matches the 0069 default. */
 const SENTINEL_MARKET = '00000000-0000-0000-0000-000000000000';
 
+// The pack-house matrix has NO live check-off (it's a paper distribution sheet;
+// the interactive harvest/pack check-off stays on the other views). It reports
+// section 'harvest' here only to satisfy the type — ppKeys stays empty for it
+// (no branch below), so the summary + realtime config never render for it.
 const ppSection: 'harvest' | 'csa' | 'wholesale' | 'market' =
-  view === 'overall' ? 'harvest' : view;
+  view === 'overall' || view === 'packhouse' ? 'harvest' : view;
 const marketIdForKey =
   view === 'market' && selectedMarket && UUID_RE.test(selectedMarket.id)
     ? selectedMarket.id
@@ -779,11 +877,14 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
   pageTitle={`Pick & Pack — ${docTitle} — Tiny Seed Admin`}
 >
   <Fragment slot="actions">
-    {view === 'overall' && (
+    {(view === 'overall' || view === 'packhouse') && (
       <a
         href={(() => {
-          // Toggle language while preserving the current day scope.
+          // Toggle language while preserving the current view + day scope. The
+          // overall + pack-house sheets are the crew-facing docs the ES version
+          // exists for.
           const p = new URLSearchParams();
+          if (view !== 'overall') p.set('view', view);
           if (lang !== 'es') p.set('lang', 'es'); // en → es; es → (drop = en)
           if (dayScope !== 'all') p.set('day', dayScope);
           const qs = p.toString();
@@ -813,6 +914,7 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
   <nav aria-label="Pick & Pack views" class="screen-only flex flex-wrap gap-2 border-b border-ts-border pb-3">
     {[
       { key: 'overall', label: '🌾 Overall', href: viewHref('overall') },
+      { key: 'packhouse', label: `📦 ${t.packhouseTab}`, href: viewHref('packhouse') },
       { key: 'csa', label: '🥬 CSA', href: viewHref('csa') },
       { key: 'wholesale', label: '🍽 Wholesale', href: viewHref('wholesale') },
     ].map((tab) => (
@@ -913,17 +1015,19 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         sheet coordinates + Supabase realtime creds + EN/ES labels; the summary
         gives Todd (and the crew) a live to-go / harvesting / done (or packed)
         readout. Hidden in print so the paper sheet is unchanged. */}
-    <div
-      id="pp-live-config"
-      class="hidden"
-      data-week={week_starting}
-      data-section={ppSection}
-      data-scope={dayScope}
-      data-market={marketIdForKey}
-      data-supabase-url={PUBLIC_SUPABASE_URL}
-      data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
-      data-i18n={JSON.stringify(t.live)}
-    ></div>
+    {view !== 'packhouse' && (
+      <div
+        id="pp-live-config"
+        class="hidden"
+        data-week={week_starting}
+        data-section={ppSection}
+        data-scope={dayScope}
+        data-market={marketIdForKey}
+        data-supabase-url={PUBLIC_SUPABASE_URL}
+        data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
+        data-i18n={JSON.stringify(t.live)}
+      ></div>
+    )}
 
     {ppTotal > 0 && (
       <section class="screen-only mb-4" aria-label={t.live.progress} data-pp-summary>
@@ -1204,6 +1308,91 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         )}
       </section>
     )}
+
+    {/* ═══════════════ PACK HOUSE DISTRIBUTION MATRIX ═══════════════
+        Crop × destination grid. A crew member holding a crate of one crop reads
+        ACROSS the row and drops the right amount at each destination. The row
+        TOTAL is the SAME number the overall harvest sheet shows for that crop
+        (reused from `merged`, not re-added), and the destination cells sum to it.
+        Print-first: landscape (named @page), compact, tender-first order, a blank
+        "Wash / notes" pen box per row. Screen: horizontal scroll, sticky crop. */}
+    {view === 'packhouse' && (
+      <section aria-labelledby="pp-pack-heading" class="packhouse-doc">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">{t.packhouseTitle} · {prettyWeekHeader(week_starting)} · {dayScopeLabel}</p>
+          <h2 id="pp-pack-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">📦 {t.packhouseTitle}</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">{t.packhouseSubtitle}</p>
+        </header>
+
+        {!packhouseMatrix || packhouseMatrix.rows.length === 0 || packhouseMatrix.columns.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">{t.nothing}</p>
+          </Card>
+        ) : (
+          <div class="matrix-scroll mt-4 overflow-x-auto">
+            <table class="pack-matrix w-full border-collapse text-left">
+              <thead>
+                <tr>
+                  <th scope="col" class="matrix-crop-cell matrix-head px-3 py-2 text-sm font-bold uppercase tracking-wide text-ts-text">{t.cropCol}</th>
+                  {packhouseMatrix.columns.map((col) => (
+                    <th scope="col" class={`matrix-head matrix-dest matrix-kind-${col.kind} px-2 py-2 text-center align-bottom`}>
+                      <span class="block text-sm font-bold leading-tight text-ts-text">{col.label}</span>
+                      <span class="mt-0.5 block text-[10px] font-semibold uppercase tracking-wider text-ts-text-muted">
+                        {col.kind === 'csa' ? t.csaCol : col.kind === 'market' ? t.marketCol : col.kind === 'wholesale' ? t.wholesaleCol : t.flexCol}
+                      </span>
+                    </th>
+                  ))}
+                  <th scope="col" class="matrix-head matrix-total-col px-3 py-2 text-center text-sm font-bold uppercase tracking-wide text-ts-text">{t.total}</th>
+                  <th scope="col" class="matrix-head matrix-notes-col px-3 py-2 text-left text-sm font-bold uppercase tracking-wide text-ts-text-secondary">{t.notesCol}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {packhouseMatrix.rows.map((r) => (
+                  <tr class={['matrix-row', r.tender ? 'matrix-tender' : ''].join(' ')}>
+                    <th scope="row" class="matrix-crop-cell px-3 py-2.5 text-left align-middle">
+                      <span class="block text-base font-bold leading-tight text-ts-text sm:text-lg">{r.crop}</span>
+                      {r.tender && (
+                        <span class="mt-0.5 inline-block rounded-sm bg-ts-accent/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ts-accent print:bg-transparent print:text-ts-text-secondary">🌱 tender</span>
+                      )}
+                    </th>
+                    {packhouseMatrix!.columns.map((col) => {
+                      const cell = r.cells.get(col.key);
+                      return (
+                        <td class={`matrix-cell matrix-kind-${col.kind} px-2 py-2.5 text-center align-middle tabular-nums`}>
+                          {cell ? (
+                            <span class="inline-flex items-baseline justify-center gap-0.5">
+                              <span class="text-lg font-extrabold leading-none text-ts-text">{cell.qty.toLocaleString()}</span>
+                              {cell.unit !== r.dominantUnit && (
+                                <span class="text-[11px] font-semibold text-ts-text-secondary">{cell.unit}</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span class="text-ts-text-muted" aria-hidden="true">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td class="matrix-cell matrix-total-col px-3 py-2.5 text-center align-middle tabular-nums">
+                      <span class="text-xl font-extrabold leading-none text-ts-text">{r.totalQty.toLocaleString()}</span>
+                      {r.mixedUnits
+                        ? <span class="ml-0.5 align-super text-xs font-bold text-ts-text-muted">*</span>
+                        : (r.dominantUnit && <span class="ml-1 text-xs font-semibold text-ts-text-secondary">{r.dominantUnit}</span>)}
+                    </td>
+                    <td class="matrix-cell matrix-notes-col px-3 py-2.5 align-middle">
+                      <span class="matrix-notes-box block h-8 w-full rounded-sm border border-dashed border-ts-border" aria-hidden="true"></span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p class="mt-4 text-xs text-ts-text-muted">
+          {t.packhouseHint}
+          {packhouseMatrix?.rows.some((r) => r.mixedUnits) && <span class="ml-1">(<span class="font-bold">*</span> = this crop is measured in more than one unit across destinations; read each cell's own unit.)</span>}
+        </p>
+      </section>
+    )}
   </div>
 </AdminShell>
 
@@ -1250,6 +1439,54 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     print-color-adjust: exact;
   }
 
+  /* ── PACK HOUSE distribution matrix (crop × destination) ────────────────
+     A wide grid that lives on the pack-house wall/table. On SCREEN the crop
+     column sticks while the destinations scroll; in PRINT it goes LANDSCAPE
+     (a named page, so the other portrait views are untouched) and compact. */
+  .pack-matrix { border: 1px solid var(--ts-border); }
+  .pack-matrix th, .pack-matrix td {
+    border: 1px solid var(--ts-border);
+  }
+  .pack-matrix .matrix-head {
+    background: #eef2f0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    vertical-align: bottom;
+  }
+  /* Faint kind tint so a crew can see at a glance which family a column is. */
+  .pack-matrix .matrix-kind-csa { background: rgba(31, 111, 84, 0.06); }
+  .pack-matrix .matrix-kind-market { background: rgba(37, 99, 235, 0.06); }
+  .pack-matrix .matrix-kind-wholesale { background: rgba(217, 119, 6, 0.07); }
+  .pack-matrix .matrix-kind-flex { background: rgba(124, 58, 237, 0.06); }
+  .pack-matrix .matrix-head.matrix-kind-csa { background: #dcebe4; }
+  .pack-matrix .matrix-head.matrix-kind-market { background: #dde7fb; }
+  .pack-matrix .matrix-head.matrix-kind-wholesale { background: #fbedd6; }
+  .pack-matrix .matrix-head.matrix-kind-flex { background: #e8ddfb; }
+  .pack-matrix .matrix-total-col { background: #e6eaef; font-weight: 800; }
+  /* Zebra rows for wide-row legibility (a crew tracks a row across a full
+     landscape sheet). Tender crops keep an amber left edge — pick these first. */
+  .pack-matrix tbody tr:nth-child(even) td { background: rgba(15, 23, 42, 0.02); }
+  .pack-matrix .matrix-tender .matrix-crop-cell {
+    border-left: 4px solid #f59e0b;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Sticky crop column on SCREEN only (removed for print below). */
+  @media screen {
+    .pack-matrix .matrix-crop-cell {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--ts-bg-surface);
+      min-width: 9rem;
+    }
+    .pack-matrix .matrix-head.matrix-crop-cell { background: #eef2f0; }
+  }
+
+  /* Named landscape page — applied ONLY to the pack-house matrix so every other
+     view keeps the default Letter-portrait @page below, byte-for-byte unchanged. */
+  @page pack-landscape { size: Letter landscape; margin: 0.4in; }
+
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
     body, html { background: white !important; }
@@ -1265,6 +1502,17 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
 
     /* Big, legible print type for the pick list. */
     .harvest-row p { font-size: 14pt; }
+
+    /* PACK HOUSE matrix — landscape, compact, every column visible, no scroll. */
+    .packhouse-doc { page: pack-landscape; }
+    .packhouse-doc .matrix-scroll { overflow: visible !important; }
+    .pack-matrix { width: 100% !important; table-layout: auto; font-size: 10pt; }
+    .pack-matrix th, .pack-matrix td { padding: 4px 6px !important; }
+    .pack-matrix .matrix-row { break-inside: avoid; page-break-inside: avoid; }
+    .pack-matrix thead { display: table-header-group; } /* repeat header per page */
+    /* The blank pen box must stay tall enough to write in on paper. */
+    .pack-matrix .matrix-notes-box { height: 26px; }
+    .pack-matrix .matrix-crop-cell { position: static !important; }
   }
 </style>
 

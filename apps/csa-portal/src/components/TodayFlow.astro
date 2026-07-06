@@ -54,6 +54,7 @@ import {
   CUTOFF_LABEL, CUTOFF_LABEL_FRIDAY,
 } from '../lib/wholesale-order';
 import { isPastCutoff } from '../lib/flex-order';
+import { findLatestMwPickTicketLink, type MwPickTicket } from '../lib/mw-ticket';
 
 const supabase = Astro.locals.supabase;
 const now = Date.now();
@@ -118,6 +119,13 @@ function etDateOf(iso: string): string {
     timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(new Date(iso));
 }
+/** Warm ET weekday + time of an ISO timestamp, e.g. "Mon, 5:25 AM". */
+function prettyEtDateTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', weekday: 'short',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  }).format(new Date(iso));
+}
 /** Format dollars as "$4.50". */
 function money(dollars: number | null): string {
   return new Intl.NumberFormat('en-US', {
@@ -153,6 +161,7 @@ let mHarvieOrder: OrderRow | null = null;
 let mHarvieLines = 0;
 let mMwOrder: OrderRow | null = null;
 let mMwLines = 0;
+let mMwTicket: MwPickTicket | null = null;
 let mChefCount = 0;
 let mChefCountdown: { open: boolean; text: string } = { open: false, text: '' };
 let mTueOfferingCount = 0;
@@ -167,6 +176,12 @@ let mPct = 0;
 
 if (mode === 'mon') {
   mFlexClosed = isPastCutoff(week, now, null); // Monday 7 AM ET (Wednesday run)
+
+  // Market Wagon pick-ticket link (step 3). Gmail is only touched HERE, on the
+  // Monday deck render — the deck's other day-modes never call it, honoring the
+  // "avoid needless API calls" guard. Fail-soft: resolves to null on any error.
+  // Kicked off now so the Gmail round-trip overlaps the Supabase queries below.
+  const mwTicketPromise = findLatestMwPickTicketLink();
 
   type MonOfferingRow = { id: string; is_active: boolean; market: { day_of_week: string | null } | null };
   const [
@@ -251,6 +266,8 @@ if (mode === 'mon') {
     (o) => o.status !== 'cancelled' && !VENDOR_SOURCES.has((o.source ?? '').toLowerCase())
   );
   mFridayChefCount = fridayOrders.length;
+
+  mMwTicket = await mwTicketPromise; // fail-soft: null if no email / any Gmail error
 
   mDoneSteps =
     (mFlexClosed ? 1 : 0) + (mHarvieOrder !== null ? 1 : 0) + (mMwOrder !== null ? 1 : 0) + (mMarketDone ? 1 : 0);
@@ -507,9 +524,25 @@ const slimDayLong = DAY_LONG[weekday] ?? weekday;
                       ? <>Fill ticket in for {wedPretty} — <span class="font-semibold text-ts-text tabular-nums">{mMwLines}</span> line{mMwLines === 1 ? '' : 's'}, <span class="font-semibold text-ts-text tabular-nums">{money(mMwOrder.total_amount)}</span>.</>
                       : <>No Market Wagon fill ticket imported for {wedPretty} yet.</>}
                   </p>
-                  <div class="mt-3">
-                    <a href="/admin/wholesale/import" class={ghostBtn}>Upload fill ticket →</a>
-                  </div>
+                  {mMwTicket ? (
+                    <div class="mt-3 rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 p-3">
+                      <p class="text-sm text-ts-text">
+                        This week's pick ticket arrived <span class="font-semibold">{prettyEtDateTime(mMwTicket.emailDate)}</span>.
+                      </p>
+                      <p class="mt-0.5 text-xs text-ts-text-muted">Open → Print → Save as PDF → Upload.</p>
+                      <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <a href={mMwTicket.url} target="_blank" rel="noopener" class={primaryBtn}>Open pick ticket ↗</a>
+                        <a href="/admin/wholesale/import" class={ghostBtn}>Upload fill ticket →</a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div class="mt-3">
+                      <a href="/admin/wholesale/import" class={ghostBtn}>Upload fill ticket →</a>
+                      <p class="mt-2 text-xs text-ts-text-muted">
+                        Market Wagon usually emails the pick ticket around <span class="font-medium">5:25 AM Monday</span> — the link will appear here once it lands.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
