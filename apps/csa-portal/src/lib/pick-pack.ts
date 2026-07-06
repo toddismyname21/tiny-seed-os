@@ -3,7 +3,7 @@
  * harvest pick lists at /admin/pick-pack/[week].
  *
  * The Pick & Pack generator answers ONE question for the pack day: "What do we
- * pick, and how much, across EVERY channel?" It folds three demand sources into
+ * pick, and how much, across EVERY channel?" It folds four demand sources into
  * a single per-crop pick list, then breaks that demand down per-channel so the
  * crew gets:
  *
@@ -22,9 +22,15 @@
  *     offerings, and tagged per market for the per-market checklist.
  *   • Wholesale order qty — from wholesale_order_items on submitted
  *     wholesale_orders delivering inside the cycle week.
+ *   • Flex à-la-carte qty — from flex_orders (status pending/locked/fulfilled)
+ *     for the cycle week, item name/unit from flex_inventory, scoped to the
+ *     member's harvest day exactly like CSA. Folds into the same per-crop rows
+ *     (flex kale → the kale line) so the crew harvests the flex demand too —
+ *     "so we have them" (Todd). A flex item that matches no existing crop line
+ *     becomes its own line.
  *
  * Sum per crop = CSA box demand + market planned_qty (all that crop's
- * offerings) + wholesale order item qty.
+ * offerings) + wholesale order item qty + flex à-la-carte qty.
  *
  * Pure + dependency-free (no DB, no framework). The page does the DB reads and
  * feeds rows in; this module owns the merge + ordering + i18n so it's unit-
@@ -35,7 +41,7 @@
  * Channel demand inputs (the page builds these from its DB reads)
  * ────────────────────────────────────────────────────────────────── */
 
-export type Channel = 'csa' | 'market' | 'wholesale';
+export type Channel = 'csa' | 'market' | 'wholesale' | 'flex';
 
 /** One unit of demand for a crop on a single channel. */
 export interface CropDemandInput {
@@ -64,6 +70,8 @@ export interface MergedCropRow {
   csa: ChannelQty | null;
   market: ChannelQty | null;
   wholesale: ChannelQty | null;
+  /** Flex à-la-carte demand (null = no flex order for this crop). */
+  flex: ChannelQty | null;
   /** Sum of every channel's qty — the headline "pick this much" number when
    *  all channels share a unit; when units differ, the per-channel cells are
    *  authoritative (we never silently add bunches to pounds in the display). */
@@ -187,18 +195,22 @@ export function isTenderGreen(crop: string, category?: string | null): boolean {
  * ────────────────────────────────────────────────────────────────── */
 
 /**
- * Merge CSA + market + wholesale demand into one per-crop list, ordered:
+ * Merge CSA + market + wholesale + flex demand into one per-crop list, ordered:
  *   1. TENDER GREENS FIRST (then everything else),
  *   2. within each group, biggest total demand first,
  *   3. ties broken alphabetically.
  *
  * Crops are matched on `normCrop`. Each channel keeps its own unit; `totalQty`
  * is the simple sum (callers display per-channel cells when units differ).
+ *
+ * `flex` defaults to [] so pre-flex callers (and the page's single-crop
+ * tender probe) keep working with three positional args.
  */
 export function mergeCropDemand(
   csa: CropDemandInput[],
   market: CropDemandInput[],
   wholesale: CropDemandInput[],
+  flex: CropDemandInput[] = [],
 ): MergedCropRow[] {
   const map = new Map<string, MergedCropRow>();
 
@@ -210,7 +222,7 @@ export function mergeCropDemand(
       row = {
         crop: d.crop,
         category: d.category ?? null,
-        csa: null, market: null, wholesale: null,
+        csa: null, market: null, wholesale: null, flex: null,
         totalQty: 0, multiChannel: false, tender: false,
       };
       map.set(key, row);
@@ -225,10 +237,11 @@ export function mergeCropDemand(
   for (const d of csa) bump('csa', d);
   for (const d of market) bump('market', d);
   for (const d of wholesale) bump('wholesale', d);
+  for (const d of flex) bump('flex', d);
 
   const rows = Array.from(map.values());
   for (const r of rows) {
-    r.multiChannel = [r.csa, r.market, r.wholesale].filter(Boolean).length > 1;
+    r.multiChannel = [r.csa, r.market, r.wholesale, r.flex].filter(Boolean).length > 1;
     r.tender = isTenderGreen(r.crop, r.category);
   }
 
@@ -245,7 +258,7 @@ export function mergeCropDemand(
 
 /** Count of channels with demand on a merged row. */
 export function channelCount(r: MergedCropRow): number {
-  return [r.csa, r.market, r.wholesale].filter(Boolean).length;
+  return [r.csa, r.market, r.wholesale, r.flex].filter(Boolean).length;
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -271,6 +284,7 @@ export const PICK_PACK_STRINGS: Record<Lang, {
   csaCol: string;
   marketCol: string;
   wholesaleCol: string;
+  flexCol: string;
   total: string;
   nothing: string;
   pickOnce: string;
@@ -305,6 +319,7 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     csaCol: 'CSA',
     marketCol: 'Market',
     wholesaleCol: 'Wholesale',
+    flexCol: 'Flex',
     total: 'Total',
     nothing: 'Nothing to harvest this week yet.',
     pickOnce: 'Harvest each crop once for everyone, then split it to the CSA / market / wholesale packs.',
@@ -336,6 +351,7 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     csaCol: 'CSA',
     marketCol: 'Mercado',
     wholesaleCol: 'Mayoreo',
+    flexCol: 'Flex',
     total: 'Total',
     nothing: 'Aún no hay nada que cosechar esta semana.',
     pickOnce: 'Coseche cada cultivo una vez para todos, luego divídalo entre los empaques de CSA / mercado / mayoreo.',

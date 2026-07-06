@@ -293,7 +293,90 @@ const wholesaleRows = Array.from(wholesaleMap.values())
   .sort((a, b) => b.qty - a.qty || a.crop.localeCompare(b.crop));
 
 /* ──────────────────────────────────────────────────────────────────
- * 5. The MERGE — overall per-crop demand across all three channels.
+ * 4B. Flex à-la-carte demand by crop — flex_orders for THIS week.
+ *
+ *   Todd's directive: the harvest numbers must INCLUDE flex-committed items so
+ *   the crew actually picks them ("so we have them"). flex_orders is flat (one
+ *   row per member per item); the item name/unit come from flex_inventory.
+ *
+ *   Counted statuses = pending / locked / fulfilled — the SAME "real order for
+ *   the week" filter every other flex-consuming page uses (labels, pack-load,
+ *   host-sheets, route-sheet, stop-manifest, pack-check, harvest). cancelled +
+ *   refunded are excluded — you don't pack those. There is NO "skipped" status:
+ *   a member skip CANCELS a pending order (see api/account/flex-order/skip.ts),
+ *   so a skipped week's order is already `cancelled` and drops out here.
+ *
+ *   Read via the service-role `db` (like market_offerings + wholesale_orders on
+ *   this page) so a CREW user — who does NOT clear the admin RLS bypass — still
+ *   sees the flex demand. Safe: only per-crop AGGREGATES are rendered (name +
+ *   qty + unit), never a member's name/contact.
+ *
+ *   Day scope mirrors CSA EXACTLY: a flex order is picked on the same harvest
+ *   day as its member's box (Sat/Sun pickup → thu; else → mon), via the shared
+ *   harvestTabForMember rule. On 'all' every counted order is included; on
+ *   mon/thu only orders whose member maps to that harvest tab. A flex order
+ *   whose member_id isn't an active cycle member this week has no resolvable
+ *   day, so it counts on 'all' only (never leaked onto a specific day tab —
+ *   same rule as the make-up notices above).
+ * ────────────────────────────────────────────────────────────────── */
+// member_id → harvest tab, from the resolved cycle (Sat/Sun pickup → thu).
+const memberFlexTab = new Map<string, 'mon' | 'thu'>();
+for (const m of cycle.members) {
+  memberFlexTab.set(m.id, harvestTabForMember(m.pickup_location?.day_of_week));
+}
+interface FlexOrderRow {
+  member_id: string;
+  qty: number;
+  flex_inventory: {
+    name: string | null;
+    unit: string | null;
+    category: string | null;
+    library: { category: string | null } | null;
+  } | null;
+}
+// Photo for a flex-only crop line comes from libLookup(crop)/cropPhoto at render
+// (product_library by name, same as every other channel) — so the join only
+// needs name/unit/category. category precedence: product_library → flex_inventory.
+const { data: flexOrderRows, error: flexErr } = await db
+  .from('flex_orders')
+  .select(
+    'member_id, qty, ' +
+    'flex_inventory:flex_inventory ( name, unit, category, ' +
+      'library:product_library ( category ) )',
+  )
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week_starting)
+  .in('status', ['pending', 'locked', 'fulfilled'])
+  .overrideTypes<FlexOrderRow[], { merge: false }>();
+if (flexErr) {
+  throw new Error(`pick-pack: flex_orders fetch failed: ${flexErr.message}`);
+}
+interface FlexAgg { crop: string; unit: string; qty: number; category: string | null; }
+const flexMap = new Map<string, FlexAgg>(); // key = crop|unit
+for (const fo of flexOrderRows ?? []) {
+  // Day scope: 'all' keeps every order; mon/thu keeps only orders whose member
+  // maps to that harvest tab. An unmapped member (undefined) fails the mon/thu
+  // check and so shows on 'all' only.
+  if (dayScope !== 'all' && memberFlexTab.get(fo.member_id) !== dayScope) continue;
+  const name = fo.flex_inventory?.name?.trim();
+  if (!name) continue;
+  // Skip the base share subscription line — it's the box, not a crop to pick.
+  if (/CSA Share/i.test(name)) continue;
+  const qty = Number(fo.qty) || 0;
+  if (qty <= 0) continue;
+  const unit = fo.flex_inventory?.unit?.trim() || 'each';
+  const category = fo.flex_inventory?.library?.category ?? fo.flex_inventory?.category ?? null;
+  const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
+  const e = flexMap.get(key);
+  if (e) e.qty += qty;
+  else flexMap.set(key, { crop: name, unit, qty, category });
+}
+const flexRows = Array.from(flexMap.values())
+  .filter((r) => r.qty > 0)
+  .sort((a, b) => b.qty - a.qty || a.crop.localeCompare(b.crop));
+
+/* ──────────────────────────────────────────────────────────────────
+ * 5. The MERGE — overall per-crop demand across all four channels.
  * ────────────────────────────────────────────────────────────────── */
 const csaDemand: CropDemandInput[] = csaRows.map((r) => ({
   crop: r.crop, qty: r.qty, unit: r.unit, category: libLookup(r.crop).category,
@@ -304,7 +387,10 @@ const marketDemand: CropDemandInput[] = Array.from(marketAllMap.values()).map((r
 const wholesaleDemand: CropDemandInput[] = wholesaleRows.map((r) => ({
   crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
 }));
-const merged = mergeCropDemand(csaDemand, marketDemand, wholesaleDemand);
+const flexDemand: CropDemandInput[] = flexRows.map((r) => ({
+  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
+}));
+const merged = mergeCropDemand(csaDemand, marketDemand, wholesaleDemand, flexDemand);
 const tenderRows = merged.filter((r) => r.tender);
 const otherRows = merged.filter((r) => !r.tender);
 
@@ -432,7 +518,7 @@ const selectedMarket = view === 'market'
 /** Total pounds for a merged/overall row, summed across its channels (weight
  *  units are already lb and are skipped by packLb, so no double-count). */
 function mergedRowLb(r: (typeof merged)[number]): number | null {
-  const total = [r.csa, r.market, r.wholesale].reduce((acc, c) => {
+  const total = [r.csa, r.market, r.wholesale, r.flex].reduce((acc, c) => {
     if (!c) return acc;
     return acc + (packLb(r.crop, c.qty, c.unit) ?? 0);
   }, 0);
@@ -443,7 +529,7 @@ function mergedRowLb(r: (typeof merged)[number]): number | null {
 // lb is the cross-channel sum. Keeps tender-first ordering for leftovers via the
 // original tenderRows/otherRows split (consumed rows drop out of each group).
 const overallCombined = combineHarvest(
-  merged.map((r) => ({ crop: r.crop, qty: r.totalQty, unit: r.csa?.unit ?? r.market?.unit ?? r.wholesale?.unit ?? 'each', lb: mergedRowLb(r) })),
+  merged.map((r) => ({ crop: r.crop, qty: r.totalQty, unit: r.csa?.unit ?? r.market?.unit ?? r.wholesale?.unit ?? r.flex?.unit ?? 'each', lb: mergedRowLb(r) })),
 );
 const overallConsumedCrops = new Set(
   Array.from(overallCombined.consumed).map((i) => merged[i].crop),
@@ -644,7 +730,7 @@ function lineAttrs(
 /** Best single display unit for an OVERALL merged row (blank when channels
  *  disagree) — used only for the "actual qty" prompt, not for the key. */
 function overallUnit(r: (typeof merged)[number]): string {
-  const units = new Set([r.csa?.unit, r.market?.unit, r.wholesale?.unit].filter(Boolean) as string[]);
+  const units = new Set([r.csa?.unit, r.market?.unit, r.wholesale?.unit, r.flex?.unit].filter(Boolean) as string[]);
   return units.size === 1 ? [...units][0] : '';
 }
 
@@ -913,12 +999,12 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                     const cell = (c: { qty: number; unit: string } | null, label: string) =>
                       c ? `${label} ${c.qty} ${c.unit}` : '';
                     const parts = [
-                      cell(r.csa, t.csaCol), cell(r.market, t.marketCol), cell(r.wholesale, t.wholesaleCol),
+                      cell(r.csa, t.csaCol), cell(r.market, t.marketCol), cell(r.wholesale, t.wholesaleCol), cell(r.flex, t.flexCol),
                     ].filter(Boolean);
                     // Total pounds to harvest across channels — sum each channel's
                     // count-unit contribution (weight-unit channels are already lb
                     // and are skipped by packLb, so they never double-count).
-                    const rowLbTotal = [r.csa, r.market, r.wholesale].reduce((acc, c) => {
+                    const rowLbTotal = [r.csa, r.market, r.wholesale, r.flex].reduce((acc, c) => {
                       if (!c) return acc;
                       const lb = packLb(r.crop, c.qty, c.unit);
                       return acc + (lb ?? 0);
@@ -941,7 +1027,7 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                         </div>
                         <div class="shrink-0 text-right">
                           {(() => {
-                            const units = new Set([r.csa?.unit, r.market?.unit, r.wholesale?.unit].filter(Boolean) as string[]);
+                            const units = new Set([r.csa?.unit, r.market?.unit, r.wholesale?.unit, r.flex?.unit].filter(Boolean) as string[]);
                             const oneUnit = units.size === 1 ? [...units][0] : null;
                             return oneUnit
                               ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.totalQty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{oneUnit}</span></>
