@@ -1,0 +1,1046 @@
+---
+/**
+ * /admin/pack-load/[week] — the LIVE "Pack & Load" board.
+ *
+ * ONE desktop screen the crew works on pack day. Per stop they:
+ *   (a) verify the box count and click ONE "✅ Loaded — N boxes verified"
+ *       toggle (persisted to pack_stop_status), and
+ *   (b) check off each owed make-up/note (✓ Fulfilled or ⤳ Carry to next week,
+ *       persisted to member_notices).
+ *
+ * THE GUARD: a stop's Loaded toggle is DISABLED until every note on it is
+ * resolved (fulfilled or carried), so a missed make-up can't be closed out. And
+ * if the live resolver count later drifts from the count confirmed at click
+ * time, the board flags "⚠ count changed — re-confirm" and forces a re-click —
+ * a wrong box count is structurally impossible to leave loaded.
+ *
+ * ALL COUNTS COME FROM resolveCycle + the flex-order gate — identical to
+ * /admin/stop-manifest and /admin/labels (same flexOrderedMemberIds set, same
+ * totalBoxes = boxes_small + boxes_large + flexCount). We never recompute counts
+ * independently. The data-loading block below mirrors stop-manifest exactly.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  resolveCycle, prettyWeekHeader, prettyShortDate,
+  HOME_DELIVERY_BUCKET_ID,
+  mondayOfWeek, isMonday, currentDeliveryWeek,
+  type StopTotals, type CycleMember, type AddOnType, type WeekdayCode,
+} from '../../../lib/cycle';
+import {
+  fetchDueNoticesWithMemberForStops, groupNoticesByHint, isNoticeOverdue,
+  HOME_DELIVERY_HINT,
+  type NoticeWithMember,
+} from '../../../lib/notices';
+import { weekOptions } from '../../../lib/cycle-ui';
+import { getLoadOrder, formatLoadRange } from '../../../lib/load-order';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+
+// /admin/pack-load/  → default to the current delivery week.
+const week_starting_input = segments[0] ?? currentDeliveryWeek();
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_starting_input)) {
+  return Astro.redirect('/admin/pack-load', 303);
+}
+const week_starting = isMonday(week_starting_input)
+  ? week_starting_input
+  : mondayOfWeek(week_starting_input);
+
+const cycle = await resolveCycle(supabase, week_starting);
+const allStops = cycle.activeStops;
+
+// All members across every active stop (one batch for the flex-gate query).
+const allMembers: CycleMember[] = allStops.flatMap(
+  (s) => cycle.byStop.get(s.stop_id) ?? [],
+);
+
+// ─── Flex members WITH a packable order this week (the "ordered set") ──
+// IDENTICAL gate to /admin/stop-manifest + /admin/labels: a flex member is a
+// real box only if they have a flex_orders row this week with status pending /
+// locked / fulfilled. Replicated verbatim so counts match the manifest exactly.
+const flexOrderedMemberIds = new Set<string>();
+{
+  const memberIds = allMembers.map((m) => m.id);
+  if (memberIds.length > 0) {
+    type OrderedRow = { member_id: string };
+    const { data, error } = await supabase
+      .from('flex_orders')
+      .select('member_id')
+      .eq('cycle_code', 'WEEKLY')
+      .eq('week_starting', week_starting)
+      .in('status', ['pending', 'locked', 'fulfilled'])
+      .in('member_id', memberIds)
+      .overrideTypes<OrderedRow[], { merge: false }>();
+    if (!error) {
+      for (const r of (data ?? []) as OrderedRow[]) flexOrderedMemberIds.add(r.member_id);
+    }
+  }
+}
+
+/** FLEX boxes at a stop = stop members with share_type 'flex' WHO HAVE an order
+ *  this week. Same logic as stop-manifest's flexCountForStop. */
+function flexCountForStop(stop: StopTotals): number {
+  let n = 0;
+  for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+    if (m.share_type === 'flex' && flexOrderedMemberIds.has(m.id)) n += 1;
+  }
+  return n;
+}
+/** The single source-of-truth total box count for a stop: gated flex + summer
+ *  boxes. Matches stop-manifest's `totalBoxes` line exactly. */
+function totalBoxesForStop(stop: StopTotals): number {
+  return stop.boxes_small + stop.boxes_large + flexCountForStop(stop);
+}
+
+// ─── Persisted load state for THIS week (one bounded query) ───────────
+type PackStatusRow = {
+  stop_id: string;
+  loaded: boolean;
+  confirmed_count: number | null;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+};
+const statusByStop = new Map<string, PackStatusRow>();
+{
+  const { data, error } = await supabase
+    .from('pack_stop_status')
+    .select('stop_id, loaded, confirmed_count, confirmed_by, confirmed_at')
+    .eq('week_starting', week_starting)
+    .overrideTypes<PackStatusRow[], { merge: false }>();
+  if (!error) {
+    for (const r of (data ?? []) as PackStatusRow[]) statusByStop.set(r.stop_id, r);
+  } else {
+    console.error('[pack-load] pack_stop_status fetch failed:', error.message);
+  }
+}
+
+// ─── Open notices DUE/OVERDUE for the rendered stops (one query) ──────
+// Mirrors stop-manifest's notice load, but uses the WITH_MEMBER variant so each
+// row shows "Member — title" and the OVERDUE flag.
+const noticeHints: string[] = allStops.map((s) =>
+  s.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : s.stop_name,
+);
+const dueNotices = await fetchDueNoticesWithMemberForStops(supabase, noticeHints, week_starting);
+const noticesByHint = groupNoticesByHint(dueNotices);
+function noticesForStop(stop: StopTotals): NoticeWithMember[] {
+  const hint = stop.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : stop.stop_name;
+  return noticesByHint.get(hint) ?? [];
+}
+
+// ─── Add-on chips (same color code as labels / pack-check / manifest) ─
+const ADDON_STYLE: Record<AddOnType, { bg: string; text: string; border: string; emoji: string; label: string }> = {
+  mushroom: { bg: '#efe9e1', text: '#5b4636', border: '#b89b80', emoji: '🍄', label: 'Mushroom' },
+  bread:    { bg: '#f6e7c9', text: '#7a4f12', border: '#d8b170', emoji: '🍞', label: 'Bread' },
+  cheese:   { bg: '#fdf3c4', text: '#7a5c00', border: '#e3c84e', emoji: '🧀', label: 'Cheese' },
+  coffee:   { bg: '#e3d5c8', text: '#4a2f1c', border: '#b08c6e', emoji: '☕', label: 'Coffee' },
+  eggs:     { bg: '#fde8ec', text: '#8a2f43', border: '#eab0bd', emoji: '🥚', label: 'Eggs' },
+  unknown:  { bg: '#e6eaef', text: '#334155', border: '#a9b4c2', emoji: '➕', label: 'Add-on' },
+};
+const ADDON_ORDER: AddOnType[] = ['mushroom', 'bread', 'cheese', 'coffee', 'eggs', 'unknown'];
+function addonCountsForStop(stop: StopTotals): { type: AddOnType; n: number }[] {
+  return ADDON_ORDER
+    .filter((t) => stop.addons[t] > 0)
+    .map((t) => ({ type: t, n: stop.addons[t] }));
+}
+
+// ─── Group stops by distribution day (Tue / Wed / Weekend) ────────────
+// home_delivery rides in the Wed group (resolveCycle assigns it day Wed).
+// THE WEEKEND RUN: Saturday markets (Bloomfield + Sewickley) and the Sunday
+// market (South Side) are packed at the SAME TIME, so they render under ONE
+// "Weekend" group. A stop's actual day_of_week ('Sat' vs 'Sun') is preserved
+// on each card; only the GROUPING collapses Sat + Sun together. Before this,
+// Sat had its own group and Sun fell into `otherStops`, splitting the weekend
+// run and hiding South Side away from its Bloomfield/Sewickley siblings.
+type DayKey = 'Tue' | 'Wed' | 'Weekend';
+const DAY_ORDER: DayKey[] = ['Tue', 'Wed', 'Weekend'];
+const DAY_LONG: Record<string, string> = {
+  Tue: 'Tuesday', Wed: 'Wednesday', Sat: 'Saturday', Sun: 'Sunday',
+  Weekend: 'Weekend',
+};
+/** Which group a stop's distribution day belongs to. Sat + Sun → Weekend. */
+function groupKeyForDay(d: WeekdayCode | null): DayKey | null {
+  if (d === 'Tue') return 'Tue';
+  if (d === 'Wed') return 'Wed';
+  if (d === 'Sat' || d === 'Sun') return 'Weekend';
+  return null; // Mon/Thu/Fri/none → ungrouped (otherStops)
+}
+interface DayGroup {
+  day: DayKey;
+  stops: StopTotals[];
+  totalBoxes: number;
+}
+const groupsByDay = new Map<DayKey, StopTotals[]>();
+const otherStops: StopTotals[] = []; // any stop with no Tue/Wed/Sat/Sun day
+for (const stop of allStops) {
+  const key = groupKeyForDay(stop.day_of_week);
+  if (key) {
+    const arr = groupsByDay.get(key) ?? [];
+    arr.push(stop);
+    groupsByDay.set(key, arr);
+  } else {
+    otherStops.push(stop);
+  }
+}
+// Within the Weekend group, order Saturday stops before Sunday stops, then by
+// name — so Bloomfield + Sewickley (Sat) sit above South Side (Sun).
+const WEEKEND_DAY_RANK: Record<string, number> = { Sat: 1, Sun: 2 };
+for (const [key, stops] of groupsByDay) {
+  if (key !== 'Weekend') continue;
+  stops.sort((a, b) => {
+    const ra = a.day_of_week ? (WEEKEND_DAY_RANK[a.day_of_week] ?? 9) : 9;
+    const rb = b.day_of_week ? (WEEKEND_DAY_RANK[b.day_of_week] ?? 9) : 9;
+    if (ra !== rb) return ra - rb;
+    return a.stop_name.localeCompare(b.stop_name);
+  });
+}
+const dayGroups: DayGroup[] = DAY_ORDER
+  .filter((d) => (groupsByDay.get(d) ?? []).length > 0)
+  .map((d) => {
+    const stops = groupsByDay.get(d) ?? [];
+    return { day: d, stops, totalBoxes: stops.reduce((a, s) => a + totalBoxesForStop(s), 0) };
+  });
+
+// Default-open group = the one with the most boxes; tie / none → Wed if present.
+let defaultDay: DayKey | null = null;
+{
+  let best = -1;
+  for (const g of dayGroups) {
+    if (g.totalBoxes > best) { best = g.totalBoxes; defaultDay = g.day; }
+  }
+  if (dayGroups.some((g) => g.day === 'Wed')) {
+    // Prefer Wed on a tie so the default matches the busiest delivery day.
+    const wed = dayGroups.find((g) => g.day === 'Wed');
+    if (wed && wed.totalBoxes === best) defaultDay = 'Wed';
+  }
+}
+
+// ─── Whole-cycle progress + week selector ─────────────────────────────
+const totalStops = allStops.length;
+const loadedStops = allStops.filter((s) => statusByStop.get(s.stop_id)?.loaded === true).length;
+const grandTotalBoxes = allStops.reduce((a, s) => a + totalBoxesForStop(s), 0);
+
+const options = weekOptions();
+if (!options.some((o) => o.value === week_starting)) {
+  options.unshift({ value: week_starting, label: `Week of ${week_starting} (selected)` });
+}
+
+/** Distribution date string for a stop's day. */
+function distDateForStop(stop: StopTotals): string {
+  if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
+  if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  if (stop.day_of_week === 'Sun') return cycle.distribution_dates.Sun;
+  return cycle.distribution_dates.Wed;
+}
+
+/** Date label for a day GROUP header. The Weekend group can span Sat + Sun, so
+ *  it shows both dates that actually have stops (e.g. "Sat, Jun 27 + Sun, Jun
+ *  28"); single-day groups show their one date. */
+function groupDateLabel(g: DayGroup): string {
+  if (g.day !== 'Weekend') return prettyShortDate(distDateForStop(g.stops[0]));
+  const hasSat = g.stops.some((s) => s.day_of_week === 'Sat');
+  const hasSun = g.stops.some((s) => s.day_of_week === 'Sun');
+  const parts: string[] = [];
+  if (hasSat) parts.push(prettyShortDate(cycle.distribution_dates.Sat));
+  if (hasSun) parts.push(prettyShortDate(cycle.distribution_dates.Sun));
+  return parts.join(' + ') || prettyShortDate(distDateForStop(g.stops[0]));
+}
+
+/** A per-stop view-model the template + the board both read. */
+interface StopVM {
+  stop: StopTotals;
+  total: number;
+  small: number;
+  large: number;
+  flex: number;
+  addons: { type: AddOnType; n: number }[];
+  notices: NoticeWithMember[];
+  openNoticeCount: number;
+  status: PackStatusRow | null;
+  isHome: boolean;
+}
+function buildVM(stop: StopTotals): StopVM {
+  const flex = flexCountForStop(stop);
+  const notices = noticesForStop(stop);
+  return {
+    stop,
+    total: stop.boxes_small + stop.boxes_large + flex,
+    small: stop.boxes_small,
+    large: stop.boxes_large,
+    flex,
+    addons: addonCountsForStop(stop),
+    notices,
+    openNoticeCount: notices.length,
+    status: statusByStop.get(stop.stop_id) ?? null,
+    isHome: stop.stop_id === HOME_DELIVERY_BUCKET_ID,
+  };
+}
+const vmByStopId = new Map<string, StopVM>();
+for (const s of allStops) vmByStopId.set(s.stop_id, buildVM(s));
+
+// ─── TRUCK LOADING ORDER (Todd 2026-07) ──────────────────────────────
+// The saved optimized route numbers every stop in LOAD order (1 = load first =
+// the LAST drive stop; reverse of the drive order) — INCLUDING wholesale stops,
+// so the crew knows where the Monday-printed wholesale crates go on the truck.
+// This board is a live, day-grouped work surface, so we don't reorder the whole
+// board (that would break the day tabs). Instead we render the one-sheet
+// "TRUCK LOADING ORDER" summary — the sheet taped to the truck door — at the
+// top, and stamp a small load badge on each stop card. No saved route → null →
+// the summary is replaced by a "optimize + save the route" hint (fail-soft).
+const loadOrder = await getLoadOrder(supabase, week_starting);
+
+// Box counts for the load list, per load stop key:
+//   pickup 'pl:'+id  → the stop's gated total box count (same source as the board)
+//   home   'cust:'+id → that household's boxes (summer + gated flex + flower)
+//   wholesale 'wc:'+id → shown as a crate (no CSA box count)
+const stopByPickupId = new Map<string, StopTotals>();
+for (const s of allStops) stopByPickupId.set(s.stop_id, s);
+const homeBoxByCustomer = new Map<string, number>();
+for (const m of (cycle.byStop.get(HOME_DELIVERY_BUCKET_ID) ?? [])) {
+  let inc = 0;
+  if (m.share_type === 'summer_veg') inc = 1;
+  else if (m.share_type === 'flex' && flexOrderedMemberIds.has(m.id)) inc = 1;
+  else if (m.share_type === 'flower') inc = 1;
+  if (inc) homeBoxByCustomer.set(m.customer_id, (homeBoxByCustomer.get(m.customer_id) ?? 0) + inc);
+}
+/** A short box/crate count string for a load-list row (or null when unknown). */
+function loadStopCount(key: string, kind: string): string | null {
+  if (kind === 'pickup') {
+    const id = key.slice(3);
+    const s = stopByPickupId.get(id);
+    return s ? `${totalBoxesForStop(s)} box${totalBoxesForStop(s) === 1 ? '' : 'es'}` : null;
+  }
+  if (kind === 'home') {
+    const n = homeBoxByCustomer.get(key.slice(5)) ?? 0;
+    return n > 0 ? `${n} box${n === 1 ? '' : 'es'}` : '1 stop';
+  }
+  return 'wholesale crate';
+}
+const KIND_ICON: Record<string, string> = { pickup: '📍', home: '🏠', wholesale: '🍽' };
+
+// Per-card load badge: a pickup stop → "LOAD #n"; the home-delivery bucket spans
+// several positions → "LOAD #a–b"; null off-route / no route.
+function loadBadgeForStop(stop: StopTotals): string | null {
+  if (!loadOrder) return null;
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) {
+    const seqs: number[] = [];
+    for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+      const st = loadOrder.home(m.customer_id);
+      if (st) seqs.push(st.loadSeq);
+    }
+    const r = formatLoadRange(seqs);
+    return r ? `LOAD ${r}` : null;
+  }
+  const st = loadOrder.pickup(stop.stop_id);
+  return st ? `LOAD #${st.loadSeq}` : null;
+}
+
+/** Human-friendly confirmed-at for the audit line. */
+function prettyTime(iso: string | null): string {
+  if (!iso) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    timeZone: 'America/New_York',
+  }).format(new Date(iso));
+}
+---
+
+<AdminShell
+  title="Pack & Load"
+  subtitle={`${prettyWeekHeader(week_starting)} · ${grandTotalBoxes} boxes across ${totalStops} stop${totalStops === 1 ? '' : 's'}`}
+  pageTitle="Pack & Load — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <form method="GET" action="/admin/pack-load" class="flex items-end gap-2">
+      <label class="flex flex-col gap-1">
+        <span class="sr-only">Week</span>
+        <select
+          name="week"
+          class="h-10 min-w-[200px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          {options.map((opt) => (
+            <option value={opt.value} selected={opt.value === week_starting}>{opt.label}</option>
+          ))}
+        </select>
+      </label>
+      <button
+        type="submit"
+        class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        Load week
+      </button>
+    </form>
+    {loadOrder && (
+      <button
+        type="button"
+        onclick="window.print()"
+        class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        🖨 Print truck sheet
+      </button>
+    )}
+  </Fragment>
+
+  {/* ════ 🚚 TRUCK LOADING ORDER — the one sheet taped to the truck door ════
+      Numbered 1..N in LOAD order (load-first at top = the LAST drive stop,
+      deepest in the truck; the last row loads at the door, first out). Includes
+      wholesale stops so the crew can place the Monday-printed crates. This
+      section is what prints; the live board below is screen-only. */}
+  {loadOrder ? (
+    <section class="truck-load-sheet mb-8 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm" aria-labelledby="truck-load-heading">
+      <div class="flex flex-wrap items-end justify-between gap-2 border-b-2 border-ts-text pb-3">
+        <div>
+          <h2 id="truck-load-heading" class="font-display text-2xl font-extrabold text-ts-text">
+            🚚 Truck loading order
+          </h2>
+          <p class="mt-0.5 text-sm text-ts-text-secondary">
+            {prettyWeekHeader(week_starting)} · load #1 first (deepest); last row loads at the door
+            {loadOrder.legCount > 1 ? ` · ${loadOrder.legCount} route legs (A→B numbered straight through)` : ''}
+          </p>
+        </div>
+        <span class="rounded-full bg-ts-primary/10 px-3 py-1 text-sm font-bold tabular-nums text-ts-primary">
+          {loadOrder.total} stop{loadOrder.total === 1 ? '' : 's'}
+        </span>
+      </div>
+      <ol class="mt-3 flex flex-col divide-y divide-ts-border/60">
+        {loadOrder.stops.map((st) => (
+          <li class="flex items-center gap-3 py-2">
+            <span class="load-seq flex h-9 w-9 shrink-0 items-center justify-center rounded-ts-md text-base font-extrabold tabular-nums">
+              {st.loadSeq}
+            </span>
+            <span class="shrink-0 text-lg" aria-hidden="true">{KIND_ICON[st.kind] ?? '📦'}</span>
+            <span class="min-w-0 flex-1 truncate font-semibold text-ts-text">{st.name}</span>
+            {loadOrder.legCount > 1 && (
+              <span class="shrink-0 rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-bold text-ts-text-secondary">Route {st.leg}</span>
+            )}
+            <span class="shrink-0 text-sm font-medium text-ts-text-secondary tabular-nums">
+              {loadStopCount(st.key, st.kind) ?? ''}
+            </span>
+            <span class="shrink-0 text-xs text-ts-text-muted tabular-nums">drive #{st.routeSeq}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  ) : (
+    <div class="print:hidden mb-8 rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-4 py-3 text-sm text-ts-text-secondary">
+      💡 Optimize + save this week's delivery route (Route planner → “Save &amp; send to driver”) to generate the numbered truck-loading order and load positions.
+    </div>
+  )}
+
+  {allStops.length === 0 ? (
+    <Card tone="muted" padding="lg" elevation="sm">
+      <div class="flex flex-col items-center gap-3 py-8 text-center">
+        <span class="text-4xl" aria-hidden="true">🚚</span>
+        <p class="font-display text-lg font-semibold text-ts-text">No active stops this week</p>
+        <p class="max-w-sm text-sm text-ts-text-secondary">
+          There are no members receiving a box in this cycle. Pick a different week above to see its pack &amp; load board.
+        </p>
+      </div>
+    </Card>
+  ) : (
+    <div
+      data-pack-load
+      data-week={week_starting}
+      data-user-email={Astro.locals.user?.email ?? ''}
+      class="flex flex-col gap-8 print:hidden"
+    >
+      {/* ════ LIVE STOP BOARD ════ */}
+      <section aria-labelledby="board-heading" class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="board-heading" class="font-display text-xl font-bold text-ts-text">
+            Stop board
+          </h2>
+          <p class="text-sm font-semibold text-ts-text-secondary">
+            <span data-board-loaded-count class="tabular-nums">{loadedStops}</span>
+            {' of '}
+            <span class="tabular-nums">{totalStops}</span>
+            {' stops loaded'}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {allStops.map((stop) => {
+            const vm = vmByStopId.get(stop.stop_id)!;
+            return (
+              <a
+                href={`#stop-${stop.stop_id}`}
+                data-board-chip={stop.stop_id}
+                class="board-chip inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+              >
+                <span data-chip-icon aria-hidden="true">⬜</span>
+                <span>{vm.isHome ? '🏠 ' : ''}{stop.stop_name}</span>
+                <span class="tabular-nums opacity-70">({vm.total})</span>
+              </a>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ════ DAY TABS ════ */}
+      {dayGroups.length > 1 && (
+        <div role="tablist" aria-label="Distribution day" class="flex flex-wrap gap-2 border-b border-ts-border pb-px">
+          {dayGroups.map((g) => (
+            <button
+              type="button"
+              role="tab"
+              data-day-tab={g.day}
+              aria-selected={g.day === defaultDay ? 'true' : 'false'}
+              class="day-tab inline-flex items-center gap-2 rounded-t-ts-md border-b-2 px-4 py-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              {DAY_LONG[g.day]}
+              <span class="rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs tabular-nums text-ts-text-secondary">
+                {g.totalBoxes}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ════ DAY GROUPS + PER-STOP CARDS ════ */}
+      {dayGroups.map((g) => (
+        <section
+          data-day-group={g.day}
+          aria-label={`${DAY_LONG[g.day]} stops`}
+          hidden={dayGroups.length > 1 && g.day !== defaultDay}
+          class="flex flex-col gap-4"
+        >
+          <h3 class="font-display text-lg font-bold text-ts-text">
+            {DAY_LONG[g.day]}
+            <span class="ml-2 text-sm font-medium text-ts-text-secondary">
+              · {groupDateLabel(g)} · {g.totalBoxes} boxes
+            </span>
+          </h3>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {g.stops.map((stop) => {
+              const vm = vmByStopId.get(stop.stop_id)!;
+              const loaded = vm.status?.loaded === true;
+              const confirmed = vm.status?.confirmed_count ?? null;
+              const stale = loaded && confirmed !== null && confirmed !== vm.total;
+              return (
+                <Card
+                  padding="md"
+                  elevation="sm"
+                  id={`stop-${stop.stop_id}`}
+                  data-stop-card={stop.stop_id}
+                  data-total={vm.total}
+                  data-open-notices={vm.openNoticeCount}
+                  data-loaded={loaded ? '1' : '0'}
+                  data-confirmed={confirmed === null ? '' : String(confirmed)}
+                  class="scroll-mt-24"
+                >
+                  {/* Header */}
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h4 class="font-display text-lg font-bold text-ts-text">
+                        {vm.isHome ? '🏠 ' : ''}{stop.stop_name}
+                      </h4>
+                      <p class="mt-0.5 text-xs font-medium text-ts-text-muted">
+                        {stop.day_of_week ? DAY_LONG[stop.day_of_week] : 'Day TBD'}
+                        {vm.isHome ? ' · home delivery (route)' : ''}
+                      </p>
+                      {loadBadgeForStop(stop) && (
+                        <span class="mt-1 inline-flex items-center gap-1 rounded-full bg-ts-text px-2.5 py-0.5 text-xs font-extrabold text-ts-bg-surface">
+                          🚚 {loadBadgeForStop(stop)}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      data-stop-status-pill
+                      class="shrink-0 rounded-full px-3 py-1 text-xs font-bold"
+                    ></span>
+                  </div>
+
+                  {/* Box count to verify */}
+                  <div class="mt-4 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">
+                      Verify box count
+                    </p>
+                    <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ts-text">
+                      {vm.total} <span class="text-base font-semibold text-ts-text-secondary">box{vm.total === 1 ? '' : 'es'}</span>
+                    </p>
+                    <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
+                      {vm.small} small · {vm.large} large · {vm.flex} flex
+                    </p>
+                  </div>
+
+                  {/* Add-on summary — prominent so it's never missed */}
+                  {vm.addons.length > 0 && (
+                    <div class="mt-3">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Add-ons</p>
+                      <div class="mt-1.5 flex flex-wrap gap-1.5">
+                        {vm.addons.map((a) => {
+                          const st = ADDON_STYLE[a.type];
+                          return (
+                            <span
+                              class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold"
+                              style={`background:${st.bg};color:${st.text};border:1px solid ${st.border};`}
+                            >
+                              <span aria-hidden="true">{st.emoji}</span>
+                              <span class="tabular-nums">{a.n}</span>
+                              {st.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Owed make-ups / notes */}
+                  {vm.notices.length > 0 && (
+                    <div class="mt-4 rounded-ts-md border-2 border-ts-warning/50 bg-ts-warning/5 p-3" data-notices-block>
+                      <p class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-ts-warning">
+                        <span aria-hidden="true">📌</span>
+                        Owed here — resolve before loading ({vm.notices.length})
+                      </p>
+                      <ul class="mt-2 flex flex-col gap-2">
+                        {vm.notices.map((n) => {
+                          const overdue = isNoticeOverdue(n.due_week, week_starting);
+                          return (
+                            <li
+                              data-notice-row={n.id}
+                              class="flex flex-col gap-2 rounded-ts-md bg-ts-bg-surface p-2.5 shadow-ts-sm sm:flex-row sm:items-start sm:justify-between"
+                            >
+                              <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold leading-snug text-ts-text">
+                                  {n.member_name && (
+                                    <span class="text-ts-text">{n.member_name} — </span>
+                                  )}
+                                  {n.title}
+                                  {overdue && (
+                                    <span class="ml-2 inline-flex items-center rounded-full bg-ts-danger/15 px-2 py-0.5 align-middle text-[10px] font-extrabold uppercase text-ts-danger">
+                                      Overdue
+                                    </span>
+                                  )}
+                                </p>
+                                {n.detail && (
+                                  <p class="mt-0.5 whitespace-pre-wrap break-words text-xs text-ts-text-secondary">
+                                    {n.detail}
+                                  </p>
+                                )}
+                              </div>
+                              <div class="flex shrink-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  data-notice-action="fulfill"
+                                  data-notice-id={n.id}
+                                  class="inline-flex h-9 items-center justify-center gap-1 rounded-ts-md bg-ts-primary px-3 text-xs font-bold text-white shadow-ts-sm transition-transform duration-150 hover:bg-ts-primary-dark active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-50"
+                                >
+                                  ✓ Fulfilled
+                                </button>
+                                <button
+                                  type="button"
+                                  data-notice-action="carry"
+                                  data-notice-id={n.id}
+                                  class="inline-flex h-9 items-center justify-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-bold text-ts-text transition-transform duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-50"
+                                >
+                                  ⤳ Carry
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Re-confirm banner (shown by JS when live total ≠ confirmed) */}
+                  <p
+                    data-stale-banner
+                    hidden={!stale}
+                    class="mt-4 rounded-ts-md border border-ts-warning bg-ts-warning/10 px-3 py-2 text-xs font-bold text-ts-warning"
+                  >
+                    ⚠ Count changed (was <span data-stale-was class="tabular-nums">{confirmed ?? ''}</span>, now <span class="tabular-nums">{vm.total}</span>) — re-confirm
+                  </p>
+
+                  {/* THE BIG TOGGLE */}
+                  <button
+                    type="button"
+                    data-load-toggle
+                    data-stop-id={stop.stop_id}
+                    class="load-toggle mt-4 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md px-4 text-base font-extrabold shadow-ts-sm transition-transform duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span data-load-toggle-label></span>
+                  </button>
+
+                  {/* Audit trail (shown once loaded) */}
+                  <p
+                    data-audit-line
+                    hidden={!loaded}
+                    class="mt-2 text-center text-xs text-ts-text-muted"
+                  >
+                    Loaded by <span data-audit-by>{vm.status?.confirmed_by ?? ''}</span>
+                    {' · '}
+                    <span data-audit-at>{prettyTime(vm.status?.confirmed_at ?? null)}</span>
+                  </p>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+
+      {/* Any stops with no Tue/Wed/Sat day (e.g. 'No pickup set') — shown
+          ungrouped so they're never silently dropped. */}
+      {otherStops.length > 0 && (
+        <section aria-label="Other stops" class="flex flex-col gap-4">
+          <h3 class="font-display text-lg font-bold text-ts-text">Other / no day set</h3>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {otherStops.map((stop) => {
+              const vm = vmByStopId.get(stop.stop_id)!;
+              const loaded = vm.status?.loaded === true;
+              const confirmed = vm.status?.confirmed_count ?? null;
+              const stale = loaded && confirmed !== null && confirmed !== vm.total;
+              return (
+                <Card
+                  padding="md"
+                  elevation="sm"
+                  id={`stop-${stop.stop_id}`}
+                  data-stop-card={stop.stop_id}
+                  data-total={vm.total}
+                  data-open-notices={vm.openNoticeCount}
+                  data-loaded={loaded ? '1' : '0'}
+                  data-confirmed={confirmed === null ? '' : String(confirmed)}
+                  class="scroll-mt-24"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h4 class="font-display text-lg font-bold text-ts-text">{stop.stop_name}</h4>
+                      <p class="mt-0.5 text-xs font-medium text-ts-text-muted">Day TBD</p>
+                    </div>
+                    <span data-stop-status-pill class="shrink-0 rounded-full px-3 py-1 text-xs font-bold"></span>
+                  </div>
+                  <div class="mt-4 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 p-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Verify box count</p>
+                    <p class="mt-1 font-display text-2xl font-extrabold tabular-nums text-ts-text">
+                      {vm.total} <span class="text-base font-semibold text-ts-text-secondary">box{vm.total === 1 ? '' : 'es'}</span>
+                    </p>
+                    <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
+                      {vm.small} small · {vm.large} large · {vm.flex} flex
+                    </p>
+                  </div>
+                  {vm.notices.length > 0 && (
+                    <div class="mt-4 rounded-ts-md border-2 border-ts-warning/50 bg-ts-warning/5 p-3" data-notices-block>
+                      <p class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-ts-warning">
+                        <span aria-hidden="true">📌</span>
+                        Owed here — resolve before loading ({vm.notices.length})
+                      </p>
+                      <ul class="mt-2 flex flex-col gap-2">
+                        {vm.notices.map((n) => {
+                          const overdue = isNoticeOverdue(n.due_week, week_starting);
+                          return (
+                            <li data-notice-row={n.id} class="flex flex-col gap-2 rounded-ts-md bg-ts-bg-surface p-2.5 shadow-ts-sm sm:flex-row sm:items-start sm:justify-between">
+                              <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold leading-snug text-ts-text">
+                                  {n.member_name && (<span>{n.member_name} — </span>)}{n.title}
+                                  {overdue && (<span class="ml-2 inline-flex items-center rounded-full bg-ts-danger/15 px-2 py-0.5 align-middle text-[10px] font-extrabold uppercase text-ts-danger">Overdue</span>)}
+                                </p>
+                                {n.detail && (<p class="mt-0.5 whitespace-pre-wrap break-words text-xs text-ts-text-secondary">{n.detail}</p>)}
+                              </div>
+                              <div class="flex shrink-0 items-center gap-2">
+                                <button type="button" data-notice-action="fulfill" data-notice-id={n.id} class="inline-flex h-9 items-center justify-center gap-1 rounded-ts-md bg-ts-primary px-3 text-xs font-bold text-white shadow-ts-sm transition-transform duration-150 hover:bg-ts-primary-dark active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-50">✓ Fulfilled</button>
+                                <button type="button" data-notice-action="carry" data-notice-id={n.id} class="inline-flex h-9 items-center justify-center gap-1 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-xs font-bold text-ts-text transition-transform duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:opacity-50">⤳ Carry</button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  <p data-stale-banner hidden={!stale} class="mt-4 rounded-ts-md border border-ts-warning bg-ts-warning/10 px-3 py-2 text-xs font-bold text-ts-warning">
+                    ⚠ Count changed (was <span data-stale-was class="tabular-nums">{confirmed ?? ''}</span>, now <span class="tabular-nums">{vm.total}</span>) — re-confirm
+                  </p>
+                  <button type="button" data-load-toggle data-stop-id={stop.stop_id} class="load-toggle mt-4 inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-md px-4 text-base font-extrabold shadow-ts-sm transition-transform duration-150 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-60">
+                    <span data-load-toggle-label></span>
+                  </button>
+                  <p data-audit-line hidden={!loaded} class="mt-2 text-center text-xs text-ts-text-muted">
+                    Loaded by <span data-audit-by>{vm.status?.confirmed_by ?? ''}</span> · <span data-audit-at>{prettyTime(vm.status?.confirmed_at ?? null)}</span>
+                  </p>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
+  )}
+</AdminShell>
+
+<style is:global>
+  /* Board chip + toggle states are driven by data attributes set in JS, so the
+     visual states live here against the design tokens. */
+  .board-chip {
+    border-color: var(--color-ts-border);
+    background: var(--color-ts-bg-surface);
+    color: var(--color-ts-text-secondary);
+  }
+  .board-chip[data-state="loaded"] {
+    border-color: var(--color-ts-primary);
+    background: color-mix(in srgb, var(--color-ts-primary) 12%, transparent);
+    color: var(--color-ts-primary);
+  }
+  .board-chip[data-state="changed"] {
+    border-color: var(--color-ts-warning);
+    background: color-mix(in srgb, var(--color-ts-warning) 14%, transparent);
+    color: var(--color-ts-warning);
+  }
+
+  .day-tab {
+    border-color: transparent;
+    color: var(--color-ts-text-secondary);
+  }
+  .day-tab[aria-selected="true"] {
+    border-color: var(--color-ts-primary);
+    color: var(--color-ts-primary);
+  }
+  .day-tab:hover { color: var(--color-ts-text); }
+
+  /* Load toggle: idle (green CTA), loaded (filled, click to un-load),
+     blocked (notes unresolved → disabled look). */
+  .load-toggle {
+    background: var(--color-ts-primary);
+    color: #fff;
+  }
+  .load-toggle[data-state="loaded"] {
+    background: color-mix(in srgb, var(--color-ts-primary) 18%, transparent);
+    color: var(--color-ts-primary);
+    border: 2px solid var(--color-ts-primary);
+  }
+  .load-toggle:hover:not(:disabled) { filter: brightness(1.04); }
+
+  /* 🚚 Truck-load-order sequence chip — dark, high-contrast, prints in color. */
+  .load-seq {
+    background: #0f172a;
+    color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Print = ONLY the truck-loading sheet (the live board is print:hidden). */
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+    body, html { background: #fff !important; }
+    .truck-load-sheet {
+      box-shadow: none !important;
+      border-color: #0f172a !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+</style>
+
+<script>
+  /* ════════════════════════════════════════════════════════════════════
+     Pack & Load — live, optimistic + persisted (same-origin fetch JSON).
+     - Day tabs show/hide day groups.
+     - Each stop card: live notice resolution + the one Loaded toggle.
+     - The toggle is DISABLED while any note on the stop is unresolved, and
+       requires a re-click when the live count ≠ the confirmed count.
+     - Stop board chips reflect ⬜ / ✅ / ⚠ live.
+     Re-inits after Astro view transitions.
+     ════════════════════════════════════════════════════════════════════ */
+  function initPackLoad(): void {
+    const root = document.querySelector<HTMLElement>('[data-pack-load]');
+    if (!root) return;
+    const week = root.dataset.week ?? '';
+
+    /* ──── Day tabs ──── */
+    const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-day-tab]'));
+    const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-day-group]'));
+    function selectDay(day: string): void {
+      for (const t of tabs) t.setAttribute('aria-selected', t.dataset.dayTab === day ? 'true' : 'false');
+      for (const g of groups) g.hidden = g.dataset.dayGroup !== day;
+    }
+    for (const t of tabs) {
+      t.addEventListener('click', () => selectDay(t.dataset.dayTab ?? ''));
+    }
+
+    /* ──── Per-card state machine ──── */
+    interface CardState {
+      card: HTMLElement;
+      stopId: string;
+      total: number;
+      loaded: boolean;
+      confirmed: number | null;
+    }
+    const cards = new Map<string, CardState>();
+
+    function openNoticeCount(card: HTMLElement): number {
+      // Count notice rows still present (resolved rows are removed from DOM).
+      return card.querySelectorAll('[data-notice-row]').length;
+    }
+    function isStale(s: CardState): boolean {
+      return s.loaded && s.confirmed !== null && s.confirmed !== s.total;
+    }
+
+    function renderCard(stopId: string): void {
+      const s = cards.get(stopId);
+      if (!s) return;
+      const { card } = s;
+      const pill = card.querySelector<HTMLElement>('[data-stop-status-pill]');
+      const toggle = card.querySelector<HTMLButtonElement>('[data-load-toggle]');
+      const label = card.querySelector<HTMLElement>('[data-load-toggle-label]');
+      const staleBanner = card.querySelector<HTMLElement>('[data-stale-banner]');
+      const auditLine = card.querySelector<HTMLElement>('[data-audit-line]');
+      const notesOpen = openNoticeCount(card);
+      const stale = isStale(s);
+      const chip = document.querySelector<HTMLElement>(`[data-board-chip="${stopId}"]`);
+      const chipIcon = chip?.querySelector<HTMLElement>('[data-chip-icon]');
+
+      // Stale banner
+      if (staleBanner) staleBanner.hidden = !stale;
+
+      // Status pill + board chip
+      if (s.loaded && stale) {
+        if (pill) {
+          pill.textContent = '⚠ Changed';
+          pill.style.background = 'color-mix(in srgb, var(--color-ts-warning) 16%, transparent)';
+          pill.style.color = 'var(--color-ts-warning)';
+        }
+        chip?.setAttribute('data-state', 'changed');
+        if (chipIcon) chipIcon.textContent = '⚠';
+      } else if (s.loaded) {
+        if (pill) {
+          pill.textContent = '✅ Loaded';
+          pill.style.background = 'color-mix(in srgb, var(--color-ts-primary) 14%, transparent)';
+          pill.style.color = 'var(--color-ts-primary)';
+        }
+        chip?.setAttribute('data-state', 'loaded');
+        if (chipIcon) chipIcon.textContent = '✅';
+      } else {
+        if (pill) {
+          pill.textContent = '⬜ Not loaded';
+          pill.style.background = 'var(--color-ts-bg-muted)';
+          pill.style.color = 'var(--color-ts-text-secondary)';
+        }
+        chip?.setAttribute('data-state', 'idle');
+        if (chipIcon) chipIcon.textContent = '⬜';
+      }
+
+      // Toggle
+      if (toggle && label) {
+        const blocked = !s.loaded && notesOpen > 0;
+        toggle.disabled = blocked;
+        if (s.loaded && stale) {
+          toggle.dataset.state = 'loaded';
+          label.textContent = `🔄 Re-confirm — ${s.total} boxes`;
+        } else if (s.loaded) {
+          toggle.dataset.state = 'loaded';
+          label.textContent = `✅ Loaded — ${s.total} boxes verified  (tap to un-load)`;
+        } else if (blocked) {
+          toggle.dataset.state = 'blocked';
+          label.textContent = `Resolve ${notesOpen} note${notesOpen === 1 ? '' : 's'} before loading`;
+        } else {
+          toggle.dataset.state = 'idle';
+          label.textContent = `✅ Loaded — ${s.total} boxes verified`;
+        }
+      }
+
+      // Audit line visibility
+      if (auditLine) auditLine.hidden = !s.loaded;
+    }
+
+    function updateBoardCount(): void {
+      const el = document.querySelector<HTMLElement>('[data-board-loaded-count]');
+      if (!el) return;
+      let n = 0;
+      for (const s of cards.values()) if (s.loaded) n += 1;
+      el.textContent = String(n);
+    }
+
+    /* ──── Init each card ──── */
+    for (const card of Array.from(document.querySelectorAll<HTMLElement>('[data-stop-card]'))) {
+      const stopId = card.dataset.stopCard ?? '';
+      const total = Number(card.dataset.total ?? '0');
+      const loaded = card.dataset.loaded === '1';
+      const confRaw = card.dataset.confirmed ?? '';
+      const confirmed = confRaw === '' ? null : Number(confRaw);
+      cards.set(stopId, { card, stopId, total, loaded, confirmed });
+      renderCard(stopId);
+    }
+    updateBoardCount();
+
+    /* ──── Notice resolution (fulfill / carry) ──── */
+    async function postJSON(url: string, payload: unknown): Promise<{ ok: boolean; error?: string }> {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+        if (!res.ok || !data.ok) return { ok: false, error: data.error ?? `http_${res.status}` };
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: 'network' };
+      }
+    }
+
+    document.querySelectorAll<HTMLButtonElement>('[data-notice-action]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.noticeId ?? '';
+        const action = btn.dataset.noticeAction ?? '';
+        const row = btn.closest<HTMLElement>('[data-notice-row]');
+        const card = btn.closest<HTMLElement>('[data-stop-card]');
+        if (!id || !card) return;
+        // Disable both buttons in the row while in flight.
+        row?.querySelectorAll('button').forEach((b) => ((b as HTMLButtonElement).disabled = true));
+        const result = await postJSON('/api/admin/pack-load/note', {
+          notice_id: id, action, week_starting: week,
+        });
+        if (!result.ok) {
+          row?.querySelectorAll('button').forEach((b) => ((b as HTMLButtonElement).disabled = false));
+          window.alert(`Could not ${action} this note (${result.error}). Try again.`);
+          return;
+        }
+        // Remove the resolved row; if the block is now empty, remove it too.
+        const block = card.querySelector<HTMLElement>('[data-notices-block]');
+        row?.remove();
+        if (block && block.querySelectorAll('[data-notice-row]').length === 0) block.remove();
+        // Re-evaluate the toggle (may now be unblocked).
+        renderCard(card.dataset.stopCard ?? '');
+      });
+    });
+
+    /* ──── Load toggle ──── */
+    document.querySelectorAll<HTMLButtonElement>('[data-load-toggle]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const stopId = btn.dataset.stopId ?? '';
+        const s = cards.get(stopId);
+        if (!s) return;
+        // If currently loaded AND not stale → this click UN-loads. Otherwise
+        // (idle, or stale re-confirm) → load with the current live total.
+        const willLoad = !(s.loaded && !isStale(s));
+        btn.disabled = true;
+        const result = await postJSON('/api/admin/pack-load/stop', {
+          week_starting: week,
+          stop_id: stopId,
+          loaded: willLoad,
+          confirmed_count: willLoad ? s.total : undefined,
+        });
+        btn.disabled = false;
+        if (!result.ok) {
+          window.alert(`Could not update this stop (${result.error}). Try again.`);
+          renderCard(stopId);
+          return;
+        }
+        s.loaded = willLoad;
+        s.confirmed = willLoad ? s.total : null;
+        // Update audit line text on load.
+        const card = s.card;
+        const by = card.querySelector<HTMLElement>('[data-audit-by]');
+        const at = card.querySelector<HTMLElement>('[data-audit-at]');
+        if (willLoad) {
+          if (by) by.textContent = (root?.dataset.userEmail) || 'you';
+          if (at) at.textContent = new Intl.DateTimeFormat('en-US', {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+          }).format(new Date());
+        }
+        renderCard(stopId);
+        updateBoardCount();
+      });
+    });
+  }
+
+  initPackLoad();
+  document.addEventListener('astro:page-load', initPackLoad);
+</script>

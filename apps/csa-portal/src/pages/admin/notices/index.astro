@@ -63,6 +63,44 @@ const stopNames = Array.from(
   new Set((locRows ?? []).map((l) => l.name?.trim()).filter((n): n is string => !!n)),
 );
 
+// ─── Current pickup stop per customer (Todd 2026-07-07: "the notices sheet
+// could also note the stop each person is at"). Resolved LIVE from active
+// member rows — critically, this catches DRIFT: a notice created for one stop
+// while the member has since MOVED (the Heidi Weaver failure mode). Rendered
+// as an amber "now at" chip whenever it differs from the notice's stop_hint.
+type StopStubRow = {
+  customer_id: string;
+  delivery_address: string | null;
+  pickup: { name: string | null } | null;
+};
+const { data: stopStubRows } = await supabase
+  .from('members')
+  .select('customer_id, delivery_address, pickup:pickup_locations ( name )')
+  .eq('status', 'active')
+  .overrideTypes<StopStubRow[], { merge: false }>();
+const currentStopByCustomer = new Map<string, string>();
+for (const r of stopStubRows ?? []) {
+  if (currentStopByCustomer.has(r.customer_id)) {
+    // Prefer a row WITH a pickup name over an earlier address-only guess.
+    if (currentStopByCustomer.get(r.customer_id) === 'HOME DELIVERY' && r.pickup?.name) {
+      currentStopByCustomer.set(r.customer_id, r.pickup.name.trim());
+    }
+    continue;
+  }
+  const name = r.pickup?.name?.trim();
+  if (name) currentStopByCustomer.set(r.customer_id, name);
+  else if (r.delivery_address?.trim()) currentStopByCustomer.set(r.customer_id, 'HOME DELIVERY');
+}
+/** The member's live stop, only when it MEANINGFULLY differs from stop_hint. */
+function currentStopChip(customerId: string | null, hint: string | null): string | null {
+  if (!customerId) return null;
+  const cur = currentStopByCustomer.get(customerId);
+  if (!cur) return null;
+  const norm = (s: string) => s.trim().toLowerCase();
+  if (hint && norm(hint) === norm(cur)) return null; // same place — no noise
+  return cur;
+}
+
 // ─── Load active members for the (optional) member dropdown ──────────
 // Distinct customers who hold an ACTIVE share — the people a promise is most
 // likely "for". One round trip; de-duped + sorted by name.
@@ -151,11 +189,28 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
   pageTitle="Notices — Tiny Seed Admin"
   canonical="https://csa.tinyseedfarm.com/admin/notices"
 >
+  <Fragment slot="actions">
+    <button
+      type="button"
+      onclick="window.print()"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🖨 Print
+    </button>
+  </Fragment>
+
+  {/* ════ Print-only worksheet title ════
+       The AdminShell's page heading (with the on-screen "📌 Notices" h1) lives
+       inside a print:hidden block, so the printout would otherwise have no
+       title. Render a paper heading here inside <main> (which prints), shown
+       ONLY in print via `notices-print-title`. */}
+  <h1 class="notices-print-title">Open Notices — worksheet</h1>
+
   {/* ════ Status banner ════ */}
   {okMsg && (
     <div
       role="status"
-      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/10 px-4 py-3 text-sm font-medium text-ts-primary"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/10 px-4 py-3 text-sm font-medium text-ts-primary print:hidden"
     >
       {okMsg}
     </div>
@@ -163,14 +218,14 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
   {errMsg && (
     <div
       role="alert"
-      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm font-medium text-ts-danger"
+      class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm font-medium text-ts-danger print:hidden"
     >
       {errMsg}
     </div>
   )}
 
   {/* ════ Add a notice (collapsible) ════ */}
-  <details class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface shadow-ts-sm" open={openCount === 0}>
+  <details class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface shadow-ts-sm print:hidden" open={openCount === 0}>
     <summary
       class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-base font-semibold text-ts-text [&::-webkit-details-marker]:hidden"
     >
@@ -278,8 +333,8 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
   </details>
 
   {/* ════ Open notices, grouped by due bucket ════ */}
-  <section aria-labelledby="open-heading" class="flex flex-col gap-4">
-    <div class="flex items-baseline justify-between gap-3">
+  <section aria-labelledby="open-heading" class="notices-worksheet flex flex-col gap-4">
+    <div class="flex items-baseline justify-between gap-3 print:hidden">
       <h2 id="open-heading" class="font-display text-xl font-bold text-ts-text sm:text-2xl">
         Open notices
       </h2>
@@ -326,10 +381,13 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
                     return (
                       <li
                         class={[
-                          'flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6',
+                          'notices-notice flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6',
                           loud ? 'bg-ts-danger/5' : '',
                         ].join(' ')}
                       >
+                        {/* Print-only hand-tick square so the crew can check
+                            each notice off on paper. Hidden on screen. */}
+                        <span class="notices-print-tick" aria-hidden="true">▢</span>
                         <div class="min-w-0 flex-1">
                           <p class="font-semibold text-ts-text">{n.title}</p>
                           {n.detail && (
@@ -342,6 +400,12 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
                               <span class="inline-flex items-center gap-1 rounded-full bg-ts-bg-muted px-2 py-0.5 font-semibold text-ts-text">
                                 <span aria-hidden="true">👤</span>
                                 {n.member_name}
+                              </span>
+                            )}
+                            {currentStopChip(n.customer_id, n.stop_hint) && (
+                              <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-900 print:border print:border-amber-700">
+                                <span aria-hidden="true">📍</span>
+                                picks up at: {currentStopChip(n.customer_id, n.stop_hint)}
                               </span>
                             )}
                             {stop ? (
@@ -368,7 +432,7 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
                           </div>
                         </div>
 
-                        <div class="flex shrink-0 items-center gap-2">
+                        <div class="flex shrink-0 items-center gap-2 print:hidden">
                           <form method="POST" action={`/api/admin/notices/${n.id}/done`} class="m-0">
                             <input type="hidden" name="action" value="done" />
                             <button
@@ -406,7 +470,7 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
   </section>
 
   {/* ════ Recently completed (collapsed) ════ */}
-  <details class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface shadow-ts-sm">
+  <details class="group rounded-ts-lg border border-ts-border bg-ts-bg-surface shadow-ts-sm print:hidden">
     <summary
       class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-base font-semibold text-ts-text [&::-webkit-details-marker]:hidden"
     >
@@ -467,3 +531,67 @@ const LOUD_BUCKETS: Set<NoticeBucketKey> = new Set(['overdue', 'this_week']);
     })();
   </script>
 </AdminShell>
+
+<style>
+  /* ── Print-only worksheet elements ─────────────────────────────────────
+     The paper title and per-notice hand-tick square are HIDDEN on screen
+     (screen keeps the interactive UI) and REVEALED only when printing. */
+  .notices-print-title {
+    display: none;
+  }
+  .notices-print-tick {
+    display: none;
+  }
+
+  @media print {
+    @page { size: Letter portrait; margin: 0.5in; }
+
+    /* Black text on white for a clean, legible worksheet. */
+    .notices-worksheet,
+    .notices-worksheet * {
+      color: #000 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    /* Paper title — comfortable worksheet heading. */
+    .notices-print-title {
+      display: block;
+      margin: 0 0 0.35rem;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #000;
+    }
+
+    /* Due-bucket headings (Overdue / Due this week / Upcoming / No date). */
+    .notices-worksheet h3 {
+      font-size: 1.1rem !important;
+      font-weight: 700 !important;
+      border-bottom: 1px solid #000;
+      padding-bottom: 0.15rem;
+      margin-bottom: 0.35rem;
+    }
+
+    /* Each notice stays whole across page breaks and gets a roomy row. */
+    .notices-notice {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.5rem 0 !important;
+      border-bottom: 1px solid #999;
+      font-size: 0.95rem;
+    }
+
+    /* Hand-tick square at the left of every notice for paper check-off. */
+    .notices-print-tick {
+      display: inline-block;
+      flex: 0 0 auto;
+      font-size: 1.25rem;
+      line-height: 1;
+      color: #000 !important;
+    }
+  }
+</style>

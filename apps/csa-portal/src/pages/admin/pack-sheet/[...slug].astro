@@ -15,8 +15,15 @@ import Card from '../../../components/Card.astro';
 import {
   resolveCycle, prettyWeekHeader, prettyShortDate,
   mondayOfWeek, isMonday,
-  type WeekdayCode, type CycleMember,
+  HOME_DELIVERY_BUCKET_ID,
+  type WeekdayCode, type CycleMember, type StopTotals,
 } from '../../../lib/cycle';
+import {
+  fetchDueNoticesWithMemberForStops, groupNoticesByHint,
+  isNoticeOverdue, HOME_DELIVERY_HINT,
+  type NoticeWithMember,
+} from '../../../lib/notices';
+import { getLoadOrder, formatLoadRange, type LoadOrder } from '../../../lib/load-order';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -31,24 +38,134 @@ const dayRaw = (Astro.url.searchParams.get('day') ?? 'wed').toLowerCase();
 const day: WeekdayCode | 'all' =
   dayRaw === 'tue' ? 'Tue' :
   dayRaw === 'sat' ? 'Sat' :
+  dayRaw === 'sun' ? 'Sun' :
   dayRaw === 'all' ? 'all' :
   'Wed';
 
 const cycle = await resolveCycle(supabase, week_starting);
 
 // ─── Members for the selected day ──────────────────────────────────
+// Select by each member's ACTUAL pickup weekday, NOT cycle.byDistributionDay
+// (which collapses Sunday pickups into its 'Wed' default — that hid Sunday
+// markets like South Side from every day tab). Home delivery / no-pickup
+// default to Wed, matching the resolver's distribution-day rule.
+function memberDistDay(m: CycleMember): WeekdayCode {
+  return m.pickup_location?.day_of_week ?? 'Wed';
+}
 const selectedMembers: CycleMember[] = day === 'all'
   ? cycle.members
-  : (cycle.byDistributionDay.get(day) ?? []);
+  : cycle.members.filter((m) => memberDistDay(m) === day);
 
 // ─── Group by stop, then alphabetical within stop ──────────────────
 const stopOrder = cycle.activeStops.filter((s) => {
   if (day === 'all') return true;
   // For a single-day view, only include stops whose day_of_week matches
   // (home delivery defaults to Wed).
-  if (s.stop_id === 'home_delivery') return day === 'Wed';
+  if (s.stop_id === HOME_DELIVERY_BUCKET_ID) return day === 'Wed';
   return s.day_of_week === day;
 });
+
+// ─── TRUCK LOAD ORDER (Todd 2026-07) ─────────────────────────────────
+// When an optimized route is SAVED for the week, re-order the per-stop sections
+// into TRUCK-LOADING order (load-first at top = the LAST drive stop; reverse of
+// the drive order) and print a numbered LOAD banner on each stop. Pickup stops
+// map to one truck position; the home-delivery bucket spans several (one per
+// household) so it's positioned by its MIN loadSeq and its banner shows the
+// range. Off-route stops keep their current relative order, after. No saved
+// route → null → the sheet renders exactly as before (fail-soft). Shared
+// lib/load-order — the same numbering labels + the truck-door sheet use.
+const loadOrder: LoadOrder | null = await getLoadOrder(supabase, week_starting);
+const INF = Number.POSITIVE_INFINITY;
+function loadSortKeyForStop(stop: StopTotals): number {
+  if (!loadOrder) return INF;
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) {
+    let min = INF;
+    for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+      const st = loadOrder.home(m.customer_id);
+      if (st) min = Math.min(min, st.loadSeq);
+    }
+    return min;
+  }
+  return loadOrder.pickup(stop.stop_id)?.loadSeq ?? INF;
+}
+const orderedStops: StopTotals[] = loadOrder
+  ? stopOrder
+      .map((s, i) => ({ s, i, k: loadSortKeyForStop(s) }))
+      .sort((a, b) => {
+        if (a.k !== b.k) {
+          if (a.k === INF) return 1;
+          if (b.k === INF) return -1;
+          return a.k - b.k;
+        }
+        return a.i - b.i;
+      })
+      .map((x) => x.s)
+  : stopOrder;
+
+// Numbered LOAD banner for a stop (null off-route / no saved route).
+interface LoadBanner { load: string; sub: string; }
+function loadBannerForStop(stop: StopTotals): LoadBanner | null {
+  if (!loadOrder) return null;
+  const legTag = (leg: string) => (loadOrder!.legCount > 1 ? ` · Route ${leg}` : '');
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) {
+    const seqs: number[] = [];
+    const legsSeen = new Set<string>();
+    for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+      const st = loadOrder.home(m.customer_id);
+      if (st) { seqs.push(st.loadSeq); legsSeen.add(st.leg); }
+    }
+    const range = formatLoadRange(seqs);
+    if (!range) return null;
+    const legLabel = legsSeen.size === 1 ? legTag([...legsSeen][0]) : '';
+    return { load: `LOAD ${range}`, sub: `${seqs.length} home stop${seqs.length === 1 ? '' : 's'} of ${loadOrder.total}${legLabel}` };
+  }
+  const st = loadOrder.pickup(stop.stop_id);
+  if (!st) return null;
+  return { load: `LOAD #${st.loadSeq}`, sub: `drive stop ${st.routeSeq} of ${loadOrder.total}${legTag(st.leg)}` };
+}
+
+// ─── Open MAKE-UP notices due/overdue for the rendered stops ─────────
+// THE GAP THIS FIXES: make-up promises ("owed double mushroom", "make-good
+// bread + cheese") were wired into /admin/stop-manifest + /admin/pack-check but
+// NOT this main pack sheet — so owed add-ons got missed on pack day. We read the
+// SAME source of truth (member_notices via lib/notices) so this sheet,
+// stop-manifest, and pack-check can never disagree. One bounded query over the
+// rendered stops' hints (stop NAME, plus HOME_DELIVERY_HINT for the home
+// bucket), filtered to OPEN + due/overdue (overdue make-ups PERSIST until
+// fulfilled — isNoticeDueOrOverdue inside the fetch), grouped by hint. Member
+// name is joined so the banner reads "Denise Fazio — owed double mushroom".
+const noticeHints: string[] = stopOrder.map((s) =>
+  s.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : s.stop_name,
+);
+const dueNotices = await fetchDueNoticesWithMemberForStops(
+  supabase, noticeHints, week_starting,
+);
+const noticesByHint = groupNoticesByHint(dueNotices);
+/** The make-up notices to pin for a stop (by its hint). */
+function noticesForStop(stop: StopTotals): NoticeWithMember[] {
+  const hint = stop.stop_id === HOME_DELIVERY_BUCKET_ID ? HOME_DELIVERY_HINT : stop.stop_name;
+  return noticesByHint.get(hint) ?? [];
+}
+/** Stops (in render order) that actually have ≥1 make-up, for the TOP banner. */
+const stopsWithNotices = stopOrder
+  .map((s) => ({ stop: s, notices: noticesForStop(s) }))
+  .filter((x) => x.notices.length > 0);
+const totalMakeups = stopsWithNotices.reduce((a, x) => a + x.notices.length, 0);
+
+/** Short "due Jun 22" / "OVERDUE since Jun 22" tag for a make-up row. */
+function dueTag(n: NoticeWithMember): { text: string; overdue: boolean } {
+  const overdue = isNoticeOverdue(n.due_week, week_starting);
+  if (n.due_week == null) return { text: 'next opportunity', overdue: false };
+  const d = new Date(`${n.due_week}T12:00:00Z`);
+  const pretty = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(d);
+  return { text: overdue ? `OVERDUE since ${pretty}` : `due ${pretty}`, overdue };
+}
+
+// The path this very sheet renders at — passed to the inline resolve form so
+// marking a make-up fulfilled bounces back HERE (not to /admin/notices).
+const returnTo = `/admin/pack-sheet/${week_starting}`;
 
 // Pre-fetch flex lines per member for the rendered day.
 type FlexLineRow = {
@@ -103,10 +220,11 @@ const totalFlexLines = Array.from(flexLinesByMember.values()).reduce(
   (a, lines) => a + lines.length, 0,
 );
 
-const dayLabels: Record<'Tue'|'Wed'|'Sat'|'all', string> = {
+const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
   Tue: `Tuesday ${prettyShortDate(cycle.distribution_dates.Tue)}`,
   Wed: `Wednesday ${prettyShortDate(cycle.distribution_dates.Wed)}`,
   Sat: `Saturday ${prettyShortDate(cycle.distribution_dates.Sat)}`,
+  Sun: `Sunday ${prettyShortDate(cycle.distribution_dates.Sun)}`,
   all: 'All distribution days',
 };
 ---
@@ -128,7 +246,7 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'all', string> = {
 
   {/* ── Day tab strip ─────────────────────────────────────────────── */}
   <nav aria-label="Distribution day" class="flex flex-wrap gap-1 border-b border-ts-border print:hidden">
-    {(['Tue', 'Wed', 'Sat', 'all'] as const).map((d) => (
+    {(['Tue', 'Wed', 'Sat', 'Sun', 'all'] as const).map((d) => (
       <a
         href={`/admin/pack-sheet/${week_starting}?day=${d.toLowerCase()}`}
         aria-current={day === d ? 'page' : undefined}
@@ -145,7 +263,7 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'all', string> = {
   </nav>
 
   {/* ── Stat row ──────────────────────────────────────────────────── */}
-  <section aria-label="Stats" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+  <section aria-label="Stats" class="grid grid-cols-2 gap-3 sm:grid-cols-5">
     <Card padding="md" elevation="sm">
       <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Total boxes</div>
       <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalBoxes}</div>
@@ -162,7 +280,110 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'all', string> = {
       <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Stops</div>
       <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{stopOrder.length}</div>
     </Card>
+    {/* Make-ups owed this week — additive count so the crew sees, up front,
+        how many owed items must be packed on top of the normal boxes. */}
+    <Card padding="md" elevation="sm" tone={totalMakeups > 0 ? 'danger' : undefined}>
+      <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Make-ups owed</div>
+      <div class={[
+        'mt-1 font-display text-3xl font-bold tabular-nums',
+        totalMakeups > 0 ? 'text-ts-danger' : 'text-ts-text',
+      ].join(' ')}>{totalMakeups}</div>
+    </Card>
   </section>
+
+  {/* ═══ ⚠ MAKE-UPS — pinned at the very TOP, grouped by stop ═══════════
+      The single most important addition: every OPEN make-up promise that's
+      due/overdue for this week, so the pack crew packs the owed item BEFORE
+      anything else. Overdue (due_week before this Monday) flagged in red.
+      Each row has an inline "Mark fulfilled" that POSTs to the existing
+      notices/done endpoint and bounces back here (screen-only, no-print —
+      the printed make-up reminders ride on /admin/pack-check + stop-manifest).
+      Reads the SAME member_notices source as those sheets. */}
+  {totalMakeups > 0 && (
+    <section
+      aria-labelledby="makeups-heading"
+      class="makeups-banner rounded-ts-lg border-[3px] p-4 sm:p-5"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="makeups-heading" class="flex items-center gap-2 font-display text-lg font-extrabold uppercase tracking-wide sm:text-xl">
+          <span aria-hidden="true">⚠</span>
+          Make-ups — pack these until resolved
+        </h2>
+        <span class="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-sm font-extrabold tabular-nums">
+          {totalMakeups} owed
+        </span>
+      </div>
+      <p class="mt-1 text-sm font-medium">
+        Owed items the farm promised. Pack each one, then mark it fulfilled. Overdue ones are flagged in red.
+      </p>
+
+      <div class="mt-4 flex flex-col gap-4">
+        {stopsWithNotices.map(({ stop, notices }) => (
+          <div class="makeups-stop rounded-ts-md border-2 bg-white/60 p-3">
+            <h3 class="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wide text-ts-text">
+              {stop.stop_id === HOME_DELIVERY_BUCKET_ID ? '🏠 ' : '📍 '}{stop.stop_name}
+              <span class="rounded-full bg-ts-danger/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-ts-danger">
+                {notices.length}
+              </span>
+            </h3>
+            <ul class="mt-2 flex flex-col divide-y divide-ts-border/50">
+              {notices.map((n) => {
+                const tag = dueTag(n);
+                return (
+                  <li class="flex flex-wrap items-start justify-between gap-3 py-2">
+                    <div class="min-w-0 flex-1">
+                      <p class="text-base font-bold leading-snug text-ts-text">
+                        {n.member_name && (
+                          <span class="text-ts-text">{n.member_name} — </span>
+                        )}
+                        {n.title}
+                      </p>
+                      {n.detail && (
+                        <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug text-ts-text-secondary">
+                          {n.detail}
+                        </p>
+                      )}
+                      <span class={[
+                        'mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide',
+                        tag.overdue
+                          ? 'bg-ts-danger/15 text-ts-danger'
+                          : 'bg-ts-bg-muted text-ts-text-secondary',
+                      ].join(' ')}>
+                        <span aria-hidden="true">🗓</span>{tag.text}
+                      </span>
+                    </div>
+                    <form
+                      method="POST"
+                      action={`/api/admin/notices/${n.id}/done`}
+                      class="m-0 shrink-0"
+                    >
+                      <input type="hidden" name="action" value="done" />
+                      <input type="hidden" name="return_to" value={returnTo} />
+                      <button
+                        type="submit"
+                        class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-3 text-xs font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                      >
+                        ✓ Mark fulfilled
+                      </button>
+                    </form>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p class="mt-3 text-xs font-medium text-ts-text-secondary">
+        Need to add or edit a make-up? Open the <a href="/admin/notices" class="font-semibold text-ts-primary hover:underline">Notices page</a>.
+      </p>
+    </section>
+  )}
+
+  {!loadOrder && stopOrder.length > 0 && (
+    <div class="print:hidden rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-4 py-3 text-sm text-ts-text-secondary">
+      💡 Optimize + save this week's delivery route (Route planner → “Save &amp; send to driver”) to sort these stops into truck-loading order and print a load number on each.
+    </div>
+  )}
 
   {/* ── Per-stop pack lists ──────────────────────────────────────── */}
   {stopOrder.length === 0 ? (
@@ -173,13 +394,24 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'all', string> = {
     </Card>
   ) : (
     <div class="flex flex-col gap-6">
-      {stopOrder.map((stop) => {
+      {orderedStops.map((stop) => {
         const stopMembers = (cycle.byStop.get(stop.stop_id) ?? [])
           .slice()
           .sort((a, b) => a.contact_name.localeCompare(b.contact_name));
         if (stopMembers.length === 0) return null;
+        const loadBanner = loadBannerForStop(stop);
         return (
           <section class="page-break" aria-labelledby={`stop-${stop.stop_id}`}>
+            {loadBanner && (
+              <div class="load-banner flex items-center gap-3 rounded-ts-md px-4 py-2 mb-3">
+                <span class="load-banner-num font-display text-xl font-extrabold tabular-nums leading-none">
+                  🚚 {loadBanner.load}
+                </span>
+                <span class="text-xs font-semibold uppercase tracking-wide opacity-90">
+                  {loadBanner.sub}
+                </span>
+              </div>
+            )}
             <h2
               id={`stop-${stop.stop_id}`}
               class="font-display text-xl font-bold text-ts-text border-b-2 border-ts-text pb-2 mb-3"
@@ -268,6 +500,32 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'all', string> = {
 </AdminShell>
 
 <style is:global>
+  /* ── ⚠ MAKE-UPS banner — LOUD red so the pack crew packs owed items first.
+   *    Fixed hex (not theme tokens) because it must reproduce on paper: a
+   *    missed make-up is exactly the failure this banner exists to prevent.
+   *    print-color-adjust:exact forces the browser to keep the red. */
+  .makeups-banner {
+    background: #fee2e2;          /* red-100 band */
+    border-color: #dc2626;        /* red-600 frame */
+    color: #7f1d1d;               /* red-900 text */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .makeups-banner .makeups-stop {
+    border-color: #fca5a5;        /* red-300 inner frame */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── 🚚 TRUCK LOAD banner — dark bar, big load number, prints in color ── */
+  .load-banner {
+    background: #0f172a;          /* slate-900 */
+    color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .load-banner .load-banner-num { color: #ffffff; }
+
   @media print {
     @page { size: Letter portrait; margin: 0.4in; }
     body, html { background: white !important; }
@@ -276,5 +534,12 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'all', string> = {
     main > div:first-child { padding-top: 0 !important; }
     .page-break { page-break-after: always; break-after: page; }
     .page-break:last-child { page-break-after: auto; break-after: auto; }
+
+    /* The make-up banner PRINTS (so a printed pack sheet still warns the crew),
+       but the inline "Mark fulfilled" buttons are a screen-only affordance —
+       hide every form inside the banner on paper. Keep the banner whole. */
+    .makeups-banner { break-inside: avoid; page-break-inside: avoid; }
+    .makeups-banner form { display: none !important; }
+    .load-banner { break-inside: avoid; page-break-inside: avoid; break-after: avoid; }
   }
 </style>

@@ -70,6 +70,7 @@ import {
   type CycleMember, type StopTotals, type AddOnType,
 } from '../../../lib/cycle';
 import { loadWeekRoutes } from '../../../lib/saved-route';
+import { buildLoadOrder } from '../../../lib/load-order';
 // Spanish support for the pack floor (audit X-02) — mirrors the pick-pack
 // pattern: parseLang + a strings object + an EN/ES toggle link. parseLang is
 // the shared 'en'|'es' parser already used by /admin/pick-pack.
@@ -147,6 +148,7 @@ const LABEL_STRINGS: Record<Lang, {
   thisBox: string;
   swapWord: string;
   weekOf: string;
+  truck: string;
   // Size badge words
   size: Record<'small' | 'large' | 'family' | 'regular' | 'flower' | 'flex' | 'spring' | 'addon' | 'share', string>;
   // Day words for the stop band
@@ -185,6 +187,7 @@ const LABEL_STRINGS: Record<Lang, {
     thisBox: 'This box:',
     swapWord: 'swap',
     weekOf: 'Week of',
+    truck: 'TRUCK',
     size: {
       small: 'SMALL', large: 'LARGE', family: 'FAMILY', regular: 'REGULAR',
       flower: 'FLOWER', flex: 'FLEX', spring: 'SPRING', addon: 'ADD-ON', share: 'SHARE',
@@ -227,6 +230,7 @@ const LABEL_STRINGS: Record<Lang, {
     thisBox: 'Esta caja:',
     swapWord: 'cambio',
     weekOf: 'Semana del',
+    truck: 'CAMIÓN',
     size: {
       small: 'PEQUEÑA', large: 'GRANDE', family: 'FAMILIAR', regular: 'REGULAR',
       flower: 'FLOR', flex: 'FLEX', spring: 'PRIMAVERA', addon: 'EXTRA', share: 'SHARE',
@@ -245,6 +249,11 @@ const cycle = await resolveCycle(supabase, week_starting);
 // to driver") sets the delivery sequence; labels print in that order so the
 // stack matches the truck. Empty map → falls back to day→stop→name below.
 const weekRoutes = await loadWeekRoutes(supabase, week_starting);
+// TRUCK LOAD NUMBER (Todd 2026-07): the same saved route also numbers the stops
+// in load order (1 = load first = last drive stop). We print that number on each
+// box label so the crew groups boxes by truck position. Built from the routes we
+// already loaded — no extra query. Null when no route is saved (no number shown).
+const loadOrder = buildLoadOrder(weekRoutes);
 
 // ─── Build the LABEL list in pack order ─────────────────────────────
 // One label per BOX. summer_veg members get a box; add_on, flex, etc.
@@ -781,6 +790,14 @@ const packOrderedByRoute = weekRoutes.hasSavedRoute;
 function labelRouteKey(l: LabelData): string {
   return isHomeDeliveryLabel(l) ? `cust:${l.member.customer_id}` : `pl:${l.stop.stop_id}`;
 }
+
+/** The TRUCK LOAD NUMBER for a label's stop (1 = load first = last drive stop),
+ *  or null when no route is saved / the stop isn't on it. Same numbering the
+ *  pack sheets + the truck-door sheet use (shared lib/load-order). */
+function truckNoFor(l: LabelData): number | null {
+  if (!loadOrder) return null;
+  return loadOrder.byKey.get(labelRouteKey(l))?.loadSeq ?? null;
+}
 let routeOrdered = visibleLabels;
 if (packOrderedByRoute) {
   routeOrdered = visibleLabels
@@ -998,30 +1015,42 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                          printed big right beneath it (driver reads it at a
                          glance); pickup labels keep the color-coded stop band
                          with the pickup day. -->
-                    {isHomeDeliveryLabel(label) ? (
-                      <Fragment>
+                    {(() => {
+                      const truckNo = truckNoFor(label);
+                      const truckBadge = truckNo != null ? (
+                        <span class="label-truck-badge">🚚 {t.truck} #{truckNo}</span>
+                      ) : null;
+                      return isHomeDeliveryLabel(label) ? (
+                        <Fragment>
+                          <div
+                            class="label-stop-band label-delivery-band"
+                            style={`background:${HOME_DELIVERY_BAND.bg};color:${HOME_DELIVERY_BAND.text};`}
+                          >
+                            <span class="label-stop-left">
+                              {truckBadge}
+                              <span class="label-stop-name">{t.homeDelivery}</span>
+                            </span>
+                            {label.stop.day_of_week && (
+                              <span class="label-stop-day">{dayLong[label.stop.day_of_week]}</span>
+                            )}
+                          </div>
+                          <div class="label-delivery-addr">{label.member.delivery_address}</div>
+                        </Fragment>
+                      ) : (
                         <div
-                          class="label-stop-band label-delivery-band"
-                          style={`background:${HOME_DELIVERY_BAND.bg};color:${HOME_DELIVERY_BAND.text};`}
+                          class="label-stop-band"
+                          style={`background:${bandForStop(label.stop.stop_id).bg};color:${bandForStop(label.stop.stop_id).text};`}
                         >
-                          <span class="label-stop-name">{t.homeDelivery}</span>
+                          <span class="label-stop-left">
+                            {truckBadge}
+                            <span class="label-stop-name">{label.stop.stop_name}</span>
+                          </span>
                           {label.stop.day_of_week && (
                             <span class="label-stop-day">{dayLong[label.stop.day_of_week]}</span>
                           )}
                         </div>
-                        <div class="label-delivery-addr">{label.member.delivery_address}</div>
-                      </Fragment>
-                    ) : (
-                      <div
-                        class="label-stop-band"
-                        style={`background:${bandForStop(label.stop.stop_id).bg};color:${bandForStop(label.stop.stop_id).text};`}
-                      >
-                        <span class="label-stop-name">{label.stop.stop_name}</span>
-                        {label.stop.day_of_week && (
-                          <span class="label-stop-day">{dayLong[label.stop.day_of_week]}</span>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })()}
                     <!-- Zone 3: recipient name (big) + size badge -->
                     <div class="label-member">
                       <div class="label-name">{label.member.contact_name}</div>
@@ -1215,6 +1244,36 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
     flex-shrink: 0;
     overflow: hidden;
     /* Force the band color to survive the print pipeline. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Left group of the stop band: the truck badge + the stop name share one
+     flex group so `justify-content:space-between` on the band still pushes the
+     day to the right edge, and the name keeps its ellipsis. */
+  .label-stop-left {
+    display: flex;
+    align-items: baseline;
+    gap: 0.06in;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* 🚚 TRUCK LOAD NUMBER — small, bold, high-contrast white pill on the colored
+     stop band so boxes group by truck position at a glance. Fixed colors (print
+     document); print-color-adjust keeps the pill white on paper. Never shrinks,
+     so it can't be squeezed out; the stop name ellipsis-clips first. */
+  .label-truck-badge {
+    flex-shrink: 0;
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 0.04in;
+    padding: 0.005in 0.06in;
+    font-size: 9pt;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

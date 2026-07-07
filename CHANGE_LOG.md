@@ -6,6 +6,28 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-07] CSA — TRUCK LOAD NUMBERING across the pack surfaces (FULLSTACK_BUILDER)
+
+Todd's ask: stops NUMBERED in REVERSE route order for loading the truck LIFO (the LAST route stop loads FIRST/deepest; the FIRST route stop loads last, at the door), with WHOLESALE stops in the same numbering "so we know where they are going" (their crate labels print Mondays). NOT DEPLOYED.
+
+**NEW `src/lib/load-order.ts`** — shared load-order source of truth. `getLoadOrder(supabase, week)` (and pure `buildLoadOrder(weekRoutes)` for surfaces that already hold the routes) reads the week's SAVED optimized route(s) via `saved-route.loadWeekRoutes` and returns `{ stops (sorted loadSeq ASC = load-first first), total, legs, legCount, byKey, pickup()/home()/wholesaleCustomer() }`. Each stop carries `routeSeq` (1 = first drive stop) and `loadSeq` (`total - routeSeq + 1` = the global reverse; 1 = load first). **Two-leg A/B choice (documented in-file):** numbering CONTINUES across legs (A 1..n, B n+1..m — one unambiguous 1..m sequence, per Todd), and the load order is the single global reverse; each stop still carries its `leg` letter so a two-truck crew can split the pile. Fail-soft: no saved route → `null`. `formatLoadRange()` helper renders "#3" / "#3–9" for multi-position sections.
+
+**`src/pages/admin/pack-check/[...slug].astro`** — REUSED/extended the existing route-index plumbing (was its own `loadWeekRoutes` + `routeIndexOf` forward sort) → now the shared `getLoadOrder`. Print-all sections are ordered by `loadSeq` (load-first at top; was drive order), and each stop prints a dark "🚚 LOAD #3 · drive stop 7 of 9 · Route A" banner. The home-delivery A/B split (`home_delivery__A/B/unassigned`) is preserved unchanged — only the sort direction flipped to load order and the split section shows a load RANGE. Single-stop + no-route views still render, now with the banner when a route exists.
+
+**`src/pages/admin/pack-sheet/[...slug].astro`** — per-stop sections re-sorted into load order (home bucket by its MIN loadSeq) with the same numbered LOAD banner. Fallback: no route → original day/name order (`orderedStops === stopOrder`).
+
+**`src/pages/admin/labels/[...slug].astro`** — each box label now prints a small bold white "🚚 TRUCK #n" pill on the color-coded stop band (EN/ES: TRUCK / CAMIÓN). Load number from `buildLoadOrder(weekRoutes)` (no extra query — reuses the routes labels already load). Avery 5164 grid UNCHANGED: the badge is `flex-shrink:0` inside a new `.label-stop-left` group, so `justify-content:space-between` still pins the day to the right and the stop name ellipsis-clips first. Existing reverse-print stack order untouched.
+
+**`src/pages/admin/wholesale/labels/index.astro`** — crate (Avery 5164) + item (Avery 8163) labels get the same "🚚 TRUCK #n" pill on the green name band, keyed by the account's linked `customers.id` (added `customer_id` to the accounts select) → `loadOrder.wholesaleCustomer()`. Route week = `mondayOfWeek(deliveryDate)`. No route / unlinked account → no number. Label grids intact (badge `flex-shrink:0` in a `.label-name-left` group).
+
+**`src/pages/admin/pack-load/[...slug].astro`** — added the printable "🚚 TRUCK LOADING ORDER" summary (req 4, the sheet taped to the truck door): numbered 1..N in load order incl. wholesale, with box/crate counts, leg tags (2-leg), and drive-stop cross-ref. New "🖨 Print truck sheet" action prints ONLY the summary (the live day-grouped board is `print:hidden`, so the working board is untouched and NOT reordered). Each stop card also shows a "🚚 LOAD #n" (or range for home) badge. No route → the summary is replaced by an optimize-the-route hint.
+
+**Fallback hints** added (screen-only) on pack-check, pack-sheet, and pack-load when no route is saved. **Constraints honored:** only the 5 named surfaces + new lib + this log touched; ts-* tokens (fixed hex only inside print documents, matching existing convention); EN/ES on labels (the only bilingual surface); other pages' print output unchanged.
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors / 0 warnings / 61 hints — IDENTICAL to the pre-existing baseline, ZERO new (the one error in a touched file, wholesale/labels:98, is the pre-existing `wholesale_order_items`↔`wholesale_products` relation cast on the untouched `items` fetch; load-order.ts, pack-check, pack-sheet, pack-load, and labels produce zero errors). Avery 5164/8163 dimensions and grid vars unchanged on both label pages.
+
+---
+
 ## [2026-07-06] CSA — Wholesale pack readability + edit ANY order (FULLSTACK_BUILDER)
 
 Two fixes from Todd watching a confused pack crew. NOT DEPLOYED, migration NOT applied.
