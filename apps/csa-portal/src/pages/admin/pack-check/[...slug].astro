@@ -188,6 +188,7 @@ const DAY_LONG: Record<string, string> = {
 function distDateForStop(stop: StopTotals): string {
   if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
   if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  if (stop.day_of_week === 'Sun') return cycle.distribution_dates.Sun;
   return cycle.distribution_dates.Wed;
 }
 
@@ -435,6 +436,12 @@ function sharePriority(m: CycleMember): number {
 
 interface PackRow {
   primary: CycleMember;
+  /** The customer's OTHER box shares at this stop beyond the primary (e.g. the
+   *  FLOWER share of a veg+flower member). BUG FIX 2026-07-07 (Todd: "Faith
+   *  Roberts is to get a flower share, but it is not reflected"):
+   *  packRowsForStop kept only sorted[0] and silently DROPPED the rest, so a
+   *  veg+flower member's flower never appeared on their pack-check row. */
+  extraShares: CycleMember[];
   addonChips: Array<{ type: AddOnType; label: string; count: number }>;
   flexLines: Array<{ name: string | null; qty: number }>;
 }
@@ -478,14 +485,16 @@ function packRowsForStop(stop: StopTotals): PackRow[] {
     }
     addonChips.sort((x, y) => x.label.localeCompare(y.label));
 
-    // Flex: union across all of this customer's member rows.
+    // Flex: union across ALL of this customer's member rows — including the
+    // secondary box shares (a veg+flex customer's flex lines key off the FLEX
+    // member row, which is sorted[1..], so `[primary, ...addons]` missed them).
     const flexLines: Array<{ name: string | null; qty: number }> = [];
-    for (const m of [primary, ...addons]) {
+    for (const m of [...sorted, ...addons]) {
       const lines = flexByMember.get(m.id);
       if (lines) flexLines.push(...lines);
     }
 
-    rows.push({ primary, addonChips, flexLines });
+    rows.push({ primary, extraShares: sorted.slice(1), addonChips, flexLines });
   }
 
   rows.sort((a, b) => a.primary.contact_name.localeCompare(b.primary.contact_name));
@@ -772,6 +781,17 @@ function memberShareLabel(m: CycleMember): string {
                             style={`background:${FLOWER_CHIP.bg};color:${FLOWER_CHIP.text};border:1px solid ${FLOWER_CHIP.border};`}
                           >🌸 Flower only</span>
                         )}
+                        {/* SECONDARY box shares (bug fix 2026-07-07): a
+                            veg+flower member gets a loud chip per extra share
+                            so the packer includes the bouquet too. */}
+                        {row.extraShares.map((ex) => (
+                          <span
+                            class="size-badge inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide"
+                            style={ex.share_type === 'flower'
+                              ? `background:${FLOWER_CHIP.bg};color:${FLOWER_CHIP.text};border:1px solid ${FLOWER_CHIP.border};`
+                              : `background:${SIZE_BADGE_NEUTRAL.bg};color:${SIZE_BADGE_NEUTRAL.text};border:1px solid ${SIZE_BADGE_NEUTRAL.border};`}
+                          >{ex.share_type === 'flower' ? '🌸' : '➕'} {memberShareLabel(ex)}</span>
+                        ))}
                         <span class="text-xs text-ts-text-secondary">
                           {memberShareLabel(m)}
                         </span>

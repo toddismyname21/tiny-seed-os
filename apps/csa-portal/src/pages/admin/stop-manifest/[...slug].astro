@@ -333,6 +333,11 @@ function sharePriority(m: CycleMember): number {
 
 interface ManifestRow {
   primary: CycleMember;
+  /** The customer's OTHER box shares beyond the primary (e.g. the FLOWER share
+   *  of a veg+flower member). BUG FIX 2026-07-07: only sorted[0] was kept and
+   *  the rest silently dropped, so a veg+flower member's flower never showed
+   *  on the driver manifest (same bug as pack-check — Faith Roberts case). */
+  extraShares: CycleMember[];
   addonChips: Array<{ type: AddOnType; label: string; count: number }>;
   flexLines: Array<{ name: string | null; qty: number }>;
 }
@@ -378,12 +383,14 @@ function manifestRowsForStop(stop: StopTotals): ManifestRow[] {
 
     // Flex lines: union across all of this customer's box + add-on member rows.
     const flexLines: Array<{ name: string | null; qty: number }> = [];
-    for (const m of [primary, ...addons]) {
+    // Union across ALL box shares (sorted), not just the primary — a veg+flex
+    // customer's flex lines key off the FLEX member row (sorted[1..]).
+    for (const m of [...sorted, ...addons]) {
       const lines = flexLinesByMember.get(m.id);
       if (lines) flexLines.push(...lines);
     }
 
-    rows.push({ primary, addonChips, flexLines });
+    rows.push({ primary, extraShares: sorted.slice(1), addonChips, flexLines });
   }
 
   rows.sort((a, b) => a.primary.contact_name.localeCompare(b.primary.contact_name));
@@ -393,6 +400,7 @@ function manifestRowsForStop(stop: StopTotals): ManifestRow[] {
 function distDateForStop(stop: StopTotals): string {
   if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
   if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  if (stop.day_of_week === 'Sun') return cycle.distribution_dates.Sun;
   return cycle.distribution_dates.Wed;
 }
 
@@ -675,6 +683,17 @@ function movedFromLabel(m: CycleMember): string | null {
                         <span class="text-xs text-ts-text-secondary">
                           {memberShareLabel(m)}
                         </span>
+                        {/* SECONDARY box shares (bug fix 2026-07-07): loud chip
+                            per extra share so the driver hands over the
+                            bouquet too. */}
+                        {row.extraShares.map((ex) => (
+                          <span
+                            class="size-badge inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide"
+                            style={ex.share_type === 'flower'
+                              ? 'background:#fce7f3;color:#9d174d;border:1px solid #f9a8d4;'
+                              : 'background:#e6eaef;color:#334155;border:1px solid #a9b4c2;'}
+                          >{ex.share_type === 'flower' ? '🌸' : '➕'} {memberShareLabel(ex)}</span>
+                        ))}
                         {row.addonChips.length > 0 && (
                           <Fragment>
                             <span class="text-xs font-semibold text-ts-text-secondary">+</span>
