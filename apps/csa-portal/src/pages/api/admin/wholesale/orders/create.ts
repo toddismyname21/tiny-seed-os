@@ -80,11 +80,18 @@ async function callPlaceOrderAdmin(args: Record<string, unknown>): Promise<{
   data: unknown;
   error: { message: string } | null;
 }> {
-  const rpc = supabaseAdmin.rpc as unknown as (
-    fn: string,
-    params: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-  return rpc('place_wholesale_order_admin', args);
+  // CRITICAL: call rpc as a MEMBER of the client — assigning the method to a
+  // variable detaches `this`, and supabase-js's rpc() reads `this.rest`
+  // internally, crashing with "Cannot read properties of undefined (reading
+  // 'rest')" (empty 500 → the browser's "Unexpected end of JSON input").
+  // Found in prod 2026-07-07 when Todd's first order edit crashed.
+  const client = supabaseAdmin as unknown as {
+    rpc(
+      fn: string,
+      params: Record<string, unknown>,
+    ): Promise<{ data: unknown; error: { message: string } | null }>;
+  };
+  return client.rpc('place_wholesale_order_admin', args);
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
