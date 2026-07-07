@@ -129,17 +129,23 @@ const groups = [
                       {s.address && <div class="truncate text-xs text-gray-600">📍 {s.address}</div>}
                       {s.detail && <div class="text-xs text-gray-400">{s.detail}</div>}
                     </div>
+                    {/* ACTION button (not a status!). The old label "📌 Not
+                        routable" read like a status column — Todd scanned the
+                        list on 2026-07-07 and thought every home stop was
+                        broken, and one stray tap silently removed a member
+                        from the route. Now: verb-labeled + two-tap confirm. */}
                     {g.kind === 'home' && (
-                      <form method="POST" action="/api/admin/route/routable" class="shrink-0">
+                      <form method="POST" action="/api/admin/route/routable" class="shrink-0" data-remove-stop>
                         <input type="hidden" name="customer_id" value={s.key} />
                         <input type="hidden" name="routable" value="false" />
                         <input type="hidden" name="week" value={week_starting} />
                         <input type="hidden" name="day" value={day} />
                         <button
                           type="submit"
-                          class="inline-flex h-8 items-center justify-center rounded-md border border-amber-300 bg-amber-50 px-2 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 active:scale-[0.98]"
-                          title="Take off the optimizer — deliver by hand (reversible)"
-                        >📌 Not routable</button>
+                          data-armed="false"
+                          class="inline-flex h-8 items-center justify-center rounded-md border border-ts-border bg-ts-bg-surface px-2 text-[11px] font-semibold text-ts-text-muted transition hover:border-amber-400 hover:bg-amber-50 hover:text-amber-800 active:scale-[0.98] data-[armed=true]:border-amber-500 data-[armed=true]:bg-amber-100 data-[armed=true]:text-amber-900"
+                          title="Remove from the optimized route — you'll deliver this one by hand (reversible)"
+                        >Remove from route…</button>
                       </form>
                     )}
                   </li>
@@ -149,7 +155,7 @@ const groups = [
           ))
         )}
         {skipped.length > 0 && (
-          <div class="mt-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">⚠️ Not routable: {skipped.join(' · ')}</div>
+          <div class="mt-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">⚠️ Couldn't route (missing address or geocode failed): {skipped.join(' · ')}</div>
         )}
         <button id="optimize-btn" type="button" class="mt-3 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-base font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark disabled:opacity-60">
           🧭 Optimize routes
@@ -390,5 +396,25 @@ const groups = [
     const btn = document.getElementById('optimize-btn'); btn.disabled = true; btn.textContent = '⏳ Optimizing…';
     try { await Promise.all([optimizeRoute('A', A, startSec), optimizeRoute('B', B, startSec)]); }
     finally { btn.disabled = false; btn.textContent = '🧭 Optimize routes'; }
+  });
+
+  // Two-tap confirm on every "Remove from route…" form: first tap ARMS the
+  // button (visual change + explicit text), second tap within 4s submits.
+  // Prevents the silent one-tap removals that lost a member from the route
+  // on 2026-07-07. Disarms automatically so a stray tap can't linger.
+  document.querySelectorAll('form[data-remove-stop]').forEach((form) => {
+    form.addEventListener('submit', (e) => {
+      const btn = form.querySelector('button[type="submit"]');
+      if (!btn) return;
+      if (btn.dataset.armed !== 'true') {
+        e.preventDefault();
+        btn.dataset.armed = 'true';
+        btn.textContent = 'Tap again to remove';
+        setTimeout(() => {
+          btn.dataset.armed = 'false';
+          btn.textContent = 'Remove from route…';
+        }, 4000);
+      }
+    });
   });
 </script>
