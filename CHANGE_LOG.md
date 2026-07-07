@@ -6,6 +6,28 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-07] CSA — PER-STOP GRANULARITY pack-day rework (FULLSTACK_BUILDER)
+
+Seven connected changes from Todd using it live. Theme: per-stop granularity driven automatically by route optimization, on ONE per-leg numbering truth. NOT DEPLOYED. Supersedes the global/continuous numbering in the same-day entry below.
+
+**1 — OPTIMIZE AUTO-SAVES (`src/pages/admin/route-plan/index.astro`).** Tapping "Optimize" now immediately SAVES each leg to the driver route (chains the same atomic per-leg `save-optimized` POST after each leg optimizes; legs save independently). Re-optimizing overwrites. Success reads "✅ Route A saved · 9 stops · labels + pack sheets now follow this load order". The old manual "Save & send to driver" button is demoted to a secondary "💾 Re-save (after manual reorder)".
+
+**2 — PER-LEG numbering (`src/lib/load-order.ts` rewrite + `load-order.test.ts`).** Each route LEG is now numbered on its OWN: `routeSeq` restarts at 1 per leg, `loadSeq = legTotal - (routeSeq-1)` (reverse WITHIN the leg). New `LoadStop.legTotal`, new `legGroups: LoadLeg[]` (one per leg, load-first first), new `orderValue(key)` = `legRank*1e6 + loadSeq` (the single LEG-then-LOAD sort key every surface uses), new `loadTag(stop)` → "A-3". `stops` is now LEG-then-LOAD ordered. Fail-soft unchanged. New unit test covers restart-per-leg, dedup, orderValue, and ranges.
+
+**3 — HOME DELIVERIES = INDIVIDUAL STOPS (pack-check + pack-sheet).** When a route is saved, the aggregate home bucket is split so every home customer is its OWN numbered stop section (synthetic id `home_delivery__cust:<id>`, banner "🚚 LOAD #4 · home delivery · Route A", their address + rows beneath). Home members NOT on the saved route group into one "Home delivery · not on a saved route" sheet (never dropped). No saved route → aggregate behavior stays. Shared home-delivery notices are pinned to the FIRST home stop only (no N-fold duplication).
+
+**4 — WHOLESALE IN ITS PACK-CHECK SLOT (`pack-check`).** Print-all now renders each wholesale route stop as its own numbered section (band "🍽 restaurant", banner "🚚 LOAD #2 · wholesale · Route A") with the order's line items (name + qty, tickable boxes) pulled via `supabaseAdmin` from `wholesale_orders`/`_items`/`_accounts` for the week, keyed by the account's linked `customers.id`. A wholesale stop with no order rows renders the section with a "No order lines found" note (never silently skipped). Sections interleave with CSA/home by `orderValue`.
+
+**5 — PACK SHEET CONSOLIDATION (`pack-sheet`).** (a) Flex members with no flex order this week are EXCLUDED — same gate as pack-check (flex query aligned to `pending|locked|fulfilled`, `flexOrderedMemberIds` = its keys). (b) Redesigned for density: ONE compact line per CUSTOMER (name · size badge · add-on abbreviations · flex count) in a TWO-COLUMN flow with bold stop headers, tighter margins, and NO page break per stop (per-stop one-sheet printing stays on pack-check). Keeps LOAD-order sorting + compact 🚚 banners + individual home split. Target: whole farm in 2-3 pages instead of a page per stop.
+
+**6 — TRUCK SHEET PER ROUTE (`pack-load`).** The printable "Truck loading order" is now ONE PAGE PER LEG (`loadOrder.legGroups`, page-broken), each numbered by that leg's OWN load order (restart 1..n). Live board load badges show the leg ("LOAD A #n", home range per leg).
+
+**7 — LABELS IN PACK ORDER + LEG (`labels` + `wholesale/labels`).** Box + wholesale labels now print in LEG-then-LOAD order (`orderValue`, load-first first, no extra reverse — matches the truck sheet 1→N); the TRUCK pill is "🚚 A-3" (leg + the leg's own load number). Avery 5164/8163 grids intact (badge stays `flex-shrink:0`).
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors — IDENTICAL to baseline, ZERO new (the two in touched files — wholesale/labels:101 `wholesale_order_items`↔`_products` cast, save-optimized:50 `leg` column — are pre-existing; wholesale/labels shifted 98→101 only from a new comment). `npm run test:unit` → all green incl. the new load-order test. **Constraints honored:** only the named surfaces + lib + test + this log touched; never drops a member (unrouted → obvious sheet); fail-soft without a saved route on every surface; ts-* tokens (fixed hex only inside print documents); EN/ES kept on labels.
+
+---
+
 ## [2026-07-07] CSA — TRUCK LOAD NUMBERING across the pack surfaces (FULLSTACK_BUILDER)
 
 Todd's ask: stops NUMBERED in REVERSE route order for loading the truck LIFO (the LAST route stop loads FIRST/deepest; the FIRST route stop loads last, at the door), with WHOLESALE stops in the same numbering "so we know where they are going" (their crate labels print Mondays). NOT DEPLOYED.

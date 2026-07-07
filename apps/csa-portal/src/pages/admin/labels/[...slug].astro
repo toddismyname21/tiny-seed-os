@@ -786,32 +786,38 @@ const totalSheets = Math.ceil(totalLabels / 6);
 // reorder labels into that delivery sequence first (pickup stop → 'pl:'+id,
 // home delivery → 'cust:'+customer_id). Labels with no saved-route position
 // keep their relative order at the end. Falls back to the day→stop→name order.
-const packOrderedByRoute = weekRoutes.hasSavedRoute;
+const packOrderedByRoute = !!loadOrder;
 function labelRouteKey(l: LabelData): string {
   return isHomeDeliveryLabel(l) ? `cust:${l.member.customer_id}` : `pl:${l.stop.stop_id}`;
 }
 
-/** The TRUCK LOAD NUMBER for a label's stop (1 = load first = last drive stop),
- *  or null when no route is saved / the stop isn't on it. Same numbering the
- *  pack sheets + the truck-door sheet use (shared lib/load-order). */
-function truckNoFor(l: LabelData): number | null {
+/** The TRUCK LOAD stop for a label — leg letter + the leg's OWN load number
+ *  (1 = load first = the leg's last drive stop), or null when no route is saved
+ *  / the stop isn't on it. Same PER-LEG numbering the pack sheets + the truck
+ *  sheet use (shared lib/load-order). Rendered on the label as "A-3". */
+function truckStopFor(l: LabelData) {
   if (!loadOrder) return null;
-  return loadOrder.byKey.get(labelRouteKey(l))?.loadSeq ?? null;
-}
-let routeOrdered = visibleLabels;
-if (packOrderedByRoute) {
-  routeOrdered = visibleLabels
-    .map((l, i) => ({ l, i, k: weekRoutes.orderOf.get(labelRouteKey(l)) ?? Number.POSITIVE_INFINITY }))
-    .sort((a, b) => (a.k - b.k) || (a.i - b.i))
-    .map((x) => x.l);
+  return loadOrder.byKey.get(labelRouteKey(l)) ?? null;
 }
 
-// REVERSE delivery order for printing (Todd 2026-06-10): the list above is in
-// forward delivery order. We print it REVERSED so that as boxes are labeled
-// top-to-bottom and stacked, the FIRST delivery ends up ON TOP of the stack —
-// load the van in this order and the first stop is the first box out. Blanks
-// stay on the final sheet.
-const orderedForPrint = routeOrdered.slice().reverse();
+// PACK ORDER = LOAD ORDER (Todd 2026-07): when a route is saved, labels print in
+// the SAME sequence as the truck sheet + pack-check — LEG-then-LOAD (leg A
+// load-first…load-last, then leg B). loadOrder.orderValue already puts the
+// load-first box at the TOP, so the printed stack reads 1→N exactly like the
+// numbered truck sheet — no extra reverse. Labels off the route keep their
+// relative order, last. (Before 2026-07 labels reverse-sorted a global drive
+// order; the per-leg load order supersedes that so every surface agrees.)
+let orderedForPrint: LabelData[];
+if (packOrderedByRoute) {
+  orderedForPrint = visibleLabels
+    .map((l, i) => ({ l, i, k: loadOrder!.orderValue(labelRouteKey(l)) }))
+    .sort((a, b) => (a.k - b.k) || (a.i - b.i))
+    .map((x) => x.l);
+} else {
+  // No saved route: fall back to the historical REVERSE delivery order (last
+  // stop first) so labeling+stacking still lands the first delivery on top.
+  orderedForPrint = visibleLabels.slice().reverse();
+}
 
 // Pad to a multiple of 6 with blank slots so each sheet stays whole.
 const PADDED_LENGTH = totalSheets * 6;
@@ -1016,9 +1022,9 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                          glance); pickup labels keep the color-coded stop band
                          with the pickup day. -->
                     {(() => {
-                      const truckNo = truckNoFor(label);
-                      const truckBadge = truckNo != null ? (
-                        <span class="label-truck-badge">🚚 {t.truck} #{truckNo}</span>
+                      const truckStop = truckStopFor(label);
+                      const truckBadge = truckStop ? (
+                        <span class="label-truck-badge">🚚 {truckStop.leg}-{truckStop.loadSeq}</span>
                       ) : null;
                       return isHomeDeliveryLabel(label) ? (
                         <Fragment>

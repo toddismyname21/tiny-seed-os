@@ -320,7 +320,7 @@ const groups = [
       </ol>
       <p class="mb-2 text-[11px] text-gray-400">Drag rows or use ▲▼ to reorder — ETAs update live.</p>
       <a href="${mapsUrl(st.order.map((k)=>byKey.get(k)))}" target="_blank" rel="noopener" class="mb-2 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-blue-600 px-4 text-base font-semibold text-white hover:bg-blue-700">🗺️ Open Route ${letter} in Google Maps</a>
-      <button data-save="${letter}" class="inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-gray-800 px-4 text-base font-semibold text-white hover:bg-gray-900">💾 Save &amp; send to driver</button>
+      <button data-save="${letter}" class="inline-flex h-11 w-full items-center justify-center rounded-ts-md border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:border-gray-400 hover:bg-gray-50" title="Optimizing already saved this route — use this only to re-save after a manual reorder">💾 Re-save (after manual reorder)</button>
       <div data-saveresult="${letter}" class="mt-2 text-sm"></div>`;
     wireReorder(letter);
     el.querySelector(`[data-save="${letter}"]`)?.addEventListener('click', () => saveRoute(letter));
@@ -369,7 +369,7 @@ const groups = [
       const d = await res.json();
       if (!res.ok || d.error) { out.innerHTML = `<span class="text-red-600">Save failed: ${escapeHtml(d.detail || d.error || res.status)}</span>`; return; }
       const link = location.origin + d.url;
-      out.innerHTML = `<div class="rounded bg-green-50 px-3 py-2 text-green-800">✅ Saved Route ${letter} (${d.stops} stops)${missing ? ` · ${missing} skipped (no link)` : ''}. The driver opens this — it auto-updates when you re-save.<br><a href="${d.url}" target="_blank" class="font-semibold underline">Open driver view →</a> <button data-copy="${link}" class="ml-2 rounded border bg-white px-2 py-0.5 text-xs">Copy link</button></div>`;
+      out.innerHTML = `<div class="rounded bg-green-50 px-3 py-2 text-green-800"><strong>✅ Route ${letter} saved · ${d.stops} stop${d.stops === 1 ? '' : 's'}</strong>${missing ? ` · ${missing} skipped (no link)` : ''}. Labels + pack sheets now follow this load order. The driver link auto-updates when you re-optimize.<br><a href="${d.url}" target="_blank" class="font-semibold underline">Open driver view →</a> <button data-copy="${link}" class="ml-2 rounded border bg-white px-2 py-0.5 text-xs">Copy link</button></div>`;
       out.querySelector('[data-copy]')?.addEventListener('click', (e) => { navigator.clipboard?.writeText(e.target.getAttribute('data-copy')); e.target.textContent = 'Copied!'; });
     } catch (e) { out.innerHTML = `<span class="text-red-600">Error: ${escapeHtml(e?.message || e)}</span>`; }
   }
@@ -388,14 +388,23 @@ const groups = [
     if (d.warnings && d.warnings.length) el.insertAdjacentHTML('afterbegin', `<div class="mb-2 rounded bg-amber-50 px-3 py-2 text-xs text-amber-800">${d.warnings.map(escapeHtml).join('<br>')}</div>`);
   }
 
+  // OPTIMIZE AUTO-SAVES (Todd 2026-07): optimizing immediately SAVES each leg to
+  // the driver route (the same atomic per-leg save-optimized POST the manual
+  // button uses), so labels + pack sheets + pack check pick up the new load order
+  // right away. Re-optimizing overwrites (that leg's route is deleted+replaced).
+  // Each leg saves independently — one leg failing never blocks the other.
   document.getElementById('optimize-btn')?.addEventListener('click', async () => {
     const [hh, mm] = (document.getElementById('start-time').value || '09:00').split(':').map(Number);
     const startSec = (hh || 9) * 3600 + (mm || 0) * 60;
     const A = allStops.filter((s) => assign.get(s.key) === 'A');
     const B = allStops.filter((s) => assign.get(s.key) === 'B');
-    const btn = document.getElementById('optimize-btn'); btn.disabled = true; btn.textContent = '⏳ Optimizing…';
-    try { await Promise.all([optimizeRoute('A', A, startSec), optimizeRoute('B', B, startSec)]); }
-    finally { btn.disabled = false; btn.textContent = '🧭 Optimize routes'; }
+    const btn = document.getElementById('optimize-btn'); btn.disabled = true; btn.textContent = '⏳ Optimizing + saving…';
+    try {
+      await Promise.all([
+        optimizeRoute('A', A, startSec).then(() => (state.A && state.A.order.length ? saveRoute('A') : undefined)),
+        optimizeRoute('B', B, startSec).then(() => (state.B && state.B.order.length ? saveRoute('B') : undefined)),
+      ]);
+    } finally { btn.disabled = false; btn.textContent = '🧭 Re-optimize + save'; }
   });
 
   // Two-tap confirm on every "Remove from route…" form: first tap ARMS the

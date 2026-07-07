@@ -33,7 +33,7 @@ import Card from '../../../../components/Card.astro';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { currentDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
 import { formatUSPhone } from '../../../../lib/phone';
-import { getLoadOrder } from '../../../../lib/load-order';
+import { getLoadOrder, loadTag } from '../../../../lib/load-order';
 import { mondayOfWeek } from '../../../../lib/cycle';
 
 export const prerender = false;
@@ -79,12 +79,15 @@ if (acctIds.length) {
 // the restaurant's linked customers.id (wholesale_accounts.customer_id). Null
 // route → no number (fail-soft). The delivery date's Monday is the route week.
 const loadOrder = await getLoadOrder(supabaseAdmin, mondayOfWeek(deliveryDate));
-/** TRUCK load number for a wholesale account (via its linked customer), or null. */
-function truckNoForAccount(accountId: string | null): number | null {
+/** TRUCK load tag ("A-3" — leg + the leg's own load number) for a wholesale
+ *  account via its linked customer, or null. Matches the CSA box labels + the
+ *  Route A/B truck sheet (shared PER-LEG lib/load-order numbering). */
+function truckTagForAccount(accountId: string | null): string | null {
   if (!loadOrder || !accountId) return null;
   const cid = acctById.get(accountId)?.customer_id ?? null;
   if (!cid) return null;
-  return loadOrder.wholesaleCustomer(cid)?.loadSeq ?? null;
+  const st = loadOrder.wholesaleCustomer(cid);
+  return st ? loadTag(st) : null;
 }
 
 const orderIds = orders.map((o) => o.id);
@@ -104,14 +107,14 @@ for (const it of items) { const a = itemsByOrder.get(it.order_id) ?? []; a.push(
 const { data: dateRows } = await supabaseAdmin.from('wholesale_orders').select('delivery_date').order('delivery_date', { ascending: false });
 const dates = Array.from(new Set([deliveryDate, ...((dateRows ?? []).map((r: any) => r.delivery_date as string))])).filter(Boolean).sort().reverse();
 
-interface WLabel { name: string; phone: string | null; truckNo: number | null; items: Array<{ qty: number | null; name: string | null; unit: string | null }>; }
+interface WLabel { name: string; phone: string | null; truckTag: string | null; items: Array<{ qty: number | null; name: string | null; unit: string | null }>; }
 const labels: WLabel[] = orders
   .map((o) => {
     const acct = o.account_id ? acctById.get(o.account_id) : undefined;
     return {
       name: acct?.restaurant_name ?? '(no account)',
       phone: acct?.phone ?? null,
-      truckNo: truckNoForAccount(o.account_id),
+      truckTag: truckTagForAccount(o.account_id),
       items: (itemsByOrder.get(o.id) ?? []).map((it) => ({ qty: it.qty, name: it.product_name, unit: it.product?.unit ?? null })),
     };
   })
@@ -129,15 +132,15 @@ const pretty = prettyDeliveryDate(deliveryDate);
 // Flatten the SAME data into one label per individual wholesale_order_item.
 // Grouped by restaurant name (so an order's items stay contiguous) then by
 // product name. Pad to whole sheets of 10 so each Avery 8163 sheet aligns.
-interface ILabel { name: string; truckNo: number | null; qty: number | null; product: string | null; unit: string | null; }
+interface ILabel { name: string; truckTag: string | null; qty: number | null; product: string | null; unit: string | null; }
 const itemLabels: ILabel[] = orders
   .flatMap((o) => {
     const acct = o.account_id ? acctById.get(o.account_id) : undefined;
     const name = acct?.restaurant_name ?? '(no account)';
-    const truckNo = truckNoForAccount(o.account_id);
+    const truckTag = truckTagForAccount(o.account_id);
     return (itemsByOrder.get(o.id) ?? []).map((it) => ({
       name,
-      truckNo,
+      truckTag,
       qty: it.qty,
       product: it.product_name,
       unit: it.product?.unit ?? null,
@@ -215,7 +218,7 @@ const subtitle =
                       <div class="item-label-body">
                         <div class="item-label-name-band">
                           <span class="label-name-left">
-                            {l.truckNo != null && <span class="label-truck-badge">🚚 #{l.truckNo}</span>}
+                            {l.truckTag && <span class="label-truck-badge">🚚 {l.truckTag}</span>}
                             <span class="item-label-name">{l.name}</span>
                           </span>
                           <span class="item-label-date">{pretty}</span>
@@ -257,7 +260,7 @@ const subtitle =
                       </div>
                       <div class="label-name-band">
                         <span class="label-name-left">
-                          {l.truckNo != null && <span class="label-truck-badge">🚚 TRUCK #{l.truckNo}</span>}
+                          {l.truckTag && <span class="label-truck-badge">🚚 {l.truckTag}</span>}
                           <span class="label-name">{l.name}</span>
                         </span>
                         <span class="label-date">{pretty}</span>

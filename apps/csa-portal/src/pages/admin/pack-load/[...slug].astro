@@ -319,21 +319,29 @@ function loadStopCount(key: string, kind: string): string | null {
 }
 const KIND_ICON: Record<string, string> = { pickup: '📍', home: '🏠', wholesale: '🍽' };
 
-// Per-card load badge: a pickup stop → "LOAD #n"; the home-delivery bucket spans
-// several positions → "LOAD #a–b"; null off-route / no route.
+// Per-card load badge on the live board. Numbers are PER-LEG (each truck loads
+// on its own), so a pickup stop → "LOAD A #n"; the home-delivery bucket spans
+// several individually-numbered stops, grouped by leg → "LOAD A #a–b · B #c–d";
+// null off-route / no route. The leg letter is shown only when there are 2 legs.
 function loadBadgeForStop(stop: StopTotals): string | null {
   if (!loadOrder) return null;
+  const legPrefix = (leg: string) => (loadOrder!.legCount > 1 ? `${leg} ` : '');
   if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) {
-    const seqs: number[] = [];
+    const byLeg = new Map<string, number[]>();
     for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
       const st = loadOrder.home(m.customer_id);
-      if (st) seqs.push(st.loadSeq);
+      if (st) { const a = byLeg.get(st.leg) ?? []; a.push(st.loadSeq); byLeg.set(st.leg, a); }
     }
-    const r = formatLoadRange(seqs);
-    return r ? `LOAD ${r}` : null;
+    if (byLeg.size === 0) return null;
+    const parts: string[] = [];
+    for (const leg of Array.from(byLeg.keys()).sort((a, b) => a.localeCompare(b))) {
+      const r = formatLoadRange(byLeg.get(leg)!);
+      if (r) parts.push(`${legPrefix(leg)}${r}`);
+    }
+    return parts.length ? `LOAD ${parts.join(' · ')}` : null;
   }
   const st = loadOrder.pickup(stop.stop_id);
-  return st ? `LOAD #${st.loadSeq}` : null;
+  return st ? `LOAD ${legPrefix(st.leg)}#${st.loadSeq}` : null;
 }
 
 /** Human-friendly confirmed-at for the audit line. */
@@ -382,46 +390,50 @@ function prettyTime(iso: string | null): string {
     )}
   </Fragment>
 
-  {/* ════ 🚚 TRUCK LOADING ORDER — the one sheet taped to the truck door ════
-      Numbered 1..N in LOAD order (load-first at top = the LAST drive stop,
-      deepest in the truck; the last row loads at the door, first out). Includes
-      wholesale stops so the crew can place the Monday-printed crates. This
-      section is what prints; the live board below is screen-only. */}
+  {/* ════ 🚚 TRUCK LOADING ORDER — ONE PRINTED PAGE PER LEG (Todd 2026-07) ════
+      Each truck loads independently, so we print a SEPARATE sheet per route leg
+      (Route A, Route B), page-broken. Each sheet is numbered by that leg's OWN
+      load order (loadSeq restarts at 1 = the leg's LAST drive stop, deepest in
+      the truck; the last row loads at the door, first out) — matching the "A-3"
+      pill on every box label. Includes wholesale stops so the crew can place the
+      Monday-printed crates. These sheets print; the live board below is
+      screen-only. */}
   {loadOrder ? (
-    <section class="truck-load-sheet mb-8 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm" aria-labelledby="truck-load-heading">
-      <div class="flex flex-wrap items-end justify-between gap-2 border-b-2 border-ts-text pb-3">
-        <div>
-          <h2 id="truck-load-heading" class="font-display text-2xl font-extrabold text-ts-text">
-            🚚 Truck loading order
-          </h2>
-          <p class="mt-0.5 text-sm text-ts-text-secondary">
-            {prettyWeekHeader(week_starting)} · load #1 first (deepest); last row loads at the door
-            {loadOrder.legCount > 1 ? ` · ${loadOrder.legCount} route legs (A→B numbered straight through)` : ''}
-          </p>
-        </div>
-        <span class="rounded-full bg-ts-primary/10 px-3 py-1 text-sm font-bold tabular-nums text-ts-primary">
-          {loadOrder.total} stop{loadOrder.total === 1 ? '' : 's'}
-        </span>
-      </div>
-      <ol class="mt-3 flex flex-col divide-y divide-ts-border/60">
-        {loadOrder.stops.map((st) => (
-          <li class="flex items-center gap-3 py-2">
-            <span class="load-seq flex h-9 w-9 shrink-0 items-center justify-center rounded-ts-md text-base font-extrabold tabular-nums">
-              {st.loadSeq}
+    <div class="truck-sheets">
+      {loadOrder.legGroups.map((group) => (
+        <section class="truck-load-sheet leg-sheet mb-8 rounded-ts-lg border border-ts-border bg-ts-bg-surface p-5 shadow-ts-sm" aria-labelledby={`truck-load-${group.leg}`}>
+          <div class="flex flex-wrap items-end justify-between gap-2 border-b-2 border-ts-text pb-3">
+            <div>
+              <h2 id={`truck-load-${group.leg}`} class="font-display text-2xl font-extrabold text-ts-text">
+                🚚 Truck loading order{loadOrder.legCount > 1 ? ` · Route ${group.leg}` : ''}
+              </h2>
+              <p class="mt-0.5 text-sm text-ts-text-secondary">
+                {prettyWeekHeader(week_starting)} · load #1 first (deepest); last row loads at the door
+                {loadOrder.legCount > 1 ? ' · this truck is numbered on its own' : ''}
+              </p>
+            </div>
+            <span class="rounded-full bg-ts-primary/10 px-3 py-1 text-sm font-bold tabular-nums text-ts-primary">
+              {group.total} stop{group.total === 1 ? '' : 's'}
             </span>
-            <span class="shrink-0 text-lg" aria-hidden="true">{KIND_ICON[st.kind] ?? '📦'}</span>
-            <span class="min-w-0 flex-1 truncate font-semibold text-ts-text">{st.name}</span>
-            {loadOrder.legCount > 1 && (
-              <span class="shrink-0 rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs font-bold text-ts-text-secondary">Route {st.leg}</span>
-            )}
-            <span class="shrink-0 text-sm font-medium text-ts-text-secondary tabular-nums">
-              {loadStopCount(st.key, st.kind) ?? ''}
-            </span>
-            <span class="shrink-0 text-xs text-ts-text-muted tabular-nums">drive #{st.routeSeq}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+          </div>
+          <ol class="mt-3 flex flex-col divide-y divide-ts-border/60">
+            {group.stops.map((st) => (
+              <li class="flex items-center gap-3 py-2">
+                <span class="load-seq flex h-9 w-9 shrink-0 items-center justify-center rounded-ts-md text-base font-extrabold tabular-nums">
+                  {st.loadSeq}
+                </span>
+                <span class="shrink-0 text-lg" aria-hidden="true">{KIND_ICON[st.kind] ?? '📦'}</span>
+                <span class="min-w-0 flex-1 truncate font-semibold text-ts-text">{st.name}</span>
+                <span class="shrink-0 text-sm font-medium text-ts-text-secondary tabular-nums">
+                  {loadStopCount(st.key, st.kind) ?? ''}
+                </span>
+                <span class="shrink-0 text-xs text-ts-text-muted tabular-nums">drive #{st.routeSeq} of {group.total}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
   ) : (
     <div class="print:hidden mb-8 rounded-ts-md border border-ts-border bg-ts-bg-muted/50 px-4 py-3 text-sm text-ts-text-secondary">
       💡 Optimize + save this week's delivery route (Route planner → “Save &amp; send to driver”) to generate the numbered truck-loading order and load positions.
@@ -825,6 +837,9 @@ function prettyTime(iso: string | null): string {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    /* One printed page per route leg (Route A sheet, Route B sheet). */
+    .leg-sheet { break-after: page; page-break-after: always; margin-bottom: 0 !important; }
+    .leg-sheet:last-child { break-after: auto; page-break-after: auto; }
   }
 </style>
 

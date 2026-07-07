@@ -34,6 +34,8 @@ import {
   type MemberNotice,
 } from '../../../lib/notices';
 import { getLoadOrder, formatLoadRange, type LoadOrder } from '../../../lib/load-order';
+import { addDaysYMD } from '../../../lib/wholesale-order';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -62,6 +64,8 @@ const cycle = await resolveCycle(supabase, week_starting);
 // "home_delivery__unassigned". `isHomeStop` treats all of them as home so the
 // band color, the 🏠 prefix, and the home-delivery notices keep working.
 const HOME_SPLIT_PREFIX = `${HOME_DELIVERY_BUCKET_ID}__`;
+// Synthetic id for an INDIVIDUAL routed home stop: 'home_delivery__cust:<id>'.
+const HOME_CUST_PREFIX = `${HOME_SPLIT_PREFIX}cust:`;
 const isHomeStop = (id: string): boolean =>
   id === HOME_DELIVERY_BUCKET_ID || id.startsWith(HOME_SPLIT_PREFIX);
 
@@ -104,84 +108,68 @@ if (printAll) {
   return Astro.redirect(`/admin/pack-check?week=${week_starting}`, 303);
 }
 
-// ─── TRUCK LOAD ORDER + home-delivery split (Todd 2026-06-24 / 2026-07) ───────
+// ─── TRUCK LOAD ORDER + home/wholesale slots (Todd 2026-06-24 / 2026-07) ──────
 // After the route is optimized + saved, the pack-all sheets print in TRUCK
-// LOADING order (Todd 2026-07): stops sorted by loadSeq — the stop LOADED FIRST
-// (the LAST drive stop, deepest in the truck) at the TOP, the stop loaded last
-// (first drive stop, at the door) at the bottom. This is the REVERSE of the
-// drive order and is what the crew wants when building the truck LIFO. Each stop
-// also gets a numbered LOAD banner ("LOAD #3 · drive stop 7 of 9"). The single
-// Home-delivery sheet is still split into a per-truck sheet (🏠 Route A / Route
-// B) plus a "not on a saved route" sheet so a home member added after the route
-// was saved is never silently dropped. Only the print-all view is reordered;
-// single-stop and no-saved-route views keep their current order (both still show
-// the load banner when a route exists). The load numbering is the SHARED
-// lib/load-order source of truth — the same one labels + the truck-door sheet use.
+// LOADING order: stops sorted LEG-then-LOAD (per-leg loadSeq — the leg's LAST
+// drive stop, deepest in the truck, at the TOP; the leg's first drive stop, at
+// the door, at the bottom). Each stop gets a numbered LOAD banner. Home delivery
+// is split into INDIVIDUAL numbered stops (change 2) so each drops into its own
+// truck slot; home members not on the saved route group into one "not on a saved
+// route" sheet (never dropped). WHOLESALE stops on the route also print as their
+// own numbered sections with the order's line items (change 3). Only the
+// print-all view is reordered/expanded; single-stop and no-saved-route views keep
+// their current behavior. The load numbering is the SHARED lib/load-order source
+// of truth — the same PER-LEG numbers the labels + truck sheets use.
 const loadOrder: LoadOrder | null = await getLoadOrder(supabase, week_starting);
 const INF = Number.POSITIVE_INFINITY;
-if (printAll && loadOrder) {
-  const legLetterByCustomer = new Map<string, string>();
-  for (const st of loadOrder.stops) {
-    if (st.kind === 'home' && st.key.startsWith('cust:')) {
-      legLetterByCustomer.set(st.key.slice(5), st.leg);
-    }
-  }
 
-  // 1. Split the home-delivery bucket into per-truck subsets.
+// ─── HOME DELIVERIES → INDIVIDUAL STOPS (Todd 2026-07) ───────────────
+// When a route is saved, every home-delivery customer becomes its OWN numbered
+// stop section (they already are individual stops in the saved route, each with
+// its own loadSeq), so each drops into its proper truck slot in the pack check.
+// Home members NOT on the saved route group into one "not on a saved route"
+// sheet (never dropped). No saved route → the aggregate home bucket stays as-is.
+if (printAll && loadOrder) {
   const homeMembers = cycle.byStop.get(HOME_DELIVERY_BUCKET_ID) ?? [];
   if (homeMembers.length > 0) {
-    const byLeg = new Map<string, CycleMember[]>();
+    const byCustomer = new Map<string, CycleMember[]>();
     for (const m of homeMembers) {
-      const leg = legLetterByCustomer.get(m.customer_id) ?? 'unassigned';
-      const arr = byLeg.get(leg);
-      if (arr) arr.push(m); else byLeg.set(leg, [m]);
+      const arr = byCustomer.get(m.customer_id);
+      if (arr) arr.push(m); else byCustomer.set(m.customer_id, [m]);
     }
-    const legKeys = Array.from(byLeg.keys()).sort((a, b) => {
-      if (a === 'unassigned') return 1;
-      if (b === 'unassigned') return -1;
-      return a.localeCompare(b);
-    });
-    const homeSplitStops: StopTotals[] = [];
-    for (const leg of legKeys) {
-      const subset = byLeg.get(leg) as CycleMember[];
-      const sid = `${HOME_SPLIT_PREFIX}${leg}`;
-      cycle.byStop.set(sid, subset); // so the per-stop helpers work unchanged
-      const name = leg === 'unassigned'
-        ? 'Home delivery · not on a saved route'
-        : `Home delivery · Route ${leg}`;
-      homeSplitStops.push(buildSubsetTotals(sid, name, subset));
+    const homeStops: StopTotals[] = [];
+    const unrouted: CycleMember[] = [];
+    for (const [customerId, members] of byCustomer) {
+      if (loadOrder.home(customerId)) {
+        const sid = `${HOME_CUST_PREFIX}${customerId}`;
+        cycle.byStop.set(sid, members); // so the per-stop helpers work unchanged
+        const name = members[0]?.contact_name ?? 'Home delivery';
+        homeStops.push(buildSubsetTotals(sid, name, members));
+      } else {
+        unrouted.push(...members);
+      }
+    }
+    if (unrouted.length > 0) {
+      const sid = `${HOME_SPLIT_PREFIX}unassigned`;
+      cycle.byStop.set(sid, unrouted);
+      homeStops.push(buildSubsetTotals(sid, 'Home delivery · not on a saved route', unrouted));
     }
     stopsToRender = stopsToRender
       .filter((s) => s.stop_id !== HOME_DELIVERY_BUCKET_ID)
-      .concat(homeSplitStops);
+      .concat(homeStops);
   }
+}
 
-  // 2. Order by LOAD sequence (load-first at top). A pickup stop → its loadSeq;
-  //    a split home sheet → the MIN loadSeq of its members (it sorts to where its
-  //    first/deepest box goes, and its banner shows the full load range);
-  //    anything not on the route keeps its current relative order, after.
-  const loadSeqOf = (key: string): number => loadOrder.byKey.get(key)?.loadSeq ?? INF;
-  const sortKeyFor = (stop: StopTotals): number => {
-    if (stop.stop_id.startsWith(HOME_SPLIT_PREFIX)) {
-      let min = INF;
-      for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
-        min = Math.min(min, loadSeqOf(`cust:${m.customer_id}`));
-      }
-      return min;
-    }
-    return loadSeqOf(`pl:${stop.stop_id}`);
-  };
-  stopsToRender = stopsToRender
-    .map((s, i) => ({ s, i, k: sortKeyFor(s) }))
-    .sort((a, b) => {
-      if (a.k !== b.k) {
-        if (a.k === INF) return 1;
-        if (b.k === INF) return -1;
-        return a.k - b.k;
-      }
-      return a.i - b.i; // stable for equal/Infinity keys
-    })
-    .map((x) => x.s);
+/** LEG-then-LOAD sort value for a member/home stop (POSITIVE_INFINITY off-route).
+ *  An individual home stop maps to its customer's route stop; a pickup stop to
+ *  its pickup route stop; the "not on a saved route" bucket sorts to the end. */
+function stopSortValue(stop: StopTotals): number {
+  if (!loadOrder) return INF;
+  if (stop.stop_id === `${HOME_SPLIT_PREFIX}unassigned`) return INF;
+  if (stop.stop_id.startsWith(HOME_CUST_PREFIX)) {
+    return loadOrder.orderValue(`cust:${stop.stop_id.slice(HOME_CUST_PREFIX.length)}`);
+  }
+  return loadOrder.orderValue(`pl:${stop.stop_id}`);
 }
 
 // ─── Per-stop LOAD banner (numbered truck position) ──────────────────
@@ -194,7 +182,16 @@ interface LoadBanner { load: string; sub: string; }
 function loadBannerForStop(stop: StopTotals): LoadBanner | null {
   if (!loadOrder) return null;
   const legTag = (leg: string) => (loadOrder!.legCount > 1 ? ` · Route ${leg}` : '');
-  if (stop.stop_id.startsWith(HOME_SPLIT_PREFIX) || isHomeStop(stop.stop_id)) {
+  // Individual routed home stop → its single per-leg load position.
+  if (stop.stop_id.startsWith(HOME_CUST_PREFIX)) {
+    const st = loadOrder.home(stop.stop_id.slice(HOME_CUST_PREFIX.length));
+    if (!st) return null;
+    return { load: `LOAD #${st.loadSeq}`, sub: `home delivery · drive #${st.routeSeq} of ${st.legTotal}${legTag(st.leg)}` };
+  }
+  // "Not on a saved route" bucket → no truck position.
+  if (stop.stop_id === `${HOME_SPLIT_PREFIX}unassigned`) return null;
+  // Aggregate home bucket (single-stop / no-split fallback): per-leg range.
+  if (isHomeStop(stop.stop_id)) {
     const seqs: number[] = [];
     const legsSeen = new Set<string>();
     for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
@@ -204,11 +201,11 @@ function loadBannerForStop(stop: StopTotals): LoadBanner | null {
     const range = formatLoadRange(seqs);
     if (!range) return null;
     const legLabel = legsSeen.size === 1 ? legTag([...legsSeen][0]) : '';
-    return { load: `LOAD ${range}`, sub: `${seqs.length} home stop${seqs.length === 1 ? '' : 's'} of ${loadOrder.total}${legLabel}` };
+    return { load: `LOAD ${range}`, sub: `${seqs.length} home stop${seqs.length === 1 ? '' : 's'}${legLabel}` };
   }
   const st = loadOrder.pickup(stop.stop_id);
   if (!st) return null;
-  return { load: `LOAD #${st.loadSeq}`, sub: `drive stop ${st.routeSeq} of ${loadOrder.total}${legTag(st.leg)}` };
+  return { load: `LOAD #${st.loadSeq}`, sub: `drive stop ${st.routeSeq} of ${st.legTotal}${legTag(st.leg)}` };
 }
 
 const DAY_LONG: Record<string, string> = {
@@ -449,10 +446,18 @@ const noticeHints: string[] = stopsToRender.map((s) =>
 );
 const dueNotices = await fetchDueNoticesForStops(supabase, noticeHints, week_starting);
 const noticesByHint = groupNoticesByHint(dueNotices);
+// Home-delivery notices are keyed to ONE hint (HOME_DELIVERY_HINT), so with home
+// split into individual stops they'd otherwise print on EVERY home box. We pin
+// them to the FIRST home stop in load order (set when sections are ordered) so a
+// general home-delivery make-good prints once, not N times.
+let homeNoticeCarrierId: string | null = null;
 /** The notices to print on a stop's sheet (by its hint). */
 function noticesForStop(stop: StopTotals): MemberNotice[] {
-  const hint = isHomeStop(stop.stop_id) ? HOME_DELIVERY_HINT : stop.stop_name;
-  return noticesByHint.get(hint) ?? [];
+  if (isHomeStop(stop.stop_id)) {
+    if (homeNoticeCarrierId !== null && stop.stop_id !== homeNoticeCarrierId) return [];
+    return noticesByHint.get(HOME_DELIVERY_HINT) ?? [];
+  }
+  return noticesByHint.get(stop.stop_name) ?? [];
 }
 
 /* ── Collapse a stop's member rows into ONE pack ROW per customer ────
@@ -550,6 +555,113 @@ function memberShareLabel(m: CycleMember): string {
   if (m.share_type === 'spring_veg') return 'Spring veg box';
   return m.share_type;
 }
+
+// ─── WHOLESALE order lines for the week (Todd 2026-07) ────────────────
+// Each wholesale stop on the saved route prints as its OWN numbered pack-check
+// section with its order line items (change 3). Keyed by the account's linked
+// customer_id (matches the route's 'wc:'+customer_id stops). Reuses the
+// wholesale/pack data approach: orders for the week → accounts (customer_id) →
+// order items.
+type WholesaleLine = { name: string; qty: number; unit: string | null };
+const wholesaleLinesByCustomer = new Map<string, WholesaleLine[]>();
+const wholesaleNameByCustomer = new Map<string, string>();
+if (printAll && loadOrder && loadOrder.stops.some((s) => s.kind === 'wholesale')) {
+  const weekEnd = addDaysYMD(week_starting, 6);
+  const { data: wOrders } = await supabaseAdmin
+    .from('wholesale_orders')
+    .select('id, account_id')
+    .gte('delivery_date', week_starting)
+    .lte('delivery_date', weekEnd);
+  const wOrderRows = (wOrders ?? []) as Array<{ id: string; account_id: string | null }>;
+  const acctIds = Array.from(new Set(wOrderRows.map((o) => o.account_id).filter(Boolean))) as string[];
+  const custByAcct = new Map<string, string>();
+  const nameByAcct = new Map<string, string>();
+  if (acctIds.length) {
+    const { data: accts } = await supabaseAdmin
+      .from('wholesale_accounts')
+      .select('id, restaurant_name, customer_id')
+      .in('id', acctIds);
+    for (const a of (accts ?? []) as Array<{ id: string; restaurant_name: string; customer_id: string | null }>) {
+      if (a.customer_id) custByAcct.set(a.id, a.customer_id);
+      nameByAcct.set(a.id, a.restaurant_name);
+    }
+  }
+  const orderIds = wOrderRows.map((o) => o.id);
+  const itemsByOrder = new Map<string, WholesaleLine[]>();
+  if (orderIds.length) {
+    type WItem = { order_id: string; product_name: string | null; qty: number | null; product: { unit: string | null } | null };
+    const { data: itemRows } = await supabaseAdmin
+      .from('wholesale_order_items')
+      .select('order_id, product_name, qty, product:wholesale_products ( unit )')
+      .in('order_id', orderIds)
+      .overrideTypes<WItem[], { merge: false }>();
+    for (const it of (itemRows ?? []) as WItem[]) {
+      const arr = itemsByOrder.get(it.order_id) ?? [];
+      arr.push({ name: it.product_name ?? 'Item', qty: Number(it.qty) || 0, unit: it.product?.unit ?? null });
+      itemsByOrder.set(it.order_id, arr);
+    }
+  }
+  for (const o of wOrderRows) {
+    if (!o.account_id) continue;
+    const cid = custByAcct.get(o.account_id);
+    if (!cid) continue;
+    const existing = wholesaleLinesByCustomer.get(cid) ?? [];
+    wholesaleLinesByCustomer.set(cid, existing.concat(itemsByOrder.get(o.id) ?? []));
+    if (!wholesaleNameByCustomer.has(cid)) wholesaleNameByCustomer.set(cid, nameByAcct.get(o.account_id) ?? 'Wholesale');
+  }
+}
+
+// ─── ORDERED RENDER SECTIONS (member stops + wholesale, LEG-then-LOAD) ─
+// One heterogeneous list so wholesale stops interleave with CSA/home stops in
+// truck-load order. Off-route stops (and the "not on a saved route" home bucket)
+// sort to the end. No saved route → member stops in their existing order.
+interface WholesaleSection { key: string; name: string; banner: LoadBanner | null; items: WholesaleLine[]; }
+type RenderSection =
+  | { kind: 'stop'; stop: StopTotals; sort: number }
+  | { kind: 'wholesale'; wholesale: WholesaleSection; sort: number };
+
+let sections: RenderSection[];
+if (printAll && loadOrder) {
+  const stopSecs: RenderSection[] = stopsToRender.map((stop) => ({ kind: 'stop', stop, sort: stopSortValue(stop) }));
+  const wholesaleSecs: RenderSection[] = loadOrder.stops
+    .filter((s) => s.kind === 'wholesale')
+    .map((st) => {
+      const cid = st.key.slice(3); // strip 'wc:'
+      const legTag = loadOrder!.legCount > 1 ? ` · Route ${st.leg}` : '';
+      return {
+        kind: 'wholesale' as const,
+        wholesale: {
+          key: st.key,
+          name: wholesaleNameByCustomer.get(cid) ?? st.name,
+          banner: { load: `LOAD #${st.loadSeq}`, sub: `wholesale · drive #${st.routeSeq} of ${st.legTotal}${legTag}` },
+          items: wholesaleLinesByCustomer.get(cid) ?? [],
+        },
+        sort: loadOrder!.orderValue(st.key),
+      };
+    });
+  sections = [...stopSecs, ...wholesaleSecs]
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => {
+      if (a.s.sort !== b.s.sort) {
+        if (a.s.sort === INF) return 1;
+        if (b.s.sort === INF) return -1;
+        return a.s.sort - b.s.sort;
+      }
+      return a.i - b.i;
+    })
+    .map((x) => x.s);
+} else {
+  sections = stopsToRender.map((stop) => ({ kind: 'stop', stop, sort: 0 }));
+}
+
+// Pin the shared home-delivery notices to the FIRST home stop in render order.
+for (const sec of sections) {
+  if (sec.kind === 'stop' && isHomeStop(sec.stop.stop_id)) { homeNoticeCarrierId = sec.stop.stop_id; break; }
+}
+
+// Distinct band for wholesale sections (deep terracotta) — separate from the
+// home-delivery band; fixed hex (this is a color-print document).
+const WHOLESALE_BAND: BandColor = { bg: '#7c2d12', text: '#ffffff' };
 ---
 
 <AdminShell
@@ -580,7 +692,66 @@ function memberShareLabel(m: CycleMember): string {
   )}
 
   <div class="print-doc flex flex-col gap-8">
-    {stopsToRender.map((stop) => {
+    {sections.map((section) => {
+      if (section.kind === 'wholesale') {
+        const w = section.wholesale;
+        return (
+          <section class="page-break" aria-label={`Wholesale — ${w.name}`}>
+            {/* TRUCK LOAD position — same dark banner as CSA stops. */}
+            {w.banner && (
+              <div class="load-banner flex items-center gap-3 rounded-ts-lg px-4 py-2">
+                <span class="load-banner-num font-display text-2xl font-extrabold tabular-nums leading-none">
+                  🚚 {w.banner.load}
+                </span>
+                <span class="text-sm font-semibold uppercase tracking-wide opacity-90">
+                  {w.banner.sub}
+                </span>
+              </div>
+            )}
+            <header
+              class="stop-band flex flex-wrap items-end justify-between gap-3 rounded-ts-lg px-5 py-4"
+              style={`background:${WHOLESALE_BAND.bg};color:${WHOLESALE_BAND.text};`}
+            >
+              <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wider opacity-90">
+                  Wholesale · {prettyWeekHeader(week_starting)}
+                </p>
+                <h2 class="mt-1 font-display text-3xl font-bold sm:text-4xl">🍽 {w.name}</h2>
+                <p class="mt-2 flex flex-wrap items-center gap-2 text-sm font-bold">
+                  <span class="tabular-nums">📦 {w.items.length} item{w.items.length === 1 ? '' : 's'}</span>
+                </p>
+              </div>
+              <div class="shrink-0 text-right">
+                <div class="font-display text-4xl font-extrabold tabular-nums leading-none">{w.items.length}</div>
+                <div class="text-xs font-bold uppercase tracking-wide opacity-95">items</div>
+              </div>
+            </header>
+            {w.items.length === 0 ? (
+              <Card tone="muted" padding="md" elevation="sm">
+                <p class="text-center text-sm text-ts-text-secondary">
+                  No order lines found for this restaurant this week.
+                </p>
+              </Card>
+            ) : (
+              <ol class="mt-4 divide-y divide-ts-border/60">
+                {w.items.map((it) => (
+                  <li class="pack-row flex items-center gap-4 px-1 py-3 sm:px-2">
+                    <span
+                      class="pack-check inline-block h-6 w-6 shrink-0 rounded border-2 border-ts-text bg-white print:border-black"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="min-w-0 flex-1 text-base font-bold text-ts-text">{it.name}</span>
+                    <span class="shrink-0 font-display text-lg font-extrabold tabular-nums text-ts-text">
+                      {it.qty}{it.unit ? ` ${it.unit}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        );
+      }
+      const stop = section.stop;
       const rows = packRowsForStop(stop);
       const flexNoOrder = flexNoOrderForStop(stop)
         .slice()
