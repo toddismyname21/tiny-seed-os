@@ -48,7 +48,7 @@
  */
 import Card from './Card.astro';
 import { todayWeekdayET } from '../lib/delivery';
-import { currentDeliveryWeek, prettyWeekHeader } from '../lib/cycle';
+import { currentDeliveryWeek, prettyWeekHeader, addDays } from '../lib/cycle';
 import {
   currentDeliveryWednesday, nextDeliveryFriday, prettyDeliveryDate,
   CUTOFF_LABEL, CUTOFF_LABEL_FRIDAY,
@@ -192,9 +192,15 @@ if (mode === 'mon') {
       .eq('week_starting', week)
       .in('status', ['pending', 'locked', 'fulfilled'])
       .overrideTypes<FlexRow[], { merge: false }>(),
+    // WHOLE cycle week (Mon–Sun), not Wednesday-only: Harvie delivers MONDAY
+    // night and Market Wagon TUESDAY morning (Todd, 2026-07-07), so their
+    // imported orders carry Mon/Tue delivery dates — the old Wednesday-only
+    // query showed "⏳ not imported" for orders that WERE in. Chef orders stay
+    // Wednesday-scoped in the per-source filters below.
     supabase.from('wholesale_orders')
-      .select('id, source, status, total_amount, external_ref')
-      .eq('delivery_date', deliveryWed)
+      .select('id, source, status, total_amount, external_ref, delivery_date')
+      .gte('delivery_date', week)
+      .lte('delivery_date', addDays(week, 6))
       .overrideTypes<OrderRow[], { merge: false }>(),
     supabase.from('market_offerings')
       .select('id, is_active, market:pickup_locations(day_of_week)')
@@ -224,10 +230,16 @@ if (mode === 'mon') {
   const flexMembers = new Set((flexRes.data ?? []).map((r) => r.member_id));
   mFlexCount = flexMembers.size;
 
-  const wedOrders = (wedOrdersRes.data ?? []).filter((o) => o.status !== 'cancelled');
-  mHarvieOrder = wedOrders.find((o) => (o.source ?? '').toLowerCase() === 'harvie') ?? null;
-  mMwOrder = wedOrders.find((o) => (o.source ?? '').toLowerCase() === 'market_wagon') ?? null;
-  mChefCount = wedOrders.filter((o) => !VENDOR_SOURCES.has((o.source ?? '').toLowerCase())).length;
+  const weekOrders = (wedOrdersRes.data ?? []).filter((o) => o.status !== 'cancelled');
+  // Vendors matched anywhere in the week (Harvie=Mon, MW=Tue delivery dates);
+  // chef orders counted for the Wednesday run only, as before.
+  mHarvieOrder = weekOrders.find((o) => (o.source ?? '').toLowerCase() === 'harvie') ?? null;
+  mMwOrder = weekOrders.find((o) => (o.source ?? '').toLowerCase() === 'market_wagon') ?? null;
+  mChefCount = weekOrders.filter(
+    (o) =>
+      !VENDOR_SOURCES.has((o.source ?? '').toLowerCase()) &&
+      (o as { delivery_date?: string }).delivery_date === deliveryWed
+  ).length;
 
   async function lineCount(orderId: string | undefined): Promise<number> {
     if (!orderId) return 0;
