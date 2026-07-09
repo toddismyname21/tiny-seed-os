@@ -197,4 +197,57 @@ assert.equal(pickPackLineKey('group', 'King Spring Mix'), 'g:king-spring-mix');
   assert.equal(matrix.rows.length, 0);
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+ * CSA small/large box SPLIT (Todd 2026-07-09) — the pack crew packs sizes
+ * differently, so the CSA matrix cell must carry an 8S/4L breakdown. The split
+ * accumulates alongside qty (across units + duplicate CSA inputs), only CSA
+ * cells carry it, and it NEVER changes the row total (Σcells still == total).
+ * ════════════════════════════════════════════════════════════════════════ */
+{
+  const csa: CropDemandInput[] = [{ crop: 'Kale', qty: 12, unit: 'bunch' }];
+  const wholesale: CropDemandInput[] = [{ crop: 'Kale', qty: 5, unit: 'bunch' }];
+  const merged = mergeCropDemand(csa, [], wholesale);
+
+  const dests: DestDemandInput[] = [
+    // CSA Kale split 8 small + 4 large = 12.
+    { crop: 'Kale', qty: 12, unit: 'bunch', kind: 'csa', destKey: 'csa', destLabel: 'CSA', sizeSplit: { small: 8, large: 4 } },
+    // Wholesale carries NO split.
+    { crop: 'Kale', qty: 5, unit: 'bunch', kind: 'wholesale', destKey: 'ws:a', destLabel: 'Dish' },
+  ];
+  const matrix = buildDestinationMatrix(merged, dests);
+  const kale = matrix.rows.find((r) => normCrop(r.crop) === 'kale')!;
+
+  const csaCell = kale.cells.get('csa')!;
+  assert.equal(csaCell.qty, 12, 'CSA cell qty intact');
+  assert.deepEqual(csaCell.sizeSplit, { small: 8, large: 4 }, 'CSA cell carries the 8S/4L split');
+  assert.equal(csaCell.sizeSplit!.small + csaCell.sizeSplit!.large, csaCell.qty, 'split sums to the CSA qty');
+
+  // Non-CSA cells never get a split.
+  assert.equal(kale.cells.get('ws:a')!.sizeSplit, undefined, 'wholesale cell has no size split');
+
+  // Invariant unchanged: Σ destination cells == row total == merged total.
+  let sum = 0;
+  for (const cell of kale.cells.values()) sum += cell.qty;
+  assert.equal(sum, kale.totalQty, 'Σ cells == row total (split does not alter totals)');
+  assert.equal(kale.totalQty, 17, 'CSA 12 + wholesale 5');
+}
+
+/* ── CSA split accumulates across UNITS + duplicate CSA inputs into one cell ── */
+{
+  // Same crop fed as two CSA rows (e.g. two units, or small vs large plan rows)
+  // — the cell qty AND the split must both sum.
+  const merged = mergeCropDemand(
+    [{ crop: 'Salad Mix', qty: 30, unit: 'bag' }],
+    [], [],
+  );
+  const matrix = buildDestinationMatrix(merged, [
+    { crop: 'Salad Mix', qty: 20, unit: 'bag', kind: 'csa', destKey: 'csa', destLabel: 'CSA', sizeSplit: { small: 20, large: 0 } },
+    { crop: 'Salad Mix', qty: 10, unit: 'bag', kind: 'csa', destKey: 'csa', destLabel: 'CSA', sizeSplit: { small: 0, large: 10 } },
+  ]);
+  const cell = matrix.rows[0].cells.get('csa')!;
+  assert.equal(cell.qty, 30, 'two CSA inputs summed into one cell');
+  assert.deepEqual(cell.sizeSplit, { small: 20, large: 10 }, 'splits summed across the two inputs');
+  assert.equal(cell.sizeSplit!.small + cell.sizeSplit!.large, cell.qty, 'accumulated split still sums to qty');
+}
+
 console.log('pick-pack.test.ts — all assertions passed');

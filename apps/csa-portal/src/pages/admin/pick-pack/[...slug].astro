@@ -30,7 +30,7 @@ import {
 import {
   mergeCropDemand, channelCount, parseLang, normCrop, PICK_PACK_STRINGS,
   pickPackLineKey, buildDestinationMatrix,
-  type CropDemandInput, type DestDemandInput,
+  type CropDemandInput, type DestDemandInput, type DestKind,
 } from '../../../lib/pick-pack';
 import {
   fetchAllOpenDueNoticesWithMember, isNoticeOverdue, HOME_DELIVERY_HINT,
@@ -128,18 +128,33 @@ function marketInScope(day: string | null | undefined): boolean {
  *    locked swaps + allergy subs) per crop+unit.
  * ────────────────────────────────────────────────────────────────── */
 interface CropAgg { crop: string; unit: string; qty: number; }
-const csaMap = new Map<string, CropAgg>(); // key = crop|unit
+// CSA aggregate carries the small/large box split so the pack-house matrix can
+// render "12 (8S/4L)" — the crew packs sizes differently. A member is counted
+// LARGE iff their size_bucket resolves to 'large' (the SAME rule resolveCycle
+// uses to pick the box plan: `size_bucket === 'large' ? 'large' : 'small'`), so
+// small + large is a per-SIZE demand total (not a member headcount) and always
+// sums to qty.
+interface CsaCropAgg extends CropAgg { small: number; large: number; }
+const csaMap = new Map<string, CsaCropAgg>(); // key = crop|unit
 for (const m of cycle.members) {
   if (m.share_type !== 'summer_veg') continue;
   // Scope to the selected harvest day (Sat/Sun pickup → thu; else → mon).
   if (!inScope(harvestTabForMember(m.pickup_location?.day_of_week))) continue;
   const comp = cycle.boxCompositionByMember.get(m.id);
   if (!comp) continue;
+  const isLarge = m.size_bucket === 'large';
   for (const line of comp.items) {
     const key = `${line.crop.toLowerCase()}|${line.unit.toLowerCase()}`;
     const e = csaMap.get(key);
-    if (e) e.qty += line.qty;
-    else csaMap.set(key, { crop: line.crop, unit: line.unit, qty: line.qty });
+    if (e) {
+      e.qty += line.qty;
+      if (isLarge) e.large += line.qty; else e.small += line.qty;
+    } else {
+      csaMap.set(key, {
+        crop: line.crop, unit: line.unit, qty: line.qty,
+        small: isLarge ? 0 : line.qty, large: isLarge ? line.qty : 0,
+      });
+    }
   }
 }
 const csaRows = Array.from(csaMap.values())
@@ -536,9 +551,13 @@ if (view === 'packhouse') {
   const destInputs: DestDemandInput[] = [];
 
   // CSA — one column. csaRows is already day-scoped (built via inScope above);
-  // summing its per-unit rows into destKey 'csa' reproduces merged.csa.qty.
+  // summing its per-unit rows into destKey 'csa' reproduces merged.csa.qty. Each
+  // row carries its small/large box split so the CSA cell shows "12 (8S/4L)".
   for (const r of csaRows) {
-    destInputs.push({ crop: r.crop, qty: r.qty, unit: r.unit, kind: 'csa', destKey: 'csa', destLabel: t.csaCol });
+    destInputs.push({
+      crop: r.crop, qty: r.qty, unit: r.unit, kind: 'csa', destKey: 'csa', destLabel: t.csaCol,
+      sizeSplit: { small: r.small, large: r.large },
+    });
   }
 
   // MARKETS — one column per in-scope market (incl. an "Untagged" bucket, which
@@ -598,6 +617,14 @@ if (view === 'packhouse') {
   }
 
   packhouseMatrix = buildDestinationMatrix(merged, destInputs);
+}
+
+/* ── Destination-kind glyph — a tiny prefix accent on each pack-block line so a
+ *    gloved crew reads the destination FAMILY at a glance (🥬 CSA / 🛒 market /
+ *    🍽 wholesale / 🌿 flex) without a legend to track. Low-ink: one emoji, no
+ *    background. Mirrors the crew's label DNA (small accents, not fills). */
+function destGlyph(kind: DestKind): string {
+  return kind === 'csa' ? '🥬' : kind === 'market' ? '🛒' : kind === 'wholesale' ? '🍽' : '🌿';
 }
 
 /* ── Per-view combined-harvest groups (package variants → one weighed line) ──
@@ -1309,13 +1336,20 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       </section>
     )}
 
-    {/* ═══════════════ PACK HOUSE DISTRIBUTION MATRIX ═══════════════
-        Crop × destination grid. A crew member holding a crate of one crop reads
-        ACROSS the row and drops the right amount at each destination. The row
-        TOTAL is the SAME number the overall harvest sheet shows for that crop
-        (reused from `merged`, not re-added), and the destination cells sum to it.
-        Print-first: landscape (named @page), compact, tender-first order, a blank
-        "Wash / notes" pen box per row. Screen: horizontal scroll, sticky crop. */}
+    {/* ═══════════════ PACK HOUSE — BY-ITEM BLOCKS ═══════════════
+        REDESIGNED (owner feedback: the wide crop × destination GRID was "sprawling
+        and challenging for the team to read"). Now ONE portrait column of crop
+        BLOCKS in the crew's own label DNA: crop name is the LARGEST text, a row
+        tick box in front, the total (w/ unit) on the right, then ONE LINE PER
+        DESTINATION (checkbox + tiny type glyph + name · dot leaders · bold qty),
+        listing ONLY the destinations that actually take that crop. A thin colored
+        left-edge bar flags tender crops (amber); others neutral. Low ink, generous
+        whitespace, blocks never split across a page — legibility over density.
+
+        Data is UNCHANGED: buildDestinationMatrix supplies the SAME tender-first
+        rows + the SAME per-destination cells (row total reused verbatim from
+        `merged`, cells sum to it). This is purely a render change. No live
+        check-off here (paper distribution sheet) — the tick boxes are for pen. */}
     {view === 'packhouse' && (
       <section aria-labelledby="pp-pack-heading" class="packhouse-doc">
         <header class="doc-band rounded-ts-lg px-5 py-4">
@@ -1329,67 +1363,61 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
             <p class="text-center text-sm text-ts-text-secondary">{t.nothing}</p>
           </Card>
         ) : (
-          <div class="matrix-scroll mt-4 overflow-x-auto">
-            <table class="pack-matrix w-full border-collapse text-left">
-              <thead>
-                <tr>
-                  <th scope="col" class="matrix-crop-cell matrix-head px-3 py-2 text-sm font-bold uppercase tracking-wide text-ts-text">{t.cropCol}</th>
-                  {packhouseMatrix.columns.map((col) => (
-                    <th scope="col" class={`matrix-head matrix-dest matrix-kind-${col.kind} px-2 py-2 text-center align-bottom`}>
-                      <span class="block text-sm font-bold leading-tight text-ts-text">{col.label}</span>
-                      <span class="mt-0.5 block text-[10px] font-semibold uppercase tracking-wider text-ts-text-muted">
-                        {col.kind === 'csa' ? t.csaCol : col.kind === 'market' ? t.marketCol : col.kind === 'wholesale' ? t.wholesaleCol : t.flexCol}
-                      </span>
-                    </th>
-                  ))}
-                  <th scope="col" class="matrix-head matrix-total-col px-3 py-2 text-center text-sm font-bold uppercase tracking-wide text-ts-text">{t.total}</th>
-                  <th scope="col" class="matrix-head matrix-notes-col px-3 py-2 text-left text-sm font-bold uppercase tracking-wide text-ts-text-secondary">{t.notesCol}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {packhouseMatrix.rows.map((r) => (
-                  <tr class={['matrix-row', r.tender ? 'matrix-tender' : ''].join(' ')}>
-                    <th scope="row" class="matrix-crop-cell px-3 py-2.5 text-left align-middle">
-                      <span class="block text-base font-bold leading-tight text-ts-text sm:text-lg">{r.crop}</span>
-                      {r.tender && (
-                        <span class="mt-0.5 inline-block rounded-sm bg-ts-accent/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ts-accent print:bg-transparent print:text-ts-text-secondary">🌱 tender</span>
-                      )}
-                    </th>
-                    {packhouseMatrix!.columns.map((col) => {
-                      const cell = r.cells.get(col.key);
-                      return (
-                        <td class={`matrix-cell matrix-kind-${col.kind} px-2 py-2.5 text-center align-middle tabular-nums`}>
-                          {cell ? (
-                            <span class="inline-flex items-baseline justify-center gap-0.5">
-                              <span class="text-lg font-extrabold leading-none text-ts-text">{cell.qty.toLocaleString()}</span>
-                              {cell.unit !== r.dominantUnit && (
-                                <span class="text-[11px] font-semibold text-ts-text-secondary">{cell.unit}</span>
-                              )}
-                            </span>
-                          ) : (
-                            <span class="text-ts-text-muted" aria-hidden="true">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                    <td class="matrix-cell matrix-total-col px-3 py-2.5 text-center align-middle tabular-nums">
-                      <span class="text-xl font-extrabold leading-none text-ts-text">{r.totalQty.toLocaleString()}</span>
+          <div class="mt-4 flex flex-col gap-3">
+            {packhouseMatrix.rows.map((r) => {
+              // Only the destinations with demand for THIS crop, in column order
+              // (CSA → markets → wholesale → Flex). Short blocks by construction.
+              // Materialize (col, cell) pairs so the template needn't re-look-up.
+              const destLines = packhouseMatrix!.columns.flatMap((col) => {
+                const cell = r.cells.get(col.key);
+                return cell ? [{ col, cell }] : [];
+              });
+              return (
+                <article class={['pack-block', r.tender ? 'pack-block-tender' : ''].join(' ')}>
+                  {/* Header line — crop name LARGEST, tick box in front, total right. */}
+                  <div class="pack-head">
+                    <span class="pack-check pack-check-lg" aria-hidden="true"></span>
+                    <h3 class="pack-crop">{r.crop}</h3>
+                    <span class="pack-total">
+                      <span class="pack-total-num">{r.totalQty.toLocaleString()}</span>
                       {r.mixedUnits
-                        ? <span class="ml-0.5 align-super text-xs font-bold text-ts-text-muted">*</span>
-                        : (r.dominantUnit && <span class="ml-1 text-xs font-semibold text-ts-text-secondary">{r.dominantUnit}</span>)}
-                    </td>
-                    <td class="matrix-cell matrix-notes-col px-3 py-2.5 align-middle">
-                      <span class="matrix-notes-box block h-8 w-full rounded-sm border border-dashed border-ts-border" aria-hidden="true"></span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        ? <span class="pack-total-star">*</span>
+                        : (r.dominantUnit && <span class="pack-total-unit">{r.dominantUnit}</span>)}
+                    </span>
+                  </div>
+                  {r.tender && <p class="pack-tender-flag">🌱 tender — pick &amp; cool first</p>}
+
+                  {/* One destination per line: tick + glyph + name · leaders · qty. */}
+                  <ul class="pack-dests">
+                    {destLines.map(({ col, cell }) => (
+                      <li class="pack-dest">
+                        <span class="pack-check" aria-hidden="true"></span>
+                        <span class="pack-dest-name">{destGlyph(col.kind)} {col.label}</span>
+                        <span class="pack-leader" aria-hidden="true"></span>
+                        <span class="pack-dest-qty">
+                          {cell.qty.toLocaleString()}
+                          {cell.unit !== r.dominantUnit && <span class="pack-dest-unit">{cell.unit}</span>}
+                        </span>
+                        {col.kind === 'csa' && cell.sizeSplit && (cell.sizeSplit.small > 0 || cell.sizeSplit.large > 0) && (
+                          <span class="pack-split">{cell.sizeSplit.small}S / {cell.sizeSplit.large}L</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Blank pen line for wash / attention notes. */}
+                  <p class="pack-notes">
+                    <span class="pack-notes-label">{t.notesCol}</span>
+                    <span class="pack-notes-line" aria-hidden="true"></span>
+                  </p>
+                </article>
+              );
+            })}
           </div>
         )}
         <p class="mt-4 text-xs text-ts-text-muted">
           {t.packhouseHint}
-          {packhouseMatrix?.rows.some((r) => r.mixedUnits) && <span class="ml-1">(<span class="font-bold">*</span> = this crop is measured in more than one unit across destinations; read each cell's own unit.)</span>}
+          {packhouseMatrix?.rows.some((r) => r.mixedUnits) && <span class="ml-1">(<span class="font-bold">*</span> = this crop is measured in more than one unit across destinations; read each line's own unit.)</span>}
         </p>
       </section>
     )}
@@ -1439,53 +1467,102 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     print-color-adjust: exact;
   }
 
-  /* ── PACK HOUSE distribution matrix (crop × destination) ────────────────
-     A wide grid that lives on the pack-house wall/table. On SCREEN the crop
-     column sticks while the destinations scroll; in PRINT it goes LANDSCAPE
-     (a named page, so the other portrait views are untouched) and compact. */
-  .pack-matrix { border: 1px solid var(--ts-border); }
-  .pack-matrix th, .pack-matrix td {
+  /* ── PACK HOUSE — BY-ITEM BLOCKS (redesign) ─────────────────────────────
+     REPLACES the old wide crop × destination grid (owner: "sprawling and
+     challenging to read"). One PORTRAIT column of crop blocks in the crew's own
+     label DNA: crop name is the largest text, a tick box in front, the total on
+     the right, then one dot-leadered line per destination. Small color accents
+     only (a thin left-edge bar; a glyph per line) — no fills, low ink. Blocks
+     never split across a page. The SAME markup renders on screen + print. */
+  .pack-block {
     border: 1px solid var(--ts-border);
-  }
-  .pack-matrix .matrix-head {
-    background: #eef2f0;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    vertical-align: bottom;
-  }
-  /* Faint kind tint so a crew can see at a glance which family a column is. */
-  .pack-matrix .matrix-kind-csa { background: rgba(31, 111, 84, 0.06); }
-  .pack-matrix .matrix-kind-market { background: rgba(37, 99, 235, 0.06); }
-  .pack-matrix .matrix-kind-wholesale { background: rgba(217, 119, 6, 0.07); }
-  .pack-matrix .matrix-kind-flex { background: rgba(124, 58, 237, 0.06); }
-  .pack-matrix .matrix-head.matrix-kind-csa { background: #dcebe4; }
-  .pack-matrix .matrix-head.matrix-kind-market { background: #dde7fb; }
-  .pack-matrix .matrix-head.matrix-kind-wholesale { background: #fbedd6; }
-  .pack-matrix .matrix-head.matrix-kind-flex { background: #e8ddfb; }
-  .pack-matrix .matrix-total-col { background: #e6eaef; font-weight: 800; }
-  /* Zebra rows for wide-row legibility (a crew tracks a row across a full
-     landscape sheet). Tender crops keep an amber left edge — pick these first. */
-  .pack-matrix tbody tr:nth-child(even) td { background: rgba(15, 23, 42, 0.02); }
-  .pack-matrix .matrix-tender .matrix-crop-cell {
-    border-left: 4px solid #f59e0b;
+    border-left: 5px solid #cbd5e1;   /* neutral left bar (non-tender crops) */
+    border-radius: 8px;
+    padding: 10px 16px 12px;
+    background: #ffffff;
+    break-inside: avoid;
+    page-break-inside: avoid;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  /* Sticky crop column on SCREEN only (removed for print below). */
-  @media screen {
-    .pack-matrix .matrix-crop-cell {
-      position: sticky;
-      left: 0;
-      z-index: 1;
-      background: var(--ts-bg-surface);
-      min-width: 9rem;
-    }
-    .pack-matrix .matrix-head.matrix-crop-cell { background: #eef2f0; }
+  /* Tender crops — amber left edge (the existing pack-day tender accent). */
+  .pack-block-tender { border-left-color: #f59e0b; }
+
+  /* Header line: [tick] crop name (LARGEST) ……… total (right). */
+  .pack-head { display: flex; align-items: baseline; gap: 12px; }
+  .pack-crop {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--ts-font-display, inherit);
+    font-size: 1.3rem;               /* ~21px screen; ↑ 18pt in print */
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--ts-text);
+    word-break: break-word;
+  }
+  .pack-total { flex: none; white-space: nowrap; }
+  .pack-total-num {
+    font-family: var(--ts-font-display, inherit);
+    font-size: 1.4rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--ts-text);
+  }
+  .pack-total-unit { margin-left: 4px; font-size: 0.85rem; font-weight: 600; color: var(--ts-text-secondary); }
+  .pack-total-star { margin-left: 2px; font-size: 0.75rem; font-weight: 700; color: var(--ts-text-muted); vertical-align: super; }
+  .pack-tender-flag {
+    margin-top: 2px; margin-left: 34px;
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #b45309;                  /* amber-700 — readable on white */
   }
 
-  /* Named landscape page — applied ONLY to the pack-house matrix so every other
-     view keeps the default Letter-portrait @page below, byte-for-byte unchanged. */
-  @page pack-landscape { size: Letter landscape; margin: 0.4in; }
+  /* Destination lines — indented under the crop name (past the header tick box). */
+  .pack-dests {
+    margin-top: 8px;
+    padding-left: 34px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .pack-dest { display: flex; align-items: baseline; gap: 8px; }
+  .pack-dest-name { flex: none; font-size: 0.98rem; font-weight: 600; color: var(--ts-text); }
+  .pack-leader {
+    flex: 1 1 auto;
+    min-width: 1rem;
+    border-bottom: 2px dotted #cbd5e1;
+    transform: translateY(-4px);
+  }
+  .pack-dest-qty {
+    flex: none;
+    font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    color: var(--ts-text); white-space: nowrap;
+  }
+  .pack-dest-unit { margin-left: 3px; font-size: 0.75rem; font-weight: 600; color: var(--ts-text-secondary); }
+  .pack-split { flex: none; font-size: 0.82rem; font-weight: 700; color: var(--ts-text-secondary); white-space: nowrap; }
+
+  /* Blank pen line for wash / attention notes. */
+  .pack-notes {
+    margin-top: 9px;
+    padding-left: 34px;
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--ts-text-muted);
+  }
+  .pack-notes-label { flex: none; }
+  .pack-notes-line { flex: 1 1 auto; min-width: 6rem; border-bottom: 1px solid var(--ts-border); transform: translateY(-3px); }
+
+  /* Tick boxes — pen boxes (no live check-off on this paper sheet). */
+  .pack-check {
+    display: inline-block; flex: none;
+    width: 1.05rem; height: 1.05rem;
+    border: 2px solid #1a2230; border-radius: 3px; background: #fff;
+    transform: translateY(2px);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .pack-check-lg { width: 1.45rem; height: 1.45rem; transform: translateY(3px); }
+
+  @page pack-portrait { size: Letter portrait; margin: 0.5in; }
 
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
@@ -1503,16 +1580,18 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     /* Big, legible print type for the pick list. */
     .harvest-row p { font-size: 14pt; }
 
-    /* PACK HOUSE matrix — landscape, compact, every column visible, no scroll. */
-    .packhouse-doc { page: pack-landscape; }
-    .packhouse-doc .matrix-scroll { overflow: visible !important; }
-    .pack-matrix { width: 100% !important; table-layout: auto; font-size: 10pt; }
-    .pack-matrix th, .pack-matrix td { padding: 4px 6px !important; }
-    .pack-matrix .matrix-row { break-inside: avoid; page-break-inside: avoid; }
-    .pack-matrix thead { display: table-header-group; } /* repeat header per page */
-    /* The blank pen box must stay tall enough to write in on paper. */
-    .pack-matrix .matrix-notes-box { height: 26px; }
-    .pack-matrix .matrix-crop-cell { position: static !important; }
+    /* PACK HOUSE by-item blocks — PORTRAIT (kills the old landscape grid), big
+       legible type, each block kept whole on its page. Crop names ≥16pt (18pt),
+       destination lines ≥11pt (12pt) per the mobile-farm-UX big-type rule. */
+    .packhouse-doc { page: pack-portrait; }
+    .packhouse-doc .pack-block { break-inside: avoid; page-break-inside: avoid; }
+    .packhouse-doc .pack-crop { font-size: 18pt; }
+    .packhouse-doc .pack-total-num { font-size: 17pt; }
+    .packhouse-doc .pack-dest-name { font-size: 12pt; }
+    .packhouse-doc .pack-dest-qty { font-size: 13pt; }
+    .packhouse-doc .pack-split { font-size: 11pt; }
+    .packhouse-doc .pack-check { border-color: #000; }
+    .packhouse-doc .pack-block-tender { border-left-color: #f59e0b !important; }
   }
 </style>
 

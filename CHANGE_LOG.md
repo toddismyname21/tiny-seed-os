@@ -6,6 +6,42 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-09] CSA — Pack House by-item sheet REDESIGN: matrix → label-DNA blocks (FULLSTACK_BUILDER). NOT DEPLOYED.
+
+Owner feedback: "The sheets you have been making have been pretty sprawling and challenging for the team to read." The wide crop × destination GRID (landscape, rows=crop × cols=destination) failed the crew. Redesigned `/admin/pick-pack/[week]?view=packhouse` to the farm's proven print-label DNA (`docs/CSA_LABEL_REDESIGN_REQUIREMENTS.md`): ONE LINE PER DECISION with a checkbox in front, primary name LARGEST, small color accents (not fills), low ink, generous whitespace. **RENDER-ONLY change — all data logic + `buildDestinationMatrix` untouched.** Files: `src/pages/admin/pick-pack/[...slug].astro`, `.../pick-pack/index.astro`, `src/components/TodayFlow.astro`.
+
+**Block anatomy (replaces the `<table class="pack-matrix">`).** PORTRAIT Letter (killed the landscape `@page pack-landscape`), one column of crop BLOCKS. Each block = a bordered card with a thin colored LEFT-EDGE BAR (tender crops → amber `#f59e0b`; others → neutral `#cbd5e1`). Header line: large pen tick box (1.45rem) + crop name (LARGEST — `.pack-crop` 1.3rem screen / **18pt print**, weight 800) + right-aligned total (`.pack-total-num` **17pt print**, w/ dominant unit or `*` for mixed units). Optional "🌱 tender — pick & cool first" flag under tender crops. Then ONE LINE PER DESTINATION (only destinations WITH demand for that crop, in column order CSA → markets → wholesale → flex): small tick box + tiny type glyph (`destGlyph`: 🥬 CSA / 🛒 market / 🍽 wholesale / 🌿 flex) + destination name + dotted DOT-LEADER filler + bold right-aligned qty (`.pack-dest-qty` **13pt print**; per-line unit shown only when ≠ dominant) + CSA `8S / 4L` size split. Footer: "Wash / notes" label + a blank pen underline. `break-inside: avoid` keeps every block whole on one page. The SAME markup renders on screen + print (mirror). NO live check-off (paper sheet; tick boxes are pen boxes).
+
+**Row-total invariant preserved.** `packhouseMatrix.rows` (tender-first) + per-row `cells` Map come verbatim from `buildDestinationMatrix(merged, destInputs)` — unchanged. Each block's dest lines are exactly the row's non-empty cells; total is the merged row's `totalQty`. Σ dest lines == total by construction (same as before).
+
+**Removed:** the `MAX_DESTS_PER_SECTION`/`columnSections` column-splitting logic + `@page pack-landscape` + all `.pack-matrix`/sticky-column/zebra CSS + the unused `MatrixColumn` import. Added `DestKind` import + `destGlyph()` helper + `.pack-block*` CSS.
+
+**Copy updates.** `pick-pack/index.astro` primary card: "🏠 Pack House — one sheet, by item" → "🏠 Pack House — by item" and body reworded from "ONE landscape sheet" to "a clean block per item… one line per destination." `TodayFlow.astro` Monday deck: "Pack crew — ONE sheet, by item" → "Pack crew — by-item sheet". The `packhouseTab` label ("Pack House (by item)") + i18n strings unchanged (no lib touch).
+
+**Estimated pages (38 crops, ~10 destinations/week):** blocks average ~1–2 in tall (1–5 dest lines each); ~5–8 blocks/page → **~6–8 portrait pages**. MORE pages than the old grid — explicitly desired (owner's rule: legibility over density).
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors, IDENTICAL to baseline, ZERO new (all pre-existing `database.types.ts` casts; none in any touched file). `npm run test:unit` → all green (pick-pack.test.ts unchanged — data layer untouched). **Nothing deployed.**
+
+---
+
+## [2026-07-09] CSA — Pack House matrix becomes THE one-sheet, by item (FULLSTACK_BUILDER). NOT DEPLOYED.
+
+Owner's ask: the pack crew is drowning in "100 print outs" — they want ONE consolidated sheet grouped BY ITEM across every stream (CSA + each market + each restaurant + flex) because they process one item at a time. The crop×destination matrix at `/admin/pick-pack/[week]?view=packhouse` already did rows=item × cols=destination on one landscape sheet; this makes it fully serve as the pack sheet. Files: `src/lib/pick-pack.ts` (+ `.test.ts`), `src/pages/admin/pick-pack/[...slug].astro`, `.../pick-pack/index.astro`, `src/components/TodayFlow.astro`.
+
+**1 — CSA cell S/L split.** `[...slug].astro` CSA aggregation now carries a small/large box split (`CsaCropAgg`): each member's resolved box-composition qty is bucketed LARGE iff `size_bucket === 'large'` (the SAME rule resolveCycle uses to pick the box plan), so small+large is a per-SIZE demand total (not a member headcount) and always sums to qty. Fed into the matrix via a new optional `sizeSplit` on `DestDemandInput`; `buildDestinationMatrix` accumulates it into the CSA `MatrixCell.sizeSplit` (only CSA cells carry it; sums across units + duplicate inputs). CSA cell renders "12" with "8S/4L" beneath. Row totals still REUSE `merged` verbatim — invariant Σcells == total unchanged (proven in test).
+
+**2 — Row tick box.** New leading `matrix-check-col` per crop row with a print tick box (crew ticks the item once fully distributed); the end-of-row Wash/notes box stays. Sticky-on-screen for both the tick and crop columns; static in print.
+
+**3 — Discoverability.** (a) view tab relabeled `packhouseTab` → "Pack House (by item)" / "Casa de empaque (por artículo)". (b) `pick-pack/index.astro` gets a prominent primary "🏠 Pack House — one sheet, by item" card (EN + ES) above the per-channel checklists. (c) `TodayFlow.astro` Monday deck step 6 gains a highlighted "Pack crew — ONE sheet, by item (EN/ES)" row linking `?view=packhouse&day=mon` (+ `&lang=es`).
+
+**4 — Print fit.** Landscape Letter holds ~11 destination columns at ≥9pt (crop+total+notes+tick eat the rest). When a week exceeds `MAX_DESTS_PER_SECTION=11`, destination columns split into two self-contained page-sections (each repeats crop + row total; second section `break-before: page`) rather than shrinking type. Current real week (~10 destinations, 38 products) stays ONE section — the owner's one sheet.
+
+**Constraints honored:** touched only the five allowed files + CHANGE_LOG. Line keys, live check-off, and the other views (overall/csa/wholesale/market) untouched — the pack-house matrix still has NO live check-off (paper distribution sheet). New i18n: `checkCol`, `partWord`, `ofWord`, `destsWord` (EN+ES).
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors, IDENTICAL to baseline, ZERO new (all pre-existing stale `database.types.ts` casts in cycle.ts/wholesale/market/route/box-swap/order — none in any touched file). `npm run test:unit` → all files green incl. new pick-pack S/L split + accumulation tests proving small+large==qty and Σcells==total. **Nothing deployed.**
+
+---
+
 ## [2026-07-09] CSA — Wholesale per-period fix batch (FULLSTACK_BUILDER). NOT DEPLOYED; flags NOT armed; migration NOT applied.
 
 Built from `docs/audits/WHOLESALE_PORTAL_AUDIT_2026-07.md`. Four workstreams.

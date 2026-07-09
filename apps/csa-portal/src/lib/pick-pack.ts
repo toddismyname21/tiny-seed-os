@@ -302,10 +302,17 @@ export interface DestDemandInput {
   destKey: string;
   /** Column header text (market name / restaurant name; 'CSA' / 'Flex'). */
   destLabel: string;
+  /** CSA-only: how this qty splits across small vs large boxes, so the pack
+   *  crew can pack sizes correctly. Summed into the destination cell alongside
+   *  `qty`. Omit for market / wholesale / flex demand (no size dimension). */
+  sizeSplit?: { small: number; large: number };
 }
 
-/** One filled cell of the matrix — qty going to a destination for a crop. */
-export interface MatrixCell { qty: number; unit: string; }
+/** One filled cell of the matrix — qty going to a destination for a crop.
+ *  `sizeSplit` is present ONLY on CSA cells that carried a small/large box
+ *  breakdown (the pack crew packs box sizes differently); small + large sum to
+ *  `qty` for CSA box demand. Other kinds (market/wholesale/flex) never set it. */
+export interface MatrixCell { qty: number; unit: string; sizeSplit?: { small: number; large: number }; }
 /** A destination column of the matrix. */
 export interface MatrixColumn { key: string; label: string; kind: DestKind; }
 /** One crop row of the matrix (aligned 1:1 with a merged harvest row). */
@@ -374,8 +381,20 @@ export function buildDestinationMatrix(
     const cell = byDest.get(d.destKey);
     // Same destKey twice (two orders for a restaurant, two market offerings of a
     // crop) SUMS into one cell — so Σcells still equals the channel's merge qty.
-    if (cell) cell.qty += d.qty;
-    else byDest.set(d.destKey, { qty: d.qty, unit: d.unit });
+    // A CSA sizeSplit accumulates alongside qty (small + large track the same
+    // sum), so a crop split across units still yields one S/L breakdown.
+    if (cell) {
+      cell.qty += d.qty;
+      if (d.sizeSplit) {
+        if (!cell.sizeSplit) cell.sizeSplit = { small: 0, large: 0 };
+        cell.sizeSplit.small += d.sizeSplit.small;
+        cell.sizeSplit.large += d.sizeSplit.large;
+      }
+    } else {
+      const nc: MatrixCell = { qty: d.qty, unit: d.unit };
+      if (d.sizeSplit) nc.sizeSplit = { small: d.sizeSplit.small, large: d.sizeSplit.large };
+      byDest.set(d.destKey, nc);
+    }
   }
 
   // 2. Order columns: by kind (CSA → markets → wholesale → Flex), then the
@@ -443,6 +462,10 @@ export const PICK_PACK_STRINGS: Record<Lang, {
   packhouseHint: string;     // footnote under the matrix
   notesCol: string;          // blank pen column header (wash / attention notes)
   cropCol: string;           // first column header
+  checkCol: string;          // header over the per-row print tick box
+  partWord: string;          // "Part" — split-section caption (wide sheets)
+  ofWord: string;            // "of"   — "Part 1 of 2"
+  destsWord: string;         // "destinations" — "…destinations 1–6"
   /* ── Live check-off (migration 0069) — button + status + summary labels. ──
    * Consumed by the browser controller on /admin/pick-pack/[week], which builds
    * the interactive Harvesting/Done + Packed controls client-side. */
@@ -478,12 +501,16 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     nothing: 'Nothing to harvest this week yet.',
     pickOnce: 'Harvest each crop once for everyone, then split it to the CSA / market / wholesale packs.',
     langToggle: 'Español',
-    packhouseTab: 'Pack House',
+    packhouseTab: 'Pack House (by item)',
     packhouseTitle: 'Pack House — where each crop goes',
     packhouseSubtitle: 'As each crop comes off the field, split the row across its destinations. Row total = pick it all once (matches the harvest sheet).',
     packhouseHint: 'Each row totals to the same number as the overall harvest sheet. Cells show where that crop is headed; use the Wash / notes box for anything that needs attention before it leaves.',
     notesCol: 'Wash / notes',
     cropCol: 'Crop',
+    checkCol: 'Done',
+    partWord: 'Part',
+    ofWord: 'of',
+    destsWord: 'destinations',
     live: {
       progress: 'Progress',
       toGo: 'to go',
@@ -516,12 +543,16 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     nothing: 'Aún no hay nada que cosechar esta semana.',
     pickOnce: 'Coseche cada cultivo una vez para todos, luego divídalo entre los empaques de CSA / mercado / mayoreo.',
     langToggle: 'English',
-    packhouseTab: 'Casa de empaque',
+    packhouseTab: 'Casa de empaque (por artículo)',
     packhouseTitle: 'Casa de empaque — a dónde va cada cultivo',
     packhouseSubtitle: 'Al salir cada cultivo del campo, divida la fila entre sus destinos. El total de la fila = cosecharlo todo una vez (coincide con la hoja de cosecha).',
     packhouseHint: 'Cada fila suma el mismo número que la hoja de cosecha total. Las celdas muestran a dónde va ese cultivo; use la casilla Lavar / notas para lo que necesite atención antes de salir.',
     notesCol: 'Lavar / notas',
     cropCol: 'Cultivo',
+    checkCol: 'Listo',
+    partWord: 'Parte',
+    ofWord: 'de',
+    destsWord: 'destinos',
     live: {
       progress: 'Progreso',
       toGo: 'por hacer',

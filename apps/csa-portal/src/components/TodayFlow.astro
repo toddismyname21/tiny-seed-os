@@ -682,6 +682,13 @@ const slimDayLong = DAY_LONG[weekday] ?? weekday;
                         <a href={`/admin/pack-load/${week}`} target="_blank" rel="noopener" class={ghostBtn}>Pack &amp; Load ↗</a>
                       </div>
                     </li>
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 p-3 sm:col-span-2">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Pack crew — by-item sheet (EN/ES)</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pick-pack/${week}?view=packhouse&day=mon`} target="_blank" rel="noopener" class={primaryBtn}>🏠 Pack House ↗</a>
+                        <a href={`/admin/pick-pack/${week}?view=packhouse&day=mon&lang=es`} target="_blank" rel="noopener" class={ghostBtn}>Español ↗</a>
+                      </div>
+                    </li>
                     <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3 sm:col-span-2">
                       <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Label station</span>
                       <div class="flex flex-wrap gap-2">
