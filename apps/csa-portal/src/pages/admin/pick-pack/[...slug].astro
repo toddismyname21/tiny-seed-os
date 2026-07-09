@@ -617,6 +617,16 @@ if (view === 'packhouse') {
   }
 
   packhouseMatrix = buildDestinationMatrix(merged, destInputs);
+  // ALPHABETICAL block order (Todd 2026-07-09: "Can we put the list in
+  // alphabetical order?"). The crew works the sheet like a dictionary — find
+  // the crop, pack it. Tender-first ordering stays on the OVERALL harvest
+  // view (pick order matters there); here the amber tender bar still flags
+  // tenderness without dictating the sort.
+  if (packhouseMatrix) {
+    packhouseMatrix.rows = packhouseMatrix.rows
+      .slice()
+      .sort((a, b) => a.crop.localeCompare(b.crop, undefined, { sensitivity: 'base' }));
+  }
 }
 
 /* ── Destination-kind glyph — a tiny prefix accent on each pack-block line so a
