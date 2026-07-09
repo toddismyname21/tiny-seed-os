@@ -10,7 +10,7 @@
  */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { formatCents, prettyDeliveryDate, CUTOFF_LABEL } from '../../../lib/wholesale-order';
+import { formatCents, prettyDeliveryDate, cutoffLabelForDate } from '../../../lib/wholesale-order';
 
 export const prerender = false;
 
@@ -67,6 +67,10 @@ if (order) {
 
 const ok = !!(account && order);
 const deliveryLabel = order ? prettyDeliveryDate(order.delivery_date) : '';
+// The edit cutoff depends on the period: Friday deliveries cut off Thursday
+// 7 AM, everything else Tuesday 7 AM (audit C3 — this screen used to hardcode
+// the Tuesday label even for Friday orders). Derived from the order's own date.
+const editCutoffLabel = order ? cutoffLabelForDate(order.delivery_date) : '';
 
 // Profile-completeness nudge: if any of contact name / address / delivery
 // instructions is missing, prompt the chef to finish their delivery info so we
@@ -143,7 +147,7 @@ const profileIncomplete =
         </section>
 
         <p class="mt-5 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 py-3 text-sm text-ts-text-secondary">
-          Need to change something? Reply to your confirmation email — you can <strong class="text-ts-text">edit until {CUTOFF_LABEL}</strong>.
+          Need to change something? Reply to your confirmation email — you can <strong class="text-ts-text">edit until {editCutoffLabel}</strong>.
           We'll text when it's on the way. 🌱
         </p>
 

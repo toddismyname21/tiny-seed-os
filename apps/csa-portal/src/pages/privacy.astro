@@ -1,0 +1,39 @@
+---
+/**
+ * /privacy — standalone SMS/portal privacy policy (dedicated URL).
+ * A2P reviewers rejected anchor links (#privacy) twice (error 30908) — TCR
+ * verification wants a page whose URL IS a privacy policy. Same content as
+ * sms-policy#privacy, standalone. PUBLIC (not in PROTECTED_PREFIXES).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Privacy Policy — Tiny Seed Farm">
+  <main class="mx-auto max-w-2xl px-4 py-10">
+    <h1 class="text-2xl font-bold text-ts-text">Tiny Seed Farm — Privacy Policy</h1>
+    <section class="mt-6 space-y-4 text-[15px] leading-7 text-ts-text">
+      <p>Tiny Seed Farm (Pittsburgh, PA) collects personal information — name, email, mailing
+        address, and mobile number — only when you voluntarily provide it to purchase a farm
+        share, place an order, or opt in to communications. We use it solely to provide our
+        services: delivering shares, sending order and pickup notifications, and account access.</p>
+      <h2 class="text-lg font-semibold">Mobile / SMS information</h2>
+      <p>Your mobile number is collected only when you opt in to SMS notifications (an unchecked
+        checkbox in the member portal's Communication Preferences).
+        <strong>No mobile information will be shared with third parties or affiliates for
+        marketing or promotional purposes.</strong> All the above categories exclude text
+        messaging originator opt-in data and consent; this information will not be shared with,
+        or sold to, any third parties.</p>
+      <p>Message frequency varies (typically 1–4 msgs/week in season). Message and data rates may
+        apply. Reply <strong>STOP</strong> to cancel, <strong>HELP</strong> for help.</p>
+      <h2 class="text-lg font-semibold">Retention &amp; deletion</h2>
+      <p>We retain your information while you hold an active share or subscription. You may
+        request deletion anytime at
+        <a class="text-ts-primary underline" href="mailto:tinyseedcsa@gmail.com">tinyseedcsa@gmail.com</a>.</p>
+      <p>We never sell personal information. See also our
+        <a class="text-ts-primary underline" href="/terms">SMS Terms &amp; Conditions</a> and the
+        <a class="text-ts-primary underline" href="/sms-policy">SMS program disclosure</a>.</p>
+      <p class="pt-4 text-sm text-ts-text-muted">Tiny Seed Farm · Pittsburgh, PA ·
+        <a class="text-ts-primary underline" href="https://www.tinyseedfarm.com">tinyseedfarm.com</a></p>
+    </section>
+  </main>
+</BaseLayout>

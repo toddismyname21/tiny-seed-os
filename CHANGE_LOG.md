@@ -6,6 +6,30 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-09] CSA — Wholesale per-period fix batch (FULLSTACK_BUILDER). NOT DEPLOYED; flags NOT armed; migration NOT applied.
+
+Built from `docs/audits/WHOLESALE_PORTAL_AUDIT_2026-07.md`. Four workstreams.
+
+**A — Per-period availability emails (the owner's core ask).** Two new cron endpoints cloned from `api/cron/chef-order-reminder.ts` (CRON_SECRET, portal_settings gate, notification_log, TEST_EXCLUDES + vendor-name excludes, Resend fail-soft): `src/pages/api/cron/wholesale-list-wed.ts` ("This week's list is open — Wednesday delivery, order by Tuesday 7 AM") and `wholesale-list-fri.ts` (Friday, "order by Thursday 7 AM", links carry `?day=fri`). Audience = every account with token+email INCLUDING already-ordered (list announcement, not a nag — already-ordered accounts get a "you're already in — reply to change anything" line). Body = fresh availability table from `wholesale_products` (is_active), grouped by canonical chef-catalog order, priced at the account's tier via `effectiveUnitCents`; personal `/order/<token>` link; correct cutoff; reply-to line; HTML + text alt. Refuses to send an empty list. GATED behind `portal_settings` `wholesale_list_wed_enabled` / `wholesale_list_fri_enabled` (seeded 'false'). notification_type `chef_availability_wed` / `_fri`. Schedules in migration 0080: Wed list Sundays 21:10 UTC, Fri list Wednesdays 15:00 UTC.
+
+**B — Server-side cutoff enforcement.** `supabase/migrations/0080_wholesale_period_fixes.sql` does `CREATE OR REPLACE place_wholesale_order` (the 0050 token RPC) with ONE added block: rejects `cutoff_passed` when now (ET) is past 7 AM the day before delivery (Tue for Wed, Thu for Fri — one rule covers both), and `invalid_delivery_date` for past dates or >14 days out. DST-safe via `now() AT TIME ZONE 'America/New_York'` vs `(p_delivery_date - 1) + TIME '07:00'`. Diff vs 0050 = the 2b block only; pricing/guards/CENTS math and the anon+authenticated GRANT are byte-identical (restated verbatim — the public token RPC must stay anon-callable). `api/order/submit.ts` passes the new codes through + preserves `&day=fri` on error redirect (C4). `order/[token].astro` surfaces `cutoff_passed`/`invalid_delivery_date` kindly, pointing at the next open window.
+
+**C — Friday-mode fixes on `order/[token].astro`.** (C3) `confirmed.astro` now derives the edit-cutoff label from the order's delivery date (`cutoffLabelForDate`) instead of hardcoding "Tuesday 7 AM". (C4) covered in B. (C1) new Wed/Fri period picker — two big tabs at the top of the page, each labelled with its cutoff and marked "· closed" when its window has passed (`isOrderingOpen` mirrors the server cutoff); default = `?day` param or Wed; a closed-window banner shows when the viewed period has passed.
+
+**D — Standing-orders watchdog.** `TodayFlow.astro` Monday deck now shows, under the chef-orders step, ✓ "Standing orders generated (N for Wednesday)" when `wholesale_orders` source='standing' exist for this Wednesday, else a loud ⚠ "Standing orders NOT generated — run them or check pg_cron" (link to `/admin/wholesale/orders`). Derived from the week orders already queried — no new DB call. The Mon 10:00 UTC standing-orders pg_cron has never fired on schedule (audit §4); this makes a silent failure visible. Nightly-health NOT extended — it has three bespoke hardcoded concerns, not a clean check-registry, so per the constraint it was left untouched.
+
+**New lib helpers** (`src/lib/wholesale-order.ts`): `etInstantMs`, `orderingCutoffMs`, `isOrderingOpen`, `cutoffLabelForDate` (pure, DST-safe; mirror the RPC so the UI never invites an order the server will bounce).
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors, IDENTICAL to baseline, ZERO new (all pre-existing stale `database.types.ts` casts; none in any touched/new file — the `[token].astro:68 bump_wholesale_visit` error is the pre-existing RPC-name gap). `npm run test:unit` → all 14 files green. Cutoff math verified against EDT (11:00Z) + EST (12:00Z) + the DST boundary + open/closed boundary. **Migration NOT applied; gate flags NOT armed; nothing deployed** (Todd approves copy first).
+
+---
+
+## [2026-07-09] CSA — Wholesale portal deep audit (AUDIT, read-only)
+
+**File created:** `docs/audits/WHOLESALE_PORTAL_AUDIT_2026-07.md`. No code changed; prod queried READ-ONLY (Management API) + live token page fetched (no order placed). Key findings: standing-orders pg_cron NEVER fired (7/8 orders were generated manually — verify Mon 7/13); no automated per-period availability email to chefs (Wed reminder has no product list, Friday period gets nothing chef-facing); Friday period undiscoverable (no Wed/Fri picker, `?day=fri` only, 1 Friday order ever); cutoffs display-only (Thu-night `?day=fri` still sells next-morning delivery); `confirmed.astro` shows Tuesday cutoff for Friday orders; 18/38 active products photo-less; stale `database.types.ts` type errors on 3 wholesale admin pages.
+
+---
+
 ## [2026-07-07] CSA — PER-STOP GRANULARITY pack-day rework (FULLSTACK_BUILDER)
 
 Seven connected changes from Todd using it live. Theme: per-stop granularity driven automatically by route optimization, on ONE per-leg numbering truth. NOT DEPLOYED. Supersedes the global/continuous numbering in the same-day entry below.

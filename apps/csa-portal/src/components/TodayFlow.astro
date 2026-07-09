@@ -163,6 +163,7 @@ let mMwOrder: OrderRow | null = null;
 let mMwLines = 0;
 let mMwTicket: MwPickTicket | null = null;
 let mChefCount = 0;
+let mStandingCount = 0;
 let mChefCountdown: { open: boolean; text: string } = { open: false, text: '' };
 let mTueOfferingCount = 0;
 let mMarketDone = false;
@@ -238,6 +239,16 @@ if (mode === 'mon') {
   mChefCount = weekOrders.filter(
     (o) =>
       !VENDOR_SOURCES.has((o.source ?? '').toLowerCase()) &&
+      (o as { delivery_date?: string }).delivery_date === deliveryWed
+  ).length;
+  // Standing-orders watchdog: the Mon 10:00 UTC pg_cron (migration 0075) has
+  // NEVER fired on schedule (audit §4) — its failure mode is the exact "66#
+  // spring mix missing" incident it was built to prevent. Count generated
+  // standing orders for THIS Wednesday from the data we already pulled (no extra
+  // query); the deck flags a loud ⚠ when none exist.
+  mStandingCount = weekOrders.filter(
+    (o) =>
+      (o.source ?? '').toLowerCase() === 'standing' &&
       (o as { delivery_date?: string }).delivery_date === deliveryWed
   ).length;
 
@@ -578,8 +589,25 @@ const slimDayLong = DAY_LONG[weekday] ?? weekday;
                     <span class={mChefCountdown.open ? 'font-semibold text-ts-text' : 'font-semibold text-ts-text-muted'}>{mChefCountdown.text}</span>.
                   </p>
                   <p class="mt-1 text-xs text-ts-text-muted">The reminder to chefs who haven't ordered went out automatically at 9:05.</p>
+                  {/* Standing-orders watchdog — the Mon pg_cron has a history of
+                      not firing (audit §4). Loud ⚠ when this Wednesday has none. */}
+                  {mStandingCount > 0 ? (
+                    <p class="mt-2 flex items-start gap-1.5 rounded-ts-md bg-ts-primary/5 px-2.5 py-1.5 text-sm text-ts-text">
+                      <span aria-hidden="true" class="text-ts-primary">✓</span>
+                      <span>Standing orders generated (<span class="font-semibold tabular-nums">{mStandingCount}</span> for {wedPretty}).</span>
+                    </p>
+                  ) : (
+                    <div class="mt-2 rounded-ts-md border border-ts-warning/40 bg-ts-warning-bg px-2.5 py-2 text-sm">
+                      <p class="flex items-start gap-1.5 font-semibold text-ts-warning">
+                        <span aria-hidden="true">⚠</span>
+                        <span>Standing orders NOT generated for {wedPretty} — run them or check pg_cron.</span>
+                      </p>
+                    </div>
+                  )}
                   <div class="mt-3">
-                    <a href={`/admin/wholesale/orders?date=${deliveryWed}`} class={ghostBtn}>Chef orders →</a>
+                    <a href={`/admin/wholesale/orders?date=${deliveryWed}`} class={ghostBtn}>
+                      {mStandingCount > 0 ? 'Chef orders →' : 'Chef + standing orders →'}
+                    </a>
                   </div>
                 </div>
               </div>

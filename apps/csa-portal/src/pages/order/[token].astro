@@ -24,7 +24,7 @@ import { groupByCategory } from '../../lib/wholesale-categories';
 import { categoryEmoji } from '../../lib/flex-order';
 import {
   formatCents, effectiveUnitCents, nextDeliveryWednesday, nextDeliveryFriday,
-  prettyDeliveryDate, CUTOFF_LABEL, CUTOFF_LABEL_FRIDAY,
+  prettyDeliveryDate, isOrderingOpen, CUTOFF_LABEL, CUTOFF_LABEL_FRIDAY,
 } from '../../lib/wholesale-order';
 
 export const prerender = false;
@@ -71,25 +71,53 @@ if (account && !notFound) {
   }
 }
 
-// Pretty flash codes (post-submit can also land here on a soft error).
+// Request URL — carries the delivery mode (?day=fri) + any post-submit flash.
 const url = Astro.url;
 const errorFlag = url.searchParams.get('error');
-const ERROR_COPY: Record<string, string> = {
-  empty: 'Your cart was empty — add a few items and try again.',
-  no_available_items: 'Those items just went off the board. Pull up the catalog and try again.',
-  submit_failed: "Something hiccupped placing that order. Give it another tap.",
-  invalid_token: 'This ordering link is no longer valid. Reach out to the farm.',
-  invalid_input: 'Something looked off with that order — please try again.',
-};
 
 // Everything below only renders when the account resolved.
 // Delivery mode: ?day=fri opens a FRIDAY-delivery order (Thursday 7 AM cutoff);
 // default is the regular Wednesday flow. The mode (not a raw date) is what the
 // submit form posts — the server recomputes the actual date, never trusting it.
 const isFriday = (url.searchParams.get('day') ?? '').toLowerCase() === 'fri';
-const deliveryDate = isFriday ? nextDeliveryFriday() : nextDeliveryWednesday();
+
+// Both periods, so the picker can render two tabs and show which are still open.
+// isOrderingOpen mirrors the server-side cutoff (migration 0080): 7 AM ET the
+// day before delivery. The RPC is authoritative — this just keeps the UI honest.
+const wedDate = nextDeliveryWednesday();
+const friDate = nextDeliveryFriday();
+const wedOpen = isOrderingOpen(wedDate);
+const friOpen = isOrderingOpen(friDate);
+
+const deliveryDate = isFriday ? friDate : wedDate;
 const deliveryLabel = prettyDeliveryDate(deliveryDate);
 const cutoffLabel = isFriday ? CUTOFF_LABEL_FRIDAY : CUTOFF_LABEL;
+const currentOpen = isFriday ? friOpen : wedOpen;
+
+// The soonest still-open window — used to point a chef at the next period when
+// the one they're viewing has closed.
+const nextOpen = [
+  { date: wedDate, open: wedOpen },
+  { date: friDate, open: friOpen },
+]
+  .filter((w) => w.open)
+  .sort((a, b) => a.date.localeCompare(b.date))[0] ?? null;
+const nextOpenLabel = nextOpen ? prettyDeliveryDate(nextOpen.date) : '';
+
+// Pretty flash codes (post-submit can also land here on a soft error).
+const ERROR_COPY: Record<string, string> = {
+  empty: 'Your cart was empty — add a few items and try again.',
+  no_available_items: 'Those items just went off the board. Pull up the catalog and try again.',
+  submit_failed: "Something hiccupped placing that order. Give it another tap.",
+  invalid_token: 'This ordering link is no longer valid. Reach out to the farm.',
+  invalid_input: 'Something looked off with that order — please try again.',
+  // 0080 server-side cutoff enforcement — surfaced kindly, pointing at the next
+  // open window (the picker below lets them switch to it).
+  cutoff_passed: nextOpen
+    ? `Ordering for ${deliveryLabel} closed ${cutoffLabel}. The next window is open now for ${nextOpenLabel} — pick a delivery day below and order away.`
+    : `Ordering for ${deliveryLabel} closed ${cutoffLabel}. Check back soon for the next window, or reply to your usual email and we'll sort it out.`,
+  invalid_delivery_date: 'That delivery date isn’t available anymore. Pick a delivery day below and try again.',
+};
 
 // ─── Discount for this account's pricing tier (server-side; 0 = list) ───
 let discountPct = 0;
@@ -265,6 +293,56 @@ const minOrderCents = account?.min_order_cents ?? 0;
             class="mb-4 rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
           >
             <span class="font-semibold text-ts-danger">Heads up.</span> {ERROR_COPY[errorFlag]}
+          </div>
+        )}
+
+        {/* ════ Wed/Fri period picker ════
+            Two tabs so the Friday period is discoverable without a special
+            ?day=fri link (audit C1). Each links to its mode; the server
+            recomputes the actual date. A closed period is labelled "· closed"
+            (isOrderingOpen mirrors the server cutoff). */}
+        <div class="mb-5 grid grid-cols-2 gap-2" role="tablist" aria-label="Choose a delivery day">
+          <a
+            href={`/order/${token}`}
+            role="tab"
+            aria-selected={!isFriday}
+            class={`flex flex-col items-start gap-0.5 rounded-ts-lg px-4 py-3 transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary ${
+              !isFriday
+                ? 'border-2 border-ts-primary bg-ts-primary/5 shadow-ts-sm'
+                : 'border border-ts-border bg-ts-bg-surface hover:border-ts-primary/40 active:scale-[0.99]'
+            }`}
+          >
+            <span class={`font-display text-base font-bold ${!isFriday ? 'text-ts-primary' : 'text-ts-text'}`}>Wednesday delivery</span>
+            <span class="text-xs text-ts-text-secondary">
+              order by Tue 7 AM{!wedOpen && <span class="font-semibold text-ts-warning"> · closed</span>}
+            </span>
+          </a>
+          <a
+            href={`/order/${token}?day=fri`}
+            role="tab"
+            aria-selected={isFriday}
+            class={`flex flex-col items-start gap-0.5 rounded-ts-lg px-4 py-3 transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary ${
+              isFriday
+                ? 'border-2 border-ts-primary bg-ts-primary/5 shadow-ts-sm'
+                : 'border border-ts-border bg-ts-bg-surface hover:border-ts-primary/40 active:scale-[0.99]'
+            }`}
+          >
+            <span class={`font-display text-base font-bold ${isFriday ? 'text-ts-primary' : 'text-ts-text'}`}>Friday delivery</span>
+            <span class="text-xs text-ts-text-secondary">
+              order by Thu 7 AM{!friOpen && <span class="font-semibold text-ts-warning"> · closed</span>}
+            </span>
+          </a>
+        </div>
+
+        {/* Closed-window notice: the period being viewed has passed its cutoff.
+            Server enforcement (migration 0080) is the real guard; this keeps the
+            chef from filling a cart that would bounce. */}
+        {!currentOpen && (
+          <div role="status" class="mb-5 rounded-ts-md border border-ts-warning/40 bg-ts-warning/10 px-4 py-3 text-sm text-ts-text">
+            <span class="font-semibold">Ordering for {deliveryLabel} has closed</span> ({cutoffLabel} cutoff).
+            {nextOpen
+              ? <> The next window is open for <strong>{nextOpenLabel}</strong> — tap it above.</>
+              : <> Check back soon for the next window, or reply to your usual email.</>}
           </div>
         )}
 

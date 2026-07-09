@@ -42,9 +42,12 @@ const LineSchema = z.object({
   qty: z.number().int().positive().max(100000),
 });
 
-/** Redirect target back to a token's order page with a flash code. */
-function backToOrder(token: string, code: string): string {
-  return `/order/${encodeURIComponent(token)}?error=${code}`;
+/** Redirect target back to a token's order page with a flash code. Preserves
+ *  the Friday-delivery mode (&day=fri) so a soft error never silently drops the
+ *  chef back into the Wednesday flow (audit C4). */
+function backToOrder(token: string, code: string, isFriday: boolean): string {
+  const day = isFriday ? '&day=fri' : '';
+  return `/order/${encodeURIComponent(token)}?error=${code}${day}`;
 }
 
 export const POST: APIRoute = async ({ request, redirect }) => {
@@ -76,7 +79,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     const arr = JSON.parse(linesRaw);
     const result = z.array(LineSchema).min(1).max(200).safeParse(arr);
     if (!result.success) {
-      return redirect(backToOrder(token, 'empty'), 303);
+      return redirect(backToOrder(token, 'empty', isFriday), 303);
     }
     // Collapse duplicate product ids (defensive — sum their qty).
     const byId = new Map<string, number>();
@@ -85,11 +88,11 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     }
     parsedLines = Array.from(byId.entries()).map(([product_id, qty]) => ({ product_id, qty }));
   } catch {
-    return redirect(backToOrder(token, 'invalid_input'), 303);
+    return redirect(backToOrder(token, 'invalid_input', isFriday), 303);
   }
 
   if (parsedLines.length === 0) {
-    return redirect(backToOrder(token, 'empty'), 303);
+    return redirect(backToOrder(token, 'empty', isFriday), 303);
   }
 
   // ── Server-computed delivery date — never from client. Friday push when the
@@ -106,7 +109,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   if (rpcErr) {
     console.error('[api/order/submit] rpc failed:', rpcErr.message);
-    return redirect(backToOrder(token, 'submit_failed'), 303);
+    return redirect(backToOrder(token, 'submit_failed', isFriday), 303);
   }
 
   const result = rpcData as unknown as
@@ -115,8 +118,13 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   if (!result || 'error' in result) {
     const code = (result && 'error' in result) ? result.error : 'submit_failed';
-    const known = new Set(['empty', 'no_available_items', 'invalid_token', 'invalid_input']);
-    return redirect(backToOrder(token, known.has(code) ? code : 'submit_failed'), 303);
+    // Includes the 0080 server-side cutoff codes (cutoff_passed /
+    // invalid_delivery_date) so the page can surface them kindly.
+    const known = new Set([
+      'empty', 'no_available_items', 'invalid_token', 'invalid_input',
+      'cutoff_passed', 'invalid_delivery_date',
+    ]);
+    return redirect(backToOrder(token, known.has(code) ? code : 'submit_failed', isFriday), 303);
   }
 
   // ── Fail-soft confirmation email. The order is already placed; nothing below

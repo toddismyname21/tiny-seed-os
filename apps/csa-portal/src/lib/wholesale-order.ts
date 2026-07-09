@@ -134,3 +134,54 @@ export function prettyDeliveryDate(dateYMD: string): string {
     weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
   }).format(new Date(`${dateYMD}T12:00:00Z`));
 }
+
+/* ──────────────────────────────────────────────────────────────────
+ * Ordering-cutoff enforcement (mirror of the server RPC)
+ *
+ * The AUTHORITATIVE cutoff check lives server-side in place_wholesale_order
+ * (migration 0080): an order is rejected once the period's cutoff — 7:00 AM ET
+ * the DAY BEFORE delivery (Tuesday for a Wed delivery, Thursday for a Fri
+ * delivery) — has passed. These pure helpers mirror that math so the chef page
+ * never invites (a picker tab, a confirmation label) an order the server will
+ * bounce. DST-safe: the ET UTC offset is computed for the actual instant.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** ET UTC-offset in minutes (e.g. -240 EDT / -300 EST) for an instant. DST-aware. */
+function etOffsetMinutes(at: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(at);
+  const get = (t: string): number => Number.parseInt(parts.find((p) => p.type === t)?.value ?? '0', 10);
+  const hh = get('hour') % 24; // some ICU builds render midnight as '24'; normalize.
+  const asUTC = Date.UTC(get('year'), get('month') - 1, get('day'), hh, get('minute'), get('second'));
+  return Math.round((asUTC - at.getTime()) / 60_000);
+}
+
+/** Epoch-ms for `dateYMD` at `hour`:00 ET (DST-aware). */
+export function etInstantMs(dateYMD: string, hour: number): number {
+  const [y, m, d] = dateYMD.split('-').map((s) => Number.parseInt(s, 10));
+  const naiveUTC = Date.UTC(y, m - 1, d, hour, 0, 0);
+  const offMin = etOffsetMinutes(new Date(naiveUTC));
+  return naiveUTC - offMin * 60_000;
+}
+
+/** The ordering cutoff for a delivery date, as epoch ms: 7:00 AM ET the day
+ *  before delivery. Matches the SQL `(p_delivery_date - 1) + 07:00` (ET). */
+export function orderingCutoffMs(deliveryDate: string): number {
+  return etInstantMs(addDaysYMD(deliveryDate, -1), 7);
+}
+
+/** True while ordering for `deliveryDate` is still OPEN (now is before the
+ *  day-before-7-AM-ET cutoff). Mirrors the RPC's cutoff test (migration 0080). */
+export function isOrderingOpen(deliveryDate: string, now: Date = new Date()): boolean {
+  return now.getTime() < orderingCutoffMs(deliveryDate);
+}
+
+/** The right human cutoff label for a delivery date: Friday deliveries cut off
+ *  Thursday 7 AM, everything else Tuesday 7 AM. (UTC-stable weekday read.) */
+export function cutoffLabelForDate(deliveryDate: string): string {
+  const dow = new Date(`${deliveryDate}T12:00:00Z`).getUTCDay(); // 0=Sun..6=Sat
+  return dow === 5 ? CUTOFF_LABEL_FRIDAY : CUTOFF_LABEL;
+}
