@@ -667,6 +667,17 @@ const overallConsumedCrops = new Set(
 const tenderRowsShown = tenderRows.filter((r) => !overallConsumedCrops.has(r.crop));
 const otherRowsShown = otherRows.filter((r) => !overallConsumedCrops.has(r.crop));
 
+/* ── Compact printed OVERALL sheet (owner 2026-07-09: "make the harvest list we
+ *    print more compact — down to one sheet"). Count the PRINT rows (combined
+ *    groups + tender + other) and switch to a two-column print layout only when a
+ *    single column would overflow one Letter page. The floor is legibility, not
+ *    density: at the 12pt line height + tight padding below, ~34 whole single-
+ *    column rows clear one page; above that, two columns keep everything on the
+ *    sheet without shrinking type. Drives PRINT CSS only — screen is unchanged. */
+const overallPrintRowCount =
+  overallCombined.combined.length + tenderRowsShown.length + otherRowsShown.length;
+const overallTwoCol = overallPrintRowCount > 34;
+
 // CSA / WHOLESALE — combine within each list; the un-consumed rows render below.
 const csaCombine = combineHarvest(csaRows.map((r) => ({ crop: r.crop, qty: r.qty, unit: r.unit })));
 const csaRowsShown = csaRows.filter((_, i) => !csaCombine.consumed.has(i));
@@ -1009,7 +1020,7 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         so the makeup count is consistent across harvest / pick-pack / pack-sheet.
         Overdue make-ups flagged in red. Prints in color. */}
     {showMakeups && (
-      <section aria-labelledby="pp-makeups-heading" class="makeups-banner mb-5 rounded-ts-lg border-[3px] p-4 sm:p-5">
+      <section aria-labelledby="pp-makeups-heading" class={`makeups-banner mb-5 rounded-ts-lg border-[3px] p-4 sm:p-5${view === 'overall' ? ' pp-mk-compact' : ''}`}>
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 id="pp-makeups-heading" class="flex items-center gap-2 font-display text-lg font-extrabold uppercase tracking-wide sm:text-xl">
             <span aria-hidden="true">⚠</span>
@@ -1095,7 +1106,7 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
 
     {/* ═══════════════ OVERALL HARVEST ═══════════════ */}
     {view === 'overall' && (
-      <section aria-labelledby="pp-heading" class="harvest-doc">
+      <section aria-labelledby="pp-heading" class="harvest-doc pp-overall">
         <header class="doc-band rounded-ts-lg px-5 py-4">
           <p class="text-xs font-semibold uppercase tracking-wider opacity-90">
             {t.overallTitle} · {prettyWeekHeader(week_starting)} · {dayScopeLabel}
@@ -1109,9 +1120,9 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
             <p class="text-center text-sm text-ts-text-secondary">{t.nothing}</p>
           </Card>
         ) : (
-          <div class="mt-4 flex flex-col gap-6">
+          <div class={['mt-4 flex flex-col gap-6 pp-overall-list', overallTwoCol ? 'pp-2col' : ''].join(' ')}>
             {overallCombined.combined.length > 0 && (
-              <section class="harvest-group" aria-label="Combined greens — harvest by weight">
+              <section class="harvest-group pp-combined" aria-label="Combined greens — harvest by weight">
                 <h3 class="group-head tender-head rounded-ts-md px-4 py-2 font-display text-lg font-bold">
                   Combined greens — weigh once, split after
                 </h3>
@@ -1152,31 +1163,32 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                     }, 0);
                     const rowLb = rowLbTotal > 0 ? Math.round(rowLbTotal * 10) / 10 : null;
                     return (
-                      <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', r.crop, null, r.totalQty, overallUnit(r))}>
+                      <li class={`harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3${group.tender ? ' pp-tender' : ''}`} {...lineAttrs('row', r.crop, null, r.totalQty, overallUnit(r))}>
                         <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
                         {photo && (
                           <span class="hidden h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface sm:flex print:hidden">
                             <img src={photo} alt="" width="44" height="44" loading="lazy" class="h-full w-full object-cover" />
                           </span>
                         )}
-                        <div class="min-w-0 flex-1">
-                          <p class="text-xl font-bold leading-tight text-ts-text">
+                        <div class="min-w-0 flex-1 pp-namewrap">
+                          <p class="pp-crop text-xl font-bold leading-tight text-ts-text">
                             {r.crop}
                             {cc > 1 && <span class="ml-2 align-middle text-xs font-bold text-ts-primary">×{cc}</span>}
                           </p>
-                          <p class="mt-0.5 text-sm font-medium text-ts-text-secondary tabular-nums">{parts.join('  ·  ')}</p>
+                          <p class="pp-breakdown mt-0.5 text-sm font-medium text-ts-text-secondary tabular-nums">{parts.join('  ·  ')}</p>
                         </div>
-                        <div class="shrink-0 text-right">
+                        <span class="pp-leader hidden" aria-hidden="true"></span>
+                        <div class="shrink-0 text-right pp-amount">
                           {(() => {
                             const units = new Set([r.csa?.unit, r.market?.unit, r.wholesale?.unit, r.flex?.unit].filter(Boolean) as string[]);
                             const oneUnit = units.size === 1 ? [...units][0] : null;
                             return oneUnit
-                              ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.totalQty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{oneUnit}</span></>
-                              : <span class="text-xs font-semibold text-ts-text-muted">{t.total}: {r.totalQty.toLocaleString()}<span class="ml-0.5">*</span></span>;
+                              ? <><span class="pp-qty font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.totalQty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{oneUnit}</span></>
+                              : <span class="pp-qty text-xs font-semibold text-ts-text-muted">{t.total}: {r.totalQty.toLocaleString()}<span class="ml-0.5">*</span></span>;
                           })()}
                           {rowLb != null && (
-                            <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
-                              {fmtLb(rowLb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                            <p class="pp-lb mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                              {fmtLb(rowLb)}<span class="pp-lb-label ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
                             </p>
                           )}
                         </div>
@@ -1602,6 +1614,128 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     .packhouse-doc .pack-split { font-size: 11pt; }
     .packhouse-doc .pack-check { border-color: #000; }
     .packhouse-doc .pack-block-tender { border-left-color: #f59e0b !important; }
+
+    /* ══ COMPACT PRINTED OVERALL HARVEST SHEET ════════════════════════════════
+       Owner 2026-07-09: "make the harvest list we print more compact — down to
+       one sheet." Binding rule: compact ≠ cramped. ONE clean line per crop,
+       readable at arm's length (12pt floor); we save the page with TIGHT LINES,
+       never tiny type. PRINT ONLY + scoped to .pp-overall, so:
+         • the loved on-screen view (photos + live check-off) is byte-identical, and
+         • the CSA / wholesale / market / pack-house printouts are untouched
+           (they share .harvest-doc + CombinedHarvestRow but NOT .pp-overall).
+       Line anatomy:  [tick] CROP …dot leaders… QTY UNIT · lb                 ── */
+
+    /* Header band → one compact line. Keep the green band + its small uppercase
+       line (it already carries title · week · harvest-day scope); drop the giant
+       display title + the subtitle that only matter on screen. */
+    .pp-overall .doc-band { padding: 6px 12px; }
+    .pp-overall .doc-band h2,
+    .pp-overall .doc-band > p:last-child { display: none; }
+    .pp-overall .doc-band > p:first-child {
+      font-size: 10.5pt; letter-spacing: 0.02em; opacity: 1;
+    }
+
+    /* Reclaim the on-screen whitespace between band, groups, and rows. */
+    .pp-overall .pp-overall-list { margin-top: 8px; gap: 5px; }
+    .pp-overall .harvest-group { margin: 0; }
+    .pp-overall .harvest-group + .harvest-group { margin-top: 3px; }
+    .pp-overall .pp-overall-list > * { margin-top: 0; }        /* kill mt-* gaps */
+
+    /* Group heads → a thin label, not a bar. Keep it with its rows. */
+    .pp-overall .group-head {
+      font-size: 9.5pt; line-height: 1.1; padding: 2px 8px; margin-bottom: 2px;
+      break-inside: avoid; break-after: avoid; page-break-after: avoid;
+    }
+
+    /* ── ONE line per crop ───────────────────────────────────────────────── */
+    .pp-overall .harvest-row {
+      display: flex; align-items: baseline; gap: 8px;
+      padding: 2.5px 4px; border-bottom: 1px solid #e5e7eb;
+      break-inside: avoid; page-break-inside: avoid;
+    }
+    /* Spreadsheet zebra striping (Todd 2026-07-09: "a basic spreadsheet with
+       alternating variation on row") — light tint on every other row so the
+       eye tracks a line across the page; low-ink; forced to print. */
+    .pp-overall .harvest-group li.harvest-row:nth-child(even) {
+      background: #f3f4f6;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    /* Small pen tick box on the line (kept — the crew ticks crops off). */
+    .pp-overall .harvest-check {
+      width: 13px; height: 13px; margin: 0; align-self: center;
+      border-width: 1.5px;
+    }
+    /* Name shrinks to its content so the leader can grow between it and the qty. */
+    .pp-overall .pp-namewrap { flex: 0 1 auto; min-width: 0; }
+    .pp-overall .pp-crop {
+      font-size: 12pt; font-weight: 700; line-height: 1.12;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    /* Per-channel chips + any secondary line → OFF in print (the number the crew
+       harvests is the TOTAL; channel splits belong on the pack-house sheet). */
+    .pp-overall .pp-breakdown { display: none; }
+
+    /* Dot leader between name and amount. */
+    .pp-overall .pp-leader {
+      display: block; flex: 1 1 auto; min-width: 0.35in;
+      align-self: baseline;
+      border-bottom: 1.5px dotted #9ca3af; transform: translateY(-3px);
+    }
+
+    /* Amount → qty + unit + lb on ONE baseline line. */
+    .pp-overall .pp-amount {
+      flex: 0 0 auto; display: flex; align-items: baseline; gap: 3px;
+      margin: 0; white-space: nowrap;
+    }
+    .pp-overall .pp-amount .pp-qty { font-size: 12.5pt; font-weight: 800; }
+    .pp-overall .pp-amount > span { font-size: 12.5pt; line-height: 1.1; }
+    .pp-overall .pp-lb {
+      display: inline; margin: 0; font-size: 10pt; font-weight: 700; line-height: 1.1;
+    }
+    .pp-overall .pp-lb::before { content: '· '; color: #6b7280; font-weight: 600; }
+    .pp-overall .pp-lb-label { display: none; }                /* "to harvest" */
+
+    /* ── Combined-greens rows: same one-line headline; keep the constituent line
+       (it carries the per-package pounds the pack team needs) but tiny + indented.
+       No leader here — the "combined" tag + amber flag already read as a group. */
+    .pp-overall .pp-combined .harvest-row {
+      align-items: baseline; flex-wrap: wrap;
+    }
+    .pp-overall .pp-combined .pp-namewrap { flex: 1 1 auto; }
+    .pp-overall .pp-combined .pp-leader { display: none; }
+    .pp-overall .pp-variants {
+      display: block; margin: 1px 0 0; font-size: 8.75pt; line-height: 1.15;
+      font-weight: 500; color: #4b5563;
+    }
+
+    /* Tender marker — no extra height, amber left edge (the pack-day tender DNA).
+       Combined greens are tender mixes → same amber flag. */
+    .pp-overall .pp-tender,
+    .pp-overall .pp-combined .harvest-row {
+      border-left: 3px solid #f59e0b; padding-left: 6px;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    /* Two columns ONLY when a single column would overflow (> 34 whole rows). The
+       list is a flex column on screen; here it becomes a balanced 2-up multicol
+       with rows kept whole (break-inside: avoid) so nothing splits across columns. */
+    .pp-overall .pp-overall-list.pp-2col {
+      display: block; column-count: 2; column-gap: 0.35in; column-fill: balance;
+    }
+    .pp-overall .pp-2col .harvest-group,
+    .pp-overall .pp-2col .harvest-group > ol { display: block; }
+    .pp-overall .pp-2col .harvest-row { break-inside: avoid; page-break-inside: avoid; }
+
+    /* ── Compact make-ups banner (overall only — .pp-mk-compact is not added on
+       the CSA view, so that printout is untouched). Stays LOUD + red on purpose;
+       just tighter so it doesn't eat the page. */
+    .pp-mk-compact { margin-bottom: 8px; padding: 6px 10px; border-width: 2px; }
+    .pp-mk-compact h2 { font-size: 11pt; }
+    .pp-mk-compact > p { font-size: 8.5pt; margin-top: 1px; }
+    .pp-mk-compact ul { margin-top: 4px; }
+    .pp-mk-compact li { padding-top: 3px; padding-bottom: 3px; gap: 8px; }
+    .pp-mk-compact li p { font-size: 10pt; line-height: 1.15; }
+    .pp-mk-compact .harvest-check { width: 13px; height: 13px; }
   }
 </style>
 

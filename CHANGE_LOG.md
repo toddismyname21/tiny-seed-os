@@ -6,6 +6,24 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-09] CSA — Printed OVERALL harvest list compacted to ONE sheet (FULLSTACK_BUILDER). NOT DEPLOYED.
+
+Owner: "can you make the harvest list we print more compact? Down to one sheet?" Binding rule (owner 2026-07-09, standing policy): compact ≠ cramped — the crew rejected dense sheets, so ONE clean line per crop, readable at arm's length; save the page with TIGHT LINES, never tiny type. Target: the printed OVERALL view (default `?view=overall`) of `/admin/pick-pack/[week]` lands on one Letter page in a normal week. **PRINT-ONLY change.** Files: `src/pages/admin/pick-pack/[...slug].astro`, `src/components/CombinedHarvestRow.astro`.
+
+**Screen untouched, other views untouched.** All new print CSS is scoped to `.pp-overall` (a class added ONLY to the overall `<section>`). The loved on-screen overall view (photos + live check-off) is byte-identical — every new rule lives inside `@media print`, and the marker classes (`pp-crop`, `pp-breakdown`, `pp-amount`, `pp-qty`, `pp-lb`, `pp-lb-label`, `pp-namewrap`, `pp-tender`, `pp-leader`, `pp-variants`) + the print-only leader `<span>` (`hidden` on screen) carry no screen styles. CSA / wholesale / market / pack-house printouts are untouched: they share `.harvest-doc` + `CombinedHarvestRow` but NOT `.pp-overall`, and the classes added to the shared `CombinedHarvestRow` only render compact under a `.pp-overall` ancestor.
+
+**Print line anatomy (per crop, ONE line):** `[13px tick box] CROP NAME` (12pt, weight 700, ellipsis) `…dotted leader…` `QTY UNIT` (12.5pt, weight 800) ` · lb` (10pt, weight 700, e.g. "· 10.0 lb"; the "to harvest" wording is dropped in print). Row padding 2.5px + 1px dotted rule = ~0.25 in/row. **Killed in print:** photos/thumbnails (already `print:hidden`), the per-channel breakdown chips (`.pp-breakdown` → `display:none`), the live-status controls (`.screen-only`), and the "to harvest" label. Tender crops keep a visible amber left-edge bar (`.pp-tender`, no extra height); combined-greens rows get the same amber flag.
+
+**Combined-greens rows** (`CombinedHarvestRow`, `.pp-combined`) compact to the same headline line (`CROP (combined) … 10.0 lb`) and KEEP one small indented constituent line (`.pp-variants`, 8.75pt) because it carries the per-package pounds the pack team needs to portion.
+
+**Compact header + make-ups banner.** Header band drops the giant display title + subtitle in print, keeping just the small green one-liner (title · week · harvest-day scope) at 10.5pt. The ⚠ make-ups banner STAYS (loud/red, operationally on purpose) but compacts (tighter padding, 11pt heading, 10pt names) — scoped via `.pp-mk-compact`, added ONLY when `view === 'overall'`, so the CSA view's banner print is untouched.
+
+**Two-column fallback (measured by row count).** Frontmatter computes `overallPrintRowCount` (combined groups + tender + other) and sets `overallTwoCol = count > 34`. ≤ 34 rows → single column, one page. > 34 → the list container becomes a balanced 2-up CSS multicol (`column-count: 2`, `column-fill: balance`) with `break-inside: avoid` on every row so nothing splits across columns — a monster week may still spill to 2 pages (acceptable; no shrinking below the 12pt/10pt floors). Rough fit math: ~0.25 in/row → ~34 single-column rows + compact header + group heads clear one 10 in usable-height Letter page; two columns double that headroom.
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors, IDENTICAL to baseline, ZERO new (all pre-existing, in `order/[token].astro`; none in either touched file). **Nothing deployed** (per instruction).
+
+---
+
 ## [2026-07-09] CSA — Pack House by-item sheet REDESIGN: matrix → label-DNA blocks (FULLSTACK_BUILDER). NOT DEPLOYED.
 
 Owner feedback: "The sheets you have been making have been pretty sprawling and challenging for the team to read." The wide crop × destination GRID (landscape, rows=crop × cols=destination) failed the crew. Redesigned `/admin/pick-pack/[week]?view=packhouse` to the farm's proven print-label DNA (`docs/CSA_LABEL_REDESIGN_REQUIREMENTS.md`): ONE LINE PER DECISION with a checkbox in front, primary name LARGEST, small color accents (not fills), low ink, generous whitespace. **RENDER-ONLY change — all data logic + `buildDestinationMatrix` untouched.** Files: `src/pages/admin/pick-pack/[...slug].astro`, `.../pick-pack/index.astro`, `src/components/TodayFlow.astro`.
