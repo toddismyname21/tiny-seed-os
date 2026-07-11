@@ -1,0 +1,220 @@
+---
+/**
+ * /admin/wholesale/fresh-sheet — the REVIEW + CONFIRM page for the wholesale
+ * fresh-sheet availability emails (Todd, 2026-07-10: "Make sure the lists are
+ * updated before they are sent. I should get a reminder and be able to update
+ * and confirm before send.").
+ *
+ * ?period=wed|fri (default = whichever list sends NEXT). For that period it
+ * shows, all from the SHARED lib/fresh-sheet.ts so it can never drift from what
+ * actually sends:
+ *   - the target delivery date + when the list is scheduled to reach chefs;
+ *   - list freshness (active product count + last product change);
+ *   - the EXACT rendered email (built by the same bodyHtml the send uses);
+ *   - the recipient count (the same audience resolver the send uses);
+ *   - the confirm / already-sent state.
+ *
+ * Two confirm actions (POST → /api/admin/wholesale/fresh-sheet/confirm):
+ *   - "Confirm — send on schedule"  marks confirmed; the cron sends on time.
+ *   - "Confirm & send NOW"          marks confirmed AND fires the send now.
+ * Plus "Update the list →" straight to /admin/wholesale/products.
+ *
+ * Reads use the SERVICE-ROLE client (middleware admin-gates every /admin/* route,
+ * matching the wholesale hub). The confirm POST re-checks requireAdmin + CSRF.
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import {
+  PERIOD_CONFIG, isPeriod, buildSnapshot, periodSendingNext, freshnessLine, type Period,
+} from '../../../../lib/fresh-sheet';
+
+export const prerender = false;
+
+const url = Astro.url;
+const periodParam = url.searchParams.get('period') ?? '';
+const period: Period = isPeriod(periodParam) ? periodParam : periodSendingNext();
+const cfg = PERIOD_CONFIG[period];
+const otherPeriod: Period = period === 'wed' ? 'fri' : 'wed';
+
+const snap = await buildSnapshot(supabaseAdmin, period);
+const fresh = freshnessLine(snap.activeCount, snap.lastChange);
+
+// Result banners from the confirm redirect.
+const confirmedFlag = url.searchParams.get('confirmed') === '1';
+const sentResult = url.searchParams.get('sent') ?? '';
+const errorCode = url.searchParams.get('error') ?? '';
+
+const dayWord = cfg.weekdayWord;
+
+// State line for the confirm card.
+type StateKind = 'sent' | 'confirmed' | 'unconfirmed';
+let stateKind: StateKind = 'unconfirmed';
+if (snap.alreadySent) stateKind = 'sent';
+else if (snap.isConfirmed) stateKind = 'confirmed';
+
+const errorMsg: Record<string, string> = {
+  invalid_input: 'Something was off with that submit — please try again.',
+  stale_date: 'The target delivery date changed since the page loaded. Refresh and confirm again.',
+  confirm_failed: 'Could not save the confirmation. Please try again.',
+};
+
+const btnPrimary =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+const btnAccent =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-ts-md bg-ts-warning px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:opacity-90 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-warning';
+const btnGhost =
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+---
+
+<AdminShell
+  title="Fresh sheets"
+  subtitle="Review & confirm the wholesale availability list before it goes to chefs"
+  pageTitle="Fresh sheets — Tiny Seed Admin"
+>
+  {/* Period switch */}
+  <div class="mb-5 flex flex-wrap items-center gap-2">
+    <span class="text-sm font-medium text-ts-text-secondary">List:</span>
+    <a
+      href={`/admin/wholesale/fresh-sheet?period=wed`}
+      class={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${period === 'wed' ? 'bg-ts-primary text-white' : 'bg-ts-bg-muted text-ts-text-secondary hover:text-ts-text'}`}
+    >Wednesday delivery</a>
+    <a
+      href={`/admin/wholesale/fresh-sheet?period=fri`}
+      class={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${period === 'fri' ? 'bg-ts-primary text-white' : 'bg-ts-bg-muted text-ts-text-secondary hover:text-ts-text'}`}
+    >Friday delivery</a>
+  </div>
+
+  {/* Result / error banners */}
+  {confirmedFlag && sentResult === '' && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-ts-primary/30 bg-ts-primary/5">
+      <p class="text-sm font-medium text-ts-primary">✅ Confirmed. The {dayWord} list will send on schedule ({cfg.sendWhenLabel} ET).</p>
+    </Card>
+  )}
+  {sentResult === 'ok' && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-ts-primary/30 bg-ts-primary/5">
+      <p class="text-sm font-medium text-ts-primary">🚀 Sent. The {dayWord} fresh sheet just went out to chefs.</p>
+    </Card>
+  )}
+  {sentResult === 'already_sent' && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-ts-border bg-ts-bg-muted">
+      <p class="text-sm font-medium text-ts-text-secondary">Already sent — this week's {dayWord} list had gone out, so nothing was re-sent.</p>
+    </Card>
+  )}
+  {sentResult === 'no_active_products' && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-ts-warning/40 bg-ts-warning-bg">
+      <p class="text-sm font-medium text-ts-warning">Nothing to send — there are no active products. Turn some on first.</p>
+    </Card>
+  )}
+  {sentResult === 'disabled' && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-ts-warning/40 bg-ts-warning-bg">
+      <p class="text-sm font-medium text-ts-warning">Confirmed, but sending is turned OFF for this list (enabled flag <code>{cfg.gateFlag}</code>). The cron won't mail chefs until that's on.</p>
+    </Card>
+  )}
+  {(sentResult === 'error' || errorCode) && (
+    <Card padding="md" elevation="sm" class="mb-4 border border-ts-danger/40 bg-ts-danger/5">
+      <p class="text-sm font-medium text-ts-danger">{errorMsg[errorCode] ?? 'Something went wrong sending the list. Check the logs and try again.'}</p>
+    </Card>
+  )}
+
+  {/* At-a-glance summary */}
+  <section class="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <Card padding="md" elevation="sm">
+      <div class="text-xs uppercase tracking-wide text-ts-text-muted">Target delivery</div>
+      <div class="mt-1 text-lg font-bold text-ts-text">{snap.deliveryLabel}</div>
+      <div class="mt-0.5 text-sm text-ts-text-secondary">Chefs get it {cfg.sendWhenLabel} ET · order by {cfg.cutoffLabel} ET</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs uppercase tracking-wide text-ts-text-muted">List freshness</div>
+      <div class="mt-1 text-lg font-bold text-ts-text">{snap.activeCount} active</div>
+      <div class="mt-0.5 text-sm text-ts-text-secondary">{fresh.split(' · ')[1] ?? 'no recorded changes yet'}</div>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <div class="text-xs uppercase tracking-wide text-ts-text-muted">Recipients</div>
+      <div class="mt-1 text-lg font-bold text-ts-text">{snap.recipientCount} email{snap.recipientCount === 1 ? '' : 's'}</div>
+      <div class="mt-0.5 text-sm text-ts-text-secondary">{snap.sendableCount} chef account{snap.sendableCount === 1 ? '' : 's'} on the list</div>
+    </Card>
+  </section>
+
+  {/* Confirm / state + actions */}
+  <Card padding="lg" elevation="md" class="mb-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="font-display text-xl font-bold text-ts-text">Before it sends</h2>
+        {stateKind === 'sent' && (
+          <p class="mt-1 text-sm font-semibold text-ts-primary">Already sent ✓ — this week's {dayWord} list has gone out to chefs.</p>
+        )}
+        {stateKind === 'confirmed' && (
+          <p class="mt-1 text-sm font-semibold text-ts-primary">Confirmed for {snap.deliveryLabel} ✓ — sends {cfg.sendWhenLabel} ET.</p>
+        )}
+        {stateKind === 'unconfirmed' && (
+          <p class="mt-1 text-sm text-ts-text-secondary">Not confirmed yet. The list will <b>not</b> send until you confirm it below.</p>
+        )}
+        {!snap.enabled && stateKind !== 'sent' && (
+          <p class="mt-1 text-xs text-ts-warning">Note: chef sending is currently OFF (<code>{cfg.gateFlag}</code>). Confirming is fine, but nothing mails until that flag is on.</p>
+        )}
+      </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-3">
+      <a href="/admin/wholesale/products" class={btnGhost}>✏️ Update the list →</a>
+
+      {stateKind !== 'sent' && (
+        <>
+          <form method="POST" action="/api/admin/wholesale/fresh-sheet/confirm" class="contents">
+            <input type="hidden" name="period" value={period} />
+            <input type="hidden" name="delivery_date" value={snap.deliveryDate} />
+            <input type="hidden" name="send_now" value="false" />
+            <button type="submit" class={btnPrimary}>
+              {stateKind === 'confirmed' ? '✅ Re-confirm — send on schedule' : '✅ Confirm — send on schedule'}
+            </button>
+          </form>
+
+          <form
+            method="POST"
+            action="/api/admin/wholesale/fresh-sheet/confirm"
+            class="contents"
+            onsubmit={`return confirm('Send the ${dayWord} fresh sheet to ${snap.recipientCount} chef email${snap.recipientCount === 1 ? '' : 's'} right now?');`}
+          >
+            <input type="hidden" name="period" value={period} />
+            <input type="hidden" name="delivery_date" value={snap.deliveryDate} />
+            <input type="hidden" name="send_now" value="true" />
+            <button type="submit" class={btnAccent}>🚀 Confirm &amp; send NOW</button>
+          </form>
+        </>
+      )}
+    </div>
+  </Card>
+
+  {/* The EXACT email preview */}
+  <section aria-labelledby="preview-heading">
+    <div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="preview-heading" class="font-display text-lg font-semibold text-ts-text">Exactly what chefs will see</h2>
+      <span class="text-xs text-ts-text-muted">Subject: {snap.subject}</span>
+    </div>
+    <p class="mb-3 text-xs text-ts-text-secondary">
+      Prices shown are list-tier; each chef sees their own tier price and a personal order link. Structure + copy are identical to what sends.
+    </p>
+    <Card padding="lg" elevation="sm">
+      <div class="fresh-sheet-preview" set:html={snap.html} />
+    </Card>
+  </section>
+
+  {/* Cross-link to the other period */}
+  <p class="mt-6 text-sm text-ts-text-secondary">
+    Looking for the other list?
+    <a href={`/admin/wholesale/fresh-sheet?period=${otherPeriod}`} class="font-semibold text-ts-primary hover:underline">
+      {otherPeriod === 'wed' ? ' Wednesday delivery →' : ' Friday delivery →'}
+    </a>
+  </p>
+</AdminShell>
+
+<style>
+  /* The email HTML uses its own inline styles; contain it so it renders like an
+     email client, not the admin theme. */
+  .fresh-sheet-preview {
+    background: #ffffff;
+    color: #1f2937;
+    border-radius: var(--ts-radius-md, 8px);
+  }
+</style>

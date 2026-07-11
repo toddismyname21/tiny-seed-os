@@ -6,6 +6,28 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-10] CSA — Wholesale fresh-sheet REVIEW → CONFIRM → SEND gate (FULLSTACK_BUILDER). NOT DEPLOYED. Migration 0082 NOT applied.
+
+Owner: "Make sure the lists are updated before they are sent. I should get a reminder and be able to update and confirm before send." The two chef availability emails (Wednesday-period + Friday-period fresh sheets) now send to chefs ONLY after Todd reviews and confirms this week's list. Nothing about the email copy or audience changed — the send is byte-identical to before WHEN confirmed.
+
+**New shared lib `src/lib/fresh-sheet.ts` (no-drift guarantee).** Extracted the entire email body-builder (`bodyText`/`bodyHtml`, category grouping, per-tier pricing), the audience resolver (`resolveAudience` — accounts with a token + ≥1 order recipient, minus vendors + TEST_EXCLUDES), and the send loop + per-account audit + double-send guard out of the two crons into ONE place. `sendFreshSheet(db, period)` is the shared engine called by BOTH the crons and the "Confirm & send now" button, so preview, scheduled send, and manual send can never diverge. `PERIOD_CONFIG` holds the wed/fri differences (gate flag, confirm key, notification types, subject, cutoff label, order-link suffix, delivery-date fn, send-when label).
+
+**Both crons refactored (`api/cron/wholesale-list-wed.ts` + `-fri.ts`).** Each keeps ONLY policy: Bearer auth → enabled flag (unchanged, seeded false) → NEW confirm check (`portal_settings.fresh_sheet_confirmed_<period>` must equal the computed target delivery date) → delegate to `sendFreshSheet`. Enabled-but-unconfirmed at send time = NO chef mail; instead emails TODD ONLY ("Fresh sheet NOT sent — you hadn't confirmed … Review + send now: <link>"), logs `fresh_sheet_unconfirmed_<period>`, returns `{skipped:'unconfirmed'}`. Chef sends stay gated by BOTH the enabled flag AND confirmation.
+
+**Review + confirm page `admin/wholesale/fresh-sheet/index.astro`** (`?period=wed|fri`, default = whichever sends next). Shows target delivery date + when it reaches chefs, list freshness (active count + last product change from `wholesale_products.updated_at`), the EXACT rendered email (same `bodyHtml`, list-tier price), recipient count (same resolver), and the confirm/sent state ("Confirmed for … ✓ — sends Fri 8:30 AM" / "Already sent ✓"). Buttons: "✏️ Update the list →" (products), "✅ Confirm — send on schedule", "🚀 Confirm & send NOW". Added to the wholesale nav group ("Fresh sheets", 📋). ts-* tokens; mobile-first; hover/active/focus on every control.
+
+**Confirm API `api/admin/wholesale/fresh-sheet/confirm.ts`** — requireAdmin + isSameOriginPost + zod `{period, delivery_date, send_now}`. Upserts `portal_settings.fresh_sheet_confirmed_<period> = delivery_date`; stale-date guarded. send_now → respects the enabled flag (confirm-but-don't-mail when off, `?sent=disabled`), else calls the shared `sendFreshSheet`.
+
+**Reminders (migration 0082).** New `api/cron/fresh-sheet-reminder.ts` (`?period=wed|fri`) emails Todd ~4 PM ET the day before each send with the freshness line + review link. Scheduled `csa-fresh-sheet-reminder-wed` THU 20:00 UTC, `csa-fresh-sheet-reminder-fri` MON 20:00 UTC (Vault pattern, 0033/0076). UNSCHEDULES the superseded `csa-friday-list-reminder`; its endpoint (`api/cron/friday-list-reminder.ts`) is now a harmless authed no-op. `TodayFlow.astro` step 8a repointed: Monday deck now shows the Friday list's confirm/sent status (`fresh_sheet_confirmed_fri` / `fresh_sheet_sent_fri` / `fresh_sheet_reminder_fri`) and links to the review page instead of the old "update & send" hub link.
+
+**Double-send guard.** A successful send writes ONE batch marker row `fresh_sheet_sent_<period>` (metadata.delivery_date). `sendFreshSheet` checks it first, so a cron run after a manual send-now is a no-op (`skipped:'already_sent'`), and it's the "Sent" signal the review page + TodayFlow read.
+
+Files: `src/lib/fresh-sheet.ts` (new), `src/pages/api/cron/wholesale-list-wed.ts`, `…/wholesale-list-fri.ts`, `…/fresh-sheet-reminder.ts` (new), `…/friday-list-reminder.ts` (no-op), `src/pages/admin/wholesale/fresh-sheet/index.astro` (new), `src/pages/api/admin/wholesale/fresh-sheet/confirm.ts` (new), `src/components/AdminShell.astro` (nav), `src/components/TodayFlow.astro` (step 8a), `supabase/migrations/0082_fresh_sheet_confirm_gate.sql` (new).
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors, IDENTICAL to baseline, ZERO new (all pre-existing in `order/[token].astro` + unrelated warnings). **Nothing deployed; migration 0082 NOT applied** (per instruction).
+
+---
+
 ## [2026-07-09] CSA — Printed OVERALL harvest list compacted to ONE sheet (FULLSTACK_BUILDER). NOT DEPLOYED.
 
 Owner: "can you make the harvest list we print more compact? Down to one sheet?" Binding rule (owner 2026-07-09, standing policy): compact ≠ cramped — the crew rejected dense sheets, so ONE clean line per crop, readable at arm's length; save the page with TIGHT LINES, never tiny type. Target: the printed OVERALL view (default `?view=overall`) of `/admin/pick-pack/[week]` lands on one Letter page in a normal week. **PRINT-ONLY change.** Files: `src/pages/admin/pick-pack/[...slug].astro`, `src/components/CombinedHarvestRow.astro`.

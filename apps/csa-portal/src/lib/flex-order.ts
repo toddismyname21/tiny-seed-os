@@ -107,6 +107,13 @@ export function formatCents(cents: number): string {
 /** The one-time Week-1 override week (season launch). */
 const WEEK_ONE = '2026-06-08';
 
+/** ONE-WEEK CUTOFF EXTENSION (Todd, 2026-07-11): the flex list for the week
+ *  of Jul 13 goes live Sunday afternoon (a day late), so the Wednesday-run
+ *  close is extended Monday 7 AM → TUESDAY 7 AM ET for THIS WEEK ONLY.
+ *  Weekend-run cutoff (Thu 7 AM) unchanged. Announced to all flex members by
+ *  email. Remove after 2026-07-14 (harmless if left — the week passes). */
+const WEEK_EXTENDED_TUE = '2026-07-13';
+
 /* ──────────────────────────────────────────────────────────────────
  * Pickup-day-aware cutoff (Todd 2026-06-12)
  *
@@ -180,20 +187,31 @@ function etWallClockEpochMs(
  *     including the Week-1 launch (aligned with the box-swap cutoff).
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
- * @param pickupDay    raw pickup_locations.day_of_week ('Sat'/'Sun' → later
- *                     cutoff); null/undefined (home delivery) → Tuesday cutoff.
+ * @param pickupDay    raw pickup_locations.day_of_week ('Sat'/'Sun' → Thursday
+ *                     cutoff); anything else (Tue market, Wed CSA, home
+ *                     delivery, no-pickup) → Monday cutoff.
+ *
+ * UNIFIED CUTOFF (Todd 2026-06-26): box swaps AND flex à-la-carte share THIS
+ * one pickup-day-aware deadline so they can never drift apart. Each member's
+ * cutoff lands right before the harvest that fills their order:
+ *   • WEDNESDAY RUN  (Tue market + Wed CSA + home delivery) → Monday 7:00 AM ET
+ *     (week_starting + 0 days) → Monday harvest.
+ *   • WEEKEND RUN    (Sat/Sun markets)                      → Thursday 7:00 AM ET
+ *     (week_starting + 3 days) → Thursday harvest.
+ * lib/box.ts `isCutoffPassed` delegates here so there is ONE source of truth.
  */
 export function cutoffEpochMs(weekStarting: string, pickupDay: PickupDay = null): number {
   if (isWeekendMarket(pickupDay)) {
-    // Weekend cycle (Sat/Sun pickups) harvests Thursday → flex à-la-carte
-    // closes Thursday 6:00 AM ET (Monday + 3 days). (Todd 2026-06-19:
-    // per-pickup-day 6 AM cutoffs so pick/pack prints that morning.)
-    return etWallClockEpochMs(weekStarting, 3, 6, 0);
+    // Weekend run (Sat/Sun pickups) harvests Thursday → closes Thursday 7 AM ET.
+    return etWallClockEpochMs(weekStarting, 3, 7, 0);
   }
-  // Tue/Wed cycle harvests Monday → flex à-la-carte closes Tuesday 6:00 AM ET
-  // (Monday + 1 day). NOTE: box SWAPS lock EARLIER — Monday 6 AM, at the
-  // harvest — see lib/box.ts (handled with the box-swap build).
-  return etWallClockEpochMs(weekStarting, 1, 6, 0);
+  // Wednesday run (Tue market / Wed CSA / home delivery / no-pickup) harvests
+  // Monday → closes Monday 7 AM ET (the cycle Monday itself, week_starting + 0).
+  if (weekStarting === WEEK_EXTENDED_TUE) {
+    // One-week extension (see WEEK_EXTENDED_TUE): closes TUESDAY 7 AM ET.
+    return etWallClockEpochMs(weekStarting, 1, 7, 0);
+  }
+  return etWallClockEpochMs(weekStarting, 0, 7, 0);
 }
 
 /**
@@ -248,13 +266,15 @@ export function isWindowOpen(weekStarting: string, now: number = Date.now(), pic
 }
 
 /**
- * Human label for the close instant, used in member copy + onboarding:
- *   • weekend-market members → "Wednesday midnight"
- *   • Wed/home members       → "Tuesday 8 AM" (every week, incl. Week 1).
+ * Short human label for the close instant, used in member copy + onboarding.
+ * Matches the unified cutoff (Todd 2026-06-26):
+ *   • weekend-market members (Sat/Sun)                 → "Thursday 7 AM"
+ *   • everyone else (Tue market / Wed CSA / home / —)   → "Monday 7 AM"
  */
 export function closeLabel(weekStarting: string, pickupDay: PickupDay = null): string {
-  if (isWeekendMarket(pickupDay)) return 'Thursday 6 AM';
-  return 'Tuesday 6 AM';
+  if (isWeekendMarket(pickupDay)) return 'Thursday 7 AM';
+  if (weekStarting === WEEK_EXTENDED_TUE) return 'Tuesday 7 AM'; // one-week extension
+  return 'Monday 7 AM';
 }
 
 /* ──────────────────────────────────────────────────────────────────
