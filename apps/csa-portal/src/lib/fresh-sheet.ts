@@ -189,15 +189,25 @@ export function availabilityHtml(items: CatalogItem[]): string {
   return `<table style="width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 4px">${rows}</table>`;
 }
 
+/** Split a stored multi-line "this week's notes" value into clean lines. */
+export function noteLines(note: string): string[] {
+  return note.split('\n').map((l) => l.trim()).filter(Boolean);
+}
+
 export function bodyText(
   items: CatalogItem[], deliveryLabel: string, orderUrl: string, alreadyOrdered: boolean, cfg: PeriodConfig,
+  note = '',
 ): string {
+  const lines = noteLines(note);
   return (
     'Good morning from Tiny Seed Farm —\n\n' +
     `This week's wholesale availability is open for ${deliveryLabel} delivery. ` +
     `Order by ${cfg.cutoffLabel} ET.\n\n` +
     (alreadyOrdered
       ? `You're already in for ${cfg.weekdayWord} — reply to this email to change anything.\n\n`
+      : '') +
+    (lines.length
+      ? "This week's notes:\n" + lines.map((l) => `  • ${l}`).join('\n') + '\n\n'
       : '') +
     "Here's what's fresh this week:\n\n" +
     availabilityText(items) + '\n\n' +
@@ -209,13 +219,21 @@ export function bodyText(
 
 export function bodyHtml(
   items: CatalogItem[], deliveryLabel: string, orderUrl: string, alreadyOrdered: boolean, cfg: PeriodConfig,
+  note = '',
 ): string {
+  const lines = noteLines(note);
   return (
     `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;color:#1f2937;line-height:1.6;font-size:15px">` +
     `<p style="margin:0 0 6px;font-weight:700;color:#166534">🌱 Tiny Seed Farm — Wholesale</p>` +
     `<p style="margin:0 0 14px">This week's availability is open for <strong>${escapeHtml(deliveryLabel)}</strong> delivery. Order by <strong>${escapeHtml(cfg.cutoffLabel)} ET</strong>.</p>` +
     (alreadyOrdered
       ? `<p style="margin:0 0 14px;padding:10px 14px;background:#f0fdf4;border-radius:8px;color:#166534">You're already in for ${escapeHtml(cfg.weekdayWord)} — reply to this email to change anything.</p>`
+      : '') +
+    (lines.length
+      ? `<div style="margin:0 0 14px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px">` +
+        `<p style="margin:0 0 6px;font-weight:700;color:#92400e">📣 This week's notes</p>` +
+        lines.map((l) => `<p style="margin:3px 0;color:#78350f">${escapeHtml(l)}</p>`).join('') +
+        `</div>`
       : '') +
     `<p style="margin:14px 0 0;font-weight:600">What's fresh this week</p>` +
     availabilityHtml(items) +
@@ -509,7 +527,10 @@ export async function sendFreshSheet(db: Db, period: Period): Promise<SendOutcom
   }
 
   const deliveryLabel = prettyDeliveryDate(deliveryDate);
-  const audience = await resolveAudience(db, deliveryDate);
+  const [audience, note] = await Promise.all([
+    resolveAudience(db, deliveryDate),
+    readSetting(db, 'fresh_sheet_note'),
+  ]);
 
   let sent = 0;
   let failed = 0;
@@ -522,8 +543,8 @@ export async function sendFreshSheet(db: Db, period: Period): Promise<SendOutcom
     const orderUrl = `${ADMIN_ORIGIN}/order/${a.acct.order_token}${cfg.orderQuery}`;
     const outcome = await sendOne(
       cfg, a.recipients,
-      bodyText(items, deliveryLabel, orderUrl, a.alreadyOrdered, cfg),
-      bodyHtml(items, deliveryLabel, orderUrl, a.alreadyOrdered, cfg),
+      bodyText(items, deliveryLabel, orderUrl, a.alreadyOrdered, cfg, note),
+      bodyHtml(items, deliveryLabel, orderUrl, a.alreadyOrdered, cfg, note),
     );
     if (outcome.ok) sent += 1; else failed += 1;
     await logRow(db, cfg, a.recipients.join(','), outcome.ok ? 'sent' : 'failed', outcome.ok ? null : outcome.detail, {
@@ -577,21 +598,22 @@ export async function buildSnapshot(db: Db, period: Period): Promise<FreshSheetS
   const deliveryDate = cfg.nextDeliveryDate();
   const deliveryLabel = prettyDeliveryDate(deliveryDate);
 
-  const [products, lastChange, audience, enabled, confirmedFor, sentAlready] = await Promise.all([
+  const [products, lastChange, audience, enabled, confirmedFor, sentAlready, note] = await Promise.all([
     fetchActiveProducts(db),
     lastProductChange(db),
     resolveAudience(db, deliveryDate),
     readFlag(db, cfg.gateFlag),
     readSetting(db, cfg.confirmKey),
     alreadySent(db, cfg, deliveryDate),
+    readSetting(db, 'fresh_sheet_note'),
   ]);
 
   // The email exactly as a list-tier chef receives it (list price, no
   // already-ordered banner — the default new-list view).
   const items = priceItems(products, 0);
   const orderUrl = `${ADMIN_ORIGIN}/order/YOUR-LINK${cfg.orderQuery}`;
-  const html = bodyHtml(items, deliveryLabel, orderUrl, false, cfg);
-  const text = bodyText(items, deliveryLabel, orderUrl, false, cfg);
+  const html = bodyHtml(items, deliveryLabel, orderUrl, false, cfg, note);
+  const text = bodyText(items, deliveryLabel, orderUrl, false, cfg, note);
 
   return {
     period,
