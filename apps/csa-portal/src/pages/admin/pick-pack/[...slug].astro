@@ -279,7 +279,11 @@ const { data: wholesaleOrderRows, error: wholesaleErr } = await db
     'items:wholesale_order_items ( product_name, qty, ' +
       'product:wholesale_products ( unit, photo_url, library:product_library ( photo_url, category ) ) )',
   )
-  .eq('status', 'submitted')
+  // submitted AND confirmed/packed: manual admin-entered orders default to
+  // 'confirmed' (0065) and edits preserve status — an eq('submitted') filter
+  // silently dropped them from harvest demand (latent hole found 2026-07-13).
+  // Excluded: draft (not real yet), cancelled, delivered (already gone).
+  .in('status', ['submitted', 'confirmed', 'packed'])
   .gte('delivery_date', week_starting)
   .lte('delivery_date', weekEnd)
   .overrideTypes<WholesaleOrderRow[], { merge: false }>();
