@@ -1,0 +1,16 @@
+---
+/**
+ * /admin/pick-pack/current — EVERGREEN redirect to THIS week's Pick & Pack.
+ *
+ * WHY (Todd, 2026-07-13): dated deep links (e.g. /pick-pack/2026-07-06) go
+ * stale the moment the cycle rolls — Todd bookmarked one and printed LAST
+ * week's harvest list, which was missing all of this week's wholesale.
+ * Bookmark THIS instead; every query param (day, view, lang) is preserved.
+ *   /admin/pick-pack/current?day=mon           → this week's Monday harvest
+ *   /admin/pick-pack/current?view=packhouse&day=thu … etc.
+ */
+import { currentDeliveryWeek } from '../../../lib/cycle';
+export const prerender = false;
+const qs = Astro.url.search ?? '';
+return Astro.redirect(`/admin/pick-pack/${currentDeliveryWeek()}${qs}`, 303);
+---
