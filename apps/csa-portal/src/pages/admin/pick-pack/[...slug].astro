@@ -159,7 +159,7 @@ for (const m of cycle.members) {
 }
 const csaRows = Array.from(csaMap.values())
   .filter((r) => r.qty > 0)
-  .sort((a, b) => b.qty - a.qty || a.crop.localeCompare(b.crop));
+  .sort((a, b) => a.crop.localeCompare(b.crop, undefined, { sensitivity: 'base' })); // A→Z (crew request 2026-07-13)
 
 /* ──────────────────────────────────────────────────────────────────
  * 2. Library category + photo lookup (for tender-green ordering + thumbs).
@@ -310,7 +310,7 @@ for (const o of wholesaleOrderRows ?? []) {
   }
 }
 const wholesaleRows = Array.from(wholesaleMap.values())
-  .sort((a, b) => b.qty - a.qty || a.crop.localeCompare(b.crop));
+  .sort((a, b) => a.crop.localeCompare(b.crop, undefined, { sensitivity: 'base' })); // A→Z (crew request 2026-07-13)
 
 /* ──────────────────────────────────────────────────────────────────
  * 4B. Flex à-la-carte demand by crop — flex_orders for THIS week.
@@ -393,7 +393,7 @@ for (const fo of flexOrderRows ?? []) {
 }
 const flexRows = Array.from(flexMap.values())
   .filter((r) => r.qty > 0)
-  .sort((a, b) => b.qty - a.qty || a.crop.localeCompare(b.crop));
+  .sort((a, b) => a.crop.localeCompare(b.crop, undefined, { sensitivity: 'base' })); // A→Z (crew request 2026-07-13)
 
 /* ──────────────────────────────────────────────────────────────────
  * 5. The MERGE — overall per-crop demand across all four channels.
@@ -411,8 +411,13 @@ const flexDemand: CropDemandInput[] = flexRows.map((r) => ({
   crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
 }));
 const merged = mergeCropDemand(csaDemand, marketDemand, wholesaleDemand, flexDemand);
-const tenderRows = merged.filter((r) => r.tender);
-const otherRows = merged.filter((r) => !r.tender);
+// ALPHABETICAL within each section (crew request, Todd 2026-07-13) — the
+// team looks crops up dictionary-style inside the Tender / Everything-else
+// groups. merged arrives qty-desc; re-sort each section A→Z.
+const alphaByCrop = (a: { crop: string }, b: { crop: string }): number =>
+  a.crop.localeCompare(b.crop, undefined, { sensitivity: 'base' });
+const tenderRows = merged.filter((r) => r.tender).sort(alphaByCrop);
+const otherRows = merged.filter((r) => !r.tender).sort(alphaByCrop);
 
 /** Best photo for a merged/overall crop row. */
 function cropPhoto(crop: string): string | null {

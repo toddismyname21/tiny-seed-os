@@ -34,7 +34,7 @@ import type { APIRoute } from 'astro';
 import { CRON_SECRET, RESEND_API_KEY, RESEND_FROM_EMAIL } from 'astro:env/server';
 import { supabaseAdmin } from '../../../lib/supabase';
 import type { Database, Json } from '../../../lib/database.types';
-import { currentOrderWeek, isWindowOpen, isWeekendMarket, type PickupDay } from '../../../lib/flex-order';
+import { currentOrderWeek, isWindowOpen, isWeekendMarket, closeLabel, type PickupDay } from '../../../lib/flex-order';
 import { getFlexBalance, formatFlexMoney } from '../../../lib/flex';
 import { TEST_EXCLUDES } from '../../../lib/campaign';
 
@@ -83,15 +83,15 @@ async function readFlag(key: string): Promise<boolean> {
 }
 
 /* ── EXACT COPY (Todd-approved; weekend variant swaps the close/delivery phrase) ── */
-function subjectFor(weekend: boolean): string {
+function subjectFor(weekend: boolean, week: string): string {
   return weekend
-    ? 'Your Farm Flex window closes Thursday 7 AM'
-    : 'Your Farm Flex window closes Monday 7 AM';
+    ? `Your Farm Flex window closes ${closeLabel(week, 'Sat')} this week`
+    : `Your Farm Flex window closes ${closeLabel(week, null)} this week`;
 }
-function bodyText(balanceStr: string, weekend: boolean): string {
+function bodyText(balanceStr: string, weekend: boolean, week: string): string {
   const openLine = weekend
-    ? "Hi! This week's Farm Flex list is open — orders close Thursday at 7 AM for this weekend's market pickup."
-    : "Hi! This week's Farm Flex list is open — orders close Monday at 7 AM for Wednesday delivery.";
+    ? `Hi! This week's Farm Flex list is open — orders close ${closeLabel(week, 'Sat')} for this weekend's market pickup.`
+    : `Hi! This week's Farm Flex list is open — orders close ${closeLabel(week, null)} for Wednesday delivery.`;
   return (
     `${openLine}\n\n` +
     `You have ${balanceStr} available.\n\n` +
@@ -99,10 +99,10 @@ function bodyText(balanceStr: string, weekend: boolean): string {
     '— Tiny Seed Farm'
   );
 }
-function bodyHtml(balanceStr: string, weekend: boolean): string {
+function bodyHtml(balanceStr: string, weekend: boolean, week: string): string {
   const openLine = weekend
-    ? "Hi! This week's Farm Flex list is open — orders close Thursday at 7 AM for this weekend's market pickup."
-    : "Hi! This week's Farm Flex list is open — orders close Monday at 7 AM for Wednesday delivery.";
+    ? `Hi! This week's Farm Flex list is open — orders close ${closeLabel(week, 'Sat')} for this weekend's market pickup.`
+    : `Hi! This week's Farm Flex list is open — orders close ${closeLabel(week, null)} for Wednesday delivery.`;
   return (
     `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#1f2937;line-height:1.6;font-size:15px">` +
     `<p style="margin:0 0 14px">${escapeHtml(openLine)}</p>` +
@@ -262,7 +262,7 @@ async function handle(request: Request): Promise<Response> {
 
     const weekend = isWeekendMarket(pickupDay);
     const balanceStr = formatFlexMoney(balance.total, balance.currency);
-    const outcome = await sendOne(email, bodyText(balanceStr, weekend), bodyHtml(balanceStr, weekend), subjectFor(weekend));
+    const outcome = await sendOne(email, bodyText(balanceStr, weekend, week), bodyHtml(balanceStr, weekend, week), subjectFor(weekend, week));
     if (outcome.ok) sent += 1; else failed += 1;
     await logRow(m.id, m.customer_id, email, outcome.ok ? 'sent' : 'failed', outcome.ok ? null : outcome.detail, {
       ranAt, week, weekend, balance: balance.total,
