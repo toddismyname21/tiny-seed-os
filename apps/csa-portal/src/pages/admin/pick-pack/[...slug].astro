@@ -28,9 +28,10 @@ import {
   resolveCycle, prettyWeekHeader, mondayOfWeek, isMonday, addDays,
 } from '../../../lib/cycle';
 import {
-  mergeCropDemand, channelCount, parseLang, normCrop, PICK_PACK_STRINGS,
-  pickPackLineKey, buildDestinationMatrix,
-  type CropDemandInput, type DestDemandInput, type DestKind,
+  mergeCropDemand, channelCount, parseLang, normCrop, cropMergeKey, PICK_PACK_STRINGS,
+  pickPackLineKey, buildDestinationMatrix, groupBySection, packLbForUnits, fmtLb,
+  type CropDemandInput, type DestDemandInput, type DestKind, type MatrixRow,
+  type CrewSectionGroup,
 } from '../../../lib/pick-pack';
 import {
   fetchAllOpenDueNoticesWithMember, isNoticeOverdue, HOME_DELIVERY_HINT,
@@ -69,6 +70,9 @@ const view: 'overall' | 'csa' | 'wholesale' | 'market' | 'packhouse' =
 const marketIdParam = Astro.url.searchParams.get('market') ?? '';
 const lang = parseLang(Astro.url.searchParams.get('lang'));
 const t = PICK_PACK_STRINGS[lang];
+// ?print=1 → auto-open the browser print dialog on load (one-tap market prints
+// from the Pick & Pack landing). Screen chrome is print:hidden already.
+const autoPrint = Astro.url.searchParams.get('print') === '1';
 
 /* ── Harvest-day scope (mirrors /admin/harvest) ─────────────────────
  * ?day=mon → demand for Tue + Wed distributions (Monday harvest)
@@ -165,7 +169,7 @@ const csaRows = Array.from(csaMap.values())
  * 2. Library category + photo lookup (for tender-green ordering + thumbs).
  * ────────────────────────────────────────────────────────────────── */
 interface LibRow { name: string; photo_url: string | null; category: string | null; pack_weight_lb: number | null; harvest_crop: string | null; }
-interface LibEntry { photo: string | null; category: string | null; packWeightLb: number | null; harvestCrop: string | null; }
+interface LibEntry { name: string | null; photo: string | null; category: string | null; packWeightLb: number | null; harvestCrop: string | null; }
 const { data: libRows } = await db
   .from('product_library')
   .select('name, photo_url, category, pack_weight_lb, harvest_crop')
@@ -179,13 +183,13 @@ const libByNorm = new Map<string, LibEntry>();
 for (const lp of libRows ?? []) {
   const raw = lp.name?.trim();
   if (!raw) continue;
-  const entry: LibEntry = { photo: lp.photo_url, category: lp.category, packWeightLb: lp.pack_weight_lb, harvestCrop: lp.harvest_crop };
+  const entry: LibEntry = { name: raw, photo: lp.photo_url, category: lp.category, packWeightLb: lp.pack_weight_lb, harvestCrop: lp.harvest_crop };
   const exact = raw.toLowerCase();
   if (!libByName.has(exact)) libByName.set(exact, entry);
   const norm = normCrop(raw);
   if (norm && !libByNorm.has(norm)) libByNorm.set(norm, entry);
 }
-const EMPTY_LIB: LibEntry = { photo: null, category: null, packWeightLb: null, harvestCrop: null };
+const EMPTY_LIB: LibEntry = { name: null, photo: null, category: null, packWeightLb: null, harvestCrop: null };
 function libLookup(crop: string): LibEntry {
   const exact = crop.trim().toLowerCase();
   return libByName.get(exact) ?? libByNorm.get(normCrop(crop)) ?? EMPTY_LIB;
@@ -233,13 +237,22 @@ if (offeringsErr) {
   throw new Error(`pick-pack: market_offerings fetch failed: ${offeringsErr.message}`);
 }
 
-interface MarketItem { name: string; unit: string; qty: number; photo: string | null; category: string | null; }
+interface MarketItem { name: string; unit: string; qty: number; photo: string | null; category: string | null; canonical: boolean; sourceName?: string; }
 interface MarketGroup { id: string; name: string; day: string | null; items: MarketItem[]; }
 const marketGroupMap = new Map<string, MarketGroup>();
 // Aggregate ALL markets' planned_qty per crop for the overall list.
-const marketAllMap = new Map<string, CropAgg & { category: string | null }>(); // key = crop|unit
+interface MarketAllAgg extends CropAgg { category: string | null; canonical: boolean; sourceName?: string; }
+const marketAllMap = new Map<string, MarketAllAgg>(); // key = cropMergeKey(canonical)|unit
 for (const o of offeringRows ?? []) {
-  const name = (o.name ?? o.library?.name ?? 'Untitled product').trim();
+  // CANONICAL IDENTITY: prefer the linked product_library NAME (market_offerings
+  // is always library-linked) so a market's display override doesn't fork a real
+  // crop into its own row across channels. The offering's own override name is
+  // kept as the source spelling when it differs.
+  const libName = o.library?.name?.trim() || null;
+  const ownName = o.name?.trim() || null;
+  const name = (libName ?? ownName ?? 'Untitled product');
+  const canonical = !!libName;
+  const sourceName = libName && ownName && normCrop(ownName) !== normCrop(libName) ? ownName : undefined;
   const qty = Number(o.planned_qty) || 0;
   const unit = o.unit || 'each';
   const category = o.library?.category ?? null;
@@ -251,15 +264,20 @@ for (const o of offeringRows ?? []) {
     group = { id: mid, name: o.market?.name ?? 'Untagged', day: o.market?.day_of_week ?? null, items: [] };
     marketGroupMap.set(mid, group);
   }
-  group.items.push({ name, unit, qty, photo, category });
+  group.items.push({ name, unit, qty, photo, category, canonical, sourceName });
   // All-markets aggregate (for the overall harvest list), scoped to the
   // selected harvest day. On 'all' every market counts; on mon/thu only the
   // markets that map to that harvest tab (Tue → mon; Sat/Sun → thu).
   if (qty > 0 && marketInScope(o.market?.day_of_week)) {
-    const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
+    const key = `${cropMergeKey(name)}|${unit.toLowerCase()}`;
     const e = marketAllMap.get(key);
-    if (e) e.qty += qty;
-    else marketAllMap.set(key, { crop: name, unit, qty, category });
+    if (e) {
+      e.qty += qty;
+      if (!e.canonical && canonical) { e.crop = name; e.canonical = true; }
+      if (!e.sourceName && sourceName) e.sourceName = sourceName;
+    } else {
+      marketAllMap.set(key, { crop: name, unit, qty, category, canonical, sourceName });
+    }
   }
 }
 
@@ -269,7 +287,7 @@ for (const o of offeringRows ?? []) {
 interface WholesaleItemRow {
   product_name: string | null;
   qty: number;
-  product: { unit: string | null; photo_url: string | null; library: { photo_url: string | null; category: string | null } | null } | null;
+  product: { unit: string | null; photo_url: string | null; library: { name: string | null; photo_url: string | null; category: string | null } | null } | null;
 }
 interface WholesaleOrderRow { id: string; delivery_date: string; account_id: string | null; items: WholesaleItemRow[] | null; }
 const { data: wholesaleOrderRows, error: wholesaleErr } = await db
@@ -277,7 +295,7 @@ const { data: wholesaleOrderRows, error: wholesaleErr } = await db
   .select(
     'id, delivery_date, account_id, ' +
     'items:wholesale_order_items ( product_name, qty, ' +
-      'product:wholesale_products ( unit, photo_url, library:product_library ( photo_url, category ) ) )',
+      'product:wholesale_products ( unit, photo_url, library:product_library ( name, photo_url, category ) ) )',
   )
   // submitted AND confirmed/packed: manual admin-entered orders default to
   // 'confirmed' (0065) and edits preserve status — an eq('submitted') filter
@@ -290,23 +308,36 @@ const { data: wholesaleOrderRows, error: wholesaleErr } = await db
 if (wholesaleErr) {
   throw new Error(`pick-pack: wholesale_orders fetch failed: ${wholesaleErr.message}`);
 }
-interface WsaleAgg { crop: string; unit: string; qty: number; photo: string | null; category: string | null; }
-const wholesaleMap = new Map<string, WsaleAgg>(); // key = crop|unit
+interface WsaleAgg { crop: string; unit: string; qty: number; photo: string | null; category: string | null; canonical: boolean; sourceName?: string; }
+const wholesaleMap = new Map<string, WsaleAgg>(); // key = cropMergeKey(canonical)|unit
 for (const o of wholesaleOrderRows ?? []) {
   // Scope to the selected harvest day by delivery DOW (Fri/Sat → thu; else mon).
   if (!inScope(wholesaleTabFor(o.delivery_date))) continue;
   for (const it of o.items ?? []) {
-    const name = it.product_name?.trim();
-    if (!name) continue;
+    const rawName = it.product_name?.trim();   // the vendor's own spelling
+    if (!rawName) continue;
+    // CANONICAL IDENTITY: when the order item's wholesale_products row is linked
+    // to a product_library product, use the library's NAME as the crop identity
+    // so "Wild Dandelion Greens" folds into "Dandelion Greens" across channels.
+    const libName = it.product?.library?.name?.trim() || null;
+    const crop = libName ?? rawName;
+    const canonical = !!libName;
+    const sourceName = libName && normCrop(rawName) !== normCrop(libName) ? rawName : undefined;
     const unit = it.product?.unit?.trim() || 'each';
     const qty = Number(it.qty) || 0;
     if (qty <= 0) continue;
     const photo = it.product?.library?.photo_url ?? it.product?.photo_url ?? null;
     const category = it.product?.library?.category ?? null;
-    const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
+    const key = `${cropMergeKey(crop)}|${unit.toLowerCase()}`;
     const e = wholesaleMap.get(key);
-    if (e) { e.qty += qty; if (!e.photo && photo) e.photo = photo; }
-    else wholesaleMap.set(key, { crop: name, unit, qty, photo, category });
+    if (e) {
+      e.qty += qty;
+      if (!e.photo && photo) e.photo = photo;
+      if (!e.canonical && canonical) { e.crop = crop; e.canonical = true; }
+      if (!e.sourceName && sourceName) e.sourceName = sourceName;
+    } else {
+      wholesaleMap.set(key, { crop, unit, qty, photo, category, canonical, sourceName });
+    }
   }
 }
 const wholesaleRows = Array.from(wholesaleMap.values())
@@ -351,18 +382,19 @@ interface FlexOrderRow {
     name: string | null;
     unit: string | null;
     category: string | null;
-    library: { category: string | null } | null;
+    library: { name: string | null; category: string | null } | null;
   } | null;
 }
 // Photo for a flex-only crop line comes from libLookup(crop)/cropPhoto at render
-// (product_library by name, same as every other channel) — so the join only
-// needs name/unit/category. category precedence: product_library → flex_inventory.
+// (product_library by name, same as every other channel). The join pulls the
+// library NAME too so a flex item linked to a library product canonicalizes to
+// it. category precedence: product_library → flex_inventory.
 const { data: flexOrderRows, error: flexErr } = await db
   .from('flex_orders')
   .select(
     'member_id, qty, ' +
     'flex_inventory:flex_inventory ( name, unit, category, ' +
-      'library:product_library ( category ) )',
+      'library:product_library ( name, category ) )',
   )
   .eq('cycle_code', 'WEEKLY')
   .eq('week_starting', week_starting)
@@ -371,25 +403,36 @@ const { data: flexOrderRows, error: flexErr } = await db
 if (flexErr) {
   throw new Error(`pick-pack: flex_orders fetch failed: ${flexErr.message}`);
 }
-interface FlexAgg { crop: string; unit: string; qty: number; category: string | null; }
-const flexMap = new Map<string, FlexAgg>(); // key = crop|unit
+interface FlexAgg { crop: string; unit: string; qty: number; category: string | null; canonical: boolean; sourceName?: string; }
+const flexMap = new Map<string, FlexAgg>(); // key = cropMergeKey(canonical)|unit
 for (const fo of flexOrderRows ?? []) {
   // Day scope: 'all' keeps every order; mon/thu keeps only orders whose member
   // maps to that harvest tab. An unmapped member (undefined) fails the mon/thu
   // check and so shows on 'all' only.
   if (dayScope !== 'all' && memberFlexTab.get(fo.member_id) !== dayScope) continue;
-  const name = fo.flex_inventory?.name?.trim();
-  if (!name) continue;
+  const rawName = fo.flex_inventory?.name?.trim();
+  if (!rawName) continue;
   // Skip the base share subscription line — it's the box, not a crop to pick.
-  if (/CSA Share/i.test(name)) continue;
+  if (/CSA Share/i.test(rawName)) continue;
   const qty = Number(fo.qty) || 0;
   if (qty <= 0) continue;
+  // CANONICAL IDENTITY: a flex item linked to a product_library product (via
+  // flex_inventory.library_id) folds into that crop's line under the library name.
+  const libName = fo.flex_inventory?.library?.name?.trim() || null;
+  const name = libName ?? rawName;
+  const canonical = !!libName;
+  const sourceName = libName && normCrop(rawName) !== normCrop(libName) ? rawName : undefined;
   const unit = fo.flex_inventory?.unit?.trim() || 'each';
   const category = fo.flex_inventory?.library?.category ?? fo.flex_inventory?.category ?? null;
-  const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
+  const key = `${cropMergeKey(name)}|${unit.toLowerCase()}`;
   const e = flexMap.get(key);
-  if (e) e.qty += qty;
-  else flexMap.set(key, { crop: name, unit, qty, category });
+  if (e) {
+    e.qty += qty;
+    if (!e.canonical && canonical) { e.crop = name; e.canonical = true; }
+    if (!e.sourceName && sourceName) e.sourceName = sourceName;
+  } else {
+    flexMap.set(key, { crop: name, unit, qty, category, canonical, sourceName });
+  }
 }
 const flexRows = Array.from(flexMap.values())
   .filter((r) => r.qty > 0)
@@ -398,17 +441,24 @@ const flexRows = Array.from(flexMap.values())
 /* ──────────────────────────────────────────────────────────────────
  * 5. The MERGE — overall per-crop demand across all four channels.
  * ────────────────────────────────────────────────────────────────── */
-const csaDemand: CropDemandInput[] = csaRows.map((r) => ({
-  crop: r.crop, qty: r.qty, unit: r.unit, category: libLookup(r.crop).category,
-}));
+// CSA box-plan crops carry no library link, but many resolve to a library
+// product by name — pull the canonical library name when one exists so a box
+// crop merges with the same crop from the linked channels (and gets a category).
+const csaDemand: CropDemandInput[] = csaRows.map((r) => {
+  const lib = libLookup(r.crop);
+  return {
+    crop: lib.name ?? r.crop, qty: r.qty, unit: r.unit, category: lib.category,
+    canonical: !!lib.name, sourceName: lib.name && normCrop(lib.name) !== normCrop(r.crop) ? r.crop : undefined,
+  };
+});
 const marketDemand: CropDemandInput[] = Array.from(marketAllMap.values()).map((r) => ({
-  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
+  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category, canonical: r.canonical, sourceName: r.sourceName,
 }));
 const wholesaleDemand: CropDemandInput[] = wholesaleRows.map((r) => ({
-  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
+  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category, canonical: r.canonical, sourceName: r.sourceName,
 }));
 const flexDemand: CropDemandInput[] = flexRows.map((r) => ({
-  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category,
+  crop: r.crop, qty: r.qty, unit: r.unit, category: r.category, canonical: r.canonical, sourceName: r.sourceName,
 }));
 const merged = mergeCropDemand(csaDemand, marketDemand, wholesaleDemand, flexDemand);
 // ALPHABETICAL within each section (crew request, Todd 2026-07-13) — the
@@ -433,26 +483,14 @@ function cropPhoto(crop: string): string | null {
  * NEVER convert a row whose unit is ALREADY weight (lb/pound/#) — that qty is
  * already pounds, so multiplying would double-count. Only count/portion units
  * (each, clamshell, bag, box, bunch, …) get a lb figure. */
-const WEIGHT_UNIT_RE = /^(lb|lbs|pound|pounds|#)$/i;
-function isWeightUnit(unit: string | null | undefined): boolean {
-  return WEIGHT_UNIT_RE.test((unit ?? '').trim());
-}
 /**
  * Total pounds for `qty` packed units of `crop` on unit `unit`, or null when
  * there's nothing to show — no pack weight set, a weight-based unit (already
- * pounds), or a non-positive qty. Rounded to 1 decimal for the pack floor.
+ * pounds), or a non-positive qty. Thin wrapper over the pure packLbForUnits
+ * (lib/pick-pack) that supplies the crop's pack weight from the library lookup.
  */
 function packLb(crop: string, qty: number, unit: string): number | null {
-  const w = libLookup(crop).packWeightLb;
-  if (w == null || !(w > 0)) return null;
-  if (isWeightUnit(unit)) return null; // already pounds — don't double-count
-  if (!(qty > 0)) return null;
-  return Math.round(qty * w * 10) / 10;
-}
-/** "10 lb" / "10.5 lb" — trims a trailing ".0" for whole pounds. */
-function fmtLb(lb: number): string {
-  const s = Number.isInteger(lb) ? String(lb) : lb.toFixed(1);
-  return `${s} lb`;
+  return packLbForUnits(libLookup(crop).packWeightLb, qty, unit);
 }
 
 /* ── Combine package variants into ONE harvest line (total pounds) ────────
@@ -610,8 +648,12 @@ if (view === 'packhouse') {
     const destKey = acctName ? `ws:${o.account_id}` : NO_ACCT_KEY;
     const destLabel = acctName ?? '(no account)';
     for (const it of o.items ?? []) {
-      const name = it.product_name?.trim();
-      if (!name) continue;
+      const rawName = it.product_name?.trim();
+      if (!rawName) continue;
+      // Use the canonical library name (when linked) so this cell attaches to the
+      // SAME merged row the overall sheet built — a library rename that shares no
+      // text with the vendor name would otherwise orphan the cell.
+      const name = it.product?.library?.name?.trim() || rawName;
       const unit = it.product?.unit?.trim() || 'each';
       const qty = Number(it.qty) || 0;
       if (qty <= 0) continue;
@@ -626,16 +668,29 @@ if (view === 'packhouse') {
   }
 
   packhouseMatrix = buildDestinationMatrix(merged, destInputs);
-  // ALPHABETICAL block order (Todd 2026-07-09: "Can we put the list in
-  // alphabetical order?"). The crew works the sheet like a dictionary — find
-  // the crop, pack it. Tender-first ordering stays on the OVERALL harvest
-  // view (pick order matters there); here the amber tender bar still flags
-  // tenderness without dictating the sort.
-  if (packhouseMatrix) {
-    packhouseMatrix.rows = packhouseMatrix.rows
-      .slice()
-      .sort((a, b) => a.crop.localeCompare(b.crop, undefined, { sensitivity: 'base' }));
-  }
+}
+
+/* ── Pack-house CATEGORY SECTIONS (owner 2026-07-13) ──────────────────────
+ * Group the by-item blocks by crew section (Salad Greens, Bunching Greens,
+ * Alliums, Roots, Fruiting & Vegetables, Herbs, Flowers, Other) in CREW_SECTIONS
+ * order, items A→Z within — the crew works the sheet by product family. The
+ * amber tender flag still marks tender crops within a section; section order
+ * drives the layout, not tenderness (that pick-order lives on the overall view).
+ * No live check-off here, so regrouping never touches progress keys. */
+const packhouseSections: CrewSectionGroup<MatrixRow>[] = packhouseMatrix
+  ? groupBySection(packhouseMatrix.rows, (r) => r.category, (r) => r.crop)
+  : [];
+
+/** Total harvest pounds for a pack-house matrix row = Σ over its destination
+ *  cells of packLb(count × pack_weight_lb). Weight-based cells are already
+ *  pounds (packLbForUnits skips them), so they never double-count. null when the
+ *  crop has no pack weight (an ordinary counted crop). */
+function matrixRowLb(r: MatrixRow): number | null {
+  const w = libLookup(r.crop).packWeightLb;
+  if (w == null || !(w > 0)) return null;
+  let total = 0;
+  for (const cell of r.cells.values()) total += packLbForUnits(w, cell.qty, cell.unit) ?? 0;
+  return total > 0 ? Math.round(total * 10) / 10 : null;
 }
 
 /* ── Destination-kind glyph — a tiny prefix accent on each pack-block line so a
@@ -676,6 +731,21 @@ const overallConsumedCrops = new Set(
 const tenderRowsShown = tenderRows.filter((r) => !overallConsumedCrops.has(r.crop));
 const otherRowsShown = otherRows.filter((r) => !overallConsumedCrops.has(r.crop));
 
+/* ── CATEGORY SECTIONS for the "everything else" block (owner 2026-07-13) ──
+ * Tender greens stay their own amber pick-first group (pick order matters), but
+ * the non-tender remainder is grouped into crew sections (Roots, Alliums,
+ * Fruiting & Vegetables, Herbs, Flowers, Other) in CREW_SECTIONS order, A→Z
+ * within — so the crew reads the sheet by product family. ppKeys is unchanged
+ * (it still enumerates tenderRowsShown + otherRowsShown; grouping only reshapes
+ * the render, not the set of lines). */
+const otherSections = groupBySection(otherRowsShown, (r) => r.category, (r) => r.crop);
+/** The ordered render groups for the overall sheet: the tender pick-first band,
+ *  then one band per crew section of the non-tender remainder. */
+const overallGroups: { label: string; rows: typeof otherRowsShown; tender: boolean }[] = [
+  { label: t.tenderGroup, rows: tenderRowsShown, tender: true },
+  ...otherSections.map((s) => ({ label: t.sections[s.section], rows: s.items, tender: false })),
+];
+
 /* ── Compact printed OVERALL sheet (owner 2026-07-09: "make the harvest list we
  *    print more compact — down to one sheet"). Count the PRINT rows (combined
  *    groups + tender + other) and switch to a two-column print layout only when a
@@ -697,6 +767,10 @@ const wholesaleRowsShown = wholesaleRows.filter((_, i) => !wholesaleCombine.cons
 const marketItemsOrdered = selectedMarket ? orderMarketItems(selectedMarket.items) : [];
 const marketCombine = combineHarvest(marketItemsOrdered.map((it) => ({ crop: it.name, qty: it.qty, unit: it.unit })));
 const marketItemsShown = marketItemsOrdered.filter((_, i) => !marketCombine.consumed.has(i));
+// Per-market checklist gets the SAME category treatment as the pack-house +
+// overall sheets (owner 2026-07-13): group the non-combined items into crew
+// sections (A→Z within). ppKeys is unchanged (same set of items).
+const marketSections = groupBySection(marketItemsShown, (it) => it.category, (it) => it.name);
 // Order a market's items: tender greens first, then biggest qty.
 function orderMarketItems(items: MarketItem[]): MarketItem[] {
   return items.slice().sort((a, b) => {
@@ -1144,14 +1218,11 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                 </ol>
               </section>
             )}
-            {[
-              { label: t.tenderGroup, rows: tenderRowsShown, tender: true },
-              { label: t.otherGroup, rows: otherRowsShown, tender: false },
-            ].filter((g) => g.rows.length > 0).map((group) => (
+            {overallGroups.filter((g) => g.rows.length > 0).map((group) => (
               <section class="harvest-group" aria-label={group.label}>
                 <h3 class={[
                   'group-head rounded-ts-md px-4 py-2 font-display text-lg font-bold',
-                  group.tender ? 'tender-head' : '',
+                  group.tender ? 'tender-head' : 'category-head',
                 ].join(' ')}>{group.label}</h3>
                 <ol class="mt-2 flex flex-col">
                   {group.rows.map((r) => {
@@ -1184,6 +1255,9 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                             {r.crop}
                             {cc > 1 && <span class="ml-2 align-middle text-xs font-bold text-ts-primary">×{cc}</span>}
                           </p>
+                          {r.altNames.length > 0 && (
+                            <p class="pp-alt mt-0.5 text-xs font-medium italic text-ts-text-muted">{t.alsoWord}: {r.altNames.join(' · ')}</p>
+                          )}
                           <p class="pp-breakdown mt-0.5 text-sm font-medium text-ts-text-secondary tabular-nums">{parts.join('  ·  ')}</p>
                         </div>
                         <span class="pp-leader hidden" aria-hidden="true"></span>
@@ -1324,35 +1398,51 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                 </p>
               </Card>
             ) : (
-              <ol class="mt-4 flex flex-col">
-                {marketCombine.combined.map((g) => (
-                  <div style="display:contents" {...lineAttrs('group', g.harvestCrop, 'lb', g.totalLb)}>
-                    <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
-                  </div>
-                ))}
-                {marketItemsShown.map((it) => {
-                  const lb = packLb(it.name, it.qty, it.unit);
-                  return (
-                    <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', it.name, it.unit, it.qty)}>
-                      <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
-                      <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{it.name}</p>
-                      <div class="shrink-0 text-right">
-                        {it.qty > 0
-                          ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{it.qty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{it.unit}</span></>
-                          : <span class="text-sm font-semibold text-ts-text-muted">{it.unit}</span>}
-                        {lb != null && (
-                          <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
-                            {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
-                          </p>
-                        )}
+              <div class="mt-4 flex flex-col gap-5">
+                {marketCombine.combined.length > 0 && (
+                  <ol class="flex flex-col">
+                    {marketCombine.combined.map((g) => (
+                      <div style="display:contents" {...lineAttrs('group', g.harvestCrop, 'lb', g.totalLb)}>
+                        <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
                       </div>
-                    </li>
-                  );
-                })}
-              </ol>
+                    ))}
+                  </ol>
+                )}
+                {marketSections.map((section) => (
+                  <section class="harvest-group" aria-label={t.sections[section.section]}>
+                    <h3 class="group-head category-head rounded-ts-md px-4 py-2 font-display text-lg font-bold">{t.sections[section.section]}</h3>
+                    <ol class="mt-2 flex flex-col">
+                      {section.items.map((it) => {
+                        const lb = packLb(it.name, it.qty, it.unit);
+                        return (
+                          <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', it.name, it.unit, it.qty)}>
+                            <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                            <div class="min-w-0 flex-1">
+                              <p class="text-xl font-bold leading-tight text-ts-text">{it.name}</p>
+                              {it.sourceName && (
+                                <p class="mt-0.5 text-xs font-medium italic text-ts-text-muted">{t.alsoWord}: {it.sourceName}</p>
+                              )}
+                            </div>
+                            <div class="shrink-0 text-right">
+                              {it.qty > 0
+                                ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{it.qty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{it.unit}</span></>
+                                : <span class="text-sm font-semibold text-ts-text-muted">{it.unit}</span>}
+                              {lb != null && (
+                                <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                                  {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                                </p>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </section>
+                ))}
+              </div>
             )}
             <p class="mt-4 text-xs text-ts-text-muted">
-              Planned qty is the farmer's estimate of what to bring to the {selectedMarket.name} stall this week. Tender greens listed first.
+              Planned qty is the farmer's estimate of what to bring to the {selectedMarket.name} stall this week. Grouped by product family.
               Set the list at <a href="/admin/market" class="font-semibold text-ts-primary hover:underline">Market list</a>.
             </p>
           </>
@@ -1367,20 +1457,22 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       </section>
     )}
 
-    {/* ═══════════════ PACK HOUSE — BY-ITEM BLOCKS ═══════════════
-        REDESIGNED (owner feedback: the wide crop × destination GRID was "sprawling
-        and challenging for the team to read"). Now ONE portrait column of crop
-        BLOCKS in the crew's own label DNA: crop name is the LARGEST text, a row
-        tick box in front, the total (w/ unit) on the right, then ONE LINE PER
-        DESTINATION (checkbox + tiny type glyph + name · dot leaders · bold qty),
-        listing ONLY the destinations that actually take that crop. A thin colored
-        left-edge bar flags tender crops (amber); others neutral. Low ink, generous
-        whitespace, blocks never split across a page — legibility over density.
+    {/* ═══════════════ PACK HOUSE — COMPACT BY-ITEM (category sections) ═══════════════
+        RE-REDESIGNED (owner 2026-07-13). The failed layouts: the wide crop ×
+        destination GRID was unreadable; the tall one-line-per-destination blocks
+        ran 6–8 pages ("too many pages"). This is the MIDDLE: crops grouped into
+        CREW SECTIONS (bold category band), each crop a compact 2-LINE unit —
+          line 1: [tick] CROP (bold) …dot leaders… TOTAL (bold) · lb
+          line 2: the destination splits inline, one line, with type glyphs
+                  ("🥬 CSA 12 (8S/4L) · 🛒 Lawrenceville 8 · 🍽 Legume 6 · 🌿 Flex 4")
+        Zebra-tinted alternate units; blocks never split across a page; ≥11pt
+        floors. Target ≤3 pages for a full week.
 
-        Data is UNCHANGED: buildDestinationMatrix supplies the SAME tender-first
-        rows + the SAME per-destination cells (row total reused verbatim from
-        `merged`, cells sum to it). This is purely a render change. No live
-        check-off here (paper distribution sheet) — the tick boxes are for pen. */}
+        Data is UNCHANGED: buildDestinationMatrix supplies the SAME rows + cells
+        (row total reused verbatim from `merged`, cells sum to it); groupBySection
+        only reshapes the render. No live check-off here (paper sheet) — the tick
+        box is for pen. Portioned products show total harvest pounds beside the
+        count (matrixRowLb = Σ count × pack_weight_lb). */}
     {view === 'packhouse' && (
       <section aria-labelledby="pp-pack-heading" class="packhouse-doc">
         <header class="doc-band rounded-ts-lg px-5 py-4">
@@ -1394,65 +1486,82 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
             <p class="text-center text-sm text-ts-text-secondary">{t.nothing}</p>
           </Card>
         ) : (
-          <div class="mt-4 flex flex-col gap-3">
-            {packhouseMatrix.rows.map((r) => {
-              // Only the destinations with demand for THIS crop, in column order
-              // (CSA → markets → wholesale → Flex). Short blocks by construction.
-              // Materialize (col, cell) pairs so the template needn't re-look-up.
-              const destLines = packhouseMatrix!.columns.flatMap((col) => {
-                const cell = r.cells.get(col.key);
-                return cell ? [{ col, cell }] : [];
-              });
-              return (
-                <article class={['pack-block', r.tender ? 'pack-block-tender' : ''].join(' ')}>
-                  {/* Header line — crop name LARGEST, tick box in front, total right. */}
-                  <div class="pack-head">
-                    <span class="pack-check pack-check-lg" aria-hidden="true"></span>
-                    <h3 class="pack-crop">{r.crop}</h3>
-                    <span class="pack-total">
-                      <span class="pack-total-num">{r.totalQty.toLocaleString()}</span>
-                      {r.mixedUnits
-                        ? <span class="pack-total-star">*</span>
-                        : (r.dominantUnit && <span class="pack-total-unit">{r.dominantUnit}</span>)}
-                    </span>
-                  </div>
-                  {r.tender && <p class="pack-tender-flag">🌱 tender — pick &amp; cool first</p>}
-
-                  {/* One destination per line: tick + glyph + name · leaders · qty. */}
-                  <ul class="pack-dests">
-                    {destLines.map(({ col, cell }) => (
-                      <li class="pack-dest">
-                        <span class="pack-check" aria-hidden="true"></span>
-                        <span class="pack-dest-name">{destGlyph(col.kind)} {col.label}</span>
-                        <span class="pack-leader" aria-hidden="true"></span>
-                        <span class="pack-dest-qty">
-                          {cell.qty.toLocaleString()}
-                          {cell.unit !== r.dominantUnit && <span class="pack-dest-unit">{cell.unit}</span>}
-                        </span>
-                        {col.kind === 'csa' && cell.sizeSplit && (cell.sizeSplit.small > 0 || cell.sizeSplit.large > 0) && (
-                          <span class="pack-split">{cell.sizeSplit.small}S / {cell.sizeSplit.large}L</span>
+          <div class="mt-4 flex flex-col gap-4">
+            {packhouseSections.map((section) => (
+              <section class="pack-section" aria-label={t.sections[section.section]}>
+                <h3 class="pack-section-head">{t.sections[section.section]}</h3>
+                <div class="pack-section-body">
+                  {section.items.map((r) => {
+                    // Destinations that actually take this crop, in column order
+                    // (CSA → markets → wholesale → Flex) — inline on line 2.
+                    const destLines = packhouseMatrix!.columns.flatMap((col) => {
+                      const cell = r.cells.get(col.key);
+                      return cell ? [{ col, cell }] : [];
+                    });
+                    const rowLb = matrixRowLb(r);
+                    return (
+                      <article class={['pack-unit', r.tender ? 'pack-unit-tender' : ''].join(' ')}>
+                        {/* Line 1 — tick + CROP …leaders… TOTAL · lb. */}
+                        <div class="pack-unit-head">
+                          <span class="pack-check" aria-hidden="true"></span>
+                          <span class="pack-unit-name">
+                            {r.crop}
+                            {r.tender && <span class="pack-tender-tag" aria-hidden="true">🌱</span>}
+                          </span>
+                          <span class="pack-unit-leader" aria-hidden="true"></span>
+                          <span class="pack-unit-amount">
+                            <span class="pack-unit-total">{r.totalQty.toLocaleString()}</span>
+                            {r.mixedUnits
+                              ? <span class="pack-total-star">*</span>
+                              : (r.dominantUnit && <span class="pack-unit-unit">{r.dominantUnit}</span>)}
+                            {rowLb != null && <span class="pack-unit-lb">· {fmtLb(rowLb)}</span>}
+                          </span>
+                        </div>
+                        {/* Optional: outlet spellings that differ from the canonical crop. */}
+                        {r.altNames.length > 0 && (
+                          <p class="pack-unit-alt">{t.alsoWord}: {r.altNames.join(' · ')}</p>
                         )}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Blank pen line for wash / attention notes. */}
-                  <p class="pack-notes">
-                    <span class="pack-notes-label">{t.notesCol}</span>
-                    <span class="pack-notes-line" aria-hidden="true"></span>
-                  </p>
-                </article>
-              );
-            })}
+                        {/* Line 2 — destination splits, inline, glyph + qty. */}
+                        <p class="pack-splits">
+                          {destLines.map(({ col, cell }, i) => (
+                            <span class="pack-split-item">
+                              {i > 0 && <span class="pack-split-sep" aria-hidden="true"> · </span>}
+                              <span class="pack-split-glyph" aria-hidden="true">{destGlyph(col.kind)}</span>
+                              <span class="pack-split-label">{col.label}</span>
+                              {' '}
+                              <span class="pack-split-qty">{cell.qty.toLocaleString()}</span>
+                              {cell.unit !== r.dominantUnit && <span class="pack-split-unit">{cell.unit}</span>}
+                              {col.kind === 'csa' && cell.sizeSplit && (cell.sizeSplit.small > 0 || cell.sizeSplit.large > 0) && (
+                                <span class="pack-split-size"> ({cell.sizeSplit.small}S/{cell.sizeSplit.large}L)</span>
+                              )}
+                            </span>
+                          ))}
+                        </p>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
         <p class="mt-4 text-xs text-ts-text-muted">
           {t.packhouseHint}
-          {packhouseMatrix?.rows.some((r) => r.mixedUnits) && <span class="ml-1">(<span class="font-bold">*</span> = this crop is measured in more than one unit across destinations; read each line's own unit.)</span>}
+          {packhouseMatrix?.rows.some((r) => r.mixedUnits) && <span class="ml-1">(<span class="font-bold">*</span> = this crop is measured in more than one unit across destinations; read each split's own unit.)</span>}
         </p>
       </section>
     )}
   </div>
+
+  {/* One-tap print: when arrived via a ?print=1 button, open the print dialog
+      once the sheet has painted. A short delay lets photos/fonts settle. */}
+  {autoPrint && (
+    <script is:inline>
+      window.addEventListener('load', function () {
+        window.setTimeout(function () { window.print(); }, 500);
+      });
+    </script>
+  )}
 </AdminShell>
 
 <style is:global>
@@ -1488,6 +1597,12 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     background: #fde68a;           /* amber — pick these FIRST */
     color: #5b3d00;
   }
+  /* Category / crew-section bands (Roots, Alliums, …) — a soft pine tint so the
+     product-family header reads as a band without heavy ink. Prints in color. */
+  .group-head.category-head {
+    background: #dfe7e2;
+    color: #14231c;
+  }
   /* ⚠ MAKE-UPS subtotal — loud red, prints in color (a missed make-up is the
      failure this exists to prevent). */
   .makeups-banner {
@@ -1498,100 +1613,99 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     print-color-adjust: exact;
   }
 
-  /* ── PACK HOUSE — BY-ITEM BLOCKS (redesign) ─────────────────────────────
-     REPLACES the old wide crop × destination grid (owner: "sprawling and
-     challenging to read"). One PORTRAIT column of crop blocks in the crew's own
-     label DNA: crop name is the largest text, a tick box in front, the total on
-     the right, then one dot-leadered line per destination. Small color accents
-     only (a thin left-edge bar; a glyph per line) — no fills, low ink. Blocks
-     never split across a page. The SAME markup renders on screen + print. */
-  .pack-block {
-    border: 1px solid var(--ts-border);
-    border-left: 5px solid #cbd5e1;   /* neutral left bar (non-tender crops) */
-    border-radius: 8px;
-    padding: 10px 16px 12px;
-    background: #ffffff;
-    break-inside: avoid;
-    page-break-inside: avoid;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  /* Tender crops — amber left edge (the existing pack-day tender accent). */
-  .pack-block-tender { border-left-color: #f59e0b; }
+  /* ── PACK HOUSE — COMPACT BY-ITEM, CATEGORY SECTIONS (owner 2026-07-13) ──
+     The MIDDLE between the unreadable wide grid and the 6–8-page tall blocks:
+     crops in bold CATEGORY BANDS, each crop a compact 2-line unit —
+       line 1: [tick] CROP …dot leaders… TOTAL · lb
+       line 2: the destination splits inline, one line, with type glyphs.
+     Thin left bar flags tender; zebra-tinted alternate units; low ink. Units
+     never split across a page. Same markup on screen + print. */
 
-  /* Header line: [tick] crop name (LARGEST) ……… total (right). */
-  .pack-head { display: flex; align-items: baseline; gap: 12px; }
-  .pack-crop {
-    flex: 1 1 auto;
-    min-width: 0;
+  /* Category section: a bold band header + its units. The header stays with its
+     first unit (break-after: avoid); the section body may flow across pages. */
+  .pack-section { break-inside: auto; }
+  .pack-section-head {
+    background: #dfe7e2;             /* soft pine tint — the pack-day motif */
+    color: #14231c;
     font-family: var(--ts-font-display, inherit);
-    font-size: 1.3rem;               /* ~21px screen; ↑ 18pt in print */
     font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-    color: var(--ts-text);
-    word-break: break-word;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 5px 12px;
+    border-radius: 6px;
+    break-after: avoid; page-break-after: avoid;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .pack-total { flex: none; white-space: nowrap; }
-  .pack-total-num {
+  .pack-section-body { margin-top: 4px; }
+
+  /* One crop = a compact 2-line unit. Thin neutral left bar; amber for tender. */
+  .pack-unit {
+    border-left: 4px solid #cbd5e1;
+    padding: 5px 10px 6px;
+    break-inside: avoid; page-break-inside: avoid;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .pack-unit-tender { border-left-color: #f59e0b; }
+  /* Zebra striping — light tint on alternate units so the eye tracks a crop
+     across the sheet. Low ink; forced to print. */
+  .pack-section-body .pack-unit:nth-child(even) {
+    background: #f4f6f5;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  /* Line 1 — [tick] CROP ……… TOTAL · lb. */
+  .pack-unit-head { display: flex; align-items: baseline; gap: 8px; }
+  .pack-unit-name {
+    flex: 0 1 auto; min-width: 0;
     font-family: var(--ts-font-display, inherit);
-    font-size: 1.4rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
+    font-size: 1.05rem;              /* ~17px screen; ↑ 13–14pt print */
+    font-weight: 800; line-height: 1.15; letter-spacing: -0.01em;
+    color: var(--ts-text); word-break: break-word;
+  }
+  .pack-tender-tag { margin-left: 5px; font-size: 0.8rem; }
+  .pack-unit-leader {
+    flex: 1 1 auto; min-width: 0.5rem;
+    align-self: baseline;
+    border-bottom: 1.5px dotted #9ca3af; transform: translateY(-4px);
+  }
+  .pack-unit-amount { flex: none; white-space: nowrap; }
+  .pack-unit-total {
+    font-family: var(--ts-font-display, inherit);
+    font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums;
     color: var(--ts-text);
   }
-  .pack-total-unit { margin-left: 4px; font-size: 0.85rem; font-weight: 600; color: var(--ts-text-secondary); }
-  .pack-total-star { margin-left: 2px; font-size: 0.75rem; font-weight: 700; color: var(--ts-text-muted); vertical-align: super; }
-  .pack-tender-flag {
-    margin-top: 2px; margin-left: 34px;
-    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-    color: #b45309;                  /* amber-700 — readable on white */
+  .pack-unit-unit { margin-left: 3px; font-size: 0.78rem; font-weight: 600; color: var(--ts-text-secondary); }
+  .pack-total-star { margin-left: 2px; font-size: 0.72rem; font-weight: 700; color: var(--ts-text-muted); vertical-align: super; }
+  .pack-unit-lb { margin-left: 5px; font-size: 0.82rem; font-weight: 800; color: #166534; font-variant-numeric: tabular-nums; }
+
+  /* Optional outlet-spelling annotation (canonical merge). */
+  .pack-unit-alt {
+    margin: 1px 0 0; padding-left: 26px;
+    font-size: 0.72rem; font-weight: 500; font-style: italic; color: var(--ts-text-muted);
   }
 
-  /* Destination lines — indented under the crop name (past the header tick box). */
-  .pack-dests {
-    margin-top: 8px;
-    padding-left: 34px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+  /* Line 2 — destination splits inline, one line (wraps only if it must). */
+  .pack-splits {
+    margin: 2px 0 0; padding-left: 26px;
+    font-size: 0.86rem; line-height: 1.3; color: var(--ts-text);
   }
-  .pack-dest { display: flex; align-items: baseline; gap: 8px; }
-  .pack-dest-name { flex: none; font-size: 0.98rem; font-weight: 600; color: var(--ts-text); }
-  .pack-leader {
-    flex: 1 1 auto;
-    min-width: 1rem;
-    border-bottom: 2px dotted #cbd5e1;
-    transform: translateY(-4px);
-  }
-  .pack-dest-qty {
-    flex: none;
-    font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums;
-    color: var(--ts-text); white-space: nowrap;
-  }
-  .pack-dest-unit { margin-left: 3px; font-size: 0.75rem; font-weight: 600; color: var(--ts-text-secondary); }
-  .pack-split { flex: none; font-size: 0.82rem; font-weight: 700; color: var(--ts-text-secondary); white-space: nowrap; }
+  .pack-split-item { white-space: nowrap; }
+  .pack-split-sep { color: var(--ts-text-muted); }
+  .pack-split-glyph { margin-right: 1px; }
+  .pack-split-label { font-weight: 600; color: var(--ts-text-secondary); }
+  .pack-split-qty { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pack-split-unit { margin-left: 2px; font-size: 0.72rem; font-weight: 600; color: var(--ts-text-secondary); }
+  .pack-split-size { font-size: 0.78rem; font-weight: 700; color: var(--ts-text-secondary); }
 
-  /* Blank pen line for wash / attention notes. */
-  .pack-notes {
-    margin-top: 9px;
-    padding-left: 34px;
-    display: flex; align-items: baseline; gap: 8px;
-    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-    color: var(--ts-text-muted);
-  }
-  .pack-notes-label { flex: none; }
-  .pack-notes-line { flex: 1 1 auto; min-width: 6rem; border-bottom: 1px solid var(--ts-border); transform: translateY(-3px); }
-
-  /* Tick boxes — pen boxes (no live check-off on this paper sheet). */
+  /* Tick box — pen box (no live check-off on this paper sheet). */
   .pack-check {
     display: inline-block; flex: none;
-    width: 1.05rem; height: 1.05rem;
+    width: 1rem; height: 1rem;
     border: 2px solid #1a2230; border-radius: 3px; background: #fff;
     transform: translateY(2px);
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .pack-check-lg { width: 1.45rem; height: 1.45rem; transform: translateY(3px); }
 
   @page pack-portrait { size: Letter portrait; margin: 0.5in; }
 
@@ -1612,17 +1726,24 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     .harvest-row p { font-size: 14pt; }
 
     /* PACK HOUSE by-item blocks — PORTRAIT (kills the old landscape grid), big
-       legible type, each block kept whole on its page. Crop names ≥16pt (18pt),
-       destination lines ≥11pt (12pt) per the mobile-farm-UX big-type rule. */
+       legible type, each unit kept whole on its page. Crop names 13.5pt, totals
+       14pt, the inline destination splits at the 11pt floor per the mobile-farm-
+       UX big-type rule. Section bands 11pt. Target ≤3 pages for a full week. */
     .packhouse-doc { page: pack-portrait; }
-    .packhouse-doc .pack-block { break-inside: avoid; page-break-inside: avoid; }
-    .packhouse-doc .pack-crop { font-size: 18pt; }
-    .packhouse-doc .pack-total-num { font-size: 17pt; }
-    .packhouse-doc .pack-dest-name { font-size: 12pt; }
-    .packhouse-doc .pack-dest-qty { font-size: 13pt; }
-    .packhouse-doc .pack-split { font-size: 11pt; }
+    .packhouse-doc .pack-unit { break-inside: avoid; page-break-inside: avoid; }
+    .packhouse-doc .pack-section-head { font-size: 11pt; padding: 3px 8px; }
+    .packhouse-doc .pack-unit-name { font-size: 13.5pt; }
+    .packhouse-doc .pack-unit-total { font-size: 14pt; }
+    .packhouse-doc .pack-unit-lb { font-size: 11pt; }
+    .packhouse-doc .pack-splits { font-size: 11pt; line-height: 1.25; }
+    .packhouse-doc .pack-split-size { font-size: 10.5pt; }
+    .packhouse-doc .pack-unit-alt { font-size: 9pt; }
     .packhouse-doc .pack-check { border-color: #000; }
-    .packhouse-doc .pack-block-tender { border-left-color: #f59e0b !important; }
+    .packhouse-doc .pack-unit-tender { border-left-color: #f59e0b !important; }
+    /* Tighten vertical rhythm so a full week lands in ≤3 pages. */
+    .packhouse-doc .pack-section { margin-bottom: 6px; }
+    .packhouse-doc .pack-unit { padding-top: 3px; padding-bottom: 4px; }
+    .packhouse-doc .pack-splits { margin-top: 1px; }
 
     /* ══ COMPACT PRINTED OVERALL HARVEST SHEET ════════════════════════════════
        Owner 2026-07-09: "make the harvest list we print more compact — down to
@@ -1681,8 +1802,10 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     /* Per-channel chips + any secondary line → OFF in print (the number the crew
-       harvests is the TOTAL; channel splits belong on the pack-house sheet). */
-    .pp-overall .pp-breakdown { display: none; }
+       harvests is the TOTAL; channel splits + outlet aliases belong on the
+       pack-house sheet, where crates get matched to destinations). */
+    .pp-overall .pp-breakdown,
+    .pp-overall .pp-alt { display: none; }
 
     /* Dot leader between name and amount. */
     .pp-overall .pp-leader {

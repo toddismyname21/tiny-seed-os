@@ -86,6 +86,25 @@ const DAY_LONG: Record<string, string> = {
   Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
 };
 
+/** Harvest-day scope a market's checklist should print under, from its day of
+ *  week (Tue → Monday harvest; Sat/Sun → Thursday harvest). null when untagged
+ *  (prints the whole-week list). Keeps the day-explicit lesson (Todd 2026-07-09:
+ *  a day-less print merged Mon + Thu). */
+function marketDayScope(day: string | null): 'mon' | 'thu' | null {
+  if (day === 'Tue') return 'mon';
+  if (day === 'Sat' || day === 'Sun') return 'thu';
+  return null;
+}
+/** One-tap print href for a market checklist: the per-market view, scoped to its
+ *  harvest day, auto-opening the print dialog on load. */
+function marketPrintHref(id: string, day: string | null): string {
+  const scope = marketDayScope(day);
+  const params = new URLSearchParams({ view: 'market', market: id });
+  if (scope) params.set('day', scope);
+  params.set('print', '1');
+  return `/admin/pick-pack/${week_starting}?${params.toString()}`;
+}
+
 const cardBtnClass =
   'mt-3 inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-3 text-xs font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark';
 const cardBtnGhostClass =
@@ -218,6 +237,36 @@ const cardBtnGhostClass =
       </div>
     </Card>
   </section>
+
+  {/* ── 🖨 Print a market — ONE-TAP per-market checklists ─────────────
+      Owner 2026-07-13: printing a single market (Lawrenceville first) should be
+      one tap. Each button opens that market's checklist scoped to its harvest
+      day and auto-fires the print dialog. Markets are already sorted Tue → Sat →
+      Sun (marketCards), so Lawrenceville (Tue) leads. Only markets with demand
+      this week appear. */}
+  {marketCards.length > 0 && (
+    <section aria-labelledby="pp-printmarket-heading" class="flex flex-col gap-3">
+      <h2 id="pp-printmarket-heading" class="font-display text-xl font-bold text-ts-text">Print a market</h2>
+      <Card padding="md" elevation="sm">
+        <p class="text-sm text-ts-text-secondary">
+          One tap prints a single market's harvest checklist — grouped by product family, scoped to its harvest day.
+        </p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          {marketCards.map((mk) => (
+            <a
+              href={marketPrintHref(mk.id, mk.day)}
+              class="inline-flex h-11 items-center justify-center gap-2 rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+            >
+              🖨 {mk.name}
+              <span class="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+                {mk.day ? DAY_LONG[mk.day] ?? mk.day : 'All week'}
+              </span>
+            </a>
+          ))}
+        </div>
+      </Card>
+    </section>
+  )}
 
   {/* ── Per-channel checklists ────────────────────────────────────── */}
   <section aria-labelledby="pp-channels-heading" class="flex flex-col gap-4">

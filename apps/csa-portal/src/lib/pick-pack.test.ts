@@ -12,6 +12,8 @@ import assert from 'node:assert/strict';
 import {
   normCrop, slugForKey, pickPackLineKey, isTenderGreen,
   mergeCropDemand, channelCount, buildDestinationMatrix,
+  aliasNormalize, cropMergeKey, crewSection, crewSectionRank, groupBySection,
+  isWeightUnit, packLbForUnits, fmtLb, CREW_SECTIONS,
   type CropDemandInput, type DestDemandInput,
 } from './pick-pack.ts';
 
@@ -248,6 +250,203 @@ assert.equal(pickPackLineKey('group', 'King Spring Mix'), 'g:king-spring-mix');
   assert.equal(cell.qty, 30, 'two CSA inputs summed into one cell');
   assert.deepEqual(cell.sizeSplit, { small: 20, large: 10 }, 'splits summed across the two inputs');
   assert.equal(cell.sizeSplit!.small + cell.sizeSplit!.large, cell.qty, 'accumulated split still sums to qty');
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * CANONICAL ITEM IDENTITY (owner 2026-07-13) — the alias-normalizer folds the
+ * same real-world crop, spelled differently by different outlets, into ONE row.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+/* ── aliasNormalize peels leading vendor adjectives; cropMergeKey == it ── */
+assert.equal(aliasNormalize('Local Organic Radicchio'), 'radicchio', 'Local + Organic stripped');
+assert.equal(aliasNormalize('Wild Dandelion Greens'), 'dandelion greens', 'Wild stripped, "greens" kept');
+assert.equal(aliasNormalize('Fresh Basil'), 'basil');
+assert.equal(aliasNormalize('Certified Organic Kale'), 'kale', 'multi-word prefix stripped');
+assert.equal(aliasNormalize('Radicchio'), 'radicchio', 'no-prefix name unchanged');
+assert.equal(cropMergeKey('Local Organic Radicchio'), cropMergeKey('Radicchio'), 'aliases share a merge key');
+// A name that IS just a prefix is never peeled to nothing.
+assert.equal(aliasNormalize('Fresh'), 'fresh', 'a bare prefix survives (never emptied)');
+// "Baby" is deliberately NOT stripped — baby kale is a distinct product.
+assert.notEqual(aliasNormalize('Baby Kale'), aliasNormalize('Kale'), 'Baby is preserved (distinct crop)');
+// slugForKey now rides on cropMergeKey (line-key canonicalization).
+assert.equal(slugForKey('Local Organic Radicchio'), 'radicchio');
+// Regression: the documented unit-suffix slug is unchanged (no vendor prefix).
+assert.equal(slugForKey('King Spring Mix (per lb)'), 'king-spring-mix');
+
+/* ── The three CONCRETE merges for the 2026-07-13 week (unlinked, text-only) ── */
+{
+  // Harvie (wholesale) spells them one way; the box/market spell them the library way.
+  const csa: CropDemandInput[] = [
+    { crop: 'Radicchio', qty: 12, unit: 'head' },
+    { crop: 'Dandelion Greens', qty: 8, unit: 'bunch' },
+  ];
+  const market: CropDemandInput[] = [{ crop: 'Salad Mix', qty: 20, unit: 'bag' }];
+  const wholesale: CropDemandInput[] = [
+    { crop: 'Local Organic Radicchio', qty: 6, unit: 'head', sourceName: 'Local Organic Radicchio' },
+    { crop: 'Wild Dandelion Greens', qty: 4, unit: 'bunch', sourceName: 'Wild Dandelion Greens' },
+    { crop: 'Organic Salad Mix', qty: 5, unit: 'bag', sourceName: 'Organic Salad Mix' },
+  ];
+  const rows = mergeCropDemand(csa, market, wholesale);
+  assert.equal(rows.length, 3, 'three real crops → three rows (aliases merged, not 6)');
+  const rad = rows.find((r) => normCrop(r.crop) === 'radicchio')!;
+  assert.equal(rad.totalQty, 18, 'Radicchio 12 + 6 = 18 (Local Organic folded in)');
+  assert.deepEqual(rad.altNames, ['Local Organic Radicchio'], 'vendor spelling surfaced as an altName');
+  const dan = rows.find((r) => normCrop(r.crop) === 'dandelion greens')!;
+  assert.equal(dan.totalQty, 12, 'Dandelion Greens 8 + 4 = 12');
+  assert.deepEqual(dan.altNames, ['Wild Dandelion Greens']);
+  const sal = rows.find((r) => normCrop(r.crop) === 'salad mix')!;
+  assert.equal(sal.totalQty, 25, 'Salad Mix 20 + 5 = 25');
+}
+
+/* ── A LIBRARY-canonical name (linked line) wins the display + upgrades a row
+ *    first seen under an outlet spelling that shares NO text with it. ── */
+{
+  // CSA plan says "King Spring Mix"; wholesale is linked to the same library
+  // product but the order item was named "Baby Kale Mix" by the vendor. The page
+  // passes the canonical library name with canonical:true + the vendor sourceName.
+  const csa: CropDemandInput[] = [{ crop: 'King Spring Mix', qty: 30, unit: 'bag' }];
+  const wholesale: CropDemandInput[] = [
+    { crop: 'King Spring Mix', qty: 10, unit: 'lb', canonical: true, sourceName: 'Baby Kale Mix' },
+  ];
+  const rows = mergeCropDemand(csa, [], wholesale);
+  assert.equal(rows.length, 1, 'linked line merged into the box line by canonical name');
+  assert.equal(rows[0].crop, 'King Spring Mix', 'canonical library name is the display');
+  assert.deepEqual(rows[0].altNames, ['Baby Kale Mix'], 'the vendor spelling is surfaced');
+  assert.equal(rows[0].totalQty, 40);
+}
+
+/* ── Canonical name upgrades display even when seen SECOND ── */
+{
+  const rows = mergeCropDemand(
+    [{ crop: 'radicchio', qty: 5, unit: 'head' }],            // non-canonical, lowercased
+    [],
+    [{ crop: 'Radicchio', qty: 3, unit: 'head', canonical: true }], // canonical, seen later
+  );
+  assert.equal(rows[0].crop, 'Radicchio', 'canonical spelling wins the display even seen 2nd');
+}
+
+/* ── buildDestinationMatrix inherits the SAME canonical identity ── */
+{
+  const merged = mergeCropDemand(
+    [{ crop: 'Radicchio', qty: 12, unit: 'head' }],
+    [], [{ crop: 'Local Organic Radicchio', qty: 6, unit: 'head', sourceName: 'Local Organic Radicchio' }],
+  );
+  const matrix = buildDestinationMatrix(merged, [
+    { crop: 'Radicchio', qty: 12, unit: 'head', kind: 'csa', destKey: 'csa', destLabel: 'CSA' },
+    // The wholesale cell uses the VENDOR spelling — must still attach to the row.
+    { crop: 'Local Organic Radicchio', qty: 6, unit: 'head', kind: 'wholesale', destKey: 'ws:a', destLabel: 'Dish' },
+  ]);
+  assert.equal(matrix.rows.length, 1, 'one canonical row');
+  const r = matrix.rows[0];
+  assert.equal(r.cells.get('csa')!.qty, 12);
+  assert.equal(r.cells.get('ws:a')!.qty, 6, 'vendor-spelled cell attached via cropMergeKey');
+  let sum = 0; for (const c of r.cells.values()) sum += c.qty;
+  assert.equal(sum, r.totalQty, 'Σ cells == total holds across alias spellings');
+  assert.deepEqual(r.altNames, ['Local Organic Radicchio'], 'matrix row carries the altName');
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * CREW SECTIONS — category → section mapping + name fallback + grouping.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+// Every live product_library.category maps to a real crew section.
+assert.equal(crewSection('Salad Mixes'), 'Salad Greens');
+assert.equal(crewSection('Salad Greens'), 'Salad Greens');
+assert.equal(crewSection('Head Lettuce & Chicories'), 'Salad Greens');
+assert.equal(crewSection('Bunching Greens'), 'Bunching Greens');
+assert.equal(crewSection('Brassicas'), 'Bunching Greens');
+assert.equal(crewSection('Alliums'), 'Alliums');
+assert.equal(crewSection('Roots'), 'Roots');
+assert.equal(crewSection('Tomatoes'), 'Fruiting & Vegetables');
+assert.equal(crewSection('Peppers'), 'Fruiting & Vegetables');
+assert.equal(crewSection('Squash & Fruiting'), 'Fruiting & Vegetables');
+assert.equal(crewSection('Herbs'), 'Herbs');
+assert.equal(crewSection('Edible Flowers'), 'Flowers');
+assert.equal(crewSection('Mushrooms'), 'Other');
+assert.equal(crewSection('Specialty'), 'Other');
+// Unknown / blank category → Other (no crash).
+assert.equal(crewSection('Nonsense'), 'Other');
+assert.equal(crewSection(null), 'Other');
+assert.equal(crewSection(''), 'Other');
+// Category is case-insensitive.
+assert.equal(crewSection('bunching greens'), 'Bunching Greens');
+
+// Name-keyword fallback when NO category (CSA box-plan crops).
+assert.equal(crewSection(null, 'Kale'), 'Bunching Greens');
+assert.equal(crewSection(null, 'Rainbow Carrots'), 'Roots');
+assert.equal(crewSection(null, 'Scallions'), 'Alliums');
+assert.equal(crewSection(null, 'Cherry Tomatoes'), 'Fruiting & Vegetables');
+assert.equal(crewSection(null, 'Genovese Basil'), 'Herbs');
+assert.equal(crewSection(null, 'Sunflower Bouquet'), 'Flowers');
+assert.equal(crewSection(null, 'Butterhead Lettuce'), 'Salad Greens');
+assert.equal(crewSection(null, 'Widget'), 'Other', 'no keyword hit → Other');
+// Category ALWAYS wins over the name guess.
+assert.equal(crewSection('Roots', 'Kale'), 'Roots', 'category beats name keyword');
+
+// crewSectionRank matches CREW_SECTIONS order.
+assert.equal(crewSectionRank('Salad Greens'), 0);
+assert.equal(crewSectionRank('Other'), CREW_SECTIONS.length - 1);
+assert.ok(crewSectionRank('Alliums') < crewSectionRank('Roots'));
+
+/* ── groupBySection: ordered sections, A→Z within, empties dropped ── */
+{
+  interface Row { crop: string; category: string | null; }
+  const rows: Row[] = [
+    { crop: 'Zucchini', category: 'Squash & Fruiting' },
+    { crop: 'Arugula', category: 'Salad Greens' },
+    { crop: 'Kale', category: 'Bunching Greens' },
+    { crop: 'Beets', category: 'Roots' },
+    { crop: 'Carrots', category: 'Roots' },
+    { crop: 'Basil', category: 'Herbs' },
+    { crop: 'Cabbage', category: null }, // → Bunching Greens by name
+  ];
+  const groups = groupBySection(rows, (r) => r.category, (r) => r.crop);
+  assert.deepEqual(
+    groups.map((g) => g.section),
+    ['Salad Greens', 'Bunching Greens', 'Roots', 'Fruiting & Vegetables', 'Herbs'],
+    'sections in CREW_SECTIONS order, empty ones dropped',
+  );
+  const bunching = groups.find((g) => g.section === 'Bunching Greens')!;
+  assert.deepEqual(bunching.items.map((r) => r.crop), ['Cabbage', 'Kale'], 'A→Z within a section');
+  const roots = groups.find((g) => g.section === 'Roots')!;
+  assert.deepEqual(roots.items.map((r) => r.crop), ['Beets', 'Carrots']);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+ * PORTIONED PRODUCTS → TOTAL HARVEST POUNDS (pure helpers).
+ * ════════════════════════════════════════════════════════════════════════ */
+
+assert.equal(isWeightUnit('lb'), true);
+assert.equal(isWeightUnit('LBS'), true);
+assert.equal(isWeightUnit('#'), true);
+assert.equal(isWeightUnit('each'), false);
+assert.equal(isWeightUnit('clamshell'), false);
+assert.equal(isWeightUnit(null), false);
+
+// ¼-lb clamshell × 40 → 10.0 lb; 0.75-lb Big Bag × 8 → 6.0 lb (owner's examples).
+assert.equal(packLbForUnits(0.25, 40, 'each'), 10);
+assert.equal(packLbForUnits(0.75, 8, 'bag'), 6);
+// Rounded to 0.1 lb.
+assert.equal(packLbForUnits(0.25, 5, 'clamshell'), 1.3);
+// No pack weight, weight-based unit, or non-positive qty → null (no double-count).
+assert.equal(packLbForUnits(null, 40, 'each'), null);
+assert.equal(packLbForUnits(0, 40, 'each'), null);
+assert.equal(packLbForUnits(0.25, 40, 'lb'), null, 'already pounds → never multiply');
+assert.equal(packLbForUnits(0.25, 0, 'each'), null);
+
+// fmtLb trims whole pounds, keeps one decimal otherwise.
+assert.equal(fmtLb(10), '10 lb');
+assert.equal(fmtLb(10.5), '10.5 lb');
+assert.equal(fmtLb(6), '6 lb');
+
+/* ── altNames stays empty when everyone agrees on the name ── */
+{
+  const rows = mergeCropDemand(
+    [{ crop: 'Kale', qty: 10, unit: 'bunch' }],
+    [{ crop: 'Kale', qty: 5, unit: 'bunch' }],
+    [],
+  );
+  assert.deepEqual(rows[0].altNames, [], 'no altNames when all sources spell it the same');
 }
 
 console.log('pick-pack.test.ts — all assertions passed');

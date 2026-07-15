@@ -45,7 +45,9 @@ export type Channel = 'csa' | 'market' | 'wholesale' | 'flex';
 
 /** One unit of demand for a crop on a single channel. */
 export interface CropDemandInput {
-  /** Display crop name (the first-seen spelling wins for the merged row). */
+  /** Display crop name. When `canonical` is set this is the product_library
+   *  name; otherwise it's the outlet's spelling (first-seen wins, unless a later
+   *  canonical name upgrades the merged row's display — see mergeCropDemand). */
   crop: string;
   /** Quantity demanded on this channel. */
   qty: number;
@@ -53,6 +55,15 @@ export interface CropDemandInput {
   unit: string;
   /** Optional product_library category — drives tender-green ordering. */
   category?: string | null;
+  /** True when `crop` is the canonical product_library name (a library-LINKED
+   *  demand line). A canonical name wins as the merged row's display over a
+   *  non-canonical name, so one real crop renders under one canonical label. */
+  canonical?: boolean;
+  /** The outlet's OWN spelling for this line (e.g. Harvie "Wild Dandelion
+   *  Greens"), surfaced as small "also called" print on the merged row when it
+   *  differs from the canonical display — so crew can match a crate labeled by
+   *  the vendor. Omit when it's the same as `crop`. */
+  sourceName?: string;
 }
 
 /** Per-channel qty + unit on a merged crop row (null = channel has no demand). */
@@ -80,6 +91,10 @@ export interface MergedCropRow {
   multiChannel: boolean;
   /** True when this crop is a tender green (sorted to the very top). */
   tender: boolean;
+  /** Distinct outlet spellings that differ from `crop` (the canonical display),
+   *  A→Z. Rendered as small "also: …" print so crew match a crate the vendor
+   *  labeled differently. Empty when every source used the same name. */
+  altNames: string[];
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -102,17 +117,99 @@ export function normCrop(s: string): string {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+ * CANONICAL ITEM IDENTITY — vendor-alias normalization
+ *
+ * The root problem (owner, 2026-07-13): "we have items that are the same thing,
+ * called different things to different outlets." Harvie sells "Wild Dandelion
+ * Greens" / "Local Organic Radicchio"; our library + market call them "Dandelion
+ * Greens" / "Radicchio". normCrop alone keeps them apart, so one real crop shows
+ * up as 2–3 rows on the pick sheet.
+ *
+ * The PRIMARY fix lives on the page: when a demand line is LINKED to a
+ * product_library product (wholesale_products.library_id, market_offerings.
+ * library_id, flex_inventory.library_id), the page passes the library's
+ * canonical `name` as the crop identity. That collapses arbitrary vendor
+ * renames ("Baby Kale Mix" → "King Spring Mix") that share nothing textually.
+ *
+ * aliasNormalize is the SECONDARY, text-only fallback for UNLINKED lines (a
+ * manual wholesale item, a market offering with no library row, a CSA box-plan
+ * crop): it strips the handful of leading vendor adjectives outlets bolt onto
+ * the same crop, so "Local Organic Radicchio" and "Wild Dandelion Greens" still
+ * fold into "Radicchio" / "Dandelion Greens" by text alone.
+ *
+ * The stripped list is intentionally SHORT and CONSERVATIVE — only adjectives
+ * that are provably the-same-crop marketing prefixes. We do NOT strip words that
+ * can change the crop's identity (e.g. "Baby" → baby kale IS a distinct product;
+ * "Red"/"Green" distinguish real varieties). Add here only after confirming the
+ * word never distinguishes two real crops in the catalog.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** Leading vendor "grade/marketing" adjectives that never change WHICH crop a
+ *  line is. Order matters only in that longer phrases are tried first below. */
+const VENDOR_PREFIXES: readonly string[] = [
+  'certified organic',
+  'local',
+  'organic',
+  'wild',
+  'fresh',
+];
+
+/**
+ * Text-only canonical key for an UNLINKED crop name: normCrop, then repeatedly
+ * peel leading vendor prefixes ("Local Organic Radicchio" → "radicchio"). Idem-
+ * potent and dependency-free. Never strips a name down to nothing (a name that
+ * IS just a prefix, e.g. "Fresh", is returned normalized, unpeeled).
+ */
+export function aliasNormalize(s: string): string {
+  let n = normCrop(s);
+  let peeled = true;
+  while (peeled) {
+    peeled = false;
+    for (const p of VENDOR_PREFIXES) {
+      if (n.length > p.length + 1 && n.startsWith(p + ' ')) {
+        n = n.slice(p.length + 1).trim();
+        peeled = true;
+        break;
+      }
+    }
+  }
+  return n;
+}
+
+/**
+ * The MERGE KEY every Pick & Pack aggregation dedupes on. It is aliasNormalize —
+ * i.e. normCrop plus vendor-prefix stripping — so that:
+ *   • library-canonical names (passed in by the page for linked lines) already
+ *     agree, and
+ *   • unlinked outlet spellings that differ only by a marketing prefix still
+ *     collapse to one row.
+ * This is the SINGLE identity function shared by mergeCropDemand,
+ * buildDestinationMatrix and the line-key slug, so they can never drift.
+ */
+export function cropMergeKey(s: string): string {
+  return aliasNormalize(s);
+}
+
+/* ──────────────────────────────────────────────────────────────────
  * Stable per-line KEY (for live check-off progress, migration 0069)
  * ────────────────────────────────────────────────────────────────── */
 
 /**
- * A URL/DB-safe slug of a crop or harvest-crop name: the same normalization the
- * cross-channel demand merge uses (normCrop → lowercase, drop parentheticals +
- * punctuation, collapse spaces) with spaces turned into hyphens. Deterministic
- * and dependency-free.
+ * A URL/DB-safe slug of a crop or harvest-crop name: the SAME canonical identity
+ * the cross-channel demand merge dedupes on (cropMergeKey → normCrop + vendor-
+ * prefix stripping) with spaces turned into hyphens. Deterministic and
+ * dependency-free.
+ *
+ * STABILITY NOTE (canonicalization, 2026-07-13): the switch from normCrop to
+ * cropMergeKey changes the slug for any crop whose merged spelling changed — an
+ * unlinked "Local Radicchio" now slugs to "radicchio", and a library-linked line
+ * now slugs from its canonical library name. Live check-off progress rows
+ * (pick_pack_progress) keyed on an OLD slug for the CURRENT week will orphan
+ * (harmless: they simply stop matching a rendered line; next tap writes a fresh
+ * row). This is the accepted one-time cost of merging same-thing rows.
  */
 export function slugForKey(s: string): string {
-  return normCrop(s).replace(/ /g, '-');
+  return cropMergeKey(s).replace(/ /g, '-');
 }
 
 /**
@@ -191,6 +288,192 @@ export function isTenderGreen(crop: string, category?: string | null): boolean {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+ * CREW SECTIONS — group the pack sheet by product family
+ *
+ * Owner (2026-07-13): the Pack-House by-item sheet and the overall "everything
+ * else" block should be GROUPED by product_library.category into a handful of
+ * crew-sensible sections, in a sensible pick/pack order, items A→Z within.
+ *
+ * The live product_library.category vocabulary is the 14-value wholesale catalog
+ * list (src/lib/wholesale-categories.ts: Salad Mixes, Salad Greens, Head Lettuce
+ * & Chicories, Bunching Greens, Herbs, Tomatoes, Peppers, Roots, Brassicas,
+ * Alliums, Squash & Fruiting, Mushrooms, Edible Flowers, Specialty). We collapse
+ * those into 8 crew sections — merging the three salad/lettuce buckets into one
+ * "Salad Greens", folding Brassicas' cooking greens in with Bunching Greens,
+ * rolling Tomatoes + Peppers + Squash & Fruiting into "Fruiting & Vegetables",
+ * and sending Mushrooms + Specialty (and anything unknown) to "Other":
+ *
+ *   product_library.category            → crew section
+ *   ───────────────────────────────────────────────────────────────
+ *   Salad Mixes / Salad Greens /        → Salad Greens
+ *     Head Lettuce & Chicories
+ *   Bunching Greens / Brassicas         → Bunching Greens
+ *   Alliums                             → Alliums
+ *   Roots                               → Roots
+ *   Tomatoes / Peppers /                → Fruiting & Vegetables
+ *     Squash & Fruiting
+ *   Herbs                               → Herbs
+ *   Edible Flowers                      → Flowers
+ *   Mushrooms / Specialty / unknown     → Other
+ *
+ * CSA box-plan crops arrive with NO category (plain strings). For those we fall
+ * back to a name-keyword classifier so a bare "Kale" still lands in Bunching
+ * Greens, "Carrots" in Roots, etc. Category always wins over the name guess.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** The crew section labels, in pick/pack order (perishable-ish first, then
+ *  storage crops, then herbs/flowers, then the catch-all). */
+export const CREW_SECTIONS = [
+  'Salad Greens',
+  'Bunching Greens',
+  'Alliums',
+  'Roots',
+  'Fruiting & Vegetables',
+  'Herbs',
+  'Flowers',
+  'Other',
+] as const;
+export type CrewSection = (typeof CREW_SECTIONS)[number];
+
+/** product_library.category (lowercased) → crew section. Covers the live
+ *  wholesale vocabulary plus a few legacy/alias spellings seen in the data. */
+const CATEGORY_TO_SECTION: Record<string, CrewSection> = {
+  'salad mixes': 'Salad Greens',
+  'salad mix': 'Salad Greens',
+  'salad greens': 'Salad Greens',
+  'head lettuce & chicories': 'Salad Greens',
+  'head lettuce': 'Salad Greens',
+  'lettuce': 'Salad Greens',
+  'greens': 'Salad Greens',
+  'bunching greens': 'Bunching Greens',
+  'cooking greens': 'Bunching Greens',
+  'brassicas': 'Bunching Greens',
+  'alliums': 'Alliums',
+  'roots': 'Roots',
+  'tomatoes': 'Fruiting & Vegetables',
+  'peppers': 'Fruiting & Vegetables',
+  'squash & fruiting': 'Fruiting & Vegetables',
+  'vegetables': 'Fruiting & Vegetables',
+  'herbs': 'Herbs',
+  'edible flowers': 'Flowers',
+  'flowers': 'Flowers',
+  'mushrooms': 'Other',
+  'specialty': 'Other',
+};
+
+/** Name-keyword fallback for crops with NO category (CSA box-plan strings).
+ *  First match wins, tried in CREW_SECTIONS order so the more specific families
+ *  (roots, alliums) are reached before the broad greens catch. */
+const SECTION_NAME_KEYWORDS: ReadonlyArray<readonly [CrewSection, readonly string[]]> = [
+  ['Alliums', ['onion', 'scallion', 'garlic', 'leek', 'shallot', 'chive']],
+  ['Roots', ['carrot', 'beet', 'radish', 'turnip', 'potato', 'kohlrabi', 'rutabaga', 'parsnip', 'fennel', 'celeriac', 'ginger', 'sweet potato']],
+  ['Herbs', ['basil', 'cilantro', 'dill', 'parsley', 'mint', 'thyme', 'oregano', 'sage', 'tarragon', 'rosemary', 'herb']],
+  ['Flowers', ['flower', 'bouquet', 'dahlia', 'zinnia', 'sunflower', 'celosia', 'snapdragon']],
+  ['Fruiting & Vegetables', ['tomato', 'pepper', 'eggplant', 'cucumber', 'cuke', 'squash', 'zucchini', 'bean', 'pea', 'melon', 'corn', 'tomatillo', 'okra']],
+  ['Bunching Greens', ['kale', 'chard', 'collard', 'mustard', 'braising', 'bok choy', 'pak choi', 'tatsoi', 'broccoli', 'cabbage', 'rapini']],
+  ['Salad Greens', ['lettuce', 'salad', 'mesclun', 'mix', 'arugula', 'spinach', 'mizuna', 'cress', 'radicchio', 'escarole', 'endive', 'green']],
+];
+
+/**
+ * The crew section a crop belongs to. `category` (product_library.category) wins
+ * when present + recognized; otherwise fall back to a name-keyword guess; else
+ * "Other". Pure + deterministic.
+ */
+export function crewSection(category?: string | null, cropName?: string | null): CrewSection {
+  const cat = (category ?? '').trim().toLowerCase();
+  if (cat && CATEGORY_TO_SECTION[cat]) return CATEGORY_TO_SECTION[cat];
+  const name = (cropName ?? '').toLowerCase();
+  if (name) {
+    for (const [section, keywords] of SECTION_NAME_KEYWORDS) {
+      if (keywords.some((kw) => name.includes(kw))) return section;
+    }
+  }
+  return 'Other';
+}
+
+/** Sort rank of a crew section (its index in CREW_SECTIONS). */
+export function crewSectionRank(s: CrewSection): number {
+  return CREW_SECTIONS.indexOf(s);
+}
+
+/** One rendered crew section: its label + the items in it (already A→Z). */
+export interface CrewSectionGroup<T> { section: CrewSection; items: T[]; }
+
+/**
+ * Bucket a flat item list into ordered crew sections. Sections appear in
+ * CREW_SECTIONS order (empty ones dropped); items within a section are sorted
+ * A→Z by `sortName(item)` (case-insensitive). `getCategory`/`getCropName` feed
+ * crewSection(); pure, input never mutated.
+ */
+export function groupBySection<T>(
+  items: readonly T[],
+  getCategory: (item: T) => string | null | undefined,
+  getCropName: (item: T) => string,
+  sortName?: (item: T) => string,
+): CrewSectionGroup<T>[] {
+  const buckets = new Map<CrewSection, T[]>();
+  for (const item of items) {
+    const section = crewSection(getCategory(item), getCropName(item));
+    const b = buckets.get(section);
+    if (b) b.push(item);
+    else buckets.set(section, [item]);
+  }
+  const name = sortName ?? getCropName;
+  const out: CrewSectionGroup<T>[] = [];
+  for (const section of CREW_SECTIONS) {
+    const b = buckets.get(section);
+    if (!b || b.length === 0) continue;
+    b.sort((a, c) => name(a).localeCompare(name(c), undefined, { sensitivity: 'base' }));
+    out.push({ section, items: b });
+  }
+  return out;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * PORTIONED PRODUCTS → TOTAL HARVEST POUNDS
+ *
+ * Clamshell salad mixes + "Big Bagz" are HARVESTED BY WEIGHT but packed by the
+ * count. When a product carries a product_library.pack_weight_lb (0.25 for a
+ * ¼-lb clamshell, 0.75 for a Big Bag), the pick sheet shows the crew the total
+ * pounds to cut = packed-unit count × pack_weight_lb, beside the count.
+ *
+ * These are the PURE arithmetic pieces (pack weight passed in, no DB) so both
+ * route files + the tests share one implementation. The page wraps packLbForUnits
+ * with its own libLookup() to supply the pack weight per crop.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** Units that ARE already a weight — their qty is pounds already, so a
+ *  pack-weight multiply would double-count. */
+const WEIGHT_UNIT_RE = /^(lb|lbs|pound|pounds|#)$/i;
+
+/** True when `unit` is a weight unit (lb / pound / #) — qty already in pounds. */
+export function isWeightUnit(unit: string | null | undefined): boolean {
+  return WEIGHT_UNIT_RE.test((unit ?? '').trim());
+}
+
+/**
+ * Total pounds for `qty` packed units at `packWeightLb` lb each, on unit `unit`,
+ * or null when there's nothing to show — no pack weight, a weight-based unit
+ * (already pounds → never multiply), or a non-positive qty. Rounded to 0.1 lb.
+ */
+export function packLbForUnits(
+  packWeightLb: number | null | undefined,
+  qty: number,
+  unit: string,
+): number | null {
+  if (packWeightLb == null || !(packWeightLb > 0)) return null;
+  if (isWeightUnit(unit)) return null;
+  if (!(qty > 0)) return null;
+  return Math.round(qty * packWeightLb * 10) / 10;
+}
+
+/** "10 lb" / "10.5 lb" — trims a trailing ".0" for whole pounds. */
+export function fmtLb(lb: number): string {
+  const s = Number.isInteger(lb) ? String(lb) : lb.toFixed(1);
+  return `${s} lb`;
+}
+
+/* ──────────────────────────────────────────────────────────────────
  * The merge — fold per-channel demand into ONE ordered pick list
  * ────────────────────────────────────────────────────────────────── */
 
@@ -213,9 +496,17 @@ export function mergeCropDemand(
   flex: CropDemandInput[] = [],
 ): MergedCropRow[] {
   const map = new Map<string, MergedCropRow>();
+  // Per-key bookkeeping kept OUT of the public row shape:
+  //  • isCanonical — has the row's display name been set from a library-linked
+  //    (canonical) input yet? The FIRST canonical input wins the display; a later
+  //    non-canonical spelling never overwrites it.
+  //  • altSeen — every outlet spelling seen for the key, deduped later into the
+  //    row's altNames (dropping any that equal the final canonical display).
+  const isCanonical = new Map<string, boolean>();
+  const altSeen = new Map<string, Set<string>>();
 
   function bump(chan: Channel, d: CropDemandInput): void {
-    const key = normCrop(d.crop);
+    const key = cropMergeKey(d.crop);
     if (!key || !(d.qty > 0)) return;
     let row = map.get(key);
     if (!row) {
@@ -223,11 +514,23 @@ export function mergeCropDemand(
         crop: d.crop,
         category: d.category ?? null,
         csa: null, market: null, wholesale: null, flex: null,
-        totalQty: 0, multiChannel: false, tender: false,
+        totalQty: 0, multiChannel: false, tender: false, altNames: [],
       };
       map.set(key, row);
+      isCanonical.set(key, !!d.canonical);
+    } else if (d.canonical && !isCanonical.get(key)) {
+      // A library-canonical name upgrades a row first seen under an outlet
+      // spelling — so one real crop renders under its canonical library label.
+      row.crop = d.crop;
+      isCanonical.set(key, true);
     }
     if (!row.category && d.category) row.category = d.category;
+    // Remember every distinct outlet spelling (the line's own name, plus any
+    // explicit sourceName) so we can surface the ones that differ from display.
+    let seen = altSeen.get(key);
+    if (!seen) { seen = new Set(); altSeen.set(key, seen); }
+    seen.add(d.crop);
+    if (d.sourceName) seen.add(d.sourceName);
     const cur = row[chan];
     if (cur) cur.qty += d.qty;
     else row[chan] = { qty: d.qty, unit: d.unit };
@@ -243,6 +546,21 @@ export function mergeCropDemand(
   for (const r of rows) {
     r.multiChannel = [r.csa, r.market, r.wholesale, r.flex].filter(Boolean).length > 1;
     r.tender = isTenderGreen(r.crop, r.category);
+    // altNames = distinct source spellings whose normalized text differs from
+    // the canonical display (so we never annotate a row with its own name), A→Z.
+    const seen = altSeen.get(cropMergeKey(r.crop));
+    if (seen) {
+      const dispNorm = normCrop(r.crop);
+      const out: string[] = [];
+      const dedupe = new Set<string>();
+      for (const name of seen) {
+        const nn = normCrop(name);
+        if (!nn || nn === dispNorm || dedupe.has(nn)) continue;
+        dedupe.add(nn);
+        out.push(name.trim());
+      }
+      r.altNames = out.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    }
   }
 
   rows.sort((a, b) => {
@@ -322,6 +640,9 @@ export interface MatrixRow {
   category: string | null;
   /** True when this crop is a tender green (rows stay tender-first). */
   tender: boolean;
+  /** Distinct outlet spellings that differ from `crop` (from the merged row) —
+   *  small "also: …" print so crew match a differently-labeled crate. */
+  altNames: string[];
   /** Row total — REUSED verbatim from the merged row (same merge, no re-add). */
   totalQty: number;
   /** The unit carrying the most demand on the row — shown once at row level;
@@ -371,7 +692,7 @@ export function buildDestinationMatrix(
   const colMeta = new Map<string, { label: string; kind: DestKind; seen: number }>();
   let seq = 0;
   for (const d of dests) {
-    const cropKey = normCrop(d.crop);
+    const cropKey = cropMergeKey(d.crop);
     if (!cropKey || !d.destKey || !(d.qty > 0)) continue;
     if (!colMeta.has(d.destKey)) {
       colMeta.set(d.destKey, { label: d.destLabel, kind: d.kind, seen: seq++ });
@@ -410,7 +731,7 @@ export function buildDestinationMatrix(
 
   // 3. One matrix row per merged row, IN MERGED ORDER, total reused verbatim.
   const rows: MatrixRow[] = merged.map((mr) => {
-    const cells = cellsByCrop.get(normCrop(mr.crop)) ?? new Map<string, MatrixCell>();
+    const cells = cellsByCrop.get(cropMergeKey(mr.crop)) ?? new Map<string, MatrixCell>();
     // Dominant unit = the unit carrying the most qty across this row's cells.
     const byUnit = new Map<string, number>();
     for (const c of cells.values()) byUnit.set(c.unit, (byUnit.get(c.unit) ?? 0) + c.qty);
@@ -419,7 +740,7 @@ export function buildDestinationMatrix(
     for (const [u, q] of byUnit) if (q > best) { best = q; dominantUnit = u; }
     const mixedUnits = byUnit.size > 1;
     return {
-      crop: mr.crop, category: mr.category, tender: mr.tender,
+      crop: mr.crop, category: mr.category, tender: mr.tender, altNames: mr.altNames,
       totalQty: mr.totalQty, dominantUnit, mixedUnits, cells,
     };
   });
@@ -466,6 +787,8 @@ export const PICK_PACK_STRINGS: Record<Lang, {
   partWord: string;          // "Part" — split-section caption (wide sheets)
   ofWord: string;            // "of"   — "Part 1 of 2"
   destsWord: string;         // "destinations" — "…destinations 1–6"
+  alsoWord: string;          // "also" — small "also: <vendor spelling>" print
+  sections: Record<CrewSection, string>; // crew-section band labels (EN/ES)
   /* ── Live check-off (migration 0069) — button + status + summary labels. ──
    * Consumed by the browser controller on /admin/pick-pack/[week], which builds
    * the interactive Harvesting/Done + Packed controls client-side. */
@@ -511,6 +834,17 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     partWord: 'Part',
     ofWord: 'of',
     destsWord: 'destinations',
+    alsoWord: 'also',
+    sections: {
+      'Salad Greens': 'Salad Greens',
+      'Bunching Greens': 'Bunching Greens',
+      'Alliums': 'Alliums',
+      'Roots': 'Roots',
+      'Fruiting & Vegetables': 'Fruiting & Vegetables',
+      'Herbs': 'Herbs',
+      'Flowers': 'Flowers',
+      'Other': 'Other',
+    },
     live: {
       progress: 'Progress',
       toGo: 'to go',
@@ -553,6 +887,17 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     partWord: 'Parte',
     ofWord: 'de',
     destsWord: 'destinos',
+    alsoWord: 'también',
+    sections: {
+      'Salad Greens': 'Verduras de ensalada',
+      'Bunching Greens': 'Verduras de manojo',
+      'Alliums': 'Cebollas y ajos',
+      'Roots': 'Raíces',
+      'Fruiting & Vegetables': 'Frutos y verduras',
+      'Herbs': 'Hierbas',
+      'Flowers': 'Flores',
+      'Other': 'Otros',
+    },
     live: {
       progress: 'Progreso',
       toGo: 'por hacer',

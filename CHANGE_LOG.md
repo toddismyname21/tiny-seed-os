@@ -6,6 +6,26 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-13] CSA — Pick & Pack canonical identity + category sections + compact pack-house (FULLSTACK_BUILDER). NOT DEPLOYED.
+
+Owner's live feedback on `/admin/pick-pack/2026-07-13?view=packhouse`. Five connected fixes to the printable harvest generator. Frontend + shared lib only; no DB schema change; no other views' print changed.
+
+**1. Canonical item identity (the root fix).** "Same thing, called different things to different outlets." Every demand line now canonicalizes to its `product_library` identity BEFORE the merge: wholesale (`wholesale_products.library_id`), market (`market_offerings.library_id`) and flex (`flex_inventory.library_id`) all pass the library `name` as the crop identity with `canonical:true` + the vendor's own spelling as `sourceName`. Unlinked lines fall back to a new `aliasNormalize()` that peels leading vendor adjectives (`local`, `organic`, `certified organic`, `wild`, `fresh`) — so "Wild Dandelion Greens" folds into "Dandelion Greens", "Local Organic Radicchio" into "Radicchio". `cropMergeKey = aliasNormalize` is now the single identity function shared by `mergeCropDemand`, `buildDestinationMatrix` and `slugForKey`. Merged rows carry `altNames[]` (distinct outlet spellings), surfaced as small "also: …" print so crew match differently-labeled crates. LINE-KEY NOTE: `slugForKey` moved from `normCrop` → `cropMergeKey`, so live check-off progress rows keyed on an OLD slug for THIS week orphan harmlessly (next tap writes fresh) — the accepted one-time cost of merging same-thing rows.
+
+**2. Category sections.** New `crewSection()` maps the 14 live `product_library.category` values (the `wholesale-categories.ts` vocabulary) into 8 crew sections (Salad Greens, Bunching Greens, Alliums, Roots, Fruiting & Vegetables, Herbs, Flowers, Other), with a CSA-crop name-keyword fallback for null categories. `groupBySection()` orders sections + sorts A→Z within. Applied to the overall "everything else" block (tender stays its own amber pick-first band), the pack-house sheet, and the per-market checklist. Bold category bands (`.category-head` / `.pack-section-head`).
+
+**3. Portioned products → total harvest pounds.** Pure `packLbForUnits()`/`isWeightUnit()`/`fmtLb()` moved into the lib (page wraps with `libLookup`). Pack-house rows now show `→ X lb` beside the count via `matrixRowLb()` (Σ cells count × `pack_weight_lb`, weight-units skipped). Overall/CSA/market/wholesale lb treatment unchanged.
+
+**4. Fewer pages, still readable (pack-house).** Replaced the 6–8-page tall one-line-per-destination blocks with a compact 2-line unit inside category sections: line 1 = tick + CROP (bold) …dot leaders… TOTAL · lb; line 2 = destination splits inline with type glyphs ("🥬 CSA 12 (8S/4L) · 🛒 Lawrenceville 8 · 🍽 Legume 6 · 🌿 Flex 4"). Zebra-tinted alternate units, ≥11pt print floors, units never split across a page. Targets ≤3 pages.
+
+**5. One-tap Lawrenceville print.** New "Print a market" row on the landing — one button per market with demand this week (Lawrenceville/Tue first), each linking to that market's checklist scoped to its harvest day with `?print=1` (new auto-print-on-load in `[...slug].astro`).
+
+Files: `src/lib/pick-pack.ts` (aliasNormalize/cropMergeKey/canonical merge + altNames, crewSection/groupBySection, packLbForUnits/isWeightUnit/fmtLb, section i18n EN/ES), `src/lib/pick-pack.test.ts` (+ alias, canonical, category-mapping, portioned-lb tests), `src/pages/admin/pick-pack/[...slug].astro` (canonical channel reads, overall category sections, pack-house compact redesign + CSS, market sections, autoprint), `src/pages/admin/pick-pack/index.astro` (Print-a-market row). CombinedHarvestRow.astro unchanged (already shows combined pounds).
+
+**Verification.** `npm run build` → Complete, 0 errors. `npx astro check` → 11 errors / 0 warnings / 64 hints, IDENTICAL to baseline (zero new; all pre-existing, none in pick-pack files). `npm run test:unit` → all lib suites pass incl. the expanded pick-pack tests. **Nothing deployed** (per instruction).
+
+---
+
 ## [2026-07-10] CSA — Wholesale fresh-sheet REVIEW → CONFIRM → SEND gate (FULLSTACK_BUILDER). NOT DEPLOYED. Migration 0082 NOT applied.
 
 Owner: "Make sure the lists are updated before they are sent. I should get a reminder and be able to update and confirm before send." The two chef availability emails (Wednesday-period + Friday-period fresh sheets) now send to chefs ONLY after Todd reviews and confirms this week's list. Nothing about the email copy or audience changed — the send is byte-identical to before WHEN confirmed.
