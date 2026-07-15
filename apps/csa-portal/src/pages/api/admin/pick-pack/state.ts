@@ -9,15 +9,16 @@
  *
  * Query:
  *   week       YYYY-MM-DD Monday of the cycle week
- *   section    'harvest' | 'csa' | 'wholesale' | 'market'
+ *   section    'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse'
  *   scope_day  'all' | 'mon' | 'thu'
  *   market_id  pickup_locations UUID for section='market'; absent → sentinel
  *
  * Authorization: requireCrew (admin/staff/crew). The read runs through the
  * cookie-aware RLS client (pick_pack_progress_ops = is_ops_caller).
  *
- * Returns { ok:true, rows:[{ line_key, status, worked_by, actual_qty }] }
- *      /  { ok:false, error }.
+ * Returns { ok:true, rows:[{ line_key, status, worked_by, actual_qty,
+ *          needed_qty, note }] } / { ok:false, error }. needed_qty + note (0083)
+ * are only meaningful for section='packhouse' but always returned.
  */
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
@@ -29,7 +30,7 @@ const SENTINEL_MARKET = '00000000-0000-0000-0000-000000000000';
 
 const Query = z.object({
   week: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  section: z.enum(['harvest', 'csa', 'wholesale', 'market']),
+  section: z.enum(['harvest', 'csa', 'wholesale', 'market', 'packhouse']),
   scope_day: z.enum(['all', 'mon', 'thu']),
   market_id: z.string().uuid().nullable().optional(),
 });
@@ -61,7 +62,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   const { data, error } = await locals.supabase
     .from('pick_pack_progress')
-    .select('line_key, status, worked_by, actual_qty')
+    .select('line_key, status, worked_by, actual_qty, needed_qty, note')
     .eq('week_date', q.week)
     .eq('section', q.section)
     .eq('scope_day', q.scope_day)

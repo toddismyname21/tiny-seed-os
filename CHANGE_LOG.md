@@ -6,6 +6,24 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-15] CSA — Interactive Pack House (live check-off + needed_qty + notes, cross-day continuity) (FULLSTACK_BUILDER). NOT DEPLOYED.
+
+Owner's ask for `/admin/pick-pack/[week]?view=packhouse`: (a) a quantity-needed column for when the crew picks short or pulls from inventory ("easily added"), (b) a notes section the pack team can leave a note in, and (c) crossing crops off IN THE APP as they pack — so the **Tuesday pack team picks right up** where Monday's team left off. Cross-DAY continuity is the point. Built by EXTENDING the existing live check-off machinery (pick_pack_progress, migration 0069) — no parallel system. Frontend + one migration + the two ops endpoints + shared lib i18n. NOT deployed / migration NOT applied.
+
+**1. Migration `supabase/migrations/0083_packhouse_live.sql` (idempotent, NOT applied).** Extends `pick_pack_progress`: adds `'packhouse'` to the `section` CHECK (guarded drop/re-add of the auto-named `pick_pack_progress_section_check`, mirroring 0068's role swap); adds `needed_qty numeric` (nullable — the crew's editable "still need to pick/pull N more" figure) and `note text` (nullable — a free-text pack-team note). No RLS change (existing `pick_pack_progress_ops` = `is_ops_caller` already governs every column, so crew write from phones), no realtime change (table already in `supabase_realtime`, new columns ride the same payload). Verify SELECT proves the constraint + both columns.
+
+**2. Pack House view is now interactive on screen; print stays the clean paper sheet.** Each crop unit gets a **[✓ Packed]** toggle (todo→packed, optimistic + who-stamped, same `/api/admin/pick-pack/mark` endpoint with `section='packhouse'`), a **Need** quick-edit (inline number input → saves `needed_qty`; renders an amber "⚠ need N more" chip; one-tap clear), and a **📝 Note** control (inline text input → saves `note`; renders "📝 <note> · by <who>"). New header readout **"N of M packed · X flagged short"** plus a screen-only **"Flagged only"** quick-filter chip that collapses non-flagged units. Realtime subscription extended so packhouse rows sync live across devices exactly like the harvest view.
+
+**3. Cross-day continuity.** State keys on `(week, section='packhouse', scope_day, line_key)` with `line_key = pickPackLineKey('row', crop)` (the SAME `slugForKey` canonical keys the redesigned view already renders). A distinct `section='packhouse'` means packhouse progress never collides with the overall `'harvest'` view. Monday's checked rows / notes / need-chips render for Tuesday's team automatically (same week).
+
+**4. Print fidelity.** Checked-state does NOT alter print (the pen tick box + full list are the always-available paper fallback; the interactive toggle is screen-only). But `needed_qty` chips and saved notes ARE server-rendered into print (real pack data the paper crew needs), at an 11pt floor.
+
+**5. Endpoint changes (requireCrew stays — crew phones).** `mark.ts`: accepts `section='packhouse'` with statuses todo/packed + optional `needed_qty`/`note`; a packhouse write is a **targeted upsert** carrying only the field(s) the caller sent, so saving a note never clobbers the packed status or a flagged need (omitted columns preserved on conflict, defaulted on insert). `status` is now optional for packhouse (a note-only save omits it) but still required + legal for every other section. `state.ts`: `section` enum + select now include `needed_qty`/`note`. Shared `lib/pick-pack.ts` gained 8 EN/ES `live.*` strings (need/note/flag labels). `database.types.ts` updated for the enum + two columns.
+
+Files: `supabase/migrations/0083_packhouse_live.sql` (new), `apps/csa-portal/src/pages/admin/pick-pack/[...slug].astro`, `apps/csa-portal/src/pages/api/admin/pick-pack/mark.ts`, `apps/csa-portal/src/pages/api/admin/pick-pack/state.ts`, `apps/csa-portal/src/lib/pick-pack.ts`, `apps/csa-portal/src/lib/database.types.ts`. Verified: `npm run build` 0 errors; `astro check` no new errors (12→11, my new mark.ts error fixed, remainder pre-existing/unrelated); `npm run test:unit` all suites pass incl. pick-pack.
+
+---
+
 ## [2026-07-13] CSA — Pick & Pack canonical identity + category sections + compact pack-house (FULLSTACK_BUILDER). NOT DEPLOYED.
 
 Owner's live feedback on `/admin/pick-pack/2026-07-13?view=packhouse`. Five connected fixes to the printable harvest generator. Frontend + shared lib only; no DB schema change; no other views' print changed.

@@ -806,6 +806,15 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     by: string;              // "· by " connector before the worker name
     saveFailed: string;      // inline error after a failed POST
     retry: string;           // retry a failed POST
+    /* ── Pack-house interactive extras (0083): needed_qty + note + flag filter. */
+    flaggedShort: string;    // summary label after the flagged count
+    filterFlagged: string;   // "Flagged only" quick-filter chip
+    needBtn: string;         // "Need more" — opens the needed_qty editor
+    needChip: string;        // amber chip template — MUST contain "{n}"
+    needPrompt: string;      // "How many more do you still need?" prompt label
+    noteBtn: string;         // "Note" — opens the note editor
+    notePrompt: string;      // note input prompt label
+    clear: string;           // one-tap clear (need / note)
   };
 }> = {
   en: {
@@ -859,6 +868,14 @@ export const PICK_PACK_STRINGS: Record<Lang, {
       by: 'by',
       saveFailed: "Couldn't save — tap to retry",
       retry: 'Retry',
+      flaggedShort: 'flagged short',
+      filterFlagged: 'Flagged only',
+      needBtn: 'Need more',
+      needChip: 'need {n} more',
+      needPrompt: 'How many more do you still need?',
+      noteBtn: 'Note',
+      notePrompt: 'Leave a note for the pack team',
+      clear: 'Clear',
     },
   },
   es: {
@@ -912,6 +929,14 @@ export const PICK_PACK_STRINGS: Record<Lang, {
       by: 'por',
       saveFailed: 'No se guardó — toque para reintentar',
       retry: 'Reintentar',
+      flaggedShort: 'faltan',
+      filterFlagged: 'Solo faltantes',
+      needBtn: 'Faltan',
+      needChip: 'faltan {n} más',
+      needPrompt: '¿Cuántos más necesita todavía?',
+      noteBtn: 'Nota',
+      notePrompt: 'Deje una nota para el equipo de empaque',
+      clear: 'Quitar',
     },
   },
 };

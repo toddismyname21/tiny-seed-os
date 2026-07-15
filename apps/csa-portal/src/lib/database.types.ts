@@ -1363,12 +1363,16 @@ export interface Database {
         Row: {
           id: string;
           week_date: string;
-          section: 'harvest' | 'csa' | 'wholesale' | 'market';
+          section: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse';
           scope_day: 'all' | 'mon' | 'thu';
           market_id: string;
           line_key: string;
           status: 'todo' | 'harvesting' | 'done' | 'packed';
           actual_qty: number | null;
+          // Pack-crew editable "still need to pick/pull N more" figure (0083).
+          needed_qty: number | null;
+          // Free-text pack-team note, shown with worked_by (0083).
+          note: string | null;
           worked_by: string | null;
           worked_by_id: string | null;
           updated_at: string;
@@ -1376,7 +1380,7 @@ export interface Database {
         };
         Insert: {
           week_date: string;
-          section: 'harvest' | 'csa' | 'wholesale' | 'market';
+          section: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse';
           line_key: string;
         } & Partial<Database['public']['Tables']['pick_pack_progress']['Row']>;
         Update: Partial<Database['public']['Tables']['pick_pack_progress']['Row']>;

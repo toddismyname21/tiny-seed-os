@@ -904,22 +904,24 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *  (week,section,scope,market,line) UNIQUE dedupes — matches the 0069 default. */
 const SENTINEL_MARKET = '00000000-0000-0000-0000-000000000000';
 
-// The pack-house matrix has NO live check-off (it's a paper distribution sheet;
-// the interactive harvest/pack check-off stays on the other views). It reports
-// section 'harvest' here only to satisfy the type — ppKeys stays empty for it
-// (no branch below), so the summary + realtime config never render for it.
-const ppSection: 'harvest' | 'csa' | 'wholesale' | 'market' =
-  view === 'overall' || view === 'packhouse' ? 'harvest' : view;
+// The DB `section` for the live check-off. 'harvest' = the OVERALL pick view;
+// csa/wholesale/market are the per-channel pack views; 'packhouse' (0083) is the
+// by-item distribution sheet, now interactive (Packed toggle + needed_qty + note),
+// keyed on its own section so its progress never collides with the overall view.
+const ppSection: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse' =
+  view === 'overall' ? 'harvest' : view;
 const marketIdForKey =
   view === 'market' && selectedMarket && UUID_RE.test(selectedMarket.id)
     ? selectedMarket.id
     : SENTINEL_MARKET;
 
 // Saved status for every line on THIS sheet (crew can read via is_ops_caller).
-interface ProgRow { line_key: string; status: string; worked_by: string | null; actual_qty: number | null; }
+// needed_qty + note (0083) are only meaningful for the pack-house sheet but are
+// always selected so the pack-house rows can seed their need chip + note.
+interface ProgRow { line_key: string; status: string; worked_by: string | null; actual_qty: number | null; needed_qty: number | null; note: string | null; }
 const { data: progressRows } = await supabase
   .from('pick_pack_progress')
-  .select('line_key, status, worked_by, actual_qty')
+  .select('line_key, status, worked_by, actual_qty, needed_qty, note')
   .eq('week_date', week_starting)
   .eq('section', ppSection)
   .eq('scope_day', dayScope)
@@ -956,6 +958,27 @@ function lineAttrs(
   };
 }
 
+/** Server-render attributes for one interactive PACK-HOUSE line (0083). Like
+ *  lineAttrs but keyed by crop alone (section='packhouse', so no collision with
+ *  the overall 'harvest' key), and it also seeds the crew-editable needed_qty +
+ *  note so the browser controller (and the print sheet) show the saved values
+ *  with no flash. A pack-house row is one merged crop, so the key is crop-only —
+ *  matching packhouseMatrix.rows / the ppKeys list below. */
+function packLineAttrs(crop: string, target: number | null, displayUnit: string | null): Record<string, string> {
+  const key = pickPackLineKey('row', crop);
+  const r = progressMap.get(key);
+  return {
+    'data-pp-line': '',
+    'data-line-key': key,
+    'data-status': r?.status ?? 'todo',
+    'data-worked': r?.worked_by ?? '',
+    'data-needed': r?.needed_qty != null ? String(r.needed_qty) : '',
+    'data-note': r?.note ?? '',
+    'data-target': target != null ? String(target) : '',
+    'data-unit': displayUnit ?? '',
+  };
+}
+
 /** Best single display unit for an OVERALL merged row (blank when channels
  *  disagree) — used only for the "actual qty" prompt, not for the key. */
 function overallUnit(r: (typeof merged)[number]): string {
@@ -987,15 +1010,22 @@ if (view === 'overall') {
     ...marketCombine.combined.map((g) => pickPackLineKey('group', g.harvestCrop)),
     ...marketItemsShown.map((it) => pickPackLineKey('row', it.name, it.unit)),
   ];
+} else if (view === 'packhouse') {
+  // One key per pack-house crop row (crop-only, matching packLineAttrs). The
+  // matrix rows are the same set groupBySection reshapes into packhouseSections.
+  ppKeys = packhouseMatrix ? packhouseMatrix.rows.map((r) => pickPackLineKey('row', r.crop)) : [];
 }
 // Initial counts (the client keeps these live thereafter).
-let ppTodo = 0, ppHarvesting = 0, ppDone = 0, ppPacked = 0;
+let ppTodo = 0, ppHarvesting = 0, ppDone = 0, ppPacked = 0, ppFlagged = 0;
 for (const k of ppKeys) {
-  const st = progressMap.get(k)?.status ?? 'todo';
+  const pr = progressMap.get(k);
+  const st = pr?.status ?? 'todo';
   if (st === 'harvesting') ppHarvesting++;
   else if (st === 'done') ppDone++;
   else if (st === 'packed') ppPacked++;
   else ppTodo++;
+  // "Flagged short" = a crop with a positive needed_qty (pack-house only).
+  if (pr?.needed_qty != null && pr.needed_qty > 0) ppFlagged++;
 }
 const ppTotal = ppKeys.length;
 const ppComplete = ppSection === 'harvest' ? ppDone : ppPacked;
@@ -1146,28 +1176,40 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         sheet coordinates + Supabase realtime creds + EN/ES labels; the summary
         gives Todd (and the crew) a live to-go / harvesting / done (or packed)
         readout. Hidden in print so the paper sheet is unchanged. */}
-    {view !== 'packhouse' && (
-      <div
-        id="pp-live-config"
-        class="hidden"
-        data-week={week_starting}
-        data-section={ppSection}
-        data-scope={dayScope}
-        data-market={marketIdForKey}
-        data-supabase-url={PUBLIC_SUPABASE_URL}
-        data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
-        data-i18n={JSON.stringify(t.live)}
-      ></div>
-    )}
+    <div
+      id="pp-live-config"
+      class="hidden"
+      data-week={week_starting}
+      data-section={ppSection}
+      data-scope={dayScope}
+      data-market={marketIdForKey}
+      data-supabase-url={PUBLIC_SUPABASE_URL}
+      data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
+      data-i18n={JSON.stringify(t.live)}
+    ></div>
 
     {ppTotal > 0 && (
       <section class="screen-only mb-4" aria-label={t.live.progress} data-pp-summary>
         <div class="rounded-ts-lg border border-ts-border bg-ts-bg-surface p-4 shadow-ts-sm">
           <div class="flex items-center justify-between gap-3">
             <h2 class="font-display text-sm font-bold uppercase tracking-wide text-ts-text-secondary">{t.live.progress}</h2>
-            <p class="text-sm font-bold tabular-nums text-ts-text">
-              <span data-pp-complete>{ppComplete}</span><span class="text-ts-text-muted"> / </span><span data-pp-total>{ppTotal}</span>
-            </p>
+            <div class="flex items-center gap-3">
+              {view === 'packhouse' && (
+                <button
+                  type="button"
+                  data-pp-filter-flagged
+                  aria-pressed="false"
+                  hidden={ppFlagged === 0}
+                  class="pp-filter-chip inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-ts-accent/40 bg-ts-accent/10 px-4 text-xs font-bold text-ts-accent transition-transform duration-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-accent"
+                >
+                  <span aria-hidden="true">⚠</span>
+                  <span>{t.live.filterFlagged}</span>
+                </button>
+              )}
+              <p class="text-sm font-bold tabular-nums text-ts-text">
+                <span data-pp-complete>{ppComplete}</span><span class="text-ts-text-muted"> / </span><span data-pp-total>{ppTotal}</span>
+              </p>
+            </div>
           </div>
           <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-ts-bg-muted">
             <div data-pp-bar class="h-full rounded-full bg-ts-primary transition-[width] duration-300 ease-out" style={`width:${ppPct}%`}></div>
@@ -1181,6 +1223,11 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
               <span class="text-ts-primary"><span data-pp-count-done>{ppDone}</span> {t.live.done}</span>
             ) : (
               <span class="text-ts-primary"><span data-pp-count-packed>{ppPacked}</span> {t.live.packed}</span>
+            )}
+            {view === 'packhouse' && (
+              <span class="text-ts-accent" data-pp-flagged-wrap hidden={ppFlagged === 0}>
+                <span aria-hidden="true">⚠ </span><span data-pp-count-flagged>{ppFlagged}</span> {t.live.flaggedShort}
+              </span>
             )}
           </div>
         </div>
@@ -1499,11 +1546,25 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                       return cell ? [{ col, cell }] : [];
                     });
                     const rowLb = matrixRowLb(r);
+                    // Live state (0083): saved packed status + needed_qty + note.
+                    // Server-render the need chip + note so they show on the paper
+                    // print (real pack data) AND on first screen paint (no flash);
+                    // the browser controller keeps them live thereafter.
+                    const pr = progressMap.get(pickPackLineKey('row', r.crop));
+                    const needN = pr?.needed_qty != null && pr.needed_qty > 0 ? pr.needed_qty : 0;
+                    const noteText = pr?.note?.trim() || '';
+                    const needChipText = needN > 0 ? `⚠ ${t.live.needChip.replace('{n}', needN.toLocaleString())}` : '';
                     return (
-                      <article class={['pack-unit', r.tender ? 'pack-unit-tender' : ''].join(' ')}>
-                        {/* Line 1 — tick + CROP …leaders… TOTAL · lb. */}
+                      <article
+                        class={['pack-unit', r.tender ? 'pack-unit-tender' : ''].join(' ')}
+                        data-flagged={needN > 0 ? '1' : '0'}
+                        {...packLineAttrs(r.crop, r.totalQty, r.mixedUnits ? '' : r.dominantUnit)}
+                      >
+                        {/* Line 1 — tick + CROP …leaders… TOTAL · lb (+ need chip). */}
                         <div class="pack-unit-head">
                           <span class="pack-check" aria-hidden="true"></span>
+                          {/* Client injects the interactive [✓ Packed] toggle here (screen only). */}
+                          <span class="pack-live-slot screen-only" data-pp-packslot></span>
                           <span class="pack-unit-name">
                             {r.crop}
                             {r.tender && <span class="pack-tender-tag" aria-hidden="true">🌱</span>}
@@ -1515,6 +1576,8 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                               ? <span class="pack-total-star">*</span>
                               : (r.dominantUnit && <span class="pack-unit-unit">{r.dominantUnit}</span>)}
                             {rowLb != null && <span class="pack-unit-lb">· {fmtLb(rowLb)}</span>}
+                            {/* Amber "⚠ need N more" chip — screen + PRINT (:empty hides). */}
+                            <span class="pack-need-chip" data-pp-needchip>{needChipText}</span>
                           </span>
                         </div>
                         {/* Optional: outlet spellings that differ from the canonical crop. */}
@@ -1537,6 +1600,11 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                             </span>
                           ))}
                         </p>
+                        {/* Pack-team note — screen + PRINT (:empty hides). The
+                            controller rewrites this on save / realtime. */}
+                        <p class="pack-note" data-pp-note>{noteText ? `📝 ${noteText}${pr?.worked_by ? ` · ${t.live.by} ${pr.worked_by}` : ''}` : ''}</p>
+                        {/* Screen-only edit affordances — client injects Need + Note buttons. */}
+                        <div class="pack-live-controls screen-only" data-pp-ctlslot></div>
                       </article>
                     );
                   })}
@@ -1574,10 +1642,49 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
      only) are untouched. */
   @media screen {
     .harvest-doc .harvest-check { display: none; }
+    /* Pack-house is interactive on screen (0083): the client injects a [✓ Packed]
+       toggle into .pack-live-slot, so the pen tick box is redundant on screen. It
+       STAYS in print (no @media screen there) — the paper sheet is the fallback,
+       always the full tickable list. */
+    .packhouse-doc .pack-check { display: none; }
   }
   /* Injected control container — screen only; the .screen-only rule in the
      @media print block below removes it from the printout. */
   .pp-ctl { min-height: 44px; }
+
+  /* ── PACK-HOUSE LIVE EXTRAS (0083): need chip + note + filter ──────────────
+     Both the chip and the note render on SCREEN and PRINT (they are real pack
+     data the paper crew needs). :empty hides them when there's nothing to show,
+     which also cleanly hides them the instant the crew one-tap-clears (the
+     controller sets textContent = ''). The check-off state does NOT alter print;
+     only the chip + note do. */
+  .pack-need-chip {
+    margin-left: 6px;
+    font-size: 0.78rem; font-weight: 800; white-space: nowrap;
+    color: #92400e;                 /* amber-800 — reads on white in print */
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .pack-need-chip:empty { display: none; }
+  .pack-note {
+    margin: 2px 0 0; padding-left: 26px;
+    font-size: 0.8rem; line-height: 1.3; font-weight: 600;
+    color: #1f6f54;                 /* pine — a left-behind note reads as farm ink */
+    word-break: break-word;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .pack-note:empty { display: none; }
+  /* The interactive Packed toggle slot sits before the crop name on line 1. */
+  .pack-live-slot { display: inline-flex; align-items: center; }
+  .pack-live-slot:empty { display: none; }
+  /* Screen-only edit affordances row (Need + Note buttons). */
+  .pack-live-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .pack-live-controls:empty { display: none; }
+  /* Flagged quick-filter (screen only): when active, non-flagged units collapse. */
+  .packhouse-doc.pp-show-flagged .pack-unit[data-flagged='0'] { display: none; }
+  /* Pressed state for the filter chip — plain CSS (no Tailwind aria variant). */
+  .pp-filter-chip[aria-pressed='true'] {
+    background: var(--ts-accent); color: #fff; border-color: var(--ts-accent);
+  }
 
   /* Doc band keeps its color through print (browsers strip backgrounds). */
   .doc-band {
@@ -1738,6 +1845,9 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     .packhouse-doc .pack-splits { font-size: 11pt; line-height: 1.25; }
     .packhouse-doc .pack-split-size { font-size: 10.5pt; }
     .packhouse-doc .pack-unit-alt { font-size: 9pt; }
+    /* Need chip + note ARE real pack data — print them legibly (11pt floor). */
+    .packhouse-doc .pack-need-chip { font-size: 11pt; }
+    .packhouse-doc .pack-note { font-size: 10.5pt; }
     .packhouse-doc .pack-check { border-color: #000; }
     .packhouse-doc .pack-unit-tender { border-left-color: #f59e0b !important; }
     /* Tighten vertical rhythm so a full week lands in ≤3 pages. */
@@ -1888,11 +1998,18 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     progress: string; toGo: string; harvesting: string; done: string;
     packed: string; markPacked: string; undo: string; actualQ: string;
     save: string; cancel: string; by: string; saveFailed: string; retry: string;
+    // Pack-house extras (0083).
+    flaggedShort: string; filterFlagged: string; needBtn: string; needChip: string;
+    needPrompt: string; noteBtn: string; notePrompt: string; clear: string;
   }
   interface Line {
     key: string; li: HTMLElement; control: HTMLElement;
     status: string; worked: string; actual: number | null;
     target: number | null; unit: string;
+    // Pack-house only (0083): the crew-editable need + note + their DOM anchors.
+    needed?: number | null; note?: string;
+    article?: HTMLElement; packSlot?: HTMLElement | null;
+    needChipEl?: HTMLElement | null; noteEl?: HTMLElement | null;
   }
 
   const cfg = document.getElementById('pp-live-config');
@@ -1904,6 +2021,7 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     const supabaseUrl = cfg.dataset.supabaseUrl || '';
     const anonKey = cfg.dataset.supabaseAnonKey || '';
     const isHarvest = section === 'harvest';
+    const isPackhouse = section === 'packhouse';
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let t: LineI18n;
     try { t = JSON.parse(cfg.dataset.i18n || '{}') as LineI18n; } catch { t = {} as LineI18n; }
@@ -1950,7 +2068,177 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       return wrap;
     }
 
+    /* ── PACK-HOUSE controls (0083) — Packed toggle + Need + Note ─────────────
+     * A pack-house unit gets three independent affordances in its screen-only
+     * control row: [✓ Packed] (todo↔packed), [Need more] (edit needed_qty), and
+     * [📝 Note]. A compact green ✓ also lands on line 1 (packSlot) so the crew
+     * scans done rows at a glance. The need chip + note text are rewritten in
+     * their server-rendered slots (which also print), never re-created. */
+    function needIsSet(line: Line): boolean {
+      return line.needed != null && line.needed > 0;
+    }
+    function updateNeedChip(line: Line): void {
+      if (line.needChipEl) {
+        line.needChipEl.textContent = needIsSet(line)
+          ? '⚠ ' + (t.needChip || 'need {n} more').replace('{n}', String(line.needed))
+          : '';
+      }
+      if (line.article) line.article.dataset.flagged = needIsSet(line) ? '1' : '0';
+    }
+    function updateNote(line: Line): void {
+      if (!line.noteEl) return;
+      const txt = (line.note || '').trim();
+      line.noteEl.textContent = txt
+        ? '📝 ' + txt + (line.worked ? ' · ' + (t.by || '') + ' ' + line.worked : '')
+        : '';
+    }
+    function appendRetry(line: Line, retry: () => void): void {
+      const err = document.createElement('button');
+      err.type = 'button';
+      err.className = 'inline-flex min-h-[44px] items-center gap-1.5 rounded-ts-md bg-ts-danger/10 px-3 text-sm font-semibold text-ts-danger active:scale-95';
+      err.textContent = '⚠ ' + (t.saveFailed || t.retry || 'Retry');
+      err.addEventListener('click', () => { err.remove(); retry(); });
+      line.control.appendChild(err);
+    }
+
+    function renderPackControls(line: Line): void {
+      // Line-1 compact done glyph.
+      if (line.packSlot) {
+        line.packSlot.textContent = '';
+        if (line.status === 'packed') {
+          const chk = document.createElement('span');
+          chk.className = 'mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ts-primary text-xs font-bold text-white';
+          chk.setAttribute('aria-hidden', 'true');
+          chk.textContent = '✓';
+          line.packSlot.appendChild(chk);
+        }
+      }
+      // Control row: Packed toggle, then Need, then Note.
+      const c = line.control;
+      c.textContent = '';
+      if (line.status === 'packed') {
+        c.appendChild(statusPill(line));
+        c.appendChild(mkBtn(t.undo, BTN_GHOST, () => setStatus(line, 'todo')));
+      } else {
+        c.appendChild(mkBtn('✓ ' + t.packed, BTN_PRIMARY, () => setStatus(line, 'packed')));
+      }
+      c.appendChild(mkBtn((needIsSet(line) ? '⚠ ' : '+ ') + t.needBtn, BTN_ACCENT, () => beginNeed(line)));
+      c.appendChild(mkBtn('📝 ' + t.noteBtn, BTN_GHOST, () => beginNote(line)));
+    }
+
+    /** Inline needed_qty editor — number input + Save + Clear + Cancel. */
+    function beginNeed(line: Line): void {
+      const c = line.control;
+      c.textContent = '';
+      const label = document.createElement('span');
+      label.className = 'text-sm font-semibold text-ts-text';
+      label.textContent = t.needPrompt;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '0';
+      input.step = 'any';
+      input.inputMode = 'decimal';
+      input.className = 'h-11 w-24 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-accent';
+      if (needIsSet(line)) input.value = String(line.needed);
+      const commit = () => {
+        const v = parseFloat(input.value);
+        setNeeded(line, Number.isFinite(v) && v > 0 ? v : null);
+      };
+      c.appendChild(label);
+      c.appendChild(input);
+      if (line.unit) {
+        const u = document.createElement('span');
+        u.className = 'text-sm font-medium text-ts-text-secondary';
+        u.textContent = line.unit;
+        c.appendChild(u);
+      }
+      c.appendChild(mkBtn(t.save, BTN_ACCENT, commit));
+      if (needIsSet(line)) c.appendChild(mkBtn(t.clear, BTN_GHOST, () => setNeeded(line, null)));
+      c.appendChild(mkBtn(t.cancel, BTN_GHOST, () => renderPackControls(line)));
+      input.focus();
+      input.select();
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); renderPackControls(line); }
+      });
+    }
+
+    /** Inline note editor — text input + Save + Clear + Cancel. */
+    function beginNote(line: Line): void {
+      const c = line.control;
+      c.textContent = '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 500;
+      input.placeholder = t.notePrompt;
+      input.className = 'h-11 min-w-0 flex-1 basis-48 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-base text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+      input.value = line.note || '';
+      const commit = () => setNote(line, input.value);
+      c.appendChild(input);
+      c.appendChild(mkBtn(t.save, BTN_PRIMARY, commit));
+      if ((line.note || '').trim()) c.appendChild(mkBtn(t.clear, BTN_GHOST, () => setNote(line, '')));
+      c.appendChild(mkBtn(t.cancel, BTN_GHOST, () => renderPackControls(line)));
+      input.focus();
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); renderPackControls(line); }
+      });
+    }
+
+    async function setNeeded(line: Line, value: number | null): Promise<void> {
+      const prev = { needed: line.needed ?? null, worked: line.worked };
+      line.needed = value != null && value > 0 ? value : null;
+      updateNeedChip(line);
+      renderPackControls(line);
+      updateSummary();
+      try {
+        const res = await fetch('/api/admin/pick-pack/mark', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            week_date: week, section, scope_day: scope,
+            market_id: marketIdForPost(), line_key: line.key, needed_qty: line.needed,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(String(data.error || 'save_failed'));
+        line.worked = data.worked_by || line.worked;
+        updateNeedChip(line); updateNote(line); renderPackControls(line); updateSummary();
+      } catch {
+        line.needed = prev.needed; line.worked = prev.worked;
+        updateNeedChip(line); renderPackControls(line); updateSummary();
+        appendRetry(line, () => setNeeded(line, value));
+      }
+    }
+
+    async function setNote(line: Line, text: string): Promise<void> {
+      const trimmed = (text || '').trim();
+      const prev = { note: line.note ?? '', worked: line.worked };
+      line.note = trimmed;
+      updateNote(line);
+      renderPackControls(line);
+      try {
+        const res = await fetch('/api/admin/pick-pack/mark', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            week_date: week, section, scope_day: scope,
+            market_id: marketIdForPost(), line_key: line.key, note: trimmed,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(String(data.error || 'save_failed'));
+        line.worked = data.worked_by || line.worked;
+        updateNote(line); renderPackControls(line);
+      } catch {
+        line.note = prev.note; line.worked = prev.worked;
+        updateNote(line); renderPackControls(line);
+        appendRetry(line, () => setNote(line, text));
+      }
+    }
+
     function renderControl(line: Line): void {
+      if (isPackhouse) { renderPackControls(line); return; }
       const c = line.control;
       c.textContent = '';
       const st = line.status;
@@ -2063,12 +2351,13 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       if (el) el.textContent = String(val);
     }
     function updateSummary(): void {
-      let todo = 0, harvesting = 0, done = 0, packed = 0;
+      let todo = 0, harvesting = 0, done = 0, packed = 0, flagged = 0;
       for (const line of lines.values()) {
         if (line.status === 'harvesting') harvesting++;
         else if (line.status === 'done') done++;
         else if (line.status === 'packed') packed++;
         else todo++;
+        if (line.needed != null && line.needed > 0) flagged++;
       }
       const total = lines.size;
       const complete = isHarvest ? done : packed;
@@ -2078,13 +2367,53 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       setText('[data-pp-complete]', complete);
       const bar = document.querySelector('[data-pp-bar]') as HTMLElement | null;
       if (bar) bar.style.width = (total > 0 ? Math.round((complete / total) * 100) : 0) + '%';
+      // Pack-house: the "N flagged short" readout + the filter chip only surface
+      // when something is actually flagged; clearing the last flag also drops an
+      // active filter so the crew never lands on an empty, filtered sheet.
+      if (isPackhouse) {
+        setText('[data-pp-count-flagged]', flagged);
+        const wrap = document.querySelector('[data-pp-flagged-wrap]') as HTMLElement | null;
+        if (wrap) wrap.hidden = flagged === 0;
+        const fb = document.querySelector('[data-pp-filter-flagged]') as HTMLButtonElement | null;
+        if (fb) {
+          fb.hidden = flagged === 0;
+          if (flagged === 0) {
+            const pd = document.querySelector('.packhouse-doc');
+            if (pd) pd.classList.remove('pp-show-flagged');
+            fb.setAttribute('aria-pressed', 'false');
+          }
+        }
+      }
     }
 
-    // Build a control for every server-rendered line (normal <li> OR a combined
+    // Build a control for every server-rendered line. PACK-HOUSE lines are
+    // <article>s carrying pre-rendered slots (packed toggle target, need chip,
+    // note, and a control row); every other view is a normal <li> (OR a combined
     // row wrapped in a display:contents div — inject into its inner <li>).
     document.querySelectorAll<HTMLElement>('[data-pp-line]').forEach((el) => {
       const key = el.dataset.lineKey || '';
       if (!key) return;
+      if (isPackhouse) {
+        const ctlSlot = el.querySelector<HTMLElement>('[data-pp-ctlslot]');
+        if (!ctlSlot) return;
+        const line: Line = {
+          key, li: el, control: ctlSlot,
+          status: el.dataset.status || 'todo',
+          worked: el.dataset.worked || '',
+          actual: null,
+          target: el.dataset.target ? Number(el.dataset.target) : null,
+          unit: el.dataset.unit || '',
+          needed: el.dataset.needed ? Number(el.dataset.needed) : null,
+          note: el.dataset.note || '',
+          article: el,
+          packSlot: el.querySelector<HTMLElement>('[data-pp-packslot]'),
+          needChipEl: el.querySelector<HTMLElement>('[data-pp-needchip]'),
+          noteEl: el.querySelector<HTMLElement>('[data-pp-note]'),
+        };
+        lines.set(key, line);
+        renderControl(line);
+        return;
+      }
       const li = (el.matches('li') ? el : el.querySelector('li')) as HTMLElement | null;
       if (!li) return;
       li.classList.add('flex-wrap');
@@ -2102,6 +2431,18 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       lines.set(key, line);
       renderControl(line);
     });
+
+    // Wire the "Flagged only" quick-filter chip (pack-house only). It collapses
+    // every non-flagged unit so the crew sees just the short crops at a glance.
+    const filterBtn = document.querySelector<HTMLButtonElement>('[data-pp-filter-flagged]');
+    const packDoc = document.querySelector<HTMLElement>('.packhouse-doc');
+    if (filterBtn && packDoc) {
+      filterBtn.addEventListener('click', () => {
+        const on = packDoc.classList.toggle('pp-show-flagged');
+        filterBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
     updateSummary();
 
     // Reconcile the whole sheet from the authoritative endpoint (on realtime
@@ -2120,10 +2461,19 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         for (const r of data.rows) {
           seen.add(r.line_key);
           const line = lines.get(r.line_key);
-          if (line) { line.status = r.status; line.worked = r.worked_by || ''; line.actual = r.actual_qty; renderControl(line); }
+          if (line) {
+            line.status = r.status; line.worked = r.worked_by || ''; line.actual = r.actual_qty;
+            line.needed = r.needed_qty ?? null; line.note = r.note || '';
+            if (isPackhouse) { updateNeedChip(line); updateNote(line); }
+            renderControl(line);
+          }
         }
         for (const [k, line] of lines) {
-          if (!seen.has(k) && line.status !== 'todo') { line.status = 'todo'; line.worked = ''; line.actual = null; renderControl(line); }
+          if (!seen.has(k) && (line.status !== 'todo' || (line.needed != null && line.needed > 0) || (line.note || ''))) {
+            line.status = 'todo'; line.worked = ''; line.actual = null; line.needed = null; line.note = '';
+            if (isPackhouse) { updateNeedChip(line); updateNote(line); }
+            renderControl(line);
+          }
         }
         updateSummary();
       } catch { /* keep last-known state */ }
@@ -2147,8 +2497,13 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
               if (row.section !== section || row.scope_day !== scope || row.market_id !== market) return;
               const line = lines.get(row.line_key);
               if (!line) return;
-              if (payload.eventType === 'DELETE') { line.status = 'todo'; line.worked = ''; line.actual = null; }
-              else { line.status = row.status; line.worked = row.worked_by || ''; line.actual = row.actual_qty ?? null; }
+              if (payload.eventType === 'DELETE') {
+                line.status = 'todo'; line.worked = ''; line.actual = null; line.needed = null; line.note = '';
+              } else {
+                line.status = row.status; line.worked = row.worked_by || ''; line.actual = row.actual_qty ?? null;
+                line.needed = row.needed_qty ?? null; line.note = row.note || '';
+              }
+              if (isPackhouse) { updateNeedChip(line); updateNote(line); }
               renderControl(line);
               updateSummary();
             },
