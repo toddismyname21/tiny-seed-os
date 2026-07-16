@@ -689,8 +689,19 @@ const slimDayLong = DAY_LONG[weekday] ?? weekday;
                     )}
                   </div>
                   <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {/* PRIMARY: one job that prints the whole pack — harvest
+                        totals, then pack house by item, then each market on its
+                        own page (owner-approved 2026-07-15). The individual sheet
+                        links below stay as secondary fallbacks. */}
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-primary/40 bg-ts-primary/5 p-3 sm:col-span-2">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Print the whole pack — one job (EN/ES)</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pick-pack/${week}?view=printpack&day=mon&print=1`} target="_blank" rel="noopener" class={primaryBtn}>🖨 Print the whole pack — Monday ↗</a>
+                        <a href={`/admin/pick-pack/${week}?view=printpack&day=mon&lang=es&print=1`} target="_blank" rel="noopener" class={ghostBtn}>Español ↗</a>
+                      </div>
+                    </li>
                     <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
-                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Harvest crew</span>
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Harvest crew (individual sheets)</span>
                       <div class="flex flex-wrap gap-2">
                         <a href={`/admin/pick-pack/${week}?day=mon`} target="_blank" rel="noopener" class={ghostBtn}>Pick &amp; Pack (EN) ↗</a>
                         <a href={`/admin/pick-pack/${week}?day=mon&lang=es`} target="_blank" rel="noopener" class={ghostBtn}>Español ↗</a>
@@ -955,8 +966,19 @@ const slimDayLong = DAY_LONG[weekday] ?? weekday;
                     )}
                   </div>
                   <ul class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {/* PRIMARY: one job that prints the whole weekend pack —
+                        harvest totals, then pack house by item, then each weekend
+                        market on its own page (owner-approved 2026-07-15). The
+                        individual sheet links below stay as secondary fallbacks. */}
+                    <li class="flex flex-col gap-1 rounded-ts-md border border-ts-primary/40 bg-ts-primary/5 p-3 sm:col-span-2">
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Print the whole pack — one job (EN/ES)</span>
+                      <div class="flex flex-wrap gap-2">
+                        <a href={`/admin/pick-pack/${week}?view=printpack&day=thu&print=1`} target="_blank" rel="noopener" class={primaryBtn}>🖨 Print the whole pack — Thursday ↗</a>
+                        <a href={`/admin/pick-pack/${week}?view=printpack&day=thu&lang=es&print=1`} target="_blank" rel="noopener" class={ghostBtn}>Español ↗</a>
+                      </div>
+                    </li>
                     <li class="flex flex-col gap-1 rounded-ts-md border border-ts-border p-3">
-                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Harvest crew</span>
+                      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Harvest crew (individual sheets)</span>
                       <div class="flex flex-wrap gap-2">
                         <a href={`/admin/pick-pack/${week}?day=thu`} target="_blank" rel="noopener" class={ghostBtn}>Pick &amp; Pack (EN) ↗</a>
                         <a href={`/admin/pick-pack/${week}?day=thu&lang=es`} target="_blank" rel="noopener" class={ghostBtn}>Español ↗</a>

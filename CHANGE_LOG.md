@@ -6,6 +6,24 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-16] CSA — Combined Print Pack (`?view=printpack`) — one print job for the whole pack day (FULLSTACK_BUILDER). NOT DEPLOYED.
+
+Owner-approved consolidation: instead of printing 3–4 separate documents each pack day, ONE print job combines the sheets in the order the crew works them. New `?view=printpack&day=mon|thu` (+`&lang=es`, +`&print=1`) mode on the SAME `/admin/pick-pack/[week]` page — no new route, no duplicated data pipeline. Frontend only; no DB/schema/API change; the standalone views render byte-for-byte unchanged.
+
+**1. The document — one continuously-printable flow.** Page 1 = the OVERALL harvest totals (the compact one-sheet zebra list, incl. the ⚠ make-ups-to-add subtotal when owed). Fresh page = the PACK HOUSE by-item sheet (category bands, destination splits, saved need-chips + notes). Then each in-scope MARKET on its own page (Lawrenceville leads on Monday; the Sat/Sun markets on Thursday). Page-1 banner: "Pick & Pack — Monday harvest (Tue + Wed) · Week of … · printed <date>" (printed-on date on the farm's America/New_York clock; EN/ES inline). `?print=1` auto-opens the print dialog, same as the market one-tap buttons.
+
+**2. Reuse, not duplication — how drift is prevented.** The overall + pack-house SECTIONS render through their EXISTING view guards, extended from `view === 'overall'` / `'packhouse'` to also match `'printpack'` — so they emit the exact same JSX + consume the exact same builders (`merged`, `overallGroups`, `overallCombined`, `packhouseMatrix`/`packhouseSections`) and the exact same print CSS (`.pp-overall`, `.packhouse-doc`). The per-market pages reuse a new shared `buildMarketRender()` helper (the SAME `orderMarketItems → combineHarvest → groupBySection` derivation the single-market view does) and the SAME `.harvest-group` / `.harvest-row` / `CombinedHarvestRow` markup + print CSS. Because both market renderers pull from one builder + one set of CSS classes, they cannot drift.
+
+**3. Never alters the standalone views.** Every printpack style rule is scoped under a `.pp-printpack` wrapper class (added to `.print-doc` only for this view), so the overall / pack-house / market printouts are untouched. Page flow uses `break-before: page` on the pack-house + each market page (not `break-after`, which would leave a trailing blank page). The overall sheet's own compact green band is hidden ONLY inside printpack (the page-1 banner replaces it) so page 1 carries one clean header.
+
+**4. Screen mode = print preview.** printpack does NOT render `#pp-live-config`, so the single-section live check-off controller never wires up (its data-pp-line attrs, left by `lineAttrs`, are inert across the three coexisting sections). Screen shows a static preview + a note pointing at Print. The pack-house need-chips + notes still server-render from the SAME `pick_pack_progress` `section='packhouse'` board (real pack data prints), via `ppSection` mapping printpack → 'packhouse'.
+
+**5. Buttons.** Landing (`pick-pack/index.astro`): a prominent "🖨 Print the whole pack — Monday / — Thursday" primary pair (EN/ES). `TodayFlow.astro` Monday step 6 + Thursday step 4: a primary "Print the whole pack" button (EN/ES) at the top of the print deck; the individual sheet links stay as secondary fallbacks.
+
+Files: `apps/csa-portal/src/pages/admin/pick-pack/[...slug].astro`, `apps/csa-portal/src/pages/admin/pick-pack/index.astro`, `apps/csa-portal/src/components/TodayFlow.astro`. Verified: `npm run build` 0 errors; `astro check` 11 errors = baseline (0 new; none in these files); `npm run test:unit` all suites pass. Estimated pages: Monday ≈ 3 (harvest + pack house + Lawrenceville); Thursday ≈ 4 (harvest + pack house + Sat + Sun markets). NOT deployed.
+
+---
+
 ## [2026-07-15] CSA — Interactive Pack House (live check-off + needed_qty + notes, cross-day continuity) (FULLSTACK_BUILDER). NOT DEPLOYED.
 
 Owner's ask for `/admin/pick-pack/[week]?view=packhouse`: (a) a quantity-needed column for when the crew picks short or pulls from inventory ("easily added"), (b) a notes section the pack team can leave a note in, and (c) crossing crops off IN THE APP as they pack — so the **Tuesday pack team picks right up** where Monday's team left off. Cross-DAY continuity is the point. Built by EXTENDING the existing live check-off machinery (pick_pack_progress, migration 0069) — no parallel system. Frontend + one migration + the two ops endpoints + shared lib i18n. NOT deployed / migration NOT applied.

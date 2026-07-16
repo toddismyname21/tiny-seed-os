@@ -64,8 +64,9 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
 const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
 
 const viewRaw = Astro.url.searchParams.get('view') ?? 'overall';
-const view: 'overall' | 'csa' | 'wholesale' | 'market' | 'packhouse' =
-  viewRaw === 'csa' || viewRaw === 'wholesale' || viewRaw === 'market' || viewRaw === 'packhouse'
+const view: 'overall' | 'csa' | 'wholesale' | 'market' | 'packhouse' | 'printpack' =
+  viewRaw === 'csa' || viewRaw === 'wholesale' || viewRaw === 'market'
+    || viewRaw === 'packhouse' || viewRaw === 'printpack'
     ? viewRaw : 'overall';
 const marketIdParam = Astro.url.searchParams.get('market') ?? '';
 const lang = parseLang(Astro.url.searchParams.get('lang'));
@@ -594,7 +595,7 @@ const selectedMarket = view === 'market'
  * Built ONLY for this view (it needs one extra read — the account names).
  * ────────────────────────────────────────────────────────────────── */
 let packhouseMatrix: ReturnType<typeof buildDestinationMatrix> | null = null;
-if (view === 'packhouse') {
+if (view === 'packhouse' || view === 'printpack') {
   const destInputs: DestDemandInput[] = [];
 
   // CSA — one column. csaRows is already day-scoped (built via inScope above);
@@ -785,6 +786,45 @@ function mergeTender(name: string, category: string | null): boolean {
   return mergeCropDemand([{ crop: name, qty: 1, unit: 'x', category }], [], [])[0]?.tender ?? false;
 }
 
+/* ── Combined print pack (?view=printpack) — one continuously-printable document
+ *    that composes the three sheets the crew already print separately:
+ *      1. the OVERALL harvest totals   (reuses the .pp-overall section + its
+ *         compact one-sheet print CSS verbatim — via its view guard, extended)
+ *      2. the PACK HOUSE by-item sheet (reuses the .packhouse-doc section verbatim)
+ *      3. each in-scope MARKET, one per page (reuses the SAME per-market builder
+ *         below + the SAME .harvest-group / CombinedHarvestRow markup + print CSS
+ *         as the single-market view — so there is no second market renderer to
+ *         drift out of sync).
+ *    Nothing here ALTERS the standalone views: printpack only re-uses their
+ *    builders + classes and adds page breaks (scoped under .pp-printpack). */
+interface MarketRender {
+  group: MarketGroup;
+  itemsOrdered: MarketItem[];
+  combine: ReturnType<typeof combineHarvest>;
+  itemsShown: MarketItem[];
+  sections: CrewSectionGroup<MarketItem>[];
+}
+/** The SAME per-market derivation the single-market view does at the top level
+ *  (orderMarketItems → combineHarvest → drop consumed → groupBySection), packaged
+ *  so the combined pack can run it for every in-scope market. Reusing this — not a
+ *  copy — is what keeps the two market renderers from diverging. */
+function buildMarketRender(group: MarketGroup): MarketRender {
+  const itemsOrdered = orderMarketItems(group.items);
+  const combine = combineHarvest(itemsOrdered.map((it) => ({ crop: it.name, qty: it.qty, unit: it.unit })));
+  const itemsShown = itemsOrdered.filter((_, i) => !combine.consumed.has(i));
+  const sections = groupBySection(itemsShown, (it) => it.category, (it) => it.name);
+  return { group, itemsOrdered, combine, itemsShown, sections };
+}
+// In-scope markets for the combined pack: SAME day filter as the harvest merge
+// (Tue → mon; Sat/Sun → thu) and SAME sort (day, then name), so Lawrenceville
+// (Tue) leads on Monday and the weekend markets lead on Thursday. The untagged
+// bucket never gets its own market page.
+const printpackMarkets: MarketRender[] = view === 'printpack'
+  ? marketGroupsSorted
+      .filter((g) => g.id !== 'untagged' && marketInScope(g.day))
+      .map(buildMarketRender)
+  : [];
+
 const DAY_LONG: Record<string, string> = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
   Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
@@ -796,6 +836,7 @@ if (view === 'csa') docTitle = 'CSA harvest';
 else if (view === 'wholesale') docTitle = 'Wholesale harvest';
 else if (view === 'market') docTitle = `Market — ${selectedMarket?.name ?? 'market'}`;
 else if (view === 'packhouse') docTitle = t.packhouseTitle;
+else if (view === 'printpack') docTitle = lang === 'es' ? 'Paquete de impresión completo' : 'Combined print pack';
 else docTitle = t.overallTitle;
 
 const totalCsaBoxes = cycle.members.filter(
@@ -855,7 +896,7 @@ function makeupTag(n: NoticeWithMember): { text: string; overdue: boolean } {
   }).format(d);
   return { text: overdue ? `OVERDUE since ${pretty}` : `due ${pretty}`, overdue };
 }
-const showMakeups = (view === 'overall' || view === 'csa') && makeupNotices.length > 0;
+const showMakeups = (view === 'overall' || view === 'csa' || view === 'printpack') && makeupNotices.length > 0;
 
 /* ── Day-scope tab strip hrefs — preserve the current lang + view params so
  *    switching the harvest day never drops the drill-down or language. ─── */
@@ -878,6 +919,19 @@ const dayScopeLabel =
   dayScope === 'mon' ? 'Monday harvest · Tue + Wed'
   : dayScope === 'thu' ? 'Thursday harvest · Sat + Sun'
   : 'All week';
+
+/* ── Combined print-pack header text (?view=printpack) ─────────────────────────
+ *   The page-1 banner: "Pick & Pack — Monday harvest (Tue + Wed) · Week of … ·
+ *   printed <date>". The printpack strings do NOT live in PICK_PACK_STRINGS, so
+ *   EN/ES are inlined here. Printed-on date is the farm's clock (America/New_York). */
+const printpackScopeLabel =
+  dayScope === 'mon' ? (lang === 'es' ? 'Cosecha del lunes (mar + mié)' : 'Monday harvest (Tue + Wed)')
+  : dayScope === 'thu' ? (lang === 'es' ? 'Cosecha del jueves (sáb + dom)' : 'Thursday harvest (Sat + Sun)')
+  : (lang === 'es' ? 'Toda la semana' : 'All week');
+const printpackPrintedOn = new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', {
+  month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York',
+}).format(new Date());
+const printpackPrintedLabel = (lang === 'es' ? 'impreso ' : 'printed ') + printpackPrintedOn;
 
 /** View-switcher href that preserves the current day scope + language. */
 function viewHref(v: 'overall' | 'csa' | 'wholesale' | 'market' | 'packhouse', marketId?: string): string {
@@ -908,8 +962,11 @@ const SENTINEL_MARKET = '00000000-0000-0000-0000-000000000000';
 // csa/wholesale/market are the per-channel pack views; 'packhouse' (0083) is the
 // by-item distribution sheet, now interactive (Packed toggle + needed_qty + note),
 // keyed on its own section so its progress never collides with the overall view.
+// For printpack the live board is never wired (no #pp-live-config below), but the
+// pack-house SECTION still server-renders its saved need-chips + notes from
+// progressMap, so we load the SAME 'packhouse' board the standalone view reads.
 const ppSection: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse' =
-  view === 'overall' ? 'harvest' : view;
+  view === 'overall' ? 'harvest' : view === 'printpack' ? 'packhouse' : view;
 const marketIdForKey =
   view === 'market' && selectedMarket && UUID_RE.test(selectedMarket.id)
     ? selectedMarket.id
@@ -1038,12 +1095,12 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
   pageTitle={`Pick & Pack — ${docTitle} — Tiny Seed Admin`}
 >
   <Fragment slot="actions">
-    {(view === 'overall' || view === 'packhouse') && (
+    {(view === 'overall' || view === 'packhouse' || view === 'printpack') && (
       <a
         href={(() => {
           // Toggle language while preserving the current view + day scope. The
-          // overall + pack-house sheets are the crew-facing docs the ES version
-          // exists for.
+          // overall + pack-house + combined-pack sheets are the crew-facing docs
+          // the ES version exists for.
           const p = new URLSearchParams();
           if (view !== 'overall') p.set('view', view);
           if (lang !== 'es') p.set('lang', 'es'); // en → es; es → (drop = en)
@@ -1124,7 +1181,29 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     ))}
   </nav>
 
-  <div class="print-doc">
+  <div class={['print-doc', view === 'printpack' ? 'pp-printpack' : ''].join(' ')}>
+    {/* ═══ COMBINED PRINT PACK — page-1 banner + screen preview note ═══
+        printpack composes three sheets into one print job. On screen this is a
+        static preview (no live check-off is wired for this view — see the
+        pp-live-config guard below), so a short note points the user at Print.
+        The banner is the single page-1 header the owner asked for; the overall
+        sheet's own compact band is dropped in print (scoped CSS) so page 1 has
+        one clean header. */}
+    {view === 'printpack' && (
+      <>
+        <p class="screen-only mb-4 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-4 py-3 text-sm text-ts-text-secondary">
+          🖨 <strong class="text-ts-text">Combined print pack.</strong> This is a preview — press
+          <strong class="text-ts-text"> Print</strong> for the whole document: harvest totals, then the
+          pack house by item, then each market on its own page.
+        </p>
+        <header class="doc-band pp-printpack-header mb-4 rounded-ts-lg px-5 py-4">
+          <p class="font-display text-sm font-bold uppercase tracking-wide sm:text-base">
+            Pick &amp; Pack — {printpackScopeLabel} · {prettyWeekHeader(week_starting)} · {printpackPrintedLabel}
+          </p>
+        </header>
+      </>
+    )}
+
     {/* ═══ ⚠ MAKE-UPS TO ADD — additive subtotal on top of the harvest ═══
         Owed make-up promises that must be harvested THIS week on top of the
         normal box/market/wholesale demand — otherwise the farm won't HAVE the
@@ -1133,7 +1212,7 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         so the makeup count is consistent across harvest / pick-pack / pack-sheet.
         Overdue make-ups flagged in red. Prints in color. */}
     {showMakeups && (
-      <section aria-labelledby="pp-makeups-heading" class={`makeups-banner mb-5 rounded-ts-lg border-[3px] p-4 sm:p-5${view === 'overall' ? ' pp-mk-compact' : ''}`}>
+      <section aria-labelledby="pp-makeups-heading" class={`makeups-banner mb-5 rounded-ts-lg border-[3px] p-4 sm:p-5${view === 'overall' || view === 'printpack' ? ' pp-mk-compact' : ''}`}>
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 id="pp-makeups-heading" class="flex items-center gap-2 font-display text-lg font-extrabold uppercase tracking-wide sm:text-xl">
             <span aria-hidden="true">⚠</span>
@@ -1175,18 +1254,26 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         Screen-only. The hidden config element hands the browser controller the
         sheet coordinates + Supabase realtime creds + EN/ES labels; the summary
         gives Todd (and the crew) a live to-go / harvesting / done (or packed)
-        readout. Hidden in print so the paper sheet is unchanged. */}
-    <div
-      id="pp-live-config"
-      class="hidden"
-      data-week={week_starting}
-      data-section={ppSection}
-      data-scope={dayScope}
-      data-market={marketIdForKey}
-      data-supabase-url={PUBLIC_SUPABASE_URL}
-      data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
-      data-i18n={JSON.stringify(t.live)}
-    ></div>
+        readout. Hidden in print so the paper sheet is unchanged.
+
+        NOT rendered for printpack: that view composes three sections (harvest +
+        pack-house + markets) whose data-pp-line elements all coexist on one page,
+        so wiring the single-section controller would mis-file taps. printpack is a
+        print/preview doc — its interactive controls stay off (the data-* attrs are
+        inert without this config element). */}
+    {view !== 'printpack' && (
+      <div
+        id="pp-live-config"
+        class="hidden"
+        data-week={week_starting}
+        data-section={ppSection}
+        data-scope={dayScope}
+        data-market={marketIdForKey}
+        data-supabase-url={PUBLIC_SUPABASE_URL}
+        data-supabase-anon-key={PUBLIC_SUPABASE_ANON_KEY}
+        data-i18n={JSON.stringify(t.live)}
+      ></div>
+    )}
 
     {ppTotal > 0 && (
       <section class="screen-only mb-4" aria-label={t.live.progress} data-pp-summary>
@@ -1234,8 +1321,10 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       </section>
     )}
 
-    {/* ═══════════════ OVERALL HARVEST ═══════════════ */}
-    {view === 'overall' && (
+    {/* ═══════════════ OVERALL HARVEST ═══════════════
+        Also the FIRST page of the combined print pack (view === 'printpack') —
+        the SAME .pp-overall section + compact one-sheet print CSS, no fork. */}
+    {(view === 'overall' || view === 'printpack') && (
       <section aria-labelledby="pp-heading" class="harvest-doc pp-overall">
         <header class="doc-band rounded-ts-lg px-5 py-4">
           <p class="text-xs font-semibold uppercase tracking-wider opacity-90">
@@ -1519,8 +1608,11 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         (row total reused verbatim from `merged`, cells sum to it); groupBySection
         only reshapes the render. No live check-off here (paper sheet) — the tick
         box is for pen. Portioned products show total harvest pounds beside the
-        count (matrixRowLb = Σ count × pack_weight_lb). */}
-    {view === 'packhouse' && (
+        count (matrixRowLb = Σ count × pack_weight_lb).
+
+        Also the SECOND section of the combined print pack (view === 'printpack')
+        — the SAME .packhouse-doc section verbatim, just started on a fresh page. */}
+    {(view === 'packhouse' || view === 'printpack') && (
       <section aria-labelledby="pp-pack-heading" class="packhouse-doc">
         <header class="doc-band rounded-ts-lg px-5 py-4">
           <p class="text-xs font-semibold uppercase tracking-wider opacity-90">{t.packhouseTitle} · {prettyWeekHeader(week_starting)} · {dayScopeLabel}</p>
@@ -1619,6 +1711,75 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         </p>
       </section>
     )}
+
+    {/* ═══════════════ COMBINED PACK — PER-MARKET PAGES (?view=printpack) ═══════════════
+        The THIRD section of the combined pack: one page per in-scope market
+        (Lawrenceville leads on Monday; the Sat/Sun markets on Thursday). This
+        reuses the SAME per-market builder (buildMarketRender) and the EXACT SAME
+        .harvest-group / .harvest-row / CombinedHarvestRow markup + print CSS as
+        the single-market view above — the only additions are the page-break
+        wrapper (.pp-market-page) and per-market heading ids (a single-page view
+        can't have those). No live check-off is wired for printpack, so the
+        data-pp-line attrs left by lineAttrs are inert. */}
+    {view === 'printpack' && printpackMarkets.map((mr) => (
+      <section aria-labelledby={`pp-mkt-heading-${mr.group.id}`} class="harvest-doc pp-market-page">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Market harvest · {prettyWeekHeader(week_starting)}</p>
+          <h2 id={`pp-mkt-heading-${mr.group.id}`} class="mt-1 font-display text-3xl font-bold sm:text-4xl">🛒 {mr.group.name}</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">
+            {mr.group.day ? DAY_LONG[mr.group.day] ?? mr.group.day : 'Market'} · what to bring (planned qty)
+          </p>
+        </header>
+        {mr.itemsOrdered.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">Nothing listed for this market.</p>
+          </Card>
+        ) : (
+          <div class="mt-4 flex flex-col gap-5">
+            {mr.combine.combined.length > 0 && (
+              <ol class="flex flex-col">
+                {mr.combine.combined.map((g) => (
+                  <div style="display:contents" {...lineAttrs('group', g.harvestCrop, 'lb', g.totalLb)}>
+                    <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
+                  </div>
+                ))}
+              </ol>
+            )}
+            {mr.sections.map((section) => (
+              <section class="harvest-group" aria-label={t.sections[section.section]}>
+                <h3 class="group-head category-head rounded-ts-md px-4 py-2 font-display text-lg font-bold">{t.sections[section.section]}</h3>
+                <ol class="mt-2 flex flex-col">
+                  {section.items.map((it) => {
+                    const lb = packLb(it.name, it.qty, it.unit);
+                    return (
+                      <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', it.name, it.unit, it.qty)}>
+                        <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                        <div class="min-w-0 flex-1">
+                          <p class="text-xl font-bold leading-tight text-ts-text">{it.name}</p>
+                          {it.sourceName && (
+                            <p class="mt-0.5 text-xs font-medium italic text-ts-text-muted">{t.alsoWord}: {it.sourceName}</p>
+                          )}
+                        </div>
+                        <div class="shrink-0 text-right">
+                          {it.qty > 0
+                            ? <><span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{it.qty.toLocaleString()}</span><span class="ml-1 text-sm font-semibold text-ts-text-secondary">{it.unit}</span></>
+                            : <span class="text-sm font-semibold text-ts-text-muted">{it.unit}</span>}
+                          {lb != null && (
+                            <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                              {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            ))}
+          </div>
+        )}
+      </section>
+    ))}
   </div>
 
   {/* One-tap print: when arrived via a ?print=1 button, open the print dialog
@@ -1978,6 +2139,23 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     .pp-mk-compact li { padding-top: 3px; padding-bottom: 3px; gap: 8px; }
     .pp-mk-compact li p { font-size: 10pt; line-height: 1.15; }
     .pp-mk-compact .harvest-check { width: 13px; height: 13px; }
+
+    /* ── COMBINED PRINT PACK (?view=printpack) — page flow ─────────────────────
+       printpack composes the overall harvest, the pack-house sheet, and each
+       in-scope market into one print job. EVERY rule here is scoped under
+       .pp-printpack, so the standalone overall / pack-house / market views print
+       byte-for-byte unchanged — printpack composes them, never alters them. */
+    /* The page-1 banner IS the combined pack's header, so the overall sheet's own
+       compact green band is redundant beneath it — drop just that inner band. */
+    .pp-printpack .pp-overall .doc-band { display: none; }
+    /* One clean page-1 header. */
+    .pp-printpack .pp-printpack-header { padding: 6px 12px; margin-bottom: 8px; }
+    .pp-printpack .pp-printpack-header p { font-size: 11pt; letter-spacing: 0.02em; }
+    /* Page breaks: harvest totals fill page 1; the pack house starts a fresh page;
+       each market starts its own fresh page. break-BEFORE (not after) avoids the
+       trailing blank page a break-after on the last market would leave. */
+    .pp-printpack .packhouse-doc { break-before: page; page-break-before: always; }
+    .pp-printpack .pp-market-page { break-before: page; page-break-before: always; }
   }
 </style>
 

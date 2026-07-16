@@ -177,6 +177,48 @@ const cardBtnGhostClass =
     </section>
   )}
 
+  {/* ── 🖨 PRINT THE WHOLE PACK — one job, all sheets ─────────────────
+      Owner-approved consolidation (2026-07-15): instead of printing 3–4 separate
+      documents, one button prints the combined pack for a harvest day — harvest
+      totals, then the pack house by item, then each in-scope market on its own
+      page. Day-explicit (no day-less button — the same lesson as the Pack House
+      buttons: a day-less print merged Monday + Thursday). */}
+  <section aria-labelledby="pp-wholepack-heading" class="flex flex-col gap-3">
+    <h2 id="pp-wholepack-heading" class="font-display text-xl font-bold text-ts-text">Print the whole pack</h2>
+    <Card tone="primary" padding="md" elevation="md">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <p class="font-display text-lg font-bold text-ts-text">🖨 One job — every sheet for the day</p>
+          <p class="mt-1 text-sm text-ts-text-secondary">
+            One print combines it all in order: <strong class="text-ts-text">harvest totals</strong>,
+            then the <strong class="text-ts-text">pack house by item</strong>, then
+            <strong class="text-ts-text">each market</strong> on its own page. No more printing three or four
+            documents — pick the harvest day and print.
+          </p>
+        </div>
+        <span class="shrink-0 rounded-ts-md bg-ts-primary/10 px-3 py-1 text-base font-bold tabular-nums text-ts-primary">🖨</span>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a
+          href={`/admin/pick-pack/${week_starting}?view=printpack&day=mon&print=1`}
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >🖨 Print the whole pack — Monday (Tue + Wed) →</a>
+        <a
+          href={`/admin/pick-pack/${week_starting}?view=printpack&day=thu&print=1`}
+          class="inline-flex h-11 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >🖨 Print the whole pack — Thursday (weekend) →</a>
+        <a
+          href={`/admin/pick-pack/${week_starting}?view=printpack&day=mon&lang=es&print=1`}
+          class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >Lunes · Español →</a>
+        <a
+          href={`/admin/pick-pack/${week_starting}?view=printpack&day=thu&lang=es&print=1`}
+          class="inline-flex h-11 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >Jueves · Español →</a>
+      </div>
+    </Card>
+  </section>
+
   {/* ── Overall harvest ───────────────────────────────────────────── */}
   <section aria-labelledby="pp-overall-heading" class="flex flex-col gap-3">
     <h2 id="pp-overall-heading" class="font-display text-xl font-bold text-ts-text">Overall harvest</h2>
