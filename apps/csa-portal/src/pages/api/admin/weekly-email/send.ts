@@ -53,7 +53,7 @@ import {
   PORTAL_BASE_URL,
 } from '../../../../lib/weekly-email';
 import { makeFeedbackUrl } from '../../../../lib/feedback';
-import { mondayOfWeek } from '../../../../lib/cycle';
+import { mondayOfWeek, resolveCycle } from '../../../../lib/cycle';
 import {
   RESEND_API_KEY,
   RESEND_FROM_EMAIL,
@@ -218,6 +218,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ ok: false, error: 'recipient_query_failed' }, 500);
   }
 
+  // Cycle-aware audience (Todd 2026-07-18): only members RECEIVING food this
+  // week — weekly + biweekly on-week + flex. resolveCycle has ALREADY excluded
+  // biweekly off-weeks, vacation holds, and out-of-season shares, so we never
+  // email a "here's your box" to someone who isn't getting one this cycle.
+  // Keyed by the cycle MONDAY (feedbackWeek), matching box_contents.
+  const cycle = await resolveCycle(supabaseAdmin, feedbackWeek);
+  const eligibleEmails = new Set<string>();
+  for (const cm of cycle.members) {
+    const em = (cm.email ?? '').trim().toLowerCase();
+    if (em) eligibleEmails.add(em);
+  }
+
   const recipientEmails = new Set<string>();
   // email → customer id, so the per-recipient feedback link can be minted in the
   // send loop (the loop is email-keyed; first customer id wins for an email).
@@ -229,6 +241,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const email = m.customer?.email?.trim().toLowerCase();
     if (!email) continue;
     if (m.customer?.is_active === false) continue;
+    // Only members actually getting food this week (cycle-aware filter).
+    if (!eligibleEmails.has(email)) continue;
     recipientEmails.add(email);
     if (m.customer?.id && !customerIdByEmail.has(email)) {
       customerIdByEmail.set(email, m.customer.id);
