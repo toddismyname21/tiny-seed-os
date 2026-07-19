@@ -9,6 +9,20 @@ import { weekOptions } from '../../../lib/cycle-ui';
 
 const options = weekOptions();
 const defaultWeek = currentDeliveryWeek();
+
+// Pre-select the distribution day from TODAY's ET weekday — same documented
+// mapping the slug page uses (Sat→sat, Sun→sun, Thu/Fri→sat, else→wed) — so the
+// landing opens on the day the crew is actually packing.
+function defaultDay(): 'tue' | 'wed' | 'sat' | 'sun' {
+  const wd = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', weekday: 'short',
+  }).format(new Date());
+  if (wd === 'Sat') return 'sat';
+  if (wd === 'Sun') return 'sun';
+  if (wd === 'Thu' || wd === 'Fri') return 'sat';
+  return 'wed';
+}
+const defaultDayValue = defaultDay();
 ---
 
 <AdminShell
@@ -29,9 +43,10 @@ const defaultWeek = currentDeliveryWeek();
       <label class="flex flex-col gap-1">
         <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Distribution day</span>
         <select id="day-select" class="h-10 min-w-[180px] rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm text-ts-text">
-          <option value="wed" selected>Wednesday (most stops)</option>
-          <option value="tue">Tuesday (Lawrenceville)</option>
-          <option value="sat">Saturday (markets)</option>
+          <option value="wed" selected={defaultDayValue === 'wed'}>Wednesday (most stops)</option>
+          <option value="tue" selected={defaultDayValue === 'tue'}>Tuesday (Lawrenceville)</option>
+          <option value="sat" selected={defaultDayValue === 'sat'}>Saturday (markets)</option>
+          <option value="sun" selected={defaultDayValue === 'sun'}>Sunday (South Side)</option>
           <option value="all">All days</option>
         </select>
       </label>

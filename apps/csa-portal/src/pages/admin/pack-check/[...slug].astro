@@ -56,6 +56,31 @@ const week_starting = isMonday(week_starting_input)
 const stopSlugRaw = segments[1] ?? '';
 const printAll = Astro.url.searchParams.get('all') === '1';
 
+// ─── Harvest-run day scope (mirrors /admin/pick-pack + /admin/harvest) ──
+// The work is day-scoped, so the print-all job must be too — a Wednesday pack
+// crew should NOT wade through weekend market stops (and load order only
+// sequences that day's route, so off-day stops sort to the end as noise).
+//   ?day=mon → the "Wednesday run": Tue + Wed distributions + home delivery
+//   ?day=thu → the "weekend run":   Sat + Sun market stops
+//   ?day=all → whole week merged (the prior behavior; still available)
+// Only the print-ALL view is scoped; a single-stop sheet is already one day.
+const dayRaw = (Astro.url.searchParams.get('day') ?? 'all').toLowerCase();
+const dayScope: 'mon' | 'thu' | 'all' =
+  dayRaw === 'mon' || dayRaw === 'thu' ? dayRaw : 'all';
+const runLabel = dayScope === 'mon' ? 'Wednesday run'
+  : dayScope === 'thu' ? 'Weekend run' : '';
+/** CSA/home stop → harvest run: Sat/Sun pickup → thu (weekend); else → mon
+ *  (Tue/Wed + home delivery, which the resolver defaults to Wed). */
+function harvestTabForStop(stop: StopTotals): 'mon' | 'thu' {
+  return stop.day_of_week === 'Sat' || stop.day_of_week === 'Sun' ? 'thu' : 'mon';
+}
+/** Wholesale delivery date → harvest run: Fri(5)/Sat(6) → thu; else → mon.
+ *  Same DOW rule pick-pack uses so a Sat wholesale drop rides the weekend run. */
+function wholesaleTabForDate(dateYMD: string): 'mon' | 'thu' {
+  const dow = new Date(`${dateYMD}T12:00:00Z`).getUTCDay();
+  return dow === 5 || dow === 6 ? 'thu' : 'mon';
+}
+
 const cycle = await resolveCycle(supabase, week_starting);
 
 // ─── Home-delivery stop identity (incl. the per-truck split ids) ─────
@@ -95,8 +120,11 @@ function buildSubsetTotals(stop_id: string, stop_name: string, members: CycleMem
 let stopsToRender: StopTotals[] = [];
 let title = '';
 if (printAll) {
-  stopsToRender = cycle.activeStops;
-  title = `All stops · ${prettyWeekHeader(week_starting)}`;
+  stopsToRender = dayScope === 'all'
+    ? cycle.activeStops
+    : cycle.activeStops.filter((s) => harvestTabForStop(s) === dayScope);
+  const scopeLabel = dayScope === 'all' ? 'All stops' : `All stops · ${runLabel}`;
+  title = `${scopeLabel} · ${prettyWeekHeader(week_starting)}`;
 } else if (stopSlugRaw) {
   const found = cycle.activeStops.find((s) => slugStop(s.stop_name) === stopSlugRaw);
   if (!found) {
@@ -129,7 +157,10 @@ const INF = Number.POSITIVE_INFINITY;
 // its own loadSeq), so each drops into its proper truck slot in the pack check.
 // Home members NOT on the saved route group into one "not on a saved route"
 // sheet (never dropped). No saved route → the aggregate home bucket stays as-is.
-if (printAll && loadOrder) {
+// Gated on the home bucket being IN the current scope: on the weekend run
+// (dayScope='thu') home delivery was filtered out of stopsToRender above, so we
+// must NOT re-expand it here (it reads cycle.byStop directly, not stopsToRender).
+if (printAll && loadOrder && stopsToRender.some((s) => s.stop_id === HOME_DELIVERY_BUCKET_ID)) {
   const homeMembers = cycle.byStop.get(HOME_DELIVERY_BUCKET_ID) ?? [];
   if (homeMembers.length > 0) {
     const byCustomer = new Map<string, CycleMember[]>();
@@ -565,14 +596,19 @@ function memberShareLabel(m: CycleMember): string {
 type WholesaleLine = { name: string; qty: number; unit: string | null };
 const wholesaleLinesByCustomer = new Map<string, WholesaleLine[]>();
 const wholesaleNameByCustomer = new Map<string, string>();
+// Which harvest run a wholesale customer's order belongs to (for day scoping).
+const wholesaleTabByCustomer = new Map<string, 'mon' | 'thu'>();
 if (printAll && loadOrder && loadOrder.stops.some((s) => s.kind === 'wholesale')) {
   const weekEnd = addDaysYMD(week_starting, 6);
+  // Status filter: only REAL orders print (drafts/cancelled must never print a
+  // pack section) — the same set pick-pack + wholesale/pack use.
   const { data: wOrders } = await supabaseAdmin
     .from('wholesale_orders')
-    .select('id, account_id')
+    .select('id, account_id, delivery_date')
+    .in('status', ['submitted', 'confirmed', 'packed'])
     .gte('delivery_date', week_starting)
     .lte('delivery_date', weekEnd);
-  const wOrderRows = (wOrders ?? []) as Array<{ id: string; account_id: string | null }>;
+  const wOrderRows = (wOrders ?? []) as Array<{ id: string; account_id: string | null; delivery_date: string | null }>;
   const acctIds = Array.from(new Set(wOrderRows.map((o) => o.account_id).filter(Boolean))) as string[];
   const custByAcct = new Map<string, string>();
   const nameByAcct = new Map<string, string>();
@@ -608,6 +644,9 @@ if (printAll && loadOrder && loadOrder.stops.some((s) => s.kind === 'wholesale')
     const existing = wholesaleLinesByCustomer.get(cid) ?? [];
     wholesaleLinesByCustomer.set(cid, existing.concat(itemsByOrder.get(o.id) ?? []));
     if (!wholesaleNameByCustomer.has(cid)) wholesaleNameByCustomer.set(cid, nameByAcct.get(o.account_id) ?? 'Wholesale');
+    if (o.delivery_date && !wholesaleTabByCustomer.has(cid)) {
+      wholesaleTabByCustomer.set(cid, wholesaleTabForDate(o.delivery_date));
+    }
   }
 }
 
@@ -639,7 +678,15 @@ if (printAll && loadOrder) {
         sort: loadOrder!.orderValue(st.key),
       };
     });
-  sections = [...stopSecs, ...wholesaleSecs]
+  // Scope wholesale to the selected run too (a Sat wholesale drop belongs to
+  // the weekend run, not Wednesday). On 'all', every wholesale stop stays.
+  const scopedWholesaleSecs = dayScope === 'all'
+    ? wholesaleSecs
+    : wholesaleSecs.filter(
+        (sec) => sec.kind === 'wholesale'
+          && wholesaleTabByCustomer.get(sec.wholesale.key.slice(3)) === dayScope,
+      );
+  sections = [...stopSecs, ...scopedWholesaleSecs]
     .map((s, i) => ({ s, i }))
     .sort((a, b) => {
       if (a.s.sort !== b.s.sort) {
@@ -1050,7 +1097,7 @@ const WHOLESALE_BAND: BandColor = { bg: '#7c2d12', text: '#ffffff' };
                           </div>
                           <ul class="mt-1 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
                             {row.flexLines.map((l) => (
-                              <li class="flex items-start gap-2 text-xs text-ts-text">
+                              <li class="pc-flex-line flex items-start gap-2 text-xs text-ts-text">
                                 <span
                                   class="flex-check mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-sm border border-ts-primary bg-white"
                                   aria-hidden="true"
@@ -1066,7 +1113,7 @@ const WHOLESALE_BAND: BandColor = { bg: '#7c2d12', text: '#ffffff' };
 
                       {/* Allergy flag (packer must honor substitutions). */}
                       {m.allergies.length > 0 && (
-                        <p class="mt-1 text-xs font-bold text-ts-warning">
+                        <p class="pc-allergy mt-1 text-xs font-bold text-ts-warning">
                           ⚠ ALLERGY: {m.allergies.join(', ')}
                         </p>
                       )}
@@ -1183,6 +1230,12 @@ const WHOLESALE_BAND: BandColor = { bg: '#7c2d12', text: '#ffffff' };
     /* The notices block stays whole + keeps its yellow on paper. */
     .stop-notices { break-inside: avoid; page-break-inside: avoid; }
     .notice-row { break-inside: avoid; page-break-inside: avoid; }
+
+    /* ── ≥11pt floor for the crew's most error-prone items ────────────────
+       Flex sub-checklist + allergy flag render text-xs (~9pt) on screen; on
+       PAPER these are the lines a mis-pack most often comes from, so clear the
+       11pt floor. The flex tick box stays its size (already ≥3.5mm). */
+    .pc-flex-line, .pc-allergy { font-size: 11pt !important; line-height: 1.3; }
   }
 </style>
 </content>

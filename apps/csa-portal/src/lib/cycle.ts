@@ -1432,12 +1432,37 @@ export function cropMatches(crop: string, term: string): boolean {
  * Tiny display helpers shared by the printable pages.
  * ────────────────────────────────────────────────────────────────── */
 
-/** Pretty-print a week-starting date as "Week of Monday, June 8". */
+/**
+ * The single canonical WEEK label — a Mon–Sun date RANGE, e.g.
+ * "Week of Jun 22 – Jun 28" (CSA_GLOSSARY_OF_TRUTH §3/§5: always a range,
+ * NEVER "this / last / next week"). `input` may be any day in the week; we
+ * snap to the cycle Monday first, so callers can pass a Monday OR a delivery
+ * Wednesday and get the same range. Weekday + year are stripped from
+ * `prettyShortDate` so the two ends read cleanly ("Jun 22 – Jun 28").
+ *
+ * This lives in cycle.ts (not cycle-ui.ts) so `prettyWeekHeader` — the header
+ * every PRINTED crew sheet uses — can delegate to it WITHOUT a circular import
+ * (cycle-ui imports cycle, never the reverse). `lib/cycle-ui` re-exports this
+ * so its existing importers (dashboard, feedback, history, recipes, flex-order)
+ * are unaffected.
+ */
+export function weekRangeLabel(input: string): string {
+  const mon = mondayOfWeek(input);
+  const sun = addDays(mon, 6);
+  const strip = (d: string): string => prettyShortDate(d).replace(/^[A-Za-z]+, /, '');
+  return `Week of ${strip(mon)} – ${strip(sun)}`;
+}
+
+/**
+ * The canonical printed WEEK header — a Mon–Sun date RANGE
+ * ("Week of Jul 13 – Jul 19"). Delegates to `weekRangeLabel` so every printed
+ * crew surface (pick-pack, pack-check, pack-sheet, stop-manifest, host-sheets,
+ * pack-load, labels, floral…) renders the ONE glossary week form. Screen week
+ * pickers already use `weekRangeLabel` via `weekOptions`, so this brings the
+ * ~10 print headers into alignment with them.
+ */
 export function prettyWeekHeader(weekStarting: string): string {
-  return 'Week of ' + new Intl.DateTimeFormat('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${weekStarting}T12:00:00Z`));
+  return weekRangeLabel(weekStarting);
 }
 
 /** "Wed, Jun 10". */

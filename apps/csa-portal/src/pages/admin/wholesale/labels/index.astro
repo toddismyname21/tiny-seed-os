@@ -53,9 +53,12 @@ const mode: 'order' | 'item' = modeParam === 'item' ? 'item' : 'order';
 /** Carry the current mode through date links (omit when default). */
 const modeQS = mode === 'item' ? '&mode=item' : '';
 
+// Only REAL orders get a crate label — a draft or cancelled order must never
+// print a phantom crate. Same status set pick-pack + wholesale/pack use.
 const { data: orderRows } = await supabaseAdmin
   .from('wholesale_orders')
   .select('id, account_id')
+  .in('status', ['submitted', 'confirmed', 'packed'])
   .eq('delivery_date', deliveryDate)
   .order('created_at', { ascending: true });
 const orders = (orderRows ?? []) as Array<{ id: string; account_id: string | null }>;

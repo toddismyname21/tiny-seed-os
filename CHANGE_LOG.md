@@ -6,6 +6,30 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-18] CSA — Print formats: TOP 5 audit fixes (FULLSTACK_BUILDER). NOT DEPLOYED.
+
+Executed the top 5 ranked fixes from `docs/audits/PRINT_FORMATS_AUDIT_2026-07.md`. Print DNA respected throughout (≥11pt body floors, zebra on list-likes, checkbox-first, low ink, canonical date-range week label). No DB/schema/API changes; frontend + two shared-lib helpers only.
+
+**1. Pack-sheet print layer (`pack-sheet/[...slug].astro` + `index.astro`).** Added a print-only week/day header band above the list ("Pack sheet · Wednesday Jul 15 · Week of Jul 13 – Jul 19") so a printed sheet identifies its harvest run (the AdminShell heading is print-hidden). Raised body type in `@media print` to the ≥11pt floor (member rows, name/add-on/flex/flag → 11pt; stop name 12.5pt; size pill + sub 10pt). Added zebra (`nth-child(even)` tint, flower rows excluded so their pink wash wins). Hid the stat-card row on print. Added Sunday (South Side) to the landing day picker, and the landing now pre-selects the day from today's ET weekday. Day now DEFAULTS from today's ET weekday when `?day=` is absent — documented mapping: Sat→Sat, Sun→Sun, Thu/Fri→Sat (weekend-market prep), else (Mon/Tue/Wed)→Wed.
+
+**2. Pack-check day scoping (`pack-check/[...slug].astro` + `index.astro`).** Added `?day=mon|thu` harvest-run scoping to the print-all view (mon = Wednesday run: Tue+Wed+home; thu = weekend run: Sat+Sun), mirroring pick-pack's harvest-tab pattern; single-stop + `?day=all` behavior unchanged. Two day-explicit landing buttons ("Print all (Wednesday run)" / "(weekend run)") plus a "Whole week" fallback. Home-split is now gated on the home bucket being in scope so it isn't re-expanded on the weekend run. Wholesale sections are scoped to the run by delivery DOW. Flex sub-checklist + allergy flag bumped to ≥11pt on print. LOAD-order flow + home-split sheets preserved.
+
+**3. Stop-manifest data hole + LOAD banner (`stop-manifest/[...slug].astro`).** The flex line-items query used `['locked','fulfilled']` while its own box-count gate uses `['pending','locked','fulfilled']` — a pending-only flex member was counted as a box on the cover but listed with empty items. Aligned the line-items query to the 3-status set. Added the 🚚 LOAD banner (shared `lib/load-order`) so the manifest matches every other truck surface (purely additive — no stop reorder/split on this page).
+
+**4. Wholesale status filters.** Filtered `wholesale_orders` to `IN ('submitted','confirmed','packed')` so drafts/cancelled never print or count: `wholesale/labels/index.astro` (phantom crate labels), `wholesale/pack/index.astro` (phantom pack sheets + inflated pick totals), `pack-check/[...slug].astro` wholesale query, and the `pick-pack/index.astro` landing count (was `.eq('status','submitted')` — now matches the sheet, so the card can't read 0 while the sheet has orders).
+
+**5. Canonical week header (`lib/cycle.ts` + `lib/cycle-ui.ts`).** `prettyWeekHeader` now delegates to `weekRangeLabel` ("Week of Jul 13 – Jul 19"), fixing ~10 printed surfaces at once. To avoid a circular import (cycle-ui imports cycle, never the reverse), `weekRangeLabel` was MOVED into `cycle.ts` and re-exported from `cycle-ui.ts`, so its existing importers (dashboard, feedback, history, recipes, flex-order) are unchanged. Updated the `prettyWeekHeader` unit-test expectation to the new range form; screen week pickers unaffected (they already used `weekRangeLabel`).
+
+Files: `apps/csa-portal/src/lib/cycle.ts`, `apps/csa-portal/src/lib/cycle-ui.ts`, `apps/csa-portal/src/lib/cycle.test.ts`, `apps/csa-portal/src/pages/admin/pack-sheet/[...slug].astro`, `apps/csa-portal/src/pages/admin/pack-sheet/index.astro`, `apps/csa-portal/src/pages/admin/pack-check/[...slug].astro`, `apps/csa-portal/src/pages/admin/pack-check/index.astro`, `apps/csa-portal/src/pages/admin/stop-manifest/[...slug].astro`, `apps/csa-portal/src/pages/admin/wholesale/labels/index.astro`, `apps/csa-portal/src/pages/admin/wholesale/pack/index.astro`, `apps/csa-portal/src/pages/admin/pick-pack/index.astro`. Verified: `npm run test:unit` all suites pass (cycle 53/53 incl. updated prettyWeekHeader); `npx astro check` 11 errors = baseline (0 new; the wholesale/labels error is the pre-existing wholesale_order_items relation error, shifted 101→104 by added lines); `npm run build` 0 errors. NOT deployed.
+
+---
+
+## [2026-07-16] CSA — PRINT FORMATS AUDIT (read-only, AUDIT agent). No code changed.
+
+Audited every printed surface in the CSA portal (pick-pack all views + printpack, pack-sheet, pack-check, labels, wholesale labels/pack, stop-manifest, host-sheets, route-sheet, pack-load, substitutions, price-list, market signs, notices, floral) against the crew print DNA + owner standing rules (≥11pt floors, zebra, day scoping, date-range week labels, page breaks, EN/ES). Full report: `docs/audits/PRINT_FORMATS_AUDIT_2026-07.md`. Headlines: pack-sheet prints sub-floor type with no week/day header; pack-check has no day scoping; stop-manifest flex line-items use a narrower status set than its own box count; wholesale prints have no order-status filter; every printed header uses the single-date `prettyWeekHeader` instead of the canonical `weekRangeLabel` range.
+
+---
+
 ## [2026-07-16] CSA — Combined Print Pack (`?view=printpack`) — one print job for the whole pack day (FULLSTACK_BUILDER). NOT DEPLOYED.
 
 Owner-approved consolidation: instead of printing 3–4 separate documents each pack day, ONE print job combines the sheets in the order the crew works them. New `?view=printpack&day=mon|thu` (+`&lang=es`, +`&print=1`) mode on the SAME `/admin/pick-pack/[week]` page — no new route, no duplicated data pipeline. Frontend only; no DB/schema/API change; the standalone views render byte-for-byte unchanged.

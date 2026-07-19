@@ -32,10 +32,13 @@ const url = Astro.url;
 const dateParam = url.searchParams.get('date') ?? '';
 const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
 
-// Orders for the date + their account names.
+// Orders for the date + their account names. Only REAL orders print a pack
+// sheet (drafts/cancelled must never print or inflate the ①Pick/Harvest totals,
+// which would double-count against pick-pack's filtered wholesale numbers).
 const { data: orderRows } = await supabaseAdmin
   .from('wholesale_orders')
   .select('id, account_id, total_amount, source')
+  .in('status', ['submitted', 'confirmed', 'packed'])
   .eq('delivery_date', deliveryDate)
   .order('created_at', { ascending: true });
 const orders = (orderRows ?? []) as Array<{

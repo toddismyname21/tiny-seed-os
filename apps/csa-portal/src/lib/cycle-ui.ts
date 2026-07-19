@@ -11,31 +11,24 @@
  *
  * Pure / server-or-client safe.
  */
-import { addDays, mondayOfWeek, prettyShortDate, upcomingMonday } from './cycle.ts';
+import { addDays, mondayOfWeek, upcomingMonday, weekRangeLabel } from './cycle.ts';
+
+/**
+ * The single canonical WEEK label — a Mon–Sun date RANGE, e.g.
+ * "Week of Jun 22 – Jun 28" (CSA_GLOSSARY_OF_TRUTH §3/§5: always a range).
+ *
+ * The definition now lives in `lib/cycle.ts` so `prettyWeekHeader` (the printed
+ * crew-sheet header) can delegate to it without a circular import. It's
+ * re-exported here so every existing importer (dashboard, feedback, history,
+ * recipes, flex-order) keeps importing it from `cycle-ui` unchanged.
+ */
+export { weekRangeLabel };
 
 export interface WeekOption {
   /** YYYY-MM-DD (Monday). */
   value: string;
   /** "Week of Jun 8" + suffix tag ("this week" / "next week" / "last week"). */
   label: string;
-}
-
-/**
- * The single canonical WEEK label — a Mon–Sun date RANGE, e.g.
- * "Week of Jun 22 – Jun 28" (CSA_GLOSSARY_OF_TRUTH §3/§5: always a range,
- * NEVER "this / last / next week"). `input` may be any day in the week; we
- * snap to the cycle Monday first, so callers can pass a Monday OR a delivery
- * Wednesday and get the same range. Weekday + year are stripped from
- * `prettyShortDate` so the two ends read cleanly ("Jun 22 – Jun 28").
- *
- * This is the ONE builder of the glossary range string — `weekOptions` and
- * the member dashboard both call it so they can never drift.
- */
-export function weekRangeLabel(input: string): string {
-  const mon = mondayOfWeek(input);
-  const sun = addDays(mon, 6);
-  const strip = (d: string): string => prettyShortDate(d).replace(/^[A-Za-z]+, /, '');
-  return `Week of ${strip(mon)} – ${strip(sun)}`;
 }
 
 /**

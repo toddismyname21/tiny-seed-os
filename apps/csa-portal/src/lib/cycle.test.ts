@@ -375,8 +375,10 @@ test('applyComposition: swap-out item that isn\'t in the base is treated as addi
 // ═══ Date display ════════════════════════════════════════════════════
 
 test('prettyWeekHeader formats nicely', () => {
-  // June 8, 2026 is a Monday.
-  assertEqual(prettyWeekHeader('2026-06-08'), 'Week of Monday, June 8');
+  // June 8, 2026 is a Monday. prettyWeekHeader now delegates to the canonical
+  // glossary WEEK RANGE (Mon–Sun) so every printed crew sheet reads the same
+  // form as the on-screen week pickers.
+  assertEqual(prettyWeekHeader('2026-06-08'), 'Week of Jun 8 – Jun 14');
 });
 
 test('prettyShortDate formats nicely', () => {

@@ -64,13 +64,16 @@ const marketCards = Array.from(marketCardMap.values()).sort((a, b) => {
   return a.name.localeCompare(b.name);
 });
 
-// Submitted wholesale orders delivering this week → does the wholesale card
-// have anything to show?
+// Real wholesale orders delivering this week → does the wholesale card have
+// anything to show? Status set MUST MATCH the wholesale pick-pack SHEET
+// (['submitted','confirmed','packed']) — the sheet was widened to include
+// confirmed/packed but this landing count still filtered to 'submitted' only,
+// so the card could read 0 while the sheet had orders. Now they agree.
 const weekEnd = addDays(week_starting, 6);
 const { count: wholesaleCount } = await supabase
   .from('wholesale_orders')
   .select('id', { count: 'exact', head: true })
-  .eq('status', 'submitted')
+  .in('status', ['submitted', 'confirmed', 'packed'])
   .gte('delivery_date', week_starting)
   .lte('delivery_date', weekEnd);
 

@@ -27,6 +27,7 @@ import {
   fetchDueNoticesForStops, groupNoticesByHint, HOME_DELIVERY_HINT,
   type MemberNotice,
 } from '../../../lib/notices';
+import { getLoadOrder, formatLoadRange, type LoadOrder } from '../../../lib/load-order';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -112,12 +113,18 @@ const flexLinesByMember = new Map<string, Array<{ name: string | null; qty: numb
       qty: number;
       flex_item: { name: string | null } | null;
     };
+    // Status set MUST MATCH the flex box-count gate above (line ~95:
+    // pending | locked | fulfilled). Previously this query dropped 'pending',
+    // so a pending-only flex member was COUNTED as a box on the cover and given
+    // a row — but with an EMPTY items list (the silent data hole flagged in the
+    // 2026-07 print audit). Labels + pack-check use the 3-status set for lines;
+    // now the manifest does too, so counted flex boxes always list their items.
     const { data, error } = await supabase
       .from('flex_orders')
       .select('member_id, qty, flex_item:flex_inventory ( name )')
       .eq('cycle_code', 'WEEKLY')
       .eq('week_starting', week_starting)
-      .in('status', ['locked', 'fulfilled'])
+      .in('status', ['pending', 'locked', 'fulfilled'])
       .in('member_id', memberIds)
       .overrideTypes<FlexLineRow[], { merge: false }>();
     if (!error) {
@@ -215,6 +222,38 @@ const stopBandById = new Map<string, BandColor>();
 function bandForStop(stop: StopTotals): BandColor {
   if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) return HOME_DELIVERY_BAND;
   return stopBandById.get(stop.stop_id) ?? NO_STOP_BAND;
+}
+
+// ─── 🚚 TRUCK LOAD banner (numbering parity with the other truck surfaces) ──
+// Labels, pack-check, pack-sheet, pack-load and wholesale labels all print the
+// per-leg LOAD number; the manifest travels on the SAME truck but was the only
+// one missing it. Reuses the SHARED lib/load-order (one numbering truth), so a
+// stop shows the identical load position here as on every other sheet. A pickup
+// stop → one position ("LOAD #3 · drive stop 7 of 9"); the aggregate home bucket
+// spans several ("LOAD #3–9 · 7 home stops"). Null when no route is saved (or a
+// stop isn't on it) — the manifest prints unchanged in that case. This surface
+// renders cycle.activeStops in place (no home split / reorder), so the banner is
+// purely additive information — it does not change stop order.
+const loadOrder: LoadOrder | null = await getLoadOrder(supabase, week_starting);
+interface LoadBanner { load: string; sub: string; }
+function loadBannerForStop(stop: StopTotals): LoadBanner | null {
+  if (!loadOrder) return null;
+  const legTag = (leg: string) => (loadOrder!.legCount > 1 ? ` · Route ${leg}` : '');
+  if (stop.stop_id === HOME_DELIVERY_BUCKET_ID) {
+    const seqs: number[] = [];
+    const legsSeen = new Set<string>();
+    for (const m of (cycle.byStop.get(stop.stop_id) ?? [])) {
+      const st = loadOrder.home(m.customer_id);
+      if (st) { seqs.push(st.loadSeq); legsSeen.add(st.leg); }
+    }
+    const range = formatLoadRange(seqs);
+    if (!range) return null;
+    const legLabel = legsSeen.size === 1 ? legTag([...legsSeen][0]) : '';
+    return { load: `LOAD ${range}`, sub: `${seqs.length} home stop${seqs.length === 1 ? '' : 's'}${legLabel}` };
+  }
+  const st = loadOrder.pickup(stop.stop_id);
+  if (!st) return null;
+  return { load: `LOAD #${st.loadSeq}`, sub: `drive stop ${st.routeSeq} of ${st.legTotal}${legTag(st.leg)}` };
 }
 
 /* Size badge colors — match the labels page's SIZE_BADGES exactly. Keyed on
@@ -496,8 +535,22 @@ function movedFromLabel(m: CycleMember): string | null {
       const band = bandForStop(stop);
       const isHomeDelivery = stop.stop_id === HOME_DELIVERY_BUCKET_ID;
       const stopNotices = noticesForStop(stop);
+      const loadBanner = loadBannerForStop(stop);
       return (
         <section class="page-break" aria-labelledby={`stop-${stop.stop_id}`}>
+          {/* 🚚 TRUCK LOAD position — numbered dark bar, per-leg load order.
+              Same numbering as the labels + pack sheets (shared lib/load-order).
+              Only appears when a route is saved for the week. */}
+          {loadBanner && (
+            <div class="load-banner flex items-center gap-3 rounded-ts-lg px-4 py-2">
+              <span class="load-banner-num font-display text-2xl font-extrabold tabular-nums leading-none">
+                🚚 {loadBanner.load}
+              </span>
+              <span class="text-sm font-semibold uppercase tracking-wide opacity-90">
+                {loadBanner.sub}
+              </span>
+            </div>
+          )}
           {/* COLOR-CODED STOP BAND — matches the box labels' band color so the
               driver pairs this sheet with the colored stickers at a glance. */}
           <header
@@ -768,6 +821,19 @@ function movedFromLabel(m: CycleMember): string | null {
     print-color-adjust: exact;
   }
 
+  /* ── 🚚 TRUCK LOAD banner — dark bar, big load number, prints in color ──
+   *    Same treatment as pack-check's banner (fixed hex, not theme tokens) so
+   *    the load position reproduces identically on paper across every truck
+   *    surface — the crew reads the same number to build the truck. */
+  .load-banner {
+    background: #0f172a;          /* slate-900 bar */
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .load-banner .load-banner-num { color: #ffffff; }
+
   /* ── 📌 NOTICES block — warm-yellow, MUST print in color ─────────────
    *    Fixed hex (not theme tokens): print document, the loud yellow must
    *    reproduce on paper. The checkbox is a real empty square ticked by hand. */
@@ -813,5 +879,8 @@ function movedFromLabel(m: CycleMember): string | null {
     /* The notices block stays whole + keeps its yellow on paper. */
     .stop-notices { break-inside: avoid; page-break-inside: avoid; }
     .notice-row { break-inside: avoid; page-break-inside: avoid; }
+
+    /* Keep the load banner glued to the stop it belongs to. */
+    .load-banner { break-inside: avoid; page-break-inside: avoid; break-after: avoid; }
   }
 </style>

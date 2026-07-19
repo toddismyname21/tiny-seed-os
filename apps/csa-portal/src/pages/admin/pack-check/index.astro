@@ -42,11 +42,27 @@ const DAY_LONG: Record<string, string> = {
   pageTitle="Pack checklists — Tiny Seed Admin"
 >
   <Fragment slot="actions">
+    {/* Day-explicit print-all buttons — the work is day-scoped, so the print
+        job should be too. "Wednesday run" = Tue + Wed + home delivery; "Weekend
+        run" = Sat + Sun markets. The whole-week button stays for the rare all-
+        at-once case. */}
+    <a
+      href={`/admin/pack-check/${week_starting}?all=1&day=mon`}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🖨 Print all (Wednesday run)
+    </a>
+    <a
+      href={`/admin/pack-check/${week_starting}?all=1&day=thu`}
+      class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+    >
+      🖨 Print all (weekend run)
+    </a>
     <a
       href={`/admin/pack-check/${week_starting}?all=1`}
       class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text transition-colors duration-150 hover:border-ts-primary/40 hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
     >
-      Print all stops for this week →
+      Whole week →
     </a>
   </Fragment>
 

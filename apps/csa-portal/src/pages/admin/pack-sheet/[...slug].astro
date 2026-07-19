@@ -34,13 +34,39 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) {
 }
 const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
 
-const dayRaw = (Astro.url.searchParams.get('day') ?? 'wed').toLowerCase();
-const day: WeekdayCode | 'all' =
+// ─── Distribution-day DEFAULT from TODAY's ET weekday ────────────────
+// A pack crew that opens this on the actual pack day should land on THAT
+// day's list — not always Wednesday (a Saturday market crew was landing on
+// the Wednesday list). Documented mapping (farm's own calendar, America/
+// New_York):
+//   Sat        → Sat  (Saturday markets)
+//   Sun        → Sun  (South Side, Sunday market)
+//   Thu / Fri  → Sat  (weekend-market pack/prep happens Thu–Fri)
+//   else       → Wed  (Mon/Tue/Wed all point at the main Wednesday delivery)
+// An explicit ?day= always wins over the default (the day tabs still work).
+function todayETWeekday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', weekday: 'short',
+  }).format(now);
+}
+// Return type is the narrow set of days this sheet actually tabs (never Mon/
+// Thu/Fri), so `day` stays within the dayLabels keys (no implicit-any index).
+function defaultDayTab(): 'Wed' | 'Sat' | 'Sun' {
+  const wd = todayETWeekday();
+  if (wd === 'Sat') return 'Sat';
+  if (wd === 'Sun') return 'Sun';
+  if (wd === 'Thu' || wd === 'Fri') return 'Sat';
+  return 'Wed';
+}
+const dayParam = Astro.url.searchParams.get('day');
+const dayRaw = (dayParam ?? '').toLowerCase();
+const day: 'Tue' | 'Wed' | 'Sat' | 'Sun' | 'all' =
   dayRaw === 'tue' ? 'Tue' :
+  dayRaw === 'wed' ? 'Wed' :
   dayRaw === 'sat' ? 'Sat' :
   dayRaw === 'sun' ? 'Sun' :
   dayRaw === 'all' ? 'all' :
-  'Wed';
+  defaultDayTab();
 
 const cycle = await resolveCycle(supabase, week_starting);
 
@@ -370,6 +396,18 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
     </button>
   </Fragment>
 
+  {/* ── PRINTED week/day header band (print-only) ─────────────────────
+      The AdminShell heading that carries the day + week range is print-hidden,
+      so a printed pack sheet used to start with stat cards then the list — with
+      NOTHING on paper saying which harvest run (Monday's vs Thursday's) it is.
+      This band prints the day + date + canonical WEEK RANGE at the very top,
+      mirroring the pick-pack doc-band. Screen-hidden (the AdminShell heading +
+      day tabs already carry this on screen). */}
+  <div class="ps-print-head hidden print:block">
+    <span class="ps-print-title">Pack sheet</span>
+    <span class="ps-print-scope">{dayLabels[day]} · {prettyWeekHeader(week_starting)}</span>
+  </div>
+
   {/* ── Day tab strip ─────────────────────────────────────────────── */}
   <nav aria-label="Distribution day" class="flex flex-wrap gap-1 border-b border-ts-border print:hidden">
     {(['Tue', 'Wed', 'Sat', 'Sun', 'all'] as const).map((d) => (
@@ -388,8 +426,9 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
     ))}
   </nav>
 
-  {/* ── Stat row ──────────────────────────────────────────────────── */}
-  <section aria-label="Stats" class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+  {/* ── Stat row (screen furniture — hidden on print so page 1 opens on the
+        make-ups banner + the list, not ~1.5in of stat cards). ──────────── */}
+  <section aria-label="Stats" class="grid grid-cols-2 gap-3 sm:grid-cols-5 print:hidden">
     <Card padding="md" elevation="sm">
       <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Total boxes</div>
       <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalBoxes}</div>
@@ -624,6 +663,15 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
     font-size: 0.82rem;
     line-height: 1.2;
   }
+  /* Zebra — this is the most spreadsheet-like list in the portal (one line per
+     customer). The 1px hairline is near-invisible on paper, so alternate a soft
+     tint. Flower rows keep their pink wash (excluded from zebra), and the tint
+     is print-color-adjust:exact so it survives the print pipeline. */
+  .ps-member:not(.ps-member-flower):nth-child(even) {
+    background: #f4f6f8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   .ps-member-flower {
     background: #fdf2f6;
     box-shadow: inset 3px 0 0 0 #e79cb9;
@@ -651,12 +699,32 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
   .ps-flag { font-size: 0.72rem; font-weight: 700; color: #b91c1c; }
   .ps-tag.ps-flower { font-size: 0.74rem; }
 
+  /* ── Printed week/day header band (print-only via `hidden print:block`) ──
+     Identifies the harvest run on paper (day + date + canonical WEEK RANGE) so
+     Monday's and Thursday's printouts can never be confused. */
+  .ps-print-head {
+    padding-bottom: 0.3rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 3px solid #111827;
+  }
+  .ps-print-title { font-size: 15pt; font-weight: 800; color: #111827; margin-right: 0.5rem; }
+  .ps-print-scope { font-size: 11.5pt; font-weight: 600; color: #374151; }
+
   @media print {
     @page { size: Letter portrait; margin: 0.35in; }
     body, html { background: white !important; }
     header[class*="sticky"], nav[aria-label="Admin sections"],
     button[onclick*="print"] { display: none !important; }
     main > div:first-child { padding-top: 0 !important; }
+
+    /* ── ≥11pt body floor (standing rule: compact ≠ cramped) ──────────────
+       Screen density stays tight; on PAPER the scanned fields clear 11pt.
+       Two columns still fit ~50 rows/page at these sizes. */
+    .ps-member { font-size: 11pt; line-height: 1.25; }
+    .ps-name, .ps-addon, .ps-flex, .ps-flag, .ps-tag.ps-flower { font-size: 11pt; }
+    .ps-size { font-size: 10pt; }
+    .ps-stop-name { font-size: 12.5pt; }
+    .ps-stop-sub { font-size: 10pt; }
 
     /* The make-up banner PRINTS (so a printed pack sheet still warns the crew),
        but the inline "Mark fulfilled" buttons are a screen-only affordance —
