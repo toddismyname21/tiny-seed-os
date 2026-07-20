@@ -6,6 +6,37 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-20] CSA Pick & Pack — OVERALL harvest list: make-ups folded, one-row-per-crop, garbage row killed (FULLSTACK_BUILDER)
+
+Three fixes to the OVERALL harvest (pick) list only (`view=overall` + the `printpack` overall section). Pack-house matrix + per-market pick sections deliberately untouched (the merge-key change flows through the shared lib and keeps the matrix consistent by construction).
+
+**Files:** `apps/csa-portal/src/pages/admin/pick-pack/[...slug].astro`, `apps/csa-portal/src/lib/pick-pack.ts`, `apps/csa-portal/src/lib/pick-pack.test.ts`; DB: `wholesale_order_items` (1 row corrected).
+
+- **FIX 1 — make-ups folded, top banner removed.** Deleted the standalone "⚠ Make-ups to add" TOP block. Make-ups (member_notices, open + due/overdue, day-scoped) now fold INTO the harvest: a make-up whose text names a crop the sheet harvests is ADDED to that crop's row total with an inline "⚠ +N make-up (member)" note; a make-up that names no harvest crop (bread confirm, store credit, a crop not harvested this week) rides at the FOOT of the list as its own checkable line — nothing lost. Folding is applied to a COPY of `merged` (`overallRows`) so the pack-house matrix's per-row totals stay pristine. Qty parsed from the title ("double"→2, "triple"→3, leading integer/number word, else 1); crop matched conservatively (every crop-identity word must appear, member-name prefix stripped so a member "Rosemary" can't false-match) — unmatched → foot.
+- **FIX 2 — one row per crop (vendor name-variant collapse).** Added `cropCanonicalKey` (+ `canonicalDisplayName`) to `pick-pack.ts`: `aliasNormalize` + an explicit, owner-confirmed `CANONICAL_ALIASES` map; `cropMergeKey` now delegates to it so ALL consumers (overall merge, matrix, line-key slug) collapse consistently. Summer squash (Summer Squash / Mix / Medley / Costata Romanesco / Patty Pan / Zephyr / Zucchini) → ONE "Summer Squash" row; Green Cabbage variants → one "Green Cabbage" (Conical + Napa kept separate); Cucumbers / Broccolini / Beets / Fennel / Kohlrabi / Dill / Romaine / Little Gem each → one row (trailing "Bunch/Bulb/Duo/Head/w-tops/Lettuce" descriptors folded). KEEP-SEPARATE guards verified: Red Romaine ≠ Romaine, Golden Beets ≠ Beets, Squash Blossoms ≠ Summer Squash, Broccoli ≠ Broccolini, specialty lettuces stay own rows. Display forced to the canonical label for squash/cabbage groups. 15 new unit assertions.
+- **FIX 3 — ProcurementExpress garbage row killed.** Corrected the corrupted `wholesale_order_items.product_name` ("Page 1 of 2 … ProcurementExpress.com … Rosemary", qty 5) → "Rosemary" so it merges into the Rosemary row. Added a defensive `isJunkProductName` guard (drops PDF-header signatures: ProcurementExpress / "Page N of M" / "Generated On … by" / "Item # SKU") in both wholesale demand loops so a future bad import can't re-pollute the pick list.
+- **Before/after (live 2026-07-20 printpack mon):** summer-squash 5 rows → 1; cabbage 5 → 2 (Green + Conical); cucumbers 2 → 1; broccolini 2 → 1; beets 3 → 2 (Beets + Golden); fennel/kohlrabi/dill/little-gem/romaine each collapsed; no ProcurementExpress row; no top make-up banner.
+
+## [2026-07-20] CSA Pick & Pack — Pack House distribution TABLE redesign (FULLSTACK_BUILDER)
+
+DEPLOYED + verified live (staff-authenticated). Only the **Pack House "where each crop goes"** section (`packhouseMatrix`) changed — the overall pick list is untouched (Todd: "that part is good"). Reused `buildDestinationMatrix(merged, destInputs)` + `groupBySection` — no math rebuilt.
+
+**Files:** `apps/csa-portal/src/pages/admin/pick-pack/[...slug].astro`, `apps/csa-portal/src/lib/pick-pack.ts`.
+
+- Replaced the compact 2-line "by-item" blocks with a **clean TABLE** (`.pack-matrix`), one ROW per crop, grouped into crew-section bands (existing category grouping + tender flag). Columns L→R: **Item** │ one column **per destination** (CSA, each market by NAME, each wholesale account incl. Market Wagon, Flex — headers carry the kind glyph) │ **TOTAL** (bold; totalQty + unit, plus harvest-lb via `matrixRowLb`) │ **Have on hand (qty)** (pen ☐ + write-in underline) │ **Packed** (pen ☐). Empty destination cells render a faint "·" (not 0). Destination cells SUM to TOTAL by construction (builder guarantee).
+- Added the instruction line above the table ("Harvest the TOTAL. If you already have some… check 'Have on hand'… Check 'Packed' when fully packed for all outlets."). EN + ES strings added to `PICK_PACK_STRINGS` (`itemCol`, `haveOnHandCol`, `packedCol`, `packhouseInstruction`).
+- **Readability:** large type, `border: 1px` grid lines everywhere, generous row height, zebra rows, bold pine header band. Print orientation switched to **Letter LANDSCAPE** (`@page pack-landscape`) to fit the many Thursday destination columns; `<thead>` repeats per page; `.pm-row` never splits (`break-inside: avoid`). Applies to both the standalone `packhouse` view and the `printpack` composite (second landscape section).
+- **Pen checkboxes** on both screen + print (blank to tick by hand) — the pack-house sheet is now a printable artifact with **no live check-off** (the other 4 views keep the interactive 0069/0083 board). Removed packhouse from `ppKeys`, from the `pp-live-config` render, and removed the now-unused `packLineAttrs` fn + dead `.pack-unit/.pack-splits/.pack-check/pack-need-chip/pack-note` CSS. The shared live-board controller is untouched (its packhouse branch is now inert, guarded by the absent config element).
+- Verified: `npm run build` ✓, `npx astro check` adds no new errors in the edited files (11 errors all pre-existing, e.g. cycle.ts), `pick-pack.test.ts` all pass. Deployed to Vercel prod; fetched `/admin/pick-pack/2026-07-20?view=printpack&day=mon` authenticated as todd@ and confirmed the new column headers + checkbox/write-in cells in the HTML.
+
+---
+
+## [2026-07-20] CSA flex — extend this week's cutoff Mon 7 AM → Tue 7 AM (PM_Architect)
+
+DEPLOYED + verified live (member-side). **Incident:** the flex list for week 2026-07-20 went live late. The standing Wednesday-run flex cutoff is **Monday 7 AM ET** (week_starting+0), so this Wed's (7/22) flex window **closed Mon 7/20 at 7 AM** — and `currentOrderWeek()` had already rolled to 2026-07-27 (next week, before-open), so members hitting `/account/flex-order` saw "next week / closed." **Fix:** the existing one-week override constant `WEEK_EXTENDED_TUE` in `apps/csa-portal/src/lib/flex-order.ts` was stale (`2026-07-13`); updated to **`2026-07-20`**. Now `cutoffEpochMs('2026-07-20')` = Tue 7/21 7 AM, `currentOrderWeek(now)`=2026-07-20 (OPEN), `closeLabel`='Tuesday 7 AM'. Verified via `flex_diag.ts` AND by authenticating as a live flex member and fetching `/account/flex-order` (200, "order by Tuesday 7 AM," add-to-cart + items live). Deployed to prod (tiny-seed-bmpmn35m0, READY). NOTE: the comments in cutoffEpochMs saying "Tuesday 08:00" are stale vs. the actual Monday 7 AM logic — worth a cleanup. Roll/remove override after 2026-07-21.
+
+---
+
 ## [2026-07-18] CSA — Print formats: TOP 5 audit fixes (FULLSTACK_BUILDER). NOT DEPLOYED.
 
 Executed the top 5 ranked fixes from `docs/audits/PRINT_FORMATS_AUDIT_2026-07.md`. Print DNA respected throughout (≥11pt body floors, zebra on list-likes, checkbox-first, low ink, canonical date-range week label). No DB/schema/API changes; frontend + two shared-lib helpers only.

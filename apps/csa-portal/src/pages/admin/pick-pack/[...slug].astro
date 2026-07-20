@@ -282,6 +282,23 @@ for (const o of offeringRows ?? []) {
   }
 }
 
+/* ── Defensive header-junk guard for wholesale item names ─────────────────
+ * A bad PDF import (ProcurementExpress purchase orders) has leaked a whole
+ * page-header line into wholesale_order_items.product_name — e.g. "Page 1 of 2
+ * Generated On … by ProcurementExpress.com Item # SKU Description … Rosemary".
+ * These signatures NEVER appear in a real product name, so we drop the line from
+ * the harvest demand (the underlying rows should also be corrected at the source;
+ * this guard keeps a future bad import from re-polluting the pick list). */
+const JUNK_NAME_RE = [
+  /procurementexpress/i,
+  /\bpage\s+\d+\s+of\s+\d+/i,
+  /generated on\b[\s\S]*\bby\b/i,
+  /\bitem\s*#\s*sku\b/i,
+];
+function isJunkProductName(name: string): boolean {
+  return JUNK_NAME_RE.some((re) => re.test(name));
+}
+
 /* ──────────────────────────────────────────────────────────────────
  * 4. Wholesale order demand by crop — submitted orders delivering this week.
  * ────────────────────────────────────────────────────────────────── */
@@ -316,7 +333,7 @@ for (const o of wholesaleOrderRows ?? []) {
   if (!inScope(wholesaleTabFor(o.delivery_date))) continue;
   for (const it of o.items ?? []) {
     const rawName = it.product_name?.trim();   // the vendor's own spelling
-    if (!rawName) continue;
+    if (!rawName || isJunkProductName(rawName)) continue;
     // CANONICAL IDENTITY: when the order item's wholesale_products row is linked
     // to a product_library product, use the library's NAME as the crop identity
     // so "Wild Dandelion Greens" folds into "Dandelion Greens" across channels.
@@ -462,13 +479,174 @@ const flexDemand: CropDemandInput[] = flexRows.map((r) => ({
   crop: r.crop, qty: r.qty, unit: r.unit, category: r.category, canonical: r.canonical, sourceName: r.sourceName,
 }));
 const merged = mergeCropDemand(csaDemand, marketDemand, wholesaleDemand, flexDemand);
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * MAKE-UPS — folded INTO the harvest, no more top banner (owner 2026-07-20).
+ *
+ * The old design surfaced owed make-up promises (member_notices) as a big
+ * ⚠ block at the TOP of the harvest sheet. Todd: that wastes space — fold each
+ * make-up into the harvest itself so the crew still picks the extra product
+ * ("otherwise we won't HAVE it to pack") without the standalone block.
+ *
+ * How a make-up folds:
+ *   • MATCHED — the make-up names a crop the sheet already harvests (a "double
+ *     mushroom" when mushrooms are on the list): its quantity is ADDED to that
+ *     crop's overall row total and an inline "⚠ +N make-up" note rides on the
+ *     row. The harvest number already includes the make-up — nothing lost.
+ *   • UNMATCHED — the make-up names no harvest crop (a bread confirm, a store
+ *     credit, a mushroom when none is harvested this week). It CAN'T fold into a
+ *     crop line, so it rides at the FOOT of the overall list as its own make-up
+ *     line — still counted, still checkable, just not a top block.
+ *
+ * The fold is applied to `overallRows` (a copy of `merged`), so the pack-house
+ * distribution matrix — which reuses `merged`'s per-row totals and must keep
+ * cells summing to those totals — is untouched. Reads the SAME member_notices
+ * source as the pack sheets; member_notices RLS returns EMPTY for a crew user,
+ * so crew never see the (member-named) make-ups.
+ * ══════════════════════════════════════════════════════════════════════════ */
+const allMakeupNotices: NoticeWithMember[] = await fetchAllOpenDueNoticesWithMember(
+  supabase, week_starting,
+);
+/**
+ * Harvest tab for a make-up notice, from its stop_hint (a pickup-stop NAME or
+ * the HOME_DELIVERY_HINT sentinel), using the SAME rule as the crops:
+ *   - HOME_DELIVERY_HINT                  → mon (the home-delivery run is Wed).
+ *   - a stop whose day_of_week is Sat/Sun → thu (weekend markets).
+ *   - every other stop (Tue/Wed pickup)   → mon.
+ *   - stop_hint NULL (general notice) OR an unknown stop → null (no single
+ *     harvest day → shows on the whole-week 'all' view only).
+ */
+function makeupTab(n: NoticeWithMember): 'mon' | 'thu' | null {
+  const hint = n.stop_hint?.trim();
+  if (!hint) return null;
+  if (hint === HOME_DELIVERY_HINT) return 'mon';
+  const dow = stopDayByName.get(hint.toLowerCase());
+  if (dow === undefined) return null;
+  return harvestTabForMember(dow);
+}
+/** Make-ups in the current day scope (mirrors the crop scoping: a Thursday sheet
+ *  never carries a Wed stop's owed make-up; general null-tab make-ups show on
+ *  'all' only). */
+const makeupNotices: NoticeWithMember[] =
+  dayScope === 'all'
+    ? allMakeupNotices
+    : allMakeupNotices.filter((n) => makeupTab(n) === dayScope);
+/** Due/overdue chip text for a make-up. */
+function makeupTag(n: NoticeWithMember): { text: string; overdue: boolean } {
+  const overdue = isNoticeOverdue(n.due_week, week_starting);
+  if (n.due_week == null) return { text: 'next opportunity', overdue: false };
+  const d = new Date(`${n.due_week}T12:00:00Z`);
+  const pretty = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(d);
+  return { text: overdue ? `OVERDUE since ${pretty}` : `due ${pretty}`, overdue };
+}
+
+/* ── Make-up parsing + crop matching (grounds each make-up to a REAL row) ──── */
+const MK_NUM_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, double: 2, triple: 3,
+};
+/** The item text of a make-up = its title WITHOUT the leading "Member Name:"
+ *  prefix (so a member named "Rosemary" can't false-match the Rosemary crop). */
+function makeupItemText(n: NoticeWithMember): string {
+  let text = n.title ?? '';
+  const colon = text.indexOf(':');
+  if (colon >= 0) text = text.slice(colon + 1);
+  else if (n.member_name && text.toLowerCase().startsWith(n.member_name.toLowerCase())) {
+    text = text.slice(n.member_name.length);
+  }
+  return text.trim();
+}
+/** Quantity owed by a make-up: "double"→2, "triple"→3, a leading integer, a
+ *  number word, else 1. */
+function makeupQty(itemText: string): number {
+  const low = itemText.toLowerCase();
+  if (/\btriple\b/.test(low)) return 3;
+  if (/\bdouble\b/.test(low)) return 2;
+  const digits = low.match(/\b(\d{1,3})\b/);
+  if (digits) return Math.max(1, parseInt(digits[1], 10));
+  for (const [word, n] of Object.entries(MK_NUM_WORDS)) {
+    if (new RegExp(`\\b${word}\\b`).test(low)) return n;
+  }
+  return 1;
+}
+/** Words in a make-up/crop string that carry crop identity — drop marketing,
+ *  packaging + make-up filler words so "make-good FLOWER bouquet" → ['flower',
+ *  'bouquet'] and can match a "Bouquet" row. */
+const MK_STOP = new Set<string>([
+  'organic', 'local', 'fresh', 'wild', 'certified', 'the', 'and', 'for', 'box',
+  'boxes', 'share', 'bunch', 'bunches', 'head', 'heads', 'bulb', 'duo', 'mix',
+  'medley', 'each', 'per', 'lb', 'lbs', 'bag', 'bags', 'pint', 'count',
+  'make', 'good', 'add', 'addon', 'confirm', 'surprise', 'gift', 'double',
+  'triple', 'extra', 'owe', 'owed', 'miss', 'missed', 'week', 'next',
+]);
+function mkSigWords(s: string): string[] {
+  return normCrop(s).split(' ').filter((w) => w.length >= 3 && !MK_STOP.has(w));
+}
+/** Loose singular/plural stem equality (3+ chars). */
+function mkStemEq(a: string, b: string): boolean {
+  if (a === b) return true;
+  const da = a.replace(/s$/, ''); const db = b.replace(/s$/, '');
+  return da.length >= 3 && da === db;
+}
+// Candidate crops = the pre-fold merged rows (index kept so we can fold in place).
+const mkCandidates = merged
+  .map((r, idx) => ({ idx, words: mkSigWords(r.crop) }))
+  .filter((c) => c.words.length > 0);
+/** Index into `merged` of the crop row a make-up belongs to, or null. A row
+ *  matches only when EVERY one of its identity words appears (stem-eq) in the
+ *  make-up text — so "double mushroom" matches a "Mushrooms" row but "confirm
+ *  bread" matches nothing. Ties broken toward the most specific (longest) crop. */
+function matchMakeupRow(itemText: string): number | null {
+  const words = mkSigWords(itemText);
+  if (words.length === 0) return null;
+  let bestIdx: number | null = null;
+  let bestScore = -1;
+  for (const c of mkCandidates) {
+    const ok = c.words.every((cw) => words.some((nw) => mkStemEq(cw, nw)));
+    if (!ok) continue;
+    const score = c.words.reduce((a, w) => a + w.length, 0);
+    if (score > bestScore) { bestScore = score; bestIdx = c.idx; }
+  }
+  return bestIdx;
+}
+
+/** An owed make-up folded onto a crop row (inline note on the overall sheet). */
+interface MakeupAnnot { qty: number; label: string; overdue: boolean; }
+/** overallRows carry an optional makeups[] the crop rendering surfaces inline. */
+type OverallRow = (typeof merged)[number] & { makeups?: MakeupAnnot[] };
+/** A make-up that matched no harvest crop — rides at the foot of the list. */
+interface UnmatchedMakeup {
+  key: string; qty: number; item: string; member: string | null;
+  detail: string | null; tag: { text: string; overdue: boolean };
+}
+// Fold make-ups into a COPY of merged (matrix keeps the pristine `merged`).
+const overallRows: OverallRow[] = merged.map((r) => ({ ...r }));
+const unmatchedMakeups: UnmatchedMakeup[] = [];
+for (const n of makeupNotices) {
+  const item = makeupItemText(n);
+  const qty = makeupQty(item);
+  const tag = makeupTag(n);
+  const idx = matchMakeupRow(item);
+  if (idx != null) {
+    const row = overallRows[idx];
+    row.totalQty += qty;
+    (row.makeups ??= []).push({ qty, label: n.member_name ?? item, overdue: tag.overdue });
+  } else {
+    unmatchedMakeups.push({
+      key: `makeup-${n.id}`, qty, item,
+      member: n.member_name, detail: n.detail, tag,
+    });
+  }
+}
+
 // ALPHABETICAL within each section (crew request, Todd 2026-07-13) — the
 // team looks crops up dictionary-style inside the Tender / Everything-else
 // groups. merged arrives qty-desc; re-sort each section A→Z.
 const alphaByCrop = (a: { crop: string }, b: { crop: string }): number =>
   a.crop.localeCompare(b.crop, undefined, { sensitivity: 'base' });
-const tenderRows = merged.filter((r) => r.tender).sort(alphaByCrop);
-const otherRows = merged.filter((r) => !r.tender).sort(alphaByCrop);
+const tenderRows = overallRows.filter((r) => r.tender).sort(alphaByCrop);
+const otherRows = overallRows.filter((r) => !r.tender).sort(alphaByCrop);
 
 /** Best photo for a merged/overall crop row. */
 function cropPhoto(crop: string): string | null {
@@ -650,7 +828,7 @@ if (view === 'packhouse' || view === 'printpack') {
     const destLabel = acctName ?? '(no account)';
     for (const it of o.items ?? []) {
       const rawName = it.product_name?.trim();
-      if (!rawName) continue;
+      if (!rawName || isJunkProductName(rawName)) continue;
       // Use the canonical library name (when linked) so this cell attaches to the
       // SAME merged row the overall sheet built — a library rename that shares no
       // text with the vendor name would otherwise orphan the cell.
@@ -724,10 +902,10 @@ function mergedRowLb(r: (typeof merged)[number]): number | null {
 // lb is the cross-channel sum. Keeps tender-first ordering for leftovers via the
 // original tenderRows/otherRows split (consumed rows drop out of each group).
 const overallCombined = combineHarvest(
-  merged.map((r) => ({ crop: r.crop, qty: r.totalQty, unit: r.csa?.unit ?? r.market?.unit ?? r.wholesale?.unit ?? r.flex?.unit ?? 'each', lb: mergedRowLb(r) })),
+  overallRows.map((r) => ({ crop: r.crop, qty: r.totalQty, unit: r.csa?.unit ?? r.market?.unit ?? r.wholesale?.unit ?? r.flex?.unit ?? 'each', lb: mergedRowLb(r) })),
 );
 const overallConsumedCrops = new Set(
-  Array.from(overallCombined.consumed).map((i) => merged[i].crop),
+  Array.from(overallCombined.consumed).map((i) => overallRows[i].crop),
 );
 const tenderRowsShown = tenderRows.filter((r) => !overallConsumedCrops.has(r.crop));
 const otherRowsShown = otherRows.filter((r) => !overallConsumedCrops.has(r.crop));
@@ -755,7 +933,8 @@ const overallGroups: { label: string; rows: typeof otherRowsShown; tender: boole
  *    column rows clear one page; above that, two columns keep everything on the
  *    sheet without shrinking type. Drives PRINT CSS only — screen is unchanged. */
 const overallPrintRowCount =
-  overallCombined.combined.length + tenderRowsShown.length + otherRowsShown.length;
+  overallCombined.combined.length + tenderRowsShown.length + otherRowsShown.length
+  + unmatchedMakeups.length;
 const overallTwoCol = overallPrintRowCount > 34;
 
 // CSA / WHOLESALE — combine within each list; the un-consumed rows render below.
@@ -843,60 +1022,6 @@ const totalCsaBoxes = cycle.members.filter(
   (m) => m.share_type === 'summer_veg'
     && inScope(harvestTabForMember(m.pickup_location?.day_of_week)),
 ).length;
-
-/* ──────────────────────────────────────────────────────────────────
- * MAKE-UPS TO ADD — additive accounting of owed make-up promises.
- *   The harvest list drives WHAT THE CREW PICKS. If the farm owes a member a
- *   double mushroom / make-good bread, the crew must harvest that extra product
- *   — otherwise we won't HAVE it to pack (the owner's exact complaint). We do
- *   NOT fold this into resolveCycle (too invasive/risky); instead we surface a
- *   SEPARATE, clearly-labeled subtotal from member_notices (open + due/overdue,
- *   ALL stops incl. general). Same source of truth as the pack sheets. Shown on
- *   the overall + CSA harvest views (the box-harvest views). [] on error.
- * ────────────────────────────────────────────────────────────────── */
-const allMakeupNotices: NoticeWithMember[] = await fetchAllOpenDueNoticesWithMember(
-  supabase, week_starting,
-);
-/**
- * Harvest tab for a make-up notice, from its stop_hint (a pickup-stop NAME or
- * the HOME_DELIVERY_HINT sentinel), using the SAME rule as the crops:
- *   - HOME_DELIVERY_HINT              → mon (the home-delivery run is Wed).
- *   - a stop whose day_of_week is Sat/Sun → thu (weekend markets).
- *   - every other stop (Tue/Wed pickup) → mon.
- *   - stop_hint NULL (general notice) OR an unknown stop → null (no single
- *     harvest day). A general promise still consumes product but isn't tied to a
- *     stop, so it only belongs on the whole-week ('all') view — never leaked
- *     onto a specific day tab.
- */
-function makeupTab(n: NoticeWithMember): 'mon' | 'thu' | null {
-  const hint = n.stop_hint?.trim();
-  if (!hint) return null; // general notice — no stop, no single day
-  if (hint === HOME_DELIVERY_HINT) return 'mon'; // Wed home-delivery run
-  const dow = stopDayByName.get(hint.toLowerCase());
-  if (dow === undefined) return null; // unknown stop → don't force onto a day
-  return harvestTabForMember(dow); // Sat/Sun → thu; else → mon
-}
-/**
- * Make-ups in the current day scope. On 'all' every due make-up shows (the
- * prior whole-week behavior). On mon/thu, keep only make-ups whose mapped
- * harvest tab === the scope; general (null-tab) make-ups NEVER leak onto a
- * specific day tab (they show on 'all' only). This mirrors the crop scoping so
- * a Thursday sheet doesn't wrongly carry a Wed stop's owed make-up.
- */
-const makeupNotices: NoticeWithMember[] =
-  dayScope === 'all'
-    ? allMakeupNotices
-    : allMakeupNotices.filter((n) => makeupTab(n) === dayScope);
-function makeupTag(n: NoticeWithMember): { text: string; overdue: boolean } {
-  const overdue = isNoticeOverdue(n.due_week, week_starting);
-  if (n.due_week == null) return { text: 'next opportunity', overdue: false };
-  const d = new Date(`${n.due_week}T12:00:00Z`);
-  const pretty = new Intl.DateTimeFormat('en-US', {
-    month: 'short', day: 'numeric', timeZone: 'UTC',
-  }).format(d);
-  return { text: overdue ? `OVERDUE since ${pretty}` : `due ${pretty}`, overdue };
-}
-const showMakeups = (view === 'overall' || view === 'csa' || view === 'printpack') && makeupNotices.length > 0;
 
 /* ── Day-scope tab strip hrefs — preserve the current lang + view params so
  *    switching the harvest day never drops the drill-down or language. ─── */
@@ -1015,27 +1140,6 @@ function lineAttrs(
   };
 }
 
-/** Server-render attributes for one interactive PACK-HOUSE line (0083). Like
- *  lineAttrs but keyed by crop alone (section='packhouse', so no collision with
- *  the overall 'harvest' key), and it also seeds the crew-editable needed_qty +
- *  note so the browser controller (and the print sheet) show the saved values
- *  with no flash. A pack-house row is one merged crop, so the key is crop-only —
- *  matching packhouseMatrix.rows / the ppKeys list below. */
-function packLineAttrs(crop: string, target: number | null, displayUnit: string | null): Record<string, string> {
-  const key = pickPackLineKey('row', crop);
-  const r = progressMap.get(key);
-  return {
-    'data-pp-line': '',
-    'data-line-key': key,
-    'data-status': r?.status ?? 'todo',
-    'data-worked': r?.worked_by ?? '',
-    'data-needed': r?.needed_qty != null ? String(r.needed_qty) : '',
-    'data-note': r?.note ?? '',
-    'data-target': target != null ? String(target) : '',
-    'data-unit': displayUnit ?? '',
-  };
-}
-
 /** Best single display unit for an OVERALL merged row (blank when channels
  *  disagree) — used only for the "actual qty" prompt, not for the key. */
 function overallUnit(r: (typeof merged)[number]): string {
@@ -1051,6 +1155,7 @@ if (view === 'overall') {
     ...overallCombined.combined.map((g) => pickPackLineKey('group', g.harvestCrop)),
     ...tenderRowsShown.map((r) => pickPackLineKey('row', r.crop)),
     ...otherRowsShown.map((r) => pickPackLineKey('row', r.crop)),
+    ...unmatchedMakeups.map((m) => pickPackLineKey('row', m.key)),
   ];
 } else if (view === 'csa') {
   ppKeys = [
@@ -1067,11 +1172,11 @@ if (view === 'overall') {
     ...marketCombine.combined.map((g) => pickPackLineKey('group', g.harvestCrop)),
     ...marketItemsShown.map((it) => pickPackLineKey('row', it.name, it.unit)),
   ];
-} else if (view === 'packhouse') {
-  // One key per pack-house crop row (crop-only, matching packLineAttrs). The
-  // matrix rows are the same set groupBySection reshapes into packhouseSections.
-  ppKeys = packhouseMatrix ? packhouseMatrix.rows.map((r) => pickPackLineKey('row', r.crop)) : [];
 }
+// NOTE: the pack-house view has NO live check-off — it is a clean printable
+// distribution TABLE with plain pen checkboxes (Have on hand / Packed), so it
+// contributes no ppKeys (ppTotal stays 0 → the live progress bar never renders
+// for this view). The other four views keep the interactive board (0069).
 // Initial counts (the client keeps these live thereafter).
 let ppTodo = 0, ppHarvesting = 0, ppDone = 0, ppPacked = 0, ppFlagged = 0;
 for (const k of ppKeys) {
@@ -1204,51 +1309,10 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       </>
     )}
 
-    {/* ═══ ⚠ MAKE-UPS TO ADD — additive subtotal on top of the harvest ═══
-        Owed make-up promises that must be harvested THIS week on top of the
-        normal box/market/wholesale demand — otherwise the farm won't HAVE the
-        product to pack (the owner's complaint). Shown on the box-harvest views
-        (overall + CSA). Reads the SAME member_notices source as the pack sheets,
-        so the makeup count is consistent across harvest / pick-pack / pack-sheet.
-        Overdue make-ups flagged in red. Prints in color. */}
-    {showMakeups && (
-      <section aria-labelledby="pp-makeups-heading" class={`makeups-banner mb-5 rounded-ts-lg border-[3px] p-4 sm:p-5${view === 'overall' || view === 'printpack' ? ' pp-mk-compact' : ''}`}>
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="pp-makeups-heading" class="flex items-center gap-2 font-display text-lg font-extrabold uppercase tracking-wide sm:text-xl">
-            <span aria-hidden="true">⚠</span>
-            Make-ups to add — harvest these too
-          </h2>
-          <span class="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-sm font-extrabold tabular-nums">
-            {makeupNotices.length} owed
-          </span>
-        </div>
-        <p class="mt-1 text-sm font-medium">
-          Owed items the farm promised members. Add these to the pick — they're on TOP of the box totals below.
-        </p>
-        <ul class="mt-3 flex flex-col divide-y divide-ts-border/40">
-          {makeupNotices.map((n) => {
-            const tag = makeupTag(n);
-            return (
-              <li class="harvest-row flex items-start gap-4 py-2.5">
-                <span class="harvest-check inline-block h-6 w-6 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
-                <div class="min-w-0 flex-1">
-                  <p class="text-base font-bold leading-snug text-ts-text">
-                    {n.member_name && <span>{n.member_name} — </span>}{n.title}
-                  </p>
-                  {n.detail && (
-                    <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug text-ts-text-secondary">{n.detail}</p>
-                  )}
-                </div>
-                <span class={[
-                  'shrink-0 self-center rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide',
-                  tag.overdue ? 'bg-ts-danger/15 text-ts-danger' : 'bg-ts-bg-muted text-ts-text-secondary',
-                ].join(' ')}>{tag.text}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-    )}
+    {/* Make-ups are no longer a top banner (owner 2026-07-20): matched make-ups
+        fold into their crop's overall row total (inline ⚠ note), and unmatched
+        ones ride at the FOOT of the overall list — see the pp-makeup-group
+        section below. */}
 
     {/* ══ LIVE CHECK-OFF config + progress summary (migration 0069) ══
         Screen-only. The hidden config element hands the browser controller the
@@ -1260,8 +1324,12 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
         pack-house + markets) whose data-pp-line elements all coexist on one page,
         so wiring the single-section controller would mis-file taps. printpack is a
         print/preview doc — its interactive controls stay off (the data-* attrs are
-        inert without this config element). */}
-    {view !== 'printpack' && (
+        inert without this config element).
+
+        NOT rendered for packhouse either: that view is now a clean printable
+        distribution TABLE with plain pen checkboxes (no live board), so it has no
+        data-pp-line elements to wire. */}
+    {view !== 'printpack' && view !== 'packhouse' && (
       <div
         id="pp-live-config"
         class="hidden"
@@ -1334,7 +1402,7 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
           <p class="mt-1 text-sm font-semibold opacity-95">{t.overallSubtitle}</p>
         </header>
 
-        {merged.length === 0 ? (
+        {overallRows.length === 0 && unmatchedMakeups.length === 0 ? (
           <Card tone="muted" padding="lg" elevation="sm">
             <p class="text-center text-sm text-ts-text-secondary">{t.nothing}</p>
           </Card>
@@ -1395,6 +1463,13 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                             <p class="pp-alt mt-0.5 text-xs font-medium italic text-ts-text-muted">{t.alsoWord}: {r.altNames.join(' · ')}</p>
                           )}
                           <p class="pp-breakdown mt-0.5 text-sm font-medium text-ts-text-secondary tabular-nums">{parts.join('  ·  ')}</p>
+                          {r.makeups && r.makeups.length > 0 && (
+                            <p class="pp-makeup mt-0.5 text-sm font-bold text-ts-accent">
+                              {r.makeups.map((m, i) => (
+                                <span>{i > 0 ? ' · ' : ''}⚠ +{m.qty} make-up{m.label ? ` (${m.label})` : ''}{m.overdue ? ' — overdue' : ''}</span>
+                              ))}
+                            </p>
+                          )}
                         </div>
                         <span class="pp-leader hidden" aria-hidden="true"></span>
                         <div class="shrink-0 text-right pp-amount">
@@ -1417,6 +1492,37 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
                 </ol>
               </section>
             ))}
+            {/* ⚠ MAKE-UPS that matched no harvest crop (bread confirm, store
+                credit, a crop not harvested this week) — folded to the FOOT of
+                the list so they're still picked/prepped + checkable, never lost
+                to the removed top banner. */}
+            {unmatchedMakeups.length > 0 && (
+              <section class="harvest-group pp-makeup-group" aria-label="Make-ups to prep">
+                <h3 class="group-head category-head rounded-ts-md px-4 py-2 font-display text-lg font-bold">
+                  ⚠ Make-ups — also prep these
+                </h3>
+                <ol class="mt-2 flex flex-col">
+                  {unmatchedMakeups.map((m) => (
+                    <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3" {...lineAttrs('row', m.key, null, m.qty)}>
+                      <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-xl font-bold leading-tight text-ts-text">
+                          {m.item}
+                          {m.member && <span class="ml-2 text-sm font-semibold text-ts-text-secondary">— {m.member}</span>}
+                        </p>
+                        {m.detail && (
+                          <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug text-ts-text-secondary">{m.detail}</p>
+                        )}
+                      </div>
+                      <span class={[
+                        'shrink-0 self-center rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide',
+                        m.tag.overdue ? 'bg-ts-danger/15 text-ts-danger' : 'bg-ts-bg-muted text-ts-text-secondary',
+                      ].join(' ')}>{m.tag.text}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
           </div>
         )}
         <p class="mt-4 text-xs text-ts-text-muted">{t.pickOnce}</p>
@@ -1593,25 +1699,27 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       </section>
     )}
 
-    {/* ═══════════════ PACK HOUSE — COMPACT BY-ITEM (category sections) ═══════════════
-        RE-REDESIGNED (owner 2026-07-13). The failed layouts: the wide crop ×
-        destination GRID was unreadable; the tall one-line-per-destination blocks
-        ran 6–8 pages ("too many pages"). This is the MIDDLE: crops grouped into
-        CREW SECTIONS (bold category band), each crop a compact 2-LINE unit —
-          line 1: [tick] CROP (bold) …dot leaders… TOTAL (bold) · lb
-          line 2: the destination splits inline, one line, with type glyphs
-                  ("🥬 CSA 12 (8S/4L) · 🛒 Lawrenceville 8 · 🍽 Legume 6 · 🌿 Flex 4")
-        Zebra-tinted alternate units; blocks never split across a page; ≥11pt
-        floors. Target ≤3 pages for a full week.
+    {/* ═══════════════ PACK HOUSE — DISTRIBUTION TABLE (crop × destination) ═══════════════
+        REDESIGNED (owner 2026-07-20). A CLEAN, READABLE TABLE: one ROW per crop,
+        grouped into CREW SECTIONS (bold category band), columns left→right —
+          Item │ one column PER DESTINATION (CSA, each market by NAME, each
+          wholesale account incl. Market Wagon, Flex) │ TOTAL (bold) │
+          Have on hand (☐ + write-in blank) │ Packed (☐).
+        Empty destination cells show a faint "·" (not 0). Every row's destination
+        cells SUM to TOTAL — the builder guarantees it (Σ CSA + markets + wholesale
+        + Flex = merged.totalQty). Because Thursday can have many destination
+        columns, this section prints Letter LANDSCAPE (@page pack-landscape).
 
-        Data is UNCHANGED: buildDestinationMatrix supplies the SAME rows + cells
-        (row total reused verbatim from `merged`, cells sum to it); groupBySection
-        only reshapes the render. No live check-off here (paper sheet) — the tick
-        box is for pen. Portioned products show total harvest pounds beside the
-        count (matrixRowLb = Σ count × pack_weight_lb).
+        The checkboxes are PLAIN PEN BOXES (print blank to tick by hand) on both
+        the screen and the print view — the pack-house sheet is a printable
+        artifact, so it carries NO live check-off (the other four views keep the
+        interactive board). Data is UNCHANGED: buildDestinationMatrix supplies the
+        SAME rows + cells (total reused verbatim from `merged`); groupBySection
+        only reshapes the render. Portioned products show total harvest pounds
+        (matrixRowLb = Σ count × pack_weight_lb) under the TOTAL.
 
         Also the SECOND section of the combined print pack (view === 'printpack')
-        — the SAME .packhouse-doc section verbatim, just started on a fresh page. */}
+        — the SAME .packhouse-doc table verbatim, started on a fresh landscape page. */}
     {(view === 'packhouse' || view === 'printpack') && (
       <section aria-labelledby="pp-pack-heading" class="packhouse-doc">
         <header class="doc-band rounded-ts-lg px-5 py-4">
@@ -1625,90 +1733,92 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
             <p class="text-center text-sm text-ts-text-secondary">{t.nothing}</p>
           </Card>
         ) : (
-          <div class="mt-4 flex flex-col gap-4">
-            {packhouseSections.map((section) => (
-              <section class="pack-section" aria-label={t.sections[section.section]}>
-                <h3 class="pack-section-head">{t.sections[section.section]}</h3>
-                <div class="pack-section-body">
-                  {section.items.map((r) => {
-                    // Destinations that actually take this crop, in column order
-                    // (CSA → markets → wholesale → Flex) — inline on line 2.
-                    const destLines = packhouseMatrix!.columns.flatMap((col) => {
-                      const cell = r.cells.get(col.key);
-                      return cell ? [{ col, cell }] : [];
-                    });
-                    const rowLb = matrixRowLb(r);
-                    // Live state (0083): saved packed status + needed_qty + note.
-                    // Server-render the need chip + note so they show on the paper
-                    // print (real pack data) AND on first screen paint (no flash);
-                    // the browser controller keeps them live thereafter.
-                    const pr = progressMap.get(pickPackLineKey('row', r.crop));
-                    const needN = pr?.needed_qty != null && pr.needed_qty > 0 ? pr.needed_qty : 0;
-                    const noteText = pr?.note?.trim() || '';
-                    const needChipText = needN > 0 ? `⚠ ${t.live.needChip.replace('{n}', needN.toLocaleString())}` : '';
-                    return (
-                      <article
-                        class={['pack-unit', r.tender ? 'pack-unit-tender' : ''].join(' ')}
-                        data-flagged={needN > 0 ? '1' : '0'}
-                        {...packLineAttrs(r.crop, r.totalQty, r.mixedUnits ? '' : r.dominantUnit)}
-                      >
-                        {/* Line 1 — tick + CROP …leaders… TOTAL · lb (+ need chip). */}
-                        <div class="pack-unit-head">
-                          <span class="pack-check" aria-hidden="true"></span>
-                          {/* Client injects the interactive [✓ Packed] toggle here (screen only). */}
-                          <span class="pack-live-slot screen-only" data-pp-packslot></span>
-                          <span class="pack-unit-name">
-                            {r.crop}
-                            {r.tender && <span class="pack-tender-tag" aria-hidden="true">🌱</span>}
-                          </span>
-                          <span class="pack-unit-leader" aria-hidden="true"></span>
-                          <span class="pack-unit-amount">
-                            <span class="pack-unit-total">{r.totalQty.toLocaleString()}</span>
-                            {r.mixedUnits
-                              ? <span class="pack-total-star">*</span>
-                              : (r.dominantUnit && <span class="pack-unit-unit">{r.dominantUnit}</span>)}
-                            {rowLb != null && <span class="pack-unit-lb">· {fmtLb(rowLb)}</span>}
-                            {/* Amber "⚠ need N more" chip — screen + PRINT (:empty hides). */}
-                            <span class="pack-need-chip" data-pp-needchip>{needChipText}</span>
-                          </span>
-                        </div>
-                        {/* Optional: outlet spellings that differ from the canonical crop. */}
-                        {r.altNames.length > 0 && (
-                          <p class="pack-unit-alt">{t.alsoWord}: {r.altNames.join(' · ')}</p>
-                        )}
-                        {/* Line 2 — destination splits, inline, glyph + qty. */}
-                        <p class="pack-splits">
-                          {destLines.map(({ col, cell }, i) => (
-                            <span class="pack-split-item">
-                              {i > 0 && <span class="pack-split-sep" aria-hidden="true"> · </span>}
-                              <span class="pack-split-glyph" aria-hidden="true">{destGlyph(col.kind)}</span>
-                              <span class="pack-split-label">{col.label}</span>
-                              {' '}
-                              <span class="pack-split-qty">{cell.qty.toLocaleString()}</span>
-                              {cell.unit !== r.dominantUnit && <span class="pack-split-unit">{cell.unit}</span>}
-                              {col.kind === 'csa' && cell.sizeSplit && (cell.sizeSplit.small > 0 || cell.sizeSplit.large > 0) && (
-                                <span class="pack-split-size"> ({cell.sizeSplit.small}S/{cell.sizeSplit.large}L)</span>
-                              )}
+          <>
+            {/* Instruction line (owner 2026-07-20) — how to use the two pen columns. */}
+            <p class="pack-matrix-instruction">{t.packhouseInstruction}</p>
+            <div class="pack-matrix-scroll">
+              <table class="pack-matrix">
+                <thead>
+                  <tr>
+                    <th scope="col" class="pm-h pm-h-item">{t.itemCol}</th>
+                    {packhouseMatrix.columns.map((col) => (
+                      <th scope="col" class="pm-h pm-h-dest">
+                        <span class="pm-h-glyph" aria-hidden="true">{destGlyph(col.kind)}</span>
+                        <span class="pm-h-label">{col.label}</span>
+                      </th>
+                    ))}
+                    <th scope="col" class="pm-h pm-h-total">{t.total}</th>
+                    <th scope="col" class="pm-h pm-h-have">{t.haveOnHandCol}</th>
+                    <th scope="col" class="pm-h pm-h-packed">{t.packedCol}</th>
+                  </tr>
+                </thead>
+                {packhouseSections.map((section) => (
+                  <tbody class="pm-section">
+                    <tr class="pm-section-row">
+                      <th scope="colgroup" colspan={packhouseMatrix!.columns.length + 4} class="pm-section-head">
+                        {t.sections[section.section]}
+                      </th>
+                    </tr>
+                    {section.items.map((r) => {
+                      const rowLb = matrixRowLb(r);
+                      return (
+                        <tr class={['pm-row', r.tender ? 'pm-row-tender' : ''].join(' ')}>
+                          <th scope="row" class="pm-item">
+                            <span class="pm-item-name">
+                              {r.tender && <span class="pm-tender-tag" aria-hidden="true">🌱 </span>}
+                              {r.crop}
                             </span>
-                          ))}
-                        </p>
-                        {/* Pack-team note — screen + PRINT (:empty hides). The
-                            controller rewrites this on save / realtime. */}
-                        <p class="pack-note" data-pp-note>{noteText ? `📝 ${noteText}${pr?.worked_by ? ` · ${t.live.by} ${pr.worked_by}` : ''}` : ''}</p>
-                        {/* Screen-only edit affordances — client injects Need + Note buttons. */}
-                        <div class="pack-live-controls screen-only" data-pp-ctlslot></div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
+                            {r.altNames.length > 0 && (
+                              <span class="pm-item-alt">{t.alsoWord}: {r.altNames.join(' · ')}</span>
+                            )}
+                          </th>
+                          {packhouseMatrix!.columns.map((col) => {
+                            const cell = r.cells.get(col.key);
+                            return (
+                              <td class={['pm-cell', cell ? '' : 'pm-cell-empty'].join(' ')}>
+                                {cell ? (
+                                  <>
+                                    <span class="pm-cell-qty">{cell.qty.toLocaleString()}</span>
+                                    {cell.unit !== r.dominantUnit && <span class="pm-cell-unit">{cell.unit}</span>}
+                                    {col.kind === 'csa' && cell.sizeSplit && (cell.sizeSplit.small > 0 || cell.sizeSplit.large > 0) && (
+                                      <span class="pm-cell-size">{cell.sizeSplit.small}S/{cell.sizeSplit.large}L</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span class="pm-dot" aria-hidden="true">·</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td class="pm-total">
+                            <span class="pm-total-qty">{r.totalQty.toLocaleString()}</span>
+                            {r.mixedUnits
+                              ? <span class="pm-total-star">*</span>
+                              : (r.dominantUnit && <span class="pm-total-unit">{r.dominantUnit}</span>)}
+                            {rowLb != null && <span class="pm-total-lb">{fmtLb(rowLb)}</span>}
+                          </td>
+                          {/* Have on hand — pen checkbox + short write-in blank. */}
+                          <td class="pm-have">
+                            <span class="pm-checkbox" aria-hidden="true"></span>
+                            <span class="pm-writein" aria-hidden="true"></span>
+                          </td>
+                          {/* Packed — pen checkbox. */}
+                          <td class="pm-packed">
+                            <span class="pm-checkbox" aria-hidden="true"></span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                ))}
+              </table>
+            </div>
+            <p class="mt-4 text-xs text-ts-text-muted">
+              {t.packhouseHint}
+              {packhouseMatrix.rows.some((r) => r.mixedUnits) && <span class="ml-1">(<span class="font-bold">*</span> = this crop is measured in more than one unit across destinations; read each cell's own unit.)</span>}
+            </p>
+          </>
         )}
-        <p class="mt-4 text-xs text-ts-text-muted">
-          {t.packhouseHint}
-          {packhouseMatrix?.rows.some((r) => r.mixedUnits) && <span class="ml-1">(<span class="font-bold">*</span> = this crop is measured in more than one unit across destinations; read each split's own unit.)</span>}
-        </p>
       </section>
     )}
 
@@ -1803,49 +1913,10 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
      only) are untouched. */
   @media screen {
     .harvest-doc .harvest-check { display: none; }
-    /* Pack-house is interactive on screen (0083): the client injects a [✓ Packed]
-       toggle into .pack-live-slot, so the pen tick box is redundant on screen. It
-       STAYS in print (no @media screen there) — the paper sheet is the fallback,
-       always the full tickable list. */
-    .packhouse-doc .pack-check { display: none; }
   }
   /* Injected control container — screen only; the .screen-only rule in the
      @media print block below removes it from the printout. */
   .pp-ctl { min-height: 44px; }
-
-  /* ── PACK-HOUSE LIVE EXTRAS (0083): need chip + note + filter ──────────────
-     Both the chip and the note render on SCREEN and PRINT (they are real pack
-     data the paper crew needs). :empty hides them when there's nothing to show,
-     which also cleanly hides them the instant the crew one-tap-clears (the
-     controller sets textContent = ''). The check-off state does NOT alter print;
-     only the chip + note do. */
-  .pack-need-chip {
-    margin-left: 6px;
-    font-size: 0.78rem; font-weight: 800; white-space: nowrap;
-    color: #92400e;                 /* amber-800 — reads on white in print */
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  .pack-need-chip:empty { display: none; }
-  .pack-note {
-    margin: 2px 0 0; padding-left: 26px;
-    font-size: 0.8rem; line-height: 1.3; font-weight: 600;
-    color: #1f6f54;                 /* pine — a left-behind note reads as farm ink */
-    word-break: break-word;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  .pack-note:empty { display: none; }
-  /* The interactive Packed toggle slot sits before the crop name on line 1. */
-  .pack-live-slot { display: inline-flex; align-items: center; }
-  .pack-live-slot:empty { display: none; }
-  /* Screen-only edit affordances row (Need + Note buttons). */
-  .pack-live-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-  .pack-live-controls:empty { display: none; }
-  /* Flagged quick-filter (screen only): when active, non-flagged units collapse. */
-  .packhouse-doc.pp-show-flagged .pack-unit[data-flagged='0'] { display: none; }
-  /* Pressed state for the filter chip — plain CSS (no Tailwind aria variant). */
-  .pp-filter-chip[aria-pressed='true'] {
-    background: var(--ts-accent); color: #fff; border-color: var(--ts-accent);
-  }
 
   /* Doc band keeps its color through print (browsers strip backgrounds). */
   .doc-band {
@@ -1871,111 +1942,132 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     background: #dfe7e2;
     color: #14231c;
   }
-  /* ⚠ MAKE-UPS subtotal — loud red, prints in color (a missed make-up is the
-     failure this exists to prevent). */
-  .makeups-banner {
-    background: #fee2e2;
-    border-color: #dc2626;
-    color: #7f1d1d;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  /* ── PACK HOUSE — DISTRIBUTION TABLE (owner 2026-07-20) ─────────────────────
+     A clean, readable spreadsheet: one ROW per crop, grouped into crew-section
+     bands, a column per destination, a bold TOTAL, and two pen columns (Have on
+     hand + Packed). READABILITY is the priority — big type, clear grid lines,
+     generous row height. Because Thursday can carry many destination columns the
+     print orientation is Letter LANDSCAPE. Same markup on screen + print. */
+
+  /* Instruction line above the table — plain, legible, prints in color. */
+  .pack-matrix-instruction {
+    margin: 12px 0 8px;
+    font-size: 0.95rem; line-height: 1.4; font-weight: 600;
+    color: var(--ts-text-secondary);
+  }
+  /* Horizontal scroll safety on small SCREENS (print gets landscape instead). */
+  .pack-matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .pack-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-variant-numeric: tabular-nums;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* Clear grid lines everywhere — the crew reads across a row and down a column. */
+  .pack-matrix th, .pack-matrix td {
+    border: 1px solid #cbd5e1;
+    padding: 10px 10px;
+    text-align: center;
+    vertical-align: middle;
   }
 
-  /* ── PACK HOUSE — COMPACT BY-ITEM, CATEGORY SECTIONS (owner 2026-07-13) ──
-     The MIDDLE between the unreadable wide grid and the 6–8-page tall blocks:
-     crops in bold CATEGORY BANDS, each crop a compact 2-line unit —
-       line 1: [tick] CROP …dot leaders… TOTAL · lb
-       line 2: the destination splits inline, one line, with type glyphs.
-     Thin left bar flags tender; zebra-tinted alternate units; low ink. Units
-     never split across a page. Same markup on screen + print. */
+  /* Header row — bold, sticky-ish band, prints in color. */
+  .pack-matrix thead th {
+    background: #1f6f54;             /* pine green — the pack-day motif */
+    color: #ffffff;
+    font-family: var(--ts-font-display, inherit);
+    font-weight: 800;
+    font-size: 0.9rem;
+    line-height: 1.15;
+    vertical-align: bottom;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .pack-matrix .pm-h-item { text-align: left; min-width: 9rem; }
+  .pack-matrix .pm-h-dest { min-width: 4.5rem; }
+  .pack-matrix .pm-h-glyph { display: block; font-size: 1rem; }
+  .pack-matrix .pm-h-label { display: block; }
+  .pack-matrix .pm-h-total { min-width: 5rem; }
+  .pack-matrix .pm-h-have { min-width: 6.5rem; }
+  .pack-matrix .pm-h-packed { min-width: 4.5rem; }
 
-  /* Category section: a bold band header + its units. The header stays with its
-     first unit (break-after: avoid); the section body may flow across pages. */
-  .pack-section { break-inside: auto; }
-  .pack-section-head {
-    background: #dfe7e2;             /* soft pine tint — the pack-day motif */
+  /* Crew-section band row spanning the whole table. */
+  .pack-matrix .pm-section-head {
+    background: #dfe7e2;             /* soft pine tint */
     color: #14231c;
+    text-align: left;
     font-family: var(--ts-font-display, inherit);
     font-weight: 800;
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 5px 12px;
-    border-radius: 6px;
-    break-after: avoid; page-break-after: avoid;
+    padding: 6px 10px;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .pack-section-body { margin-top: 4px; }
 
-  /* One crop = a compact 2-line unit. Thin neutral left bar; amber for tender. */
-  .pack-unit {
-    border-left: 4px solid #cbd5e1;
-    padding: 5px 10px 6px;
-    break-inside: avoid; page-break-inside: avoid;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  .pack-unit-tender { border-left-color: #f59e0b; }
-  /* Zebra striping — light tint on alternate units so the eye tracks a crop
-     across the sheet. Low ink; forced to print. */
-  .pack-section-body .pack-unit:nth-child(even) {
+  /* Data rows — generous height; zebra striping so the eye tracks across. */
+  .pack-matrix .pm-row { break-inside: avoid; page-break-inside: avoid; }
+  .pack-matrix .pm-section tr.pm-row:nth-of-type(even) {
     background: #f4f6f5;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
+  /* Tender crops get an amber left edge (the pack-day tender DNA). */
+  .pack-matrix .pm-row-tender .pm-item { border-left: 4px solid #f59e0b; }
+  .pack-matrix .pm-tender-tag { font-size: 0.85rem; }
 
-  /* Line 1 — [tick] CROP ……… TOTAL · lb. */
-  .pack-unit-head { display: flex; align-items: baseline; gap: 8px; }
-  .pack-unit-name {
-    flex: 0 1 auto; min-width: 0;
+  /* Item (crop name) cell — left-aligned, the biggest, boldest label. */
+  .pack-matrix .pm-item { text-align: left; }
+  .pack-matrix .pm-item-name {
+    display: block;
     font-family: var(--ts-font-display, inherit);
-    font-size: 1.05rem;              /* ~17px screen; ↑ 13–14pt print */
-    font-weight: 800; line-height: 1.15; letter-spacing: -0.01em;
+    font-size: 1.05rem; font-weight: 800; line-height: 1.15;
     color: var(--ts-text); word-break: break-word;
   }
-  .pack-tender-tag { margin-left: 5px; font-size: 0.8rem; }
-  .pack-unit-leader {
-    flex: 1 1 auto; min-width: 0.5rem;
-    align-self: baseline;
-    border-bottom: 1.5px dotted #9ca3af; transform: translateY(-4px);
-  }
-  .pack-unit-amount { flex: none; white-space: nowrap; }
-  .pack-unit-total {
-    font-family: var(--ts-font-display, inherit);
-    font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums;
-    color: var(--ts-text);
-  }
-  .pack-unit-unit { margin-left: 3px; font-size: 0.78rem; font-weight: 600; color: var(--ts-text-secondary); }
-  .pack-total-star { margin-left: 2px; font-size: 0.72rem; font-weight: 700; color: var(--ts-text-muted); vertical-align: super; }
-  .pack-unit-lb { margin-left: 5px; font-size: 0.82rem; font-weight: 800; color: #166534; font-variant-numeric: tabular-nums; }
-
-  /* Optional outlet-spelling annotation (canonical merge). */
-  .pack-unit-alt {
-    margin: 1px 0 0; padding-left: 26px;
+  .pack-matrix .pm-item-alt {
+    display: block; margin-top: 2px;
     font-size: 0.72rem; font-weight: 500; font-style: italic; color: var(--ts-text-muted);
   }
 
-  /* Line 2 — destination splits inline, one line (wraps only if it must). */
-  .pack-splits {
-    margin: 2px 0 0; padding-left: 26px;
-    font-size: 0.86rem; line-height: 1.3; color: var(--ts-text);
-  }
-  .pack-split-item { white-space: nowrap; }
-  .pack-split-sep { color: var(--ts-text-muted); }
-  .pack-split-glyph { margin-right: 1px; }
-  .pack-split-label { font-weight: 600; color: var(--ts-text-secondary); }
-  .pack-split-qty { font-weight: 800; font-variant-numeric: tabular-nums; }
-  .pack-split-unit { margin-left: 2px; font-size: 0.72rem; font-weight: 600; color: var(--ts-text-secondary); }
-  .pack-split-size { font-size: 0.78rem; font-weight: 700; color: var(--ts-text-secondary); }
+  /* Destination cells — the qty going to that outlet; empty = faint dot. */
+  .pack-matrix .pm-cell-qty { font-size: 1rem; font-weight: 700; color: var(--ts-text); }
+  .pack-matrix .pm-cell-unit { margin-left: 2px; font-size: 0.7rem; font-weight: 600; color: var(--ts-text-secondary); }
+  .pack-matrix .pm-cell-size { display: block; font-size: 0.72rem; font-weight: 700; color: var(--ts-text-secondary); }
+  .pack-matrix .pm-dot { color: #cbd5e1; font-weight: 700; }
 
-  /* Tick box — pen box (no live check-off on this paper sheet). */
-  .pack-check {
-    display: inline-block; flex: none;
-    width: 1rem; height: 1rem;
+  /* TOTAL cell — bold, the headline "pick this much" number. */
+  .pack-matrix .pm-total {
+    background: #eef4f1;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .pack-matrix .pm-total-qty {
+    font-family: var(--ts-font-display, inherit);
+    font-size: 1.2rem; font-weight: 800; color: var(--ts-text);
+  }
+  .pack-matrix .pm-total-unit { margin-left: 3px; font-size: 0.72rem; font-weight: 600; color: var(--ts-text-secondary); }
+  .pack-matrix .pm-total-star { margin-left: 2px; font-size: 0.72rem; font-weight: 700; color: var(--ts-text-muted); vertical-align: super; }
+  .pack-matrix .pm-total-lb {
+    display: block; margin-top: 2px;
+    font-size: 0.82rem; font-weight: 800; color: #166534;
+  }
+
+  /* Pen columns — plain printed boxes + a write-in blank (never wired to the
+     live board; the crew ticks / writes by hand on paper). */
+  .pack-matrix .pm-checkbox {
+    display: inline-block;
+    width: 1.15rem; height: 1.15rem;
     border: 2px solid #1a2230; border-radius: 3px; background: #fff;
-    transform: translateY(2px);
+    vertical-align: middle;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .pack-matrix .pm-have { white-space: nowrap; }
+  .pack-matrix .pm-writein {
+    display: inline-block; width: 3.25rem; margin-left: 8px;
+    border-bottom: 1.5px solid #1a2230; vertical-align: middle;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
 
-  @page pack-portrait { size: Letter portrait; margin: 0.5in; }
+  @page pack-landscape { size: Letter landscape; margin: 0.45in; }
 
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
@@ -1987,34 +2079,28 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     /* Keep a crop row whole on one page. */
     .harvest-row { break-inside: avoid; page-break-inside: avoid; }
     .harvest-group { break-inside: auto; }
-    /* Keep the make-ups subtotal whole so it's never split across a page. */
-    .makeups-banner { break-inside: avoid; page-break-inside: avoid; }
 
     /* Big, legible print type for the pick list. */
     .harvest-row p { font-size: 14pt; }
 
-    /* PACK HOUSE by-item blocks — PORTRAIT (kills the old landscape grid), big
-       legible type, each unit kept whole on its page. Crop names 13.5pt, totals
-       14pt, the inline destination splits at the 11pt floor per the mobile-farm-
-       UX big-type rule. Section bands 11pt. Target ≤3 pages for a full week. */
-    .packhouse-doc { page: pack-portrait; }
-    .packhouse-doc .pack-unit { break-inside: avoid; page-break-inside: avoid; }
-    .packhouse-doc .pack-section-head { font-size: 11pt; padding: 3px 8px; }
-    .packhouse-doc .pack-unit-name { font-size: 13.5pt; }
-    .packhouse-doc .pack-unit-total { font-size: 14pt; }
-    .packhouse-doc .pack-unit-lb { font-size: 11pt; }
-    .packhouse-doc .pack-splits { font-size: 11pt; line-height: 1.25; }
-    .packhouse-doc .pack-split-size { font-size: 10.5pt; }
-    .packhouse-doc .pack-unit-alt { font-size: 9pt; }
-    /* Need chip + note ARE real pack data — print them legibly (11pt floor). */
-    .packhouse-doc .pack-need-chip { font-size: 11pt; }
-    .packhouse-doc .pack-note { font-size: 10.5pt; }
-    .packhouse-doc .pack-check { border-color: #000; }
-    .packhouse-doc .pack-unit-tender { border-left-color: #f59e0b !important; }
-    /* Tighten vertical rhythm so a full week lands in ≤3 pages. */
-    .packhouse-doc .pack-section { margin-bottom: 6px; }
-    .packhouse-doc .pack-unit { padding-top: 3px; padding-bottom: 4px; }
-    .packhouse-doc .pack-splits { margin-top: 1px; }
+    /* PACK HOUSE distribution TABLE — LANDSCAPE (fits the many destination
+       columns, esp. Thursday), big legible type, clear grid lines, generous row
+       height. The <thead> repeats on every page automatically; rows never split. */
+    .packhouse-doc { page: pack-landscape; }
+    .pack-matrix-scroll { overflow: visible; }        /* no scrollbars on paper */
+    .packhouse-doc .pack-matrix-instruction { font-size: 10.5pt; }
+    .packhouse-doc .pack-matrix { font-size: 11pt; }
+    .packhouse-doc .pack-matrix thead th { font-size: 11pt; }
+    .packhouse-doc .pack-matrix thead { display: table-header-group; }
+    .packhouse-doc .pack-matrix .pm-row { break-inside: avoid; page-break-inside: avoid; }
+    .packhouse-doc .pack-matrix .pm-section-head { font-size: 11pt; }
+    .packhouse-doc .pack-matrix .pm-item-name { font-size: 12.5pt; }
+    .packhouse-doc .pack-matrix .pm-cell-qty { font-size: 12pt; }
+    .packhouse-doc .pack-matrix .pm-total-qty { font-size: 13.5pt; }
+    .packhouse-doc .pack-matrix .pm-total-lb { font-size: 10.5pt; }
+    .packhouse-doc .pack-matrix th, .packhouse-doc .pack-matrix td { border-color: #94a3b8; padding: 7px 8px; }
+    .packhouse-doc .pack-matrix .pm-checkbox { border-color: #000; }
+    .packhouse-doc .pack-matrix .pm-writein { border-bottom-color: #000; }
 
     /* ══ COMPACT PRINTED OVERALL HARVEST SHEET ════════════════════════════════
        Owner 2026-07-09: "make the harvest list we print more compact — down to
@@ -2128,17 +2214,6 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
     .pp-overall .pp-2col .harvest-group,
     .pp-overall .pp-2col .harvest-group > ol { display: block; }
     .pp-overall .pp-2col .harvest-row { break-inside: avoid; page-break-inside: avoid; }
-
-    /* ── Compact make-ups banner (overall only — .pp-mk-compact is not added on
-       the CSA view, so that printout is untouched). Stays LOUD + red on purpose;
-       just tighter so it doesn't eat the page. */
-    .pp-mk-compact { margin-bottom: 8px; padding: 6px 10px; border-width: 2px; }
-    .pp-mk-compact h2 { font-size: 11pt; }
-    .pp-mk-compact > p { font-size: 8.5pt; margin-top: 1px; }
-    .pp-mk-compact ul { margin-top: 4px; }
-    .pp-mk-compact li { padding-top: 3px; padding-bottom: 3px; gap: 8px; }
-    .pp-mk-compact li p { font-size: 10pt; line-height: 1.15; }
-    .pp-mk-compact .harvest-check { width: 13px; height: 13px; }
 
     /* ── COMBINED PRINT PACK (?view=printpack) — page flow ─────────────────────
        printpack composes the overall harvest, the pack-house sheet, and each

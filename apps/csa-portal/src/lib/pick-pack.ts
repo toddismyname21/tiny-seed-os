@@ -176,18 +176,138 @@ export function aliasNormalize(s: string): string {
   return n;
 }
 
+/* ──────────────────────────────────────────────────────────────────
+ * CANONICAL CROP GROUPS — collapse vendor name-variants of the SAME crop
+ * into ONE pick row (owner directive 2026-07-20).
+ *
+ * aliasNormalize peels LEADING marketing prefixes ("Organic Fennel" → "fennel")
+ * but it cannot fix two other ways an outlet forks one real crop into many pick
+ * rows:
+ *   1. a TRAILING pack/portion descriptor — "Organic Fennel Bulb" → "fennel
+ *      bulb", "Fresh Dill Bunch" → "dill bunch", "Organic Kohlrabi Duo" →
+ *      "kohlrabi duo" — which normCrop keeps, so the bunch/bulb/duo line never
+ *      merges with the bare crop; and
+ *   2. a totally DIFFERENT vendor name for the same crop — Market Wagon lists
+ *      "Zephyr", "Zucchini", "Costata Romanesco", "Patty Pan Squash" that all
+ *      ARE summer squash but share no text with "Summer Squash".
+ *
+ * CANONICAL_ALIASES is an EXPLICIT, owner-confirmed map (applied AFTER
+ * aliasNormalize, so keys are prefix-stripped) that folds each such variant onto
+ * one canonical key. It is deliberately a hand-curated list — NOT a generic
+ * "strip trailing words" rule — precisely so genuinely-distinct varieties never
+ * merge by accident: "Red Romaine" stays its own row (only "Romaine …" folds to
+ * "romaine"); cabbage TYPES stay separate (only pure Green-Cabbage name-variants
+ * collapse; Conical/Pointed and Napa keep their own keys). Add an entry ONLY
+ * after confirming the alias is provably the SAME crop as its target.
+ *
+ * The PREFERRED durable fix for a linked outlet line is still a product_library
+ * mapping (the page passes the library NAME as the crop identity); this map is
+ * the text-only fallback for the variants a library mapping can't practically
+ * reach — chiefly the squash grouping.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** aliasNormalize-space (lowercase, no punctuation/parentheticals) alias →
+ *  canonical key. Every value is itself a terminal canonical key. */
+const CANONICAL_ALIASES: Readonly<Record<string, string>> = {
+  // SUMMER SQUASH — collapse ALL variants into one row.
+  'summer squash mix': 'summer squash',
+  'summer squash medley': 'summer squash',
+  'costata romanesco': 'summer squash',
+  'patty pan squash': 'summer squash',
+  'patty pan': 'summer squash',
+  'pattypan squash': 'summer squash',
+  'pattypan': 'summer squash',
+  'zephyr': 'summer squash',
+  'zephyr squash': 'summer squash',
+  'zucchini': 'summer squash',
+  'zucchini squash': 'summer squash',
+  'green zucchini': 'summer squash',
+  'gold zucchini': 'summer squash',
+  'golden zucchini': 'summer squash',
+  'yellow squash': 'summer squash',
+  // CABBAGE — keep TYPES separate; collapse only pure same-type name-variants.
+  'cabbage': 'green cabbage',
+  'cabbages': 'green cabbage',
+  'green cabbages': 'green cabbage',
+  'green cabbage head': 'green cabbage',
+  'green cabbage heads': 'green cabbage',
+  'pointed cabbage': 'conical cabbage', // conical = pointed (same type)
+  'napa': 'napa cabbage',
+  // CUCUMBERS.
+  'cucumber': 'cucumbers',
+  'slicing cucumber': 'cucumbers',
+  'slicing cucumbers': 'cucumbers',
+  // BROCCOLINI.
+  'broccolini bunch': 'broccolini',
+  // BEETS.
+  'beet': 'beets',
+  'beet w tops': 'beets',
+  'beets w tops': 'beets',
+  'beet with tops': 'beets',
+  'beets with tops': 'beets',
+  // FENNEL.
+  'fennel bulb': 'fennel',
+  // KOHLRABI.
+  'kohlrabi duo': 'kohlrabi',
+  // DILL.
+  'dill bunch': 'dill',
+  // ROMAINE (NOT "red romaine" — that is a distinct variety and stays its row).
+  'romaine lettuce': 'romaine',
+  'romaine head': 'romaine',
+  'romaine lettuce head': 'romaine',
+  // LITTLE GEM (some vendor spellings carry an embedded "lettuce" word).
+  'little gems': 'little gem',
+  'little gem duo': 'little gem',
+  'little gem lettuce': 'little gem',
+  'little gem lettuce duo': 'little gem',
+};
+
+/** Canonical key → the DISPLAY label the merged row should carry, for the groups
+ *  where the label matters and the natural first-seen / library-linked spelling
+ *  wouldn't be the crop the crew knows (a squash row must read "Summer Squash",
+ *  not "Zucchini"; a folded cabbage row must read "Green Cabbage", not "Cabbage").
+ *  Applied LAST in mergeCropDemand, so it wins over first-seen/library display. */
+const CANONICAL_DISPLAY: Readonly<Record<string, string>> = {
+  'summer squash': 'Summer Squash',
+  'green cabbage': 'Green Cabbage',
+  'conical cabbage': 'Conical Cabbage',
+  'napa cabbage': 'Napa Cabbage',
+};
+
 /**
- * The MERGE KEY every Pick & Pack aggregation dedupes on. It is aliasNormalize —
- * i.e. normCrop plus vendor-prefix stripping — so that:
+ * The canonical identity for a crop name: aliasNormalize (normCrop + leading
+ * vendor-prefix stripping), then the explicit CANONICAL_ALIASES fold. Idempotent
+ * (a canonical key maps to itself) and dependency-free.
+ */
+export function cropCanonicalKey(s: string): string {
+  const a = aliasNormalize(s);
+  return CANONICAL_ALIASES[a] ?? a;
+}
+
+/**
+ * The forced DISPLAY label for a crop whose canonical group defines one, else
+ * null (use the natural first-seen / library-linked spelling). Lets a caller
+ * label a folded group row with the crop the crew knows.
+ */
+export function canonicalDisplayName(s: string): string | null {
+  return CANONICAL_DISPLAY[cropCanonicalKey(s)] ?? null;
+}
+
+/**
+ * The MERGE KEY every Pick & Pack aggregation dedupes on. It is cropCanonicalKey
+ * — aliasNormalize (normCrop + vendor-prefix stripping) plus the explicit
+ * same-crop alias fold — so that:
  *   • library-canonical names (passed in by the page for linked lines) already
- *     agree, and
+ *     agree,
  *   • unlinked outlet spellings that differ only by a marketing prefix still
- *     collapse to one row.
+ *     collapse to one row, and
+ *   • owner-confirmed vendor name-variants (summer-squash medley, "Fennel Bulb",
+ *     etc.) fold onto one canonical crop row.
  * This is the SINGLE identity function shared by mergeCropDemand,
  * buildDestinationMatrix and the line-key slug, so they can never drift.
  */
 export function cropMergeKey(s: string): string {
-  return aliasNormalize(s);
+  return cropCanonicalKey(s);
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -542,13 +662,19 @@ export function mergeCropDemand(
   for (const d of wholesale) bump('wholesale', d);
   for (const d of flex) bump('flex', d);
 
-  const rows = Array.from(map.values());
-  for (const r of rows) {
+  const rows: MergedCropRow[] = [];
+  for (const [key, r] of map) {
+    rows.push(r);
+    // A canonical GROUP may force the display label (e.g. the summer-squash row
+    // must read "Summer Squash", not whichever variant was seen first). This
+    // wins over both first-seen and a library-linked spelling, applied last.
+    const forced = CANONICAL_DISPLAY[key];
+    if (forced) r.crop = forced;
     r.multiChannel = [r.csa, r.market, r.wholesale, r.flex].filter(Boolean).length > 1;
     r.tender = isTenderGreen(r.crop, r.category);
     // altNames = distinct source spellings whose normalized text differs from
     // the canonical display (so we never annotate a row with its own name), A→Z.
-    const seen = altSeen.get(cropMergeKey(r.crop));
+    const seen = altSeen.get(key);
     if (seen) {
       const dispNorm = normCrop(r.crop);
       const out: string[] = [];
@@ -784,6 +910,11 @@ export const PICK_PACK_STRINGS: Record<Lang, {
   notesCol: string;          // blank pen column header (wash / attention notes)
   cropCol: string;           // first column header
   checkCol: string;          // header over the per-row print tick box
+  /* ── Pack House distribution TABLE (crop × destination, one row per crop) ── */
+  itemCol: string;           // pack-matrix first column header ("Item")
+  haveOnHandCol: string;     // pack-matrix "have on hand (qty)" checkbox column
+  packedCol: string;         // pack-matrix "packed" checkbox column
+  packhouseInstruction: string; // instruction line above the pack-matrix table
   partWord: string;          // "Part" — split-section caption (wide sheets)
   ofWord: string;            // "of"   — "Part 1 of 2"
   destsWord: string;         // "destinations" — "…destinations 1–6"
@@ -840,6 +971,10 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     notesCol: 'Wash / notes',
     cropCol: 'Crop',
     checkCol: 'Done',
+    itemCol: 'Item',
+    haveOnHandCol: 'Have on hand (qty)',
+    packedCol: 'Packed',
+    packhouseInstruction: 'Harvest the TOTAL. If you already have some from a previous market or inventory, check "Have on hand" and write how many — the harvest team cuts that much less. Check "Packed" when the item is fully packed for all outlets.',
     partWord: 'Part',
     ofWord: 'of',
     destsWord: 'destinations',
@@ -901,6 +1036,10 @@ export const PICK_PACK_STRINGS: Record<Lang, {
     notesCol: 'Lavar / notas',
     cropCol: 'Cultivo',
     checkCol: 'Listo',
+    itemCol: 'Artículo',
+    haveOnHandCol: 'Ya tengo (cant.)',
+    packedCol: 'Empacado',
+    packhouseInstruction: 'Coseche el TOTAL. Si ya tiene algo de un mercado anterior o del inventario, marque "Ya tengo" y escriba cuánto — el equipo de cosecha corta esa cantidad menos. Marque "Empacado" cuando el artículo esté completamente empacado para todos los destinos.',
     partWord: 'Parte',
     ofWord: 'de',
     destsWord: 'destinos',

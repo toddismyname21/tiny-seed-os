@@ -273,6 +273,78 @@ assert.equal(slugForKey('Local Organic Radicchio'), 'radicchio');
 // Regression: the documented unit-suffix slug is unchanged (no vendor prefix).
 assert.equal(slugForKey('King Spring Mix (per lb)'), 'king-spring-mix');
 
+/* ── CANONICAL crop groups (owner directive 2026-07-20) ──
+ * Vendor name-variants of the SAME crop must fold onto one merge key; genuinely
+ * distinct varieties must NOT. */
+{
+  const K = (s: string): string => cropMergeKey(s);
+  // SUMMER SQUASH — every listed variant collapses to one key.
+  const squash = 'summer squash';
+  assert.equal(K('Summer Squash'), squash);
+  assert.equal(K('Summer Squash Mix'), squash, 'squash mix folds');
+  assert.equal(K('Summer Squash Medley'), squash, 'squash medley folds');
+  assert.equal(K('Local Organic Costata Romanesco'), squash, 'costata romanesco folds');
+  assert.equal(K('Local Organic Patty Pan Squash'), squash, 'patty pan folds');
+  assert.equal(K('Zephyr'), squash, 'zephyr folds');
+  assert.equal(K('Zucchini'), squash, 'zucchini folds');
+  // CABBAGE — same-type name-variants collapse; TYPES stay separate.
+  assert.equal(K('Cabbage'), K('Green Cabbage'), 'bare cabbage → green cabbage');
+  assert.equal(K('Cabbages'), K('Green Cabbage'));
+  assert.equal(K('Green Cabbage Head'), K('Green Cabbage'));
+  assert.notEqual(K('Conical Cabbage'), K('Green Cabbage'), 'conical stays separate');
+  assert.notEqual(K('Napa Cabbage'), K('Green Cabbage'), 'napa stays separate');
+  assert.equal(K('Pointed Cabbage'), K('Conical Cabbage'), 'pointed = conical (same type)');
+  // OTHER trailing-descriptor + variant folds → one row each.
+  assert.equal(K('Organic Slicing Cucumbers (3 count)'), K('Cucumbers'), 'slicing cukes fold');
+  assert.equal(K('Cucumber'), K('Cucumbers'));
+  assert.equal(K('Organic Broccolini Bunch'), K('Broccolini'));
+  assert.equal(K('Organic Beets w/ tops'), K('Beets'));
+  assert.equal(K('Organic Fennel Bulb'), K('Fennel'));
+  assert.equal(K('Organic Kohlrabi Duo'), K('Kohlrabi'));
+  assert.equal(K('Fresh Dill Bunch'), K('Dill'));
+  assert.equal(K('Romaine Lettuce Head'), K('Romaine'));
+  assert.equal(K('Little Gem Duo'), K('Little Gem'));
+  assert.equal(K('Little Gem Lettuce Duo'), K('Little Gem'), 'embedded "lettuce" folds');
+  assert.equal(K('Romaine Lettuce'), K('Romaine'));
+  assert.equal(K('Local Organic Costata Romanesco'), K('Summer Squash Medley'), 'squash variants share key');
+  // KEEP-SEPARATE: distinct varieties that appeared in the live 2026-07-20 sheet.
+  assert.notEqual(K('Golden Beets'), K('Beets'), 'golden beets stay distinct');
+  assert.notEqual(K('Squash Blossoms'), K('Summer Squash'), 'squash blossoms ≠ summer squash');
+  assert.notEqual(K('Broccoli'), K('Broccolini'), 'broccoli ≠ broccolini');
+  assert.notEqual(K('Green Sweet Crisp Lettuce'), K('Romaine'), 'specialty lettuce stays separate');
+  assert.equal(K('Organic Parsley'), K('Parsley'), 'organic prefix already folds parsley');
+  assert.equal(K('Organic Curly Kale'), K('Curly Kale'));
+  assert.equal(K('Organic Escarole'), K('Escarole'));
+  // KEEP-SEPARATE guards — distinct varieties must NOT merge.
+  assert.notEqual(K('Red Romaine'), K('Romaine'), 'red romaine ≠ romaine');
+  assert.notEqual(K('Curly Kale'), K('Dino Kale'), 'kale varieties stay distinct');
+  assert.notEqual(K('Green Oakleaf'), K('Romaine'), 'specialty lettuce stays its own row');
+}
+
+/* ── CANONICAL display labels — a folded squash/cabbage row reads the crop the
+ * crew knows, even when a variant (or a library-linked name) was seen first. */
+{
+  const rows = mergeCropDemand(
+    [{ crop: 'Zucchini', qty: 3, unit: 'each', canonical: true }],
+    [{ crop: 'Costata Romanesco', qty: 2, unit: 'each' }],
+    [{ crop: 'Yellow Squash', qty: 4, unit: 'each' }],
+  );
+  assert.equal(rows.length, 1, 'all squash variants → ONE row');
+  assert.equal(rows[0].crop, 'Summer Squash', 'row displays canonical "Summer Squash"');
+  assert.equal(rows[0].totalQty, 9, 'variant qtys sum into the folded total');
+  assert.ok(rows[0].altNames.length >= 2, 'variant spellings surface as also-names');
+}
+{
+  const rows = mergeCropDemand(
+    [{ crop: 'Cabbage', qty: 5, unit: 'head' }],
+    [{ crop: 'Green Cabbage Head', qty: 3, unit: 'head' }],
+    [],
+  );
+  assert.equal(rows.length, 1, 'cabbage name-variants → ONE row');
+  assert.equal(rows[0].crop, 'Green Cabbage', 'displays canonical "Green Cabbage"');
+  assert.equal(rows[0].totalQty, 8);
+}
+
 /* ── The three CONCRETE merges for the 2026-07-13 week (unlinked, text-only) ── */
 {
   // Harvie (wholesale) spells them one way; the box/market spell them the library way.
