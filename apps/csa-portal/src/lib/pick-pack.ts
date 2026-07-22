@@ -272,6 +272,17 @@ const CANONICAL_DISPLAY: Readonly<Record<string, string>> = {
   'green cabbage': 'Green Cabbage',
   'conical cabbage': 'Conical Cabbage',
   'napa cabbage': 'Napa Cabbage',
+  // Force the clean crop name on the folded rows, so a verbose vendor variant
+  // (a library-linked "Fresh Dill Bunch", "Little Gem Lettuce Duo") can't win
+  // the merged row's label over the crop the crew knows.
+  'cucumbers': 'Cucumbers',
+  'broccolini': 'Broccolini',
+  'beets': 'Beets',
+  'fennel': 'Fennel',
+  'kohlrabi': 'Kohlrabi',
+  'dill': 'Dill',
+  'romaine': 'Romaine',
+  'little gem': 'Little Gem',
 };
 
 /**
