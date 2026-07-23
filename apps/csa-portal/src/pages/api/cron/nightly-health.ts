@@ -50,6 +50,8 @@ import {
   matchVariantToPickup,
   type PickupLocation,
 } from '../../../lib/pickup-from-variant';
+import { getSchedule } from '../../../lib/season';
+import { resolveMemberSchedule } from '../../../lib/schedule';
 
 export const prerender = false;
 
@@ -563,6 +565,71 @@ async function checkSyncLag(): Promise<{ lagMinutes: number; lastSyncedAt: strin
  * Fail-soft mirror of the sendSyncErrorAlert pattern in shopify-orders.ts.
  * ────────────────────────────────────────────────────────────────── */
 
+/* ── Concern 4: weeks_remaining recompute ──────────────────────────────────
+ * members.weeks_remaining is initialized to the member's total on creation /
+ * Shopify-sync and NOTHING decrements it as deliveries happen — so without this
+ * it drifts stale (all members read "full"; see the dashboard BUG 1 note that
+ * already prefers a calendar-derived week number over the raw column). Rather
+ * than a fragile per-delivery decrement, we RE-DERIVE the truth every night
+ * from the season calendar, cadence + A/B aware, using the SAME helpers the
+ * member-facing schedule uses (resolveMemberSchedule.allDeliveries): a member's
+ * remaining = the count of their own delivery dates still in the future.
+ *
+ * Scope: active members whose share_type has a season schedule (summer_veg /
+ * spring_veg / flower). Non-season shares (flex / add_on) have no season
+ * calendar and are skipped — their "remaining" isn't a weeks countdown.
+ * Idempotent: only writes the rows whose value actually changed. Fail-soft per
+ * the cron contract; the count is informational and never flips the ⚠ prefix
+ * (a delivery crossing midnight legitimately changes counts most nights). */
+interface WeeksRemainingResult {
+  membersChecked: number;
+  membersUpdated: number;
+  failed: number;
+}
+
+async function runWeeksRemainingRecompute(): Promise<WeeksRemainingResult> {
+  const todayYMD = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+
+  const { data: members, error } = await supabaseAdmin
+    .from('members')
+    .select('id, share_type, cadence, biweekly_week, weeks_remaining')
+    .eq('status', 'active');
+  if (error) {
+    console.error('[nightly-health] weeks_remaining member read failed:', error.message);
+    return { membersChecked: 0, membersUpdated: 0, failed: 0 };
+  }
+
+  let checked = 0;
+  let updated = 0;
+  let failed = 0;
+  for (const m of members ?? []) {
+    const schedule = getSchedule(m.share_type);
+    if (!schedule) continue; // non-season share (flex / add_on): no weeks countdown
+    checked += 1;
+    const resolved = resolveMemberSchedule({
+      schedule,
+      biweeklyWeek: m.biweekly_week as 'A' | 'B' | null,
+      cadence: m.cadence as 'weekly' | 'biweekly' | undefined,
+    });
+    const remaining = resolved.allDeliveries.filter((d) => d > todayYMD).length;
+    if (remaining === m.weeks_remaining) continue; // already correct
+    const { error: upErr } = await supabaseAdmin
+      .from('members')
+      .update({ weeks_remaining: remaining })
+      .eq('id', m.id);
+    if (upErr) {
+      console.error(`[nightly-health] weeks_remaining update failed for ${m.id}:`, upErr.message);
+      failed += 1;
+    } else {
+      updated += 1;
+    }
+  }
+  return { membersChecked: checked, membersUpdated: updated, failed };
+}
+
 interface HealthSummary {
   ranAt: string;
   pickupsFixed: number;
@@ -573,6 +640,8 @@ interface HealthSummary {
   syncLagMinutes: number;
   syncLastSyncedAt: string | null;
   unmatchedVariants: string[];
+  weeksRemainingChecked: number;
+  weeksRemainingUpdated: number;
 }
 
 function isAllClear(s: HealthSummary): boolean {
@@ -623,6 +692,7 @@ async function sendHealthEmail(summary: HealthSummary): Promise<{ ok: boolean; d
       `Tags added:            ${summary.tagsAdded}`,
       `Customers checked:     ${summary.tagsCustomersChecked}`,
       `Customers not found:   ${summary.tagsNotFound}`,
+      `Weeks-remaining synced: ${summary.weeksRemainingUpdated} updated / ${summary.weeksRemainingChecked} checked`,
       `Sync lag:              ${lagDisplay}`,
       ...(summary.syncLastSyncedAt ? [`Last sync at:          ${summary.syncLastSyncedAt}`] : []),
       ...(summary.unmatchedVariants.length > 0
@@ -644,6 +714,7 @@ async function sendHealthEmail(summary: HealthSummary): Promise<{ ok: boolean; d
       `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Tags added</td><td style="padding:2px 0;font-weight:600">${summary.tagsAdded}</td></tr>` +
       `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Customers checked</td><td style="padding:2px 0;font-weight:600">${summary.tagsCustomersChecked}</td></tr>` +
       `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Customers not in Shopify</td><td style="padding:2px 0;font-weight:600">${summary.tagsNotFound}</td></tr>` +
+      `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Weeks-remaining synced</td><td style="padding:2px 0;font-weight:600">${summary.weeksRemainingUpdated} <span style="color:#9ca3af;font-weight:400">updated / ${summary.weeksRemainingChecked} checked</span></td></tr>` +
       `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Sync lag</td><td style="padding:2px 0;font-weight:600">${escapeHtml(lagDisplay)}</td></tr>` +
       `</table>` +
       unmatchedBlock +
@@ -727,6 +798,13 @@ async function handle(request: Request): Promise<Response> {
     console.error('[nightly-health] tag sync threw:', e);
   }
 
+  let weeksRemaining: WeeksRemainingResult = { membersChecked: 0, membersUpdated: 0, failed: 0 };
+  try {
+    weeksRemaining = await runWeeksRemainingRecompute();
+  } catch (e) {
+    console.error('[nightly-health] weeks_remaining recompute threw:', e);
+  }
+
   const { lagMinutes, lastSyncedAt } = await checkSyncLag();
 
   const ranAt = new Date().toISOString();
@@ -740,6 +818,8 @@ async function handle(request: Request): Promise<Response> {
     syncLagMinutes: lagMinutes,
     syncLastSyncedAt: lastSyncedAt,
     unmatchedVariants: backfill.unmatchedVariants,
+    weeksRemainingChecked: weeksRemaining.membersChecked,
+    weeksRemainingUpdated: weeksRemaining.membersUpdated,
   };
 
   // Send the daily summary email — fail-soft.
@@ -770,6 +850,8 @@ async function handle(request: Request): Promise<Response> {
     tags_added: summary.tagsAdded,
     tags_customers_checked: summary.tagsCustomersChecked,
     tags_not_found: summary.tagsNotFound,
+    weeks_remaining_checked: summary.weeksRemainingChecked,
+    weeks_remaining_updated: summary.weeksRemainingUpdated,
     sync_lag_minutes: summary.syncLagMinutes,
     sync_last_synced_at: summary.syncLastSyncedAt,
     sync_lag_ok: summary.syncLagMinutes >= 0 && summary.syncLagMinutes <= SYNC_LAG_THRESHOLD_MIN,
