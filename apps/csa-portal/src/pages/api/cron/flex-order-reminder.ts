@@ -113,7 +113,7 @@ function bodyHtml(balanceStr: string, weekend: boolean, week: string): string {
   );
 }
 
-async function sendOne(to: string, text: string, html: string, subject: string): Promise<{ ok: boolean; detail: string }> {
+async function sendOne(to: string, text: string, html: string, subject: string): Promise<{ ok: boolean; detail: string; messageId?: string }> {
   try {
     if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) return { ok: false, detail: 'resend_not_configured' };
     const resp = await fetch('https://api.resend.com/emails', {
@@ -126,7 +126,16 @@ async function sendOne(to: string, text: string, html: string, subject: string):
       console.error(`[flex-order-reminder] Resend failed (HTTP ${resp.status}): ${detail.slice(0, 200)}`);
       return { ok: false, detail: `resend_http_${resp.status}` };
     }
-    return { ok: true, detail: 'sent' };
+    // Capture the Resend message id so DELIVERY (not just acceptance) can be
+    // audited later via the Resend API — added 2026-07-26 after a verizon.net
+    // member reported never receiving flex emails and the log rows had no
+    // provider_message_id to trace (Kathleen Ganster case).
+    let messageId = '';
+    try {
+      const data = (await resp.json()) as { id?: string };
+      messageId = data.id ?? '';
+    } catch { /* body already consumed or not json — id stays '' */ }
+    return { ok: true, detail: 'sent', messageId };
   } catch (e) {
     console.error('[flex-order-reminder] sendOne threw (swallowed):', e);
     return { ok: false, detail: 'threw' };
@@ -139,7 +148,8 @@ async function logRow(
   recipient: string,
   status: 'sent' | 'failed',
   detail: string | null,
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
+  providerMessageId?: string
 ): Promise<void> {
   try {
     await supabaseAdmin.from('notification_log').insert({
@@ -150,6 +160,7 @@ async function logRow(
       recipient,
       status,
       provider: 'resend',
+      provider_message_id: providerMessageId || null,
       subject: 'Farm Flex order reminder',
       template: 'flex-order-reminder',
       error_message: detail,
@@ -266,7 +277,7 @@ async function handle(request: Request): Promise<Response> {
     if (outcome.ok) sent += 1; else failed += 1;
     await logRow(m.id, m.customer_id, email, outcome.ok ? 'sent' : 'failed', outcome.ok ? null : outcome.detail, {
       ranAt, week, weekend, balance: balance.total,
-    });
+    }, outcome.messageId);
   }
 
   return jsonResponse({
