@@ -22,8 +22,9 @@ import AdminShell from '../../../../components/AdminShell.astro';
 import Card from '../../../../components/Card.astro';
 import Badge from '../../../../components/Badge.astro';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { mondayOfWeek as _mow } from '../../../../lib/cycle';
 import {
-  formatCents, currentDeliveryWednesday, prettyDeliveryDate, isYMD, CUTOFF_LABEL,
+  formatCents, currentDeliveryWednesday, prettyDeliveryDate, isYMD, CUTOFF_LABEL, addDaysYMD,
 } from '../../../../lib/wholesale-order';
 
 export const prerender = false;
@@ -99,6 +100,29 @@ for (const it of items) {
   itemsByOrder.set(it.order_id, arr);
 }
 
+// ─── THIS-WEEK strip (Todd 2026-07-27: the Tuesday PASS order was "not
+// there" — the page defaults to Wednesday and silently hides every other
+// delivery day. Now the top of the page lists EVERY delivery date in the
+// current cycle week with order counts + totals, one tap to switch.) ──────
+const weekMon = _mow(deliveryDate);
+type WeekRow = { delivery_date: string; total_amount: number | null; status: string };
+const { data: weekRows } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select('delivery_date, total_amount, status')
+  .gte('delivery_date', weekMon)
+  .lte('delivery_date', addDaysYMD(weekMon, 6))
+  .not('status', 'in', '("cancelled","draft")')
+  .overrideTypes<WeekRow[], { merge: false }>();
+const weekByDate = new Map<string, { n: number; total: number }>();
+for (const r of weekRows ?? []) {
+  const e = weekByDate.get(r.delivery_date) ?? { n: 0, total: 0 };
+  e.n += 1; e.total += Number(r.total_amount ?? 0);
+  weekByDate.set(r.delivery_date, e);
+}
+const weekStrip = Array.from(weekByDate.entries())
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([d, v]) => ({ date: d, ...v }));
+
 // ─── Distinct delivery dates (for the date picker) ──────────────────
 const { data: dateRows } = await supabaseAdmin
   .from('wholesale_orders')
@@ -169,6 +193,28 @@ const deliveryPretty = prettyDeliveryDate(deliveryDate);
   </Fragment>
 
   {/* Delivery-date picker */}
+    {/* THIS-WEEK strip — every delivery day with orders, one tap to switch.
+        Added 2026-07-27: the page defaulted to Wednesday and hid Tuesday's
+        PASS order; delivery days are no longer Wednesday-only. */}
+  {weekStrip.length > 0 && (
+      <div class="mb-4 flex flex-wrap items-center gap-2">
+        <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">This week:</span>
+        {weekStrip.map((w) => (
+          <a
+            href={`/admin/wholesale/orders?date=${w.date}`}
+            class:list={[
+              'inline-flex h-9 items-center gap-2 rounded-ts-md border px-3 text-sm font-semibold transition-colors',
+              w.date === deliveryDate
+                ? 'border-ts-primary bg-ts-primary/10 text-ts-primary'
+                : 'border-ts-border bg-ts-bg-surface text-ts-text hover:border-ts-primary/40 hover:text-ts-primary',
+            ]}
+          >
+            {prettyDeliveryDate(w.date)}
+            <span class="rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs tabular-nums">{w.n} · ${w.total.toFixed(0)}</span>
+          </a>
+        ))}
+      </div>
+    )}
   {deliveryDates.length > 1 && (
     <Card padding="md" elevation="sm" as="section" class="mb-4">
       <div class="flex flex-wrap items-center gap-2">
