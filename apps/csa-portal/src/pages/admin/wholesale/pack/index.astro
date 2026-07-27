@@ -41,6 +41,26 @@ const { data: orderRows } = await supabaseAdmin
   .in('status', ['submitted', 'confirmed', 'packed'])
   .eq('delivery_date', deliveryDate)
   .order('created_at', { ascending: true });
+// This-week strip: every delivery day this cycle week with real orders —
+// same fix as the orders page (2026-07-27: Tuesday PASS orders were invisible
+// behind the Wednesday-only default; Todd couldn't find the print sheets).
+import { mondayOfWeek as _mow } from '../../../../lib/cycle';
+import { addDaysYMD as _ady } from '../../../../lib/wholesale-order';
+const _weekMon = _mow(deliveryDate);
+const { data: _wk } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select('delivery_date')
+  .in('status', ['submitted', 'confirmed', 'packed'])
+  .gte('delivery_date', _weekMon)
+  .lte('delivery_date', _ady(_weekMon, 6));
+const _stripCounts = new Map<string, number>();
+for (const r of (_wk ?? []) as Array<{ delivery_date: string }>) {
+  _stripCounts.set(r.delivery_date, (_stripCounts.get(r.delivery_date) ?? 0) + 1);
+}
+const weekStrip = Array.from(_stripCounts.entries())
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([d, n]) => ({ date: d, n }));
+
 const orders = (orderRows ?? []) as Array<{
   id: string;
   account_id: string | null;
@@ -118,6 +138,25 @@ const pretty = prettyDeliveryDate(deliveryDate);
     <button type="button" onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">🖨 Print</button>
   </Fragment>
 
+  {weekStrip.length > 0 && (
+    <div class="mb-3 no-print flex flex-wrap items-center gap-2">
+      <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">This week:</span>
+      {weekStrip.map((w) => (
+        <a
+          href={`/admin/wholesale/pack?date=${w.date}`}
+          class:list={[
+            'inline-flex h-9 items-center gap-2 rounded-ts-md border px-3 text-sm font-semibold transition-colors',
+            w.date === deliveryDate
+              ? 'border-ts-primary bg-ts-primary/10 text-ts-primary'
+              : 'border-ts-border bg-ts-bg-surface text-ts-text hover:border-ts-primary/40 hover:text-ts-primary',
+          ]}
+        >
+          {prettyDeliveryDate(w.date)}
+          <span class="rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs tabular-nums">{w.n}</span>
+        </a>
+      ))}
+    </div>
+  )}
   {dates.length > 1 && (
     <Card padding="md" elevation="sm" class="mb-4 no-print">
       <div class="flex flex-wrap items-center gap-2">
