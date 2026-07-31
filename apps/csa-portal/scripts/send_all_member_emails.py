@@ -84,7 +84,7 @@ CAMPAIGNS=[
  ("89","Set up your Tiny Seed CSA portal — confirm pickup + add your cell",recips_89,B_89),
 ]
 
-TEAM_REPLY=["tinyseedcsa@gmail.com","todd@tinyseedfarmpgh.com","tinyseedfleurs@gmail.com"]
+TEAM_REPLY=["todd@tinyseedfarmpgh.com","tinyseedfleurs@gmail.com"]
 def send(to,subj,text):
     p={"from":FROM,"to":[to],"subject":subj,"text":text,"reply_to":TEAM_REPLY}
     r=urllib.request.Request("https://api.resend.com/emails",data=json.dumps(p).encode(),method="POST",

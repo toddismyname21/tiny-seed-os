@@ -42,7 +42,7 @@ export const prerender = false;
 
 const ADMIN_ORIGIN = 'https://csa.tinyseedfarm.com';
 const FLEX_LINK = `${ADMIN_ORIGIN}/account/flex-order`;
-const REPLY_TO = ['todd@tinyseedfarmpgh.com', 'tinyseedcsa@gmail.com'];
+const REPLY_TO = ['todd@tinyseedfarmpgh.com', 'tinyseedfleurs@gmail.com'];
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, 2), {

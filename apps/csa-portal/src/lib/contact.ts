@@ -4,7 +4,7 @@
  * Every "get in touch" affordance a MEMBER sees (Contact the farm, "Email
  * Todd for help" on /login, the delivery-issue CTA, etc.) must reach BOTH
  * inboxes so nothing slips through the cracks:
- *   - tinyseedcsa@gmail.com  — Frankie (the CSA comms inbox; primary)
+ *   - tinyseedfleurs@gmail.com  — Loren (the CSA comms inbox; primary)
  *   - todd@tinyseedfarmpgh.com — Todd (owner)
  *
  * `mailto:` supports a comma-separated recipient list, so a single CTA can
@@ -19,15 +19,15 @@
  * stay as-is).
  */
 
-/** Frankie's CSA comms inbox — the PRIMARY address members copy/see. */
-export const CSA_PRIMARY_EMAIL = 'tinyseedcsa@gmail.com';
+/** Loren's CSA comms inbox — the PRIMARY address members copy/see. */
+export const CSA_PRIMARY_EMAIL = 'tinyseedfleurs@gmail.com';
 
 /** The farm owner — always CC'd on member contact so nothing is missed. */
 export const CSA_OWNER_EMAIL = 'todd@tinyseedfarmpgh.com';
 
 /**
  * Both recipients, comma-separated, for use as a `mailto:` target.
- * e.g. `mailto:tinyseedcsa@gmail.com,todd@tinyseedfarmpgh.com`.
+ * e.g. `mailto:tinyseedfleurs@gmail.com,todd@tinyseedfarmpgh.com`.
  */
 export const CSA_CONTACT_EMAILS = `${CSA_PRIMARY_EMAIL},${CSA_OWNER_EMAIL}`;
 

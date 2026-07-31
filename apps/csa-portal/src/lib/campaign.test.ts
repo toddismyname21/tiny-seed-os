@@ -11,7 +11,7 @@
  *     (delivered → opened → clicked), bump the parent campaign's counter
  *     exactly once per advance, and NEVER double-count a duplicate or
  *     out-of-order event.
- *   - CAMPAIGN_TEAM_COPY: the three internal addresses are pinned so a
+ *   - CAMPAIGN_TEAM_COPY: the two internal addresses are pinned so a
  *     future edit is a deliberate, reviewed change.
  *
  * We drive applyResendEvent against a tiny in-memory fake that mimics the
@@ -166,10 +166,9 @@ function ev(type: string, emailId: string): ResendWebhookEvent {
 
 // ─── CAMPAIGN_TEAM_COPY pinned ──────────────────────────────────────
 
-await test('team-copy list is the three internal addresses', () => {
+await test('team-copy list is the two internal addresses', () => {
   assertEqual([...CAMPAIGN_TEAM_COPY], [
     'todd@tinyseedfarmpgh.com',
-    'tinyseedcsa@gmail.com',
     'tinyseedfleurs@gmail.com',
   ]);
 });

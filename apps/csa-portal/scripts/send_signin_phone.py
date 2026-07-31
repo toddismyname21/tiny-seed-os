@@ -5,7 +5,7 @@ Dry-run by default; --apply to send. Reply-to = team inboxes."""
 import sys, csv, json, time, argparse, urllib.request
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
-TEAM = ["tinyseedcsa@gmail.com","todd@tinyseedfarmpgh.com","tinyseedfleurs@gmail.com"]
+TEAM = ["todd@tinyseedfarmpgh.com","tinyseedfleurs@gmail.com"]
 TEST = {"test@test.com","fakeemailsofake@gmail.com","freetodd21@gmail.com"}
 TESTSUB = ("fakeemail","freetodd21","test@test")
 JUNK_FIRST = {"","csa","unknown","member"}

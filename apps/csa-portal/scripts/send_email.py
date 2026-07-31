@@ -28,7 +28,7 @@ ap.add_argument("--text", required=True)
 ap.add_argument("--attach", nargs="*", default=[])
 a = ap.parse_args()
 
-TEAM = ["tinyseedcsa@gmail.com", "todd@tinyseedfarmpgh.com", "tinyseedfleurs@gmail.com"]
+TEAM = ["todd@tinyseedfarmpgh.com", "tinyseedfleurs@gmail.com"]
 body = {"from": FROM, "to": [a.to], "subject": a.subject, "text": a.text, "reply_to": TEAM, "bcc": ["todd@tinyseedfarmpgh.com"]}
 atts = []
 for f in a.attach:

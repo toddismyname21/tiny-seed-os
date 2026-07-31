@@ -142,7 +142,7 @@ export const TEST_EXCLUDES: ReadonlySet<string> = new Set(
     'freetodd21@gmail.com',
     'fakeemailsofake@gmail.com',
     'test@test.com',
-    'tinyseedcsa@gmail.com',
+    'tinyseedfleurs@gmail.com',
   ].map((e) => e.toLowerCase())
 );
 
@@ -649,9 +649,9 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /**
  * Where member replies go. Members are told "just reply" in the body, so
  * replies MUST hit a monitored human inbox — not the send-only `from`.
- * Routes to Todd + the CSA staff inbox (Frankie) so either can respond.
+ * Routes to Todd + the CSA staff inbox (Loren) so either can respond.
  */
-export const CAMPAIGN_REPLY_TO = ['todd@tinyseedfarmpgh.com', 'tinyseedcsa@gmail.com'];
+export const CAMPAIGN_REPLY_TO = ['todd@tinyseedfarmpgh.com', 'tinyseedfleurs@gmail.com'];
 
 /** One Resend send; never throws. */
 async function sendOne(
@@ -1168,7 +1168,6 @@ export async function sendCampaign(
  * member send completes. Edit here to add/remove a teammate.
  *
  *   - todd@tinyseedfarmpgh.com   (Todd)
- *   - tinyseedcsa@gmail.com      (Frankie)
  *   - tinyseedfleurs@gmail.com   (Loren)
  *
  * These are NOT per-recipient — exactly one email goes to each address
@@ -1176,7 +1175,6 @@ export async function sendCampaign(
  */
 export const CAMPAIGN_TEAM_COPY: readonly string[] = [
   'todd@tinyseedfarmpgh.com',
-  'tinyseedcsa@gmail.com',
   'tinyseedfleurs@gmail.com',
 ];
 

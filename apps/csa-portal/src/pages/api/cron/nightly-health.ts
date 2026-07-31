@@ -76,7 +76,7 @@ const TEST_EXCLUDES = new Set<string>([
   'freetodd21@gmail.com',
   'fakeemailsofake@gmail.com',
   'test@test.com',
-  'tinyseedcsa@gmail.com',
+  'tinyseedfleurs@gmail.com',
 ]);
 
 function jsonResponse(body: unknown, status = 200): Response {

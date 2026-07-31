@@ -6,6 +6,27 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-07-30] Frankie offboarding: Loren is member-facing contact + Lee Ann Antol service (PM_ARCHITECT + FULLSTACK_BUILDER)
+
+Frankie is no longer with the farm (Todd directive). Default member-facing contact is now **Loren — tinyseedfleurs@gmail.com** (Todd stays on everything).
+
+- **Security:** Frankie's `customers.role` was still `staff` (live admin-portal access) — demoted to `member` 2026-07-30 (row 0ff47230…, record kept, note added).
+- **Code sweep (19 files, apps/csa-portal):** `tinyseedcsa@gmail.com` → `tinyseedfleurs@gmail.com` in `lib/contact.ts` (CSA_PRIMARY_EMAIL — canonical), `lib/campaign.ts` (CAMPAIGN_REPLY_TO, TEST_EXCLUDES, staff-copy list), `lib/fresh-sheet.ts` REPLY_TO, cron reply-tos (chef-order-reminder, flex-order-reminder), nightly-health excludes, mailto links (privacy, terms, eula, sms-policy, order/[token], order/[token]/account, account/flex-order, ContactFarm.astro), and TEAM lists in scripts/send_email.py, send_signin_phone.py, send_all_member_emails.py, send_member_campaign.py. Tests: campaign.test.ts 9/9, cycle 53/53, flex-order + box all pass. Only intentional remaining ref: scripts/csa_inbox_triage.py (targets the old inbox itself — ownership of that Gmail account unresolved, ask Todd).
+- **Lee Ann Antol (member service):** her "emailed many times, no reply" texts investigated — zero emails from her since 2025-05-30 in Todd's Gmail incl. spam/trash; likely sent to the unmonitored tinyseedcsa inbox. Personal email sent from Todd's Gmail (id 19fb63fd823058de, Reply-To todd+Loren): full remaining pickup schedule verified via resolveCycle (Sat Bloomfield, biweekly A: Aug 8, Aug 22, Sep 5, Sep 19, Oct 3), spam-check ask, and a comped-vegetables invite for Sat Aug 1 (off-week; Todd notifies market crew on her confirm). Logged in member_comms (af8639f9…). Comp NOT posted to stop_messages (member-visible — privacy).
+
+## [2026-07-28] Member service: Chris Murakami phone + portal access + invoice (PM_ARCHITECT)
+
+- Phone `5738255830` added to his customer record (d80c8217…). Portal is self-serve magic-link (no provisioning needed); sent him the login link (Resend cb795a88…, BCC todd@).
+- Payment: Shopify draft order **#D109 $560** created + invoice sent (custom line: Friends & Family WEEKLY prorated 14 wks Jul 8–Oct 7, Zelienople; $720/18wk × 14 per member-row note). Customer tagged `2026-summer-csa`. Member notes updated — mark paid when #D109 clears.
+
+## [2026-07-28] CSA week-of-Jul-27 box swap + member notification (PM_ARCHITECT)
+
+Field swap per Todd (beets unharvested; potato ground too wet to dig enough for everyone). DB-only change to `box_contents` week_date='2026-07-27' via run_migration.py:
+- **Small:** Potatoes (1.5 lb bag) → Cabbage (1 head). Final 6: Cabbage, Cucumbers, Dandelion Greens, Romaine, Rosemary, Summer Squash.
+- **Large:** Beets (bunch) → Potatoes (1 × 1.5 lb bag, notes='Replaces beets'); Cabbage added (large is ALWAYS a superset of small — Todd). Final 8: small's 6 + Carrots + Potatoes.
+- Downstream auto-updated (all read box_contents): harvest/pick-pack totals (Beets→0, Cabbage 90, Potatoes 27 large-only), member /box pages, pack sheets/labels.
+- **Email sent:** 90/90 on-week summer_veg members (resolveCycle '2026-07-27', on_this_week, test accounts excluded), personalized via Resend, 0 failures, BCC todd@ on first (id 4e31ab80…). Copy approved by Todd before send.
+
 ## [2026-07-20] CSA Pick & Pack — OVERALL harvest list: make-ups folded, one-row-per-crop, garbage row killed (FULLSTACK_BUILDER)
 
 Three fixes to the OVERALL harvest (pick) list only (`view=overall` + the `printpack` overall section). Pack-house matrix + per-market pick sections deliberately untouched (the merge-key change flows through the shared lib and keeps the matrix consistent by construction).

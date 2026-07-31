@@ -49,7 +49,7 @@ type Db = SupabaseClient<Database>;
 /** Public portal origin — order links + the review-page link in reminders. */
 export const ADMIN_ORIGIN = 'https://csa.tinyseedfarm.com';
 /** Replies to chef availability emails land in a monitored human inbox. */
-const REPLY_TO = ['todd@tinyseedfarmpgh.com', 'tinyseedcsa@gmail.com'];
+const REPLY_TO = ['todd@tinyseedfarmpgh.com', 'tinyseedfleurs@gmail.com'];
 /** Vendor accounts the PO importer creates — never an availability recipient. */
 const VENDOR_ACCOUNT_NAMES = new Set(['harvie', 'market wagon']);
 /** Owner-only operational address (reminders + the not-sent alert). */

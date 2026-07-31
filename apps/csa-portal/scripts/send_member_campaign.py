@@ -25,7 +25,7 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TEAM = ["tinyseedcsa@gmail.com", "todd@tinyseedfarmpgh.com", "tinyseedfleurs@gmail.com"]
+TEAM = ["todd@tinyseedfarmpgh.com", "tinyseedfleurs@gmail.com"]
 TEST = {"test@test.com", "fakeemailsofake@gmail.com", "freetodd21@gmail.com"}
 TESTSUB = ("fakeemail", "freetodd21", "test@test")
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/122 Safari/537.36"
