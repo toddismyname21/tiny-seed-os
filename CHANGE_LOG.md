@@ -6,6 +6,25 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-02] Grant Management: track all 3 active grants + list/switcher + Next Action (FULLSTACK_BUILDER)
+
+Upgraded the Grant Management dashboard from a single hardcoded grant (AIG-R1) to a full 3-grant portfolio with a list/switcher landing view.
+
+**Backend (`apps_script/MERGED TOTAL.js`):**
+- New guarded, idempotent `migrateGrants2026()` (whitelisted GET action `migrateGrants2026`; registered in `PUBLIC_GET_ACTIONS` + doGet dispatch). Upserts by Grant_ID / Item_ID / Compliance_ID — safe to re-run (verified twice: still 3 grants, no dupes). Uses a header-position-aware upsert helper (never overwrites manually-entered cells for headers absent from the seed object).
+- Seeds/refreshes 3 grants:
+  - **AIG-R1-2024** (C940002366): EQ-017 Sutton Ag "Seed Spider" actual $19,569.28 Reimbursed; EQ-019 FORIGO G35-130 $21,895.00 Reimbursed (both in Reimbursement Request #1 TSF-AIG-001, $41,464.28, submitted 2026-07-06, pending); EQ-024 Tilmor "Purchased — receipts pending"; Vendor #833615.
+  - **AIG-R2-2026** (Round 2, Awarded — contract pending, 2026-07-28): requested State $46,703 / Match $23,003 / Total $69,706, final TBD. 8 line items (all "Awaiting contract — do not order"). CONFIDENTIAL note; send vendor # to Mike Roth.
+  - **FVPG-2024** (C940002569, Farm Vitality Planning Grant): max reimbursement $14,250 (75%, reimbursement-only). 4 deliverables (Good Roots/Jackie Wood market dev, Trellis Legal lease security meeting 8/13, DGPerry financial, completion paperwork). Contact Neil Imes 717-787-5539.
+- Added `Next_Action` + `Next_Deadline` columns to GRANT_MGMT (migrated via same function).
+- `getGrantsMgmt` + `getGrantDetail` now return camelCase aliases (grantId, awardAmount, contractNumber, item name/budgetedPDA/..., nextAction, nextDeadline) so the frontend renders REAL sheet data (previously fell back to hardcoded defaults). Vendor # parsed from Notes. Blank end dates now yield `daysRemaining: null` (no huge negatives).
+- Deployed: `clasp push` + `clasp deploy -i AKfycb…REG4qm` → @835.
+
+**Frontend (`web_app/grant-dashboard.html`):**
+- New grant LIST view (landing): cards per grant with status badge, award, utilization %, days-left, and prominent per-grant Next Action + deadline. Click a card → detail (existing tabs). `?grantId=` deep-links straight to detail; "All Grants" back-link returns to list. `GRANT_ID` now dynamic.
+- Detail overview gains a prominent Next Action banner (amber). Equipment category filter gained Transplanting/Greenhouse/Irrigation/Deliverable. Portfolio header stats (active grants / total awarded / next deadline) computed across all grants in list view.
+- Design-system tokens only; api-config.js only (no hardcoded URLs). Element-ref validator: pass.
+
 ## [2026-07-30] Frankie offboarding: Loren is member-facing contact + Lee Ann Antol service (PM_ARCHITECT + FULLSTACK_BUILDER)
 
 Frankie is no longer with the farm (Todd directive). Default member-facing contact is now **Loren — tinyseedfleurs@gmail.com** (Todd stays on everything).

@@ -14652,7 +14652,7 @@ function doGet(e) {
       'getSeedlingSales', 'getSeedlingDemandSummary', 'getSeedlingSalesHistorical',
       'getSeedlingOperationsOverview', 'getSeedlingProductionPlan',
       // Grant management dashboard
-      'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets',
+      'getGrantsMgmt', 'getGrantDetail', 'setupGrantSheets', 'migrateGrants2026',
       // Schedule notifications (triggered from schedule.html — no auth token available)
       'setupScheduleNotificationTriggers', 'sendWeeklyScheduleEmails', 'sendShiftReminders', 'weatherCancelDay',
       // PM trigger management tools
@@ -18273,6 +18273,8 @@ function doGet(e) {
         return jsonResponse(getGrantDetail(e.parameter.grantId));
       case 'setupGrantSheets':
         return jsonResponse(setupGrantSheets());
+      case 'migrateGrants2026':
+        return jsonResponse(migrateGrants2026());
 
       // ============ TEMPORARY: CSA EMAIL INCIDENT AUDIT ============
       case 'auditSentEmails':
@@ -155383,6 +155385,324 @@ function setupGrantSheets() {
   }
 }
 
+// ============================================================================
+// GRANT DATA MIGRATION — migrateGrants2026()
+// ----------------------------------------------------------------------------
+// Guarded, IDEMPOTENT one-time migration. Safe to re-run: it upserts by
+// Grant_ID / Item_ID / Metric_ID / Compliance_ID (no duplicate rows) and
+// updates existing rows in place. Adds Next_Action + Next_Deadline columns to
+// GRANT_MGMT if not already present.
+//
+// Seeds/refreshes all THREE active grants with current (2026) data:
+//   A. AIG-R1-2024  (C940002366) — actuals from Reimbursement Request #1
+//   B. AIG-R2-2026            — Round 2, Awarded (contract pending)
+//   C. FVPG-2024    (C940002569) — Farm Vitality Planning Grant
+// ============================================================================
+function migrateGrants2026() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+
+    // Ensure base sheets/headers exist first (setupGrantSheets is itself guarded).
+    setupGrantSheets();
+
+    var summary = { grants: 0, equipment: 0, metrics: 0, compliance: 0 };
+
+    // ---- Helper: header-position-aware upsert into a sheet by key column ----
+    // rows: array of plain objects keyed by header name. keyHeader: unique id col.
+    function upsert(sheetName, keyHeader, rows) {
+      var sheet = ss.getSheetByName(sheetName);
+      if (!sheet) throw new Error(sheetName + ' sheet missing');
+      var data = sheet.getDataRange().getValues();
+      var headers = data[0];
+      var keyIdx = headers.indexOf(keyHeader);
+      if (keyIdx < 0) throw new Error(keyHeader + ' column missing in ' + sheetName);
+
+      // Map existing key -> row number (1-based sheet row)
+      var existing = {};
+      for (var r = 1; r < data.length; r++) {
+        existing[String(data[r][keyIdx])] = r + 1;
+      }
+
+      var appendBuffer = [];
+      var count = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var obj = rows[i];
+        // Build a full-width row array positioned by header name.
+        var rowArr = [];
+        for (var h = 0; h < headers.length; h++) {
+          var hName = headers[h];
+          rowArr.push(obj.hasOwnProperty(hName) ? obj[hName] : '');
+        }
+        var key = String(obj[keyHeader]);
+        if (existing[key]) {
+          // Update in place — only overwrite headers present in obj to preserve
+          // any manually-entered values (e.g. purchase dates the user added).
+          var targetRow = existing[key];
+          for (var h2 = 0; h2 < headers.length; h2++) {
+            if (obj.hasOwnProperty(headers[h2])) {
+              sheet.getRange(targetRow, h2 + 1).setValue(obj[headers[h2]]);
+            }
+          }
+        } else {
+          appendBuffer.push(rowArr);
+        }
+        count++;
+      }
+      if (appendBuffer.length > 0) {
+        sheet.getRange(sheet.getLastRow() + 1, 1, appendBuffer.length, headers.length).setValues(appendBuffer);
+      }
+      return count;
+    }
+
+    // ---- 0. Add Next_Action + Next_Deadline columns to GRANT_MGMT if absent ----
+    var grantsSheet = ss.getSheetByName('GRANT_MGMT');
+    var gHeaders = grantsSheet.getRange(1, 1, 1, grantsSheet.getLastColumn()).getValues()[0];
+    if (gHeaders.indexOf('Next_Action') < 0) {
+      var col = grantsSheet.getLastColumn() + 1;
+      grantsSheet.getRange(1, col).setValue('Next_Action')
+        .setFontWeight('bold').setBackground('#333333').setFontColor('#ffffff');
+    }
+    // Re-read in case we just added Next_Action
+    gHeaders = grantsSheet.getRange(1, 1, 1, grantsSheet.getLastColumn()).getValues()[0];
+    if (gHeaders.indexOf('Next_Deadline') < 0) {
+      var col2 = grantsSheet.getLastColumn() + 1;
+      grantsSheet.getRange(1, col2).setValue('Next_Deadline')
+        .setFontWeight('bold').setBackground('#333333').setFontColor('#ffffff');
+    }
+
+    // ========================================================================
+    // A. GRANT_MGMT — upsert all three grant header records
+    // ========================================================================
+    summary.grants = upsert('GRANT_MGMT', 'Grant_ID', [
+      {
+        Grant_ID: 'AIG-R1-2024',
+        Grant_Name: 'PA Ag Innovation Grant - Round 1',
+        Funder: 'PA Department of Agriculture',
+        Contract_Number: 'C940002366',
+        Award_Amount: 75000,
+        Farm_Match: 125000,
+        Total_Budget: 200000,
+        Award_Date: '2024-07-01',
+        Start_Date: '2024-07-01',
+        End_Date: '2027-06-30',
+        Status: 'Active',
+        Notes: 'SFY 2024. Reimbursement-based. Vendor #833615. Reimbursement Request #1 (TSF-AIG-001, $41,464.28) submitted 2026-07-06 — status pending.',
+        Next_Action: 'Await PDA payment on Reimbursement Request #1 ($41,464.28); submit Tilmor cultivation receipts when available.',
+        Next_Deadline: '2027-03-31'
+      },
+      {
+        Grant_ID: 'AIG-R2-2026',
+        Grant_Name: 'PA Ag Innovation Grant - Round 2',
+        Funder: 'PA Department of Agriculture',
+        Contract_Number: '',
+        Award_Amount: 46703,
+        Farm_Match: 23003,
+        Total_Budget: 69706,
+        Award_Date: '2026-07-28',
+        Start_Date: '',
+        End_Date: '',
+        Status: 'Awarded — contract pending',
+        Notes: 'CONFIDENTIAL until PDA press event — no public announcements. Send vendor number to Mike Roth. Award amount pending (state says likely reduced). Requested: State $46,703 / Match $23,003 / Total $69,706. FINAL AWARD AMOUNT TBD.',
+        Next_Action: 'Send vendor number to Mike Roth; await signed contract. Do NOT order equipment or make public announcements.',
+        Next_Deadline: ''
+      },
+      {
+        Grant_ID: 'FVPG-2024',
+        Grant_Name: 'Farm Vitality Planning Grant',
+        Funder: 'PA Department of Agriculture',
+        Contract_Number: 'C940002569',
+        Award_Amount: 14250,
+        Farm_Match: 4750,
+        Total_Budget: 19000,
+        Award_Date: '2024-07-01',
+        Start_Date: '2024-07-01',
+        End_Date: '2027-06-30',
+        Status: 'Active',
+        Notes: 'Business plan: Lease Security, Financial Planning, and Market Development. Max reimbursement $14,250 (75% of eligible costs). Reimbursement-only — plan must be COMPLETE AND PAID before claiming. Contact: Neil Imes, PDA, 717-787-5539.',
+        Next_Action: 'Advance market-development (Good Roots kickoff) + lease-security (Trellis meeting 8/13/2026) + financial (DGPerry) engagements; nothing reimbursable until plan complete & paid.',
+        Next_Deadline: '2026-08-13'
+      }
+    ]);
+
+    // ========================================================================
+    // B. GRANT_EQUIPMENT — AIG-R1 actuals + AIG-R2 line items + FVPG deliverables
+    // ========================================================================
+    var equipRows = [
+      // ---- AIG-R1-2024: mark actuals per Reimbursement Request #1 ----
+      // EQ-017 precision seeder — Sutton Ag "Seed Spider", purchased, paid in full.
+      {
+        Item_ID: 'EQ-017', Grant_ID: 'AIG-R1-2024',
+        Item_Name: 'Precision Seeder — Sutton Ag "Seed Spider"',
+        Category: 'Seeding',
+        Description: 'Precise bed-width salad and baby greens seeding (Ortomec-equivalent). Included in Reimbursement Request #1 (TSF-AIG-001).',
+        Actual_Cost: 19569.28,
+        Reimbursement_Amount: 19569.28,
+        Status: 'Reimbursed'
+      },
+      // EQ-019 FORIGO G35-130, purchased, paid in full.
+      {
+        Item_ID: 'EQ-019', Grant_ID: 'AIG-R1-2024',
+        Item_Name: 'FORIGO G35-130 Rock Burier / Bed Prep',
+        Category: 'Field Prep',
+        Description: 'Consistent field prep before seeding and harvest. Included in Reimbursement Request #1 (TSF-AIG-001).',
+        Actual_Cost: 21895.00,
+        Reimbursement_Amount: 21895.00,
+        Status: 'Reimbursed'
+      },
+      // EQ-024 Tilmor cultivation system — purchased, receipts pending.
+      {
+        Item_ID: 'EQ-024', Grant_ID: 'AIG-R1-2024',
+        Item_Name: 'Compatible Cultivation System (Tilmor)',
+        Category: 'Cultivation',
+        Description: 'Farmwide 4-row cultivation and bed-wide stale seedbedding. Vendor #833615.',
+        Status: 'Purchased — receipts pending'
+      },
+
+      // ---- AIG-R2-2026 line items (Budgeted_PDA / Match / Total) ----
+      {
+        Item_ID: 'R2-001', Grant_ID: 'AIG-R2-2026',
+        Item_Name: 'Checchi & Magli BABY COMPACT Transplanter',
+        Category: 'Transplanting', Description: 'Baby greens / plug transplanter.',
+        Budgeted_PDA: 18760, Budgeted_Match: 9240, Budgeted_Total: 28000,
+        Status: 'Awaiting contract — do not order'
+      },
+      {
+        Item_ID: 'R2-002', Grant_ID: 'AIG-R2-2026',
+        Item_Name: 'Greenhouse Automation (Nolt’s)',
+        Category: 'Greenhouse', Description: 'Greenhouse automation package.',
+        Budgeted_PDA: 8487, Budgeted_Match: 4181, Budgeted_Total: 12668,
+        Status: 'Awaiting contract — do not order'
+      },
+      {
+        Item_ID: 'R2-003', Grant_ID: 'AIG-R2-2026',
+        Item_Name: 'Toro Tempus Ag Smart Irrigation',
+        Category: 'Irrigation', Description: 'Smart irrigation controller system.',
+        Budgeted_PDA: 6831, Budgeted_Match: 3364, Budgeted_Total: 10195,
+        Status: 'Awaiting contract — do not order'
+      },
+      {
+        Item_ID: 'R2-004', Grant_ID: 'AIG-R2-2026',
+        Item_Name: 'Stainless Steel Rinse Conveyor',
+        Category: 'Post Harvest', Description: 'SS rinse conveyor.',
+        Budgeted_PDA: 4020, Budgeted_Match: 1980, Budgeted_Total: 6000,
+        Status: 'Awaiting contract — do not order'
+      },
+      {
+        Item_ID: 'R2-005', Grant_ID: 'AIG-R2-2026',
+        Item_Name: 'Irrigation Delivery',
+        Category: 'Irrigation', Description: 'Irrigation delivery / installation.',
+        Budgeted_PDA: 3544, Budgeted_Match: 1746, Budgeted_Total: 5290,
+        Status: 'Awaiting contract — do not order'
+      },
+      {
+        Item_ID: 'R2-006', Grant_ID: 'AIG-R2-2026',
+        Item_Name: 'Schaper Bros Drop Spreader',
+        Category: 'Field Prep', Description: 'Drop spreader.',
+        Budgeted_PDA: 2848, Budgeted_Match: 1403, Budgeted_Total: 4250,
+        Status: 'Awaiting contract — do not order'
+      },
+      {
+        Item_ID: 'R2-007', Grant_ID: 'AIG-R2-2026',
+        Item_Name: 'Sumisansui Spray Tubes',
+        Category: 'Irrigation', Description: 'Overhead spray irrigation tubes.',
+        Budgeted_PDA: 1931, Budgeted_Match: 951, Budgeted_Total: 2882,
+        Status: 'Awaiting contract — do not order'
+      },
+      {
+        Item_ID: 'R2-008', Grant_ID: 'AIG-R2-2026',
+        Item_Name: '200-Cell Drop Seeders (x2)',
+        Category: 'Seeding', Description: 'Two 200-cell tray drop seeders.',
+        Budgeted_PDA: 281, Budgeted_Match: 139, Budgeted_Total: 420,
+        Status: 'Awaiting contract — do not order'
+      },
+
+      // ---- FVPG-2024 deliverables (tracked as equipment rows, Category 'Deliverable') ----
+      {
+        Item_ID: 'FVPG-D1', Grant_ID: 'FVPG-2024',
+        Item_Name: 'Market-Development Strategy — Good Roots (Jackie Wood)',
+        Category: 'Deliverable',
+        Description: 'Clamshell go-to-market, CSA 100→400 plan, brand development, wholesale partnerships, value-added strategy.',
+        Budgeted_PDA: 6000, Budgeted_Match: 2000, Budgeted_Total: 8000,
+        Status: 'Engaged 6/22, awaiting kickoff'
+      },
+      {
+        Item_ID: 'FVPG-D2', Grant_ID: 'FVPG-2024',
+        Item_Name: 'Lease Security — Trellis Legal (Marlene van Nelson)',
+        Category: 'Deliverable',
+        Description: 'Lease security / negotiation legal support.',
+        Status: 'In progress (meeting 8/13/2026)'
+      },
+      {
+        Item_ID: 'FVPG-D3', Grant_ID: 'FVPG-2024',
+        Item_Name: 'Financial Planning — DGPerry CPAs',
+        Category: 'Deliverable',
+        Description: 'Financial planning / projections.',
+        Status: 'In progress'
+      },
+      {
+        Item_ID: 'FVPG-D4', Grant_ID: 'FVPG-2024',
+        Item_Name: 'Completion Paperwork',
+        Category: 'Deliverable',
+        Description: 'Certificate of Completion (Todd signs) + Service Provider Verification (each provider signs) + detailed invoices with proof of payment.',
+        Status: 'Not started'
+      }
+    ];
+    summary.equipment = upsert('GRANT_EQUIPMENT', 'Item_ID', equipRows);
+
+    // ========================================================================
+    // C. GRANT_COMPLIANCE — grant-specific tracking rows for the new grants
+    // ========================================================================
+    summary.compliance = upsert('GRANT_COMPLIANCE', 'Compliance_ID', [
+      // AIG-R2-2026
+      {
+        Compliance_ID: 'R2-COMP-001', Grant_ID: 'AIG-R2-2026',
+        Requirement: 'Send vendor number to Mike Roth', Type: 'Contract',
+        Due_Date: '', Status: 'Pending', Completed_Date: '',
+        Notes: 'Required before contract execution. CONFIDENTIAL until PDA press event.'
+      },
+      {
+        Compliance_ID: 'R2-COMP-002', Grant_ID: 'AIG-R2-2026',
+        Requirement: 'Sign Round 2 Grant Contract', Type: 'Contract',
+        Due_Date: '', Status: 'Pending', Completed_Date: '',
+        Notes: 'Award 2026-07-28. Final award amount TBD (likely reduced). Do not order equipment until executed.'
+      },
+      // FVPG-2024
+      {
+        Compliance_ID: 'FVPG-COMP-001', Grant_ID: 'FVPG-2024',
+        Requirement: 'Complete Business Plan (all 3 focus areas)', Type: 'Deliverable',
+        Due_Date: '2027-06-30', Status: 'Not Started', Completed_Date: '',
+        Notes: 'Lease Security, Financial Planning, Market Development.'
+      },
+      {
+        Compliance_ID: 'FVPG-COMP-002', Grant_ID: 'FVPG-2024',
+        Requirement: 'Certificate of Completion + Service Provider Verification', Type: 'Report',
+        Due_Date: '2027-06-30', Status: 'Not Started', Completed_Date: '',
+        Notes: 'Todd signs Certificate; each provider signs Verification. Attach detailed invoices w/ proof of payment.'
+      },
+      {
+        Compliance_ID: 'FVPG-COMP-003', Grant_ID: 'FVPG-2024',
+        Requirement: 'Submit Reimbursement Request (plan complete & paid)', Type: 'Purchase',
+        Due_Date: '2027-06-30', Status: 'Not Started', Completed_Date: '',
+        Notes: 'Reimbursement-only — max $14,250 (75% of eligible costs). Plan must be complete AND paid first.'
+      }
+    ]);
+
+    return {
+      success: true,
+      message: 'migrateGrants2026 complete (idempotent upsert). Grants seeded/refreshed.',
+      data: summary,
+      count: summary.grants
+    };
+  } catch (error) {
+    Logger.log('migrateGrants2026 error: ' + error.toString());
+    return { success: false, error: error.toString(), code: 'MIGRATION_FAILED' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // ============================================
 // GRANT MANAGEMENT DASHBOARD — API FUNCTIONS
 // ============================================
@@ -155444,15 +155764,37 @@ function getGrantsMgmt() {
         row.utilizationPct = totalBudgeted > 0 ? Math.round((totalSpent / totalBudgeted) * 100) : 0;
       }
 
-      // Calculate days remaining
-      var endDate = new Date(row.End_Date);
-      var today = new Date();
-      row.daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+      // Calculate days remaining (blank end date => null, not a huge negative)
+      if (row.End_Date) {
+        var endDate = new Date(row.End_Date);
+        var today = new Date();
+        row.daysRemaining = isNaN(endDate.getTime())
+          ? null
+          : Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+      } else {
+        row.daysRemaining = null;
+      }
+
+      // camelCase aliases for the frontend (which reads grant.grantId, etc.)
+      row.grantId = row.Grant_ID;
+      row.grantName = row.Grant_Name;
+      row.funder = row.Funder;
+      row.contractNumber = row.Contract_Number;
+      row.awardAmount = row.Award_Amount;
+      row.farmMatch = row.Farm_Match;
+      row.totalBudget = row.Total_Budget;
+      row.awardDate = row.Award_Date;
+      row.startDate = row.Start_Date;
+      row.endDate = row.End_Date;
+      row.status = row.Status;
+      row.notes = row.Notes;
+      row.nextAction = row.Next_Action || '';
+      row.nextDeadline = row.Next_Deadline || '';
 
       grants.push(row);
     }
 
-    return { success: true, grants: grants, count: grants.length };
+    return { success: true, grants: grants, data: grants, count: grants.length };
   } catch (error) {
     Logger.log('getGrants error: ' + error.toString());
     return { success: false, error: error.toString() };
@@ -155562,9 +155904,81 @@ function getGrantDetail(grantId) {
     var endDate = new Date(grant.End_Date);
     var startDate = new Date(grant.Start_Date);
     var today = new Date();
-    var totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-    var daysElapsed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
-    var daysRemaining = Math.max(0, totalDays - daysElapsed);
+    var hasDates = !isNaN(endDate.getTime()) && !isNaN(startDate.getTime());
+    var totalDays = hasDates ? Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) : 0;
+    var daysElapsed = hasDates ? Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)) : 0;
+    var daysRemaining = hasDates ? Math.max(0, totalDays - daysElapsed) : null;
+
+    // ---- camelCase aliases so the frontend renders real sheet data ----
+    grant.grantId = grant.Grant_ID;
+    grant.grantName = grant.Grant_Name;
+    grant.funder = grant.Funder;
+    grant.fundingAgency = grant.Funder;
+    grant.contractNumber = grant.Contract_Number;
+    grant.contractNo = grant.Contract_Number;
+    grant.awardAmount = grant.Award_Amount;
+    grant.farmMatch = grant.Farm_Match;
+    grant.totalBudget = grant.Total_Budget;
+    grant.awardDate = grant.Award_Date;
+    grant.startDate = grant.Start_Date;
+    grant.endDate = grant.End_Date;
+    grant.status = grant.Status;
+    grant.notes = grant.Notes;
+    grant.nextAction = grant.Next_Action || '';
+    grant.nextDeadline = grant.Next_Deadline || '';
+    // Vendor number is stored in Notes; surface it if present ("Vendor #NNNNNN").
+    var vendorMatch = String(grant.Notes || '').match(/Vendor\s*#?\s*(\d+)/i);
+    grant.vendorNumber = vendorMatch ? vendorMatch[1] : '';
+    grant.program = grant.Grant_Name;
+
+    for (var ai = 0; ai < equipment.length; ai++) {
+      var e2 = equipment[ai];
+      e2.id = e2.Item_ID;
+      e2.itemId = e2.Item_ID;
+      e2.name = e2.Item_Name;
+      e2.itemName = e2.Item_Name;
+      e2.category = e2.Category;
+      e2.description = e2.Description;
+      e2.budgetedPDA = e2.Budgeted_PDA;
+      e2.budgetedMatch = e2.Budgeted_Match;
+      e2.budgetedTotal = e2.Budgeted_Total;
+      e2.actualCost = e2.Actual_Cost;
+      e2.purchaseDate = e2.Purchase_Date ? String(e2.Purchase_Date) : '';
+      e2.receiptSubmitted = e2.Receipt_Submitted ? String(e2.Receipt_Submitted) : '';
+      e2.reimbursementDate = e2.Reimbursement_Date ? String(e2.Reimbursement_Date) : '';
+      e2.reimbursementAmount = e2.Reimbursement_Amount;
+      e2.status = e2.Status;
+    }
+
+    for (var mj = 0; mj < metrics.length; mj++) {
+      var m2 = metrics[mj];
+      m2.id = m2.Metric_ID;
+      m2.metricId = m2.Metric_ID;
+      m2.name = m2.Metric_Name;
+      m2.metricName = m2.Metric_Name;
+      m2.category = m2.Category;
+      m2.targetYear1 = m2.Target_Year1;
+      m2.targetYear2 = m2.Target_Year2;
+      m2.targetYear3 = m2.Target_Year3;
+      m2.currentValue = m2.Current_Value;
+      m2.current = m2.Current_Value;
+      m2.unit = m2.Unit;
+      m2.lastUpdated = m2.Last_Updated ? String(m2.Last_Updated) : '';
+    }
+
+    for (var ck = 0; ck < compliance.length; ck++) {
+      var c2 = compliance[ck];
+      c2.id = c2.Compliance_ID;
+      c2.complianceId = c2.Compliance_ID;
+      c2.requirement = c2.Requirement;
+      c2.name = c2.Requirement;
+      c2.type = c2.Type;
+      c2.complianceType = c2.Type;
+      c2.dueDate = c2.Due_Date ? String(c2.Due_Date) : '';
+      c2.status = c2.Status;
+      c2.completedDate = c2.Completed_Date ? String(c2.Completed_Date) : '';
+      c2.notes = c2.Notes;
+    }
 
     return {
       success: true,
