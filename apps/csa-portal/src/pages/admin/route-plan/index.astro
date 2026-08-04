@@ -378,7 +378,7 @@ const groups = [
     const el = document.getElementById('route-' + letter);
     if (stops.length === 0) { state[letter] = null; el.innerHTML = '<p class="text-gray-400 text-sm">No stops on this route.</p>'; return; }
     el.innerHTML = '<p class="text-gray-500 text-sm">Optimizing…</p>';
-    const res = await fetch('/api/admin/optimize-route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stops, startSec }) });
+    const res = await fetch('/api/admin/optimize-route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stops, startSec, leg: letter }) });
     const d = await res.json();
     if (!res.ok || d.error) { el.innerHTML = `<p class="text-red-600 text-sm">Couldn't optimize: ${escapeHtml(d.detail || d.error || res.status)}</p>`; return; }
     state[letter] = { order: d.stops.map((s) => s.key), matrix: d.matrix, keys: d.keys, startSec };

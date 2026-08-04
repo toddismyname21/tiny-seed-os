@@ -12,6 +12,7 @@ import { GOOGLE_MAPS_API_KEY } from 'astro:env/server';
 import { requireAdmin } from '../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../lib/onboarding';
 import { optimizeStops, type RouteStop } from '../../../lib/route-optimizer';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 export const prerender = false;
 
@@ -55,8 +56,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const startSec = typeof body.startSec === 'number' ? body.startSec : undefined;
 
+  // Per-leg OPEN-route end (Todd 2026-08-04): portal_settings
+  // `route_end_address_<LEG>` (e.g. route_end_address_A = the driver's home in
+  // Lawrenceville — she keeps the truck in the city overnight). Unset → the
+  // classic farm loop. Config-driven so it can be changed without a deploy.
+  let endAddress: string | undefined;
+  const leg = body.leg === 'A' || body.leg === 'B' ? body.leg : null;
+  if (leg) {
+    const { data: endRow } = await supabaseAdmin
+      .from('portal_settings')
+      .select('value')
+      .eq('key', `route_end_address_${leg}`)
+      .maybeSingle();
+    const v = ((endRow as { value: string | null } | null)?.value ?? '').trim();
+    if (v) endAddress = v;
+  }
+
   try {
-    const result = await optimizeStops(stops, GOOGLE_MAPS_API_KEY, startSec);
+    const result = await optimizeStops(stops, GOOGLE_MAPS_API_KEY, startSec, endAddress);
     return json({ ok: true, ...result }, 200);
   } catch (e) {
     console.error('[api/admin/optimize-route] failed:', (e as Error)?.message);

@@ -121,12 +121,14 @@ async function computeMatrix(
 // indices (1..n-1) in visit order; the loop returns to depot at the end.
 const WINDOW_PENALTY = 1e7;
 
-/** Exported for the unit test. */
+/** Exported for the unit test. `endIndex` = matrix index the route must END at
+ *  (0 = the depot loop; an OPEN route ends at e.g. the driver's home). */
 export function orderCost(
   order: number[],
   m: number[][],
   stops: RouteStop[],
   startSec: number,
+  endIndex = 0,
 ): number {
   let drive = 0;
   let t = startSec;
@@ -141,7 +143,7 @@ export function orderCost(
     t += s.serviceSec;
     prev = i;
   }
-  drive += m[prev][0];
+  drive += m[prev][endIndex];
   return drive + penalty;
 }
 
@@ -168,13 +170,14 @@ export function orderCost(
  * Exported for the unit test (route-optimizer.test.ts verifies brute-force
  * optimality on small asymmetric instances + the corridor double-back case).
  */
-export function solve(m: number[][], stops: RouteStop[], startSec: number): number[] {
-  const n = m.length;
-  const cost = (o: number[]): number => orderCost(o, m, stops, startSec);
+export function solve(m: number[][], stops: RouteStop[], startSec: number, endIndex = 0): number[] {
+  const cost = (o: number[]): number => orderCost(o, m, stops, startSec, endIndex);
 
-  // Nearest-neighbor seed from the depot.
+  // Nearest-neighbor seed from the depot. Visit ONLY the stop indices
+  // (1..stops.length) — the matrix may carry a trailing END node (open route)
+  // which is a destination, never a stop.
   const unvisited = new Set<number>();
-  for (let i = 1; i < n; i++) unvisited.add(i);
+  for (let i = 1; i <= stops.length; i++) unvisited.add(i);
   const nn: number[] = [];
   let cur = 0;
   while (unvisited.size) {
@@ -248,7 +251,7 @@ export function solve(m: number[][], stops: RouteStop[], startSec: number): numb
   };
 
   // Deterministic PRNG for reproducible shuffle starts (mulberry32).
-  let seed = 0x9e3779b9 ^ n;
+  let seed = 0x9e3779b9 ^ stops.length;
   const rand = (): number => {
     seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -276,10 +279,14 @@ export function solve(m: number[][], stops: RouteStop[], startSec: number): numb
 }
 
 /** A Google Maps directions deep-link for the full loop (one tap on the phone). */
-export function googleMapsRouteUrl(ordered: { lat: number; lng: number }[]): string {
+export function googleMapsRouteUrl(
+  ordered: { lat: number; lng: number }[],
+  end?: { lat: number; lng: number },
+): string {
   const o = `${DEPOT.lat},${DEPOT.lng}`;
+  const dest = end ? `${end.lat},${end.lng}` : o;
   const waypoints = ordered.map((p) => `${p.lat},${p.lng}`).join('|');
-  return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${o}&travelmode=driving&waypoints=${encodeURIComponent(waypoints)}`;
+  return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${dest}&travelmode=driving&waypoints=${encodeURIComponent(waypoints)}`;
 }
 
 // ─── Gather the stops for a delivery day ─────────────────────────────
@@ -518,14 +525,25 @@ export async function optimizeStops(
   stops: RouteStop[],
   key: string,
   startSec: number = DEFAULT_START_SEC,
+  /** Optional OPEN-route end address (e.g. the driver keeps the truck at home
+   *  overnight — Todd 2026-08-04, Route A ends at the driver's house in
+   *  Lawrenceville instead of looping back to the farm). Geocoded on the fly;
+   *  when unset the route is the classic farm→stops→farm loop. */
+  endAddress?: string,
 ): Promise<OptimizeResult> {
   const warnings: string[] = [];
   if (stops.length === 0) {
     return { stops: [], totalDriveSec: 0, totalServiceSec: 0, mapsUrl: googleMapsRouteUrl([]), warnings: ['No stops selected.'], matrix: [], keys: [] };
   }
-  const pts = [DEPOT, ...stops];
+  let endPt: { lat: number; lng: number } | null = null;
+  if (endAddress) {
+    endPt = await geocode(endAddress, key);
+    if (!endPt) warnings.push(`Couldn't geocode route end "${endAddress}" — falling back to the farm loop.`);
+  }
+  const pts = endPt ? [DEPOT, ...stops, endPt] : [DEPOT, ...stops];
   const m = await computeMatrix(pts, key);
-  const order = solve(m, stops, startSec);
+  const endIndex = endPt ? pts.length - 1 : 0;
+  const order = solve(m, stops, startSec, endIndex);
 
   const out: OptimizedStop[] = [];
   let t = startSec;
@@ -545,12 +563,13 @@ export async function optimizeStops(
     totalService += s.serviceSec;
     prev = i;
   }
-  totalDrive += m[prev][0]; // return to depot
+  totalDrive += m[prev][endIndex]; // close the route: farm loop OR the open end
+  if (endPt && endAddress) warnings.push(`Route ends at ${endAddress} (open route — no return to the farm).`);
   return {
     stops: out,
     totalDriveSec: totalDrive,
     totalServiceSec: totalService,
-    mapsUrl: googleMapsRouteUrl(out.map((s) => ({ lat: s.lat, lng: s.lng }))),
+    mapsUrl: googleMapsRouteUrl(out.map((s) => ({ lat: s.lat, lng: s.lng })), endPt ?? undefined),
     warnings,
     matrix: m,
     keys: ['__depot__', ...stops.map((s) => s.key)],
