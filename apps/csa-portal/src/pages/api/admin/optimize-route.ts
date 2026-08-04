@@ -56,20 +56,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const startSec = typeof body.startSec === 'number' ? body.startSec : undefined;
 
-  // Per-leg OPEN-route end (Todd 2026-08-04): portal_settings
-  // `route_end_address_<LEG>` (e.g. route_end_address_A = the driver's home in
-  // Lawrenceville — she keeps the truck in the city overnight). Unset → the
-  // classic farm loop. Config-driven so it can be changed without a deploy.
+  // Per-leg OPEN-route end (Todd 2026-08-04): the driver keeps the truck in
+  // the city overnight, so Route A ends at her home instead of looping back to
+  // the farm. The route-plan page has an editable "Route <leg> ends at" field
+  // whose value arrives as body.end_address (empty string = farm loop). We
+  // PERSIST it to portal_settings `route_end_address_<LEG>` so it sticks for
+  // future sessions; when the body omits the field entirely (older client),
+  // we fall back to the stored setting.
   let endAddress: string | undefined;
   const leg = body.leg === 'A' || body.leg === 'B' ? body.leg : null;
   if (leg) {
-    const { data: endRow } = await supabaseAdmin
-      .from('portal_settings')
-      .select('value')
-      .eq('key', `route_end_address_${leg}`)
-      .maybeSingle();
-    const v = ((endRow as { value: string | null } | null)?.value ?? '').trim();
-    if (v) endAddress = v;
+    if (typeof body.end_address === 'string') {
+      const v = body.end_address.trim().slice(0, 200);
+      endAddress = v || undefined;
+      // Persist (fail-soft) so the field is remembered.
+      await supabaseAdmin
+        .from('portal_settings')
+        .upsert({ key: `route_end_address_${leg}`, value: v }, { onConflict: 'key' });
+    } else {
+      const { data: endRow } = await supabaseAdmin
+        .from('portal_settings')
+        .select('value')
+        .eq('key', `route_end_address_${leg}`)
+        .maybeSingle();
+      const v = ((endRow as { value: string | null } | null)?.value ?? '').trim();
+      if (v) endAddress = v;
+    }
   }
 
   try {

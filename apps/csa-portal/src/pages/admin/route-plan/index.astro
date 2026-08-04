@@ -28,6 +28,20 @@ const week_starting = /^\d{4}-\d{2}-\d{2}$/.test(weekParam)
   ? (isMonday(weekParam) ? weekParam : mondayOfWeek(weekParam))
   : currentDeliveryWeek();
 const dayRaw = url.searchParams.get('day') ?? 'Wed';
+
+// Per-leg OPEN-route end addresses (Todd 2026-08-04: Route A ends at the
+// driver's home — she keeps the truck in the city). Editable on this page;
+// persisted in portal_settings so the optimize endpoint + future sessions
+// pick them up. Blank = classic farm loop.
+const { data: endRows } = await supabaseAdmin
+  .from('portal_settings')
+  .select('key, value')
+  .in('key', ['route_end_address_A', 'route_end_address_B']);
+const endAddr: Record<string, string> = { A: '', B: '' };
+for (const r of (endRows ?? []) as Array<{ key: string; value: string | null }>) {
+  const leg = r.key.endsWith('_A') ? 'A' : 'B';
+  endAddr[leg] = (r.value ?? '').trim();
+}
 const day = (['Tue', 'Wed', 'Sat'].includes(dayRaw) ? dayRaw : 'Wed') as 'Tue' | 'Wed' | 'Sat';
 // Delivery date for this day = the week's Monday + offset (Tue+1, Wed+2, Sat+5).
 const route_date = addDaysYMD(week_starting, ({ Tue: 1, Wed: 2, Sat: 5 } as const)[day]);
@@ -88,6 +102,14 @@ const groups = [
       <label class="flex flex-col gap-1">
         <span class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Leave farm at</span>
         <input id="start-time" type="time" value="09:00" class="h-10 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-ts-text-muted">Route A ends at <span class="text-xs">(blank = back to farm)</span></span>
+        <input id="end-addr-A" type="text" value={endAddr.A} placeholder="e.g. 3934 Foster St, Pittsburgh, PA 15201" class="h-10 w-72 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm" />
+      </label>
+      <label class="flex flex-col gap-1 text-sm">
+        <span class="text-ts-text-muted">Route B ends at <span class="text-xs">(blank = back to farm)</span></span>
+        <input id="end-addr-B" type="text" value={endAddr.B} placeholder="blank = return to farm" class="h-10 w-72 rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm" />
       </label>
     </form>
   </Card>
@@ -378,7 +400,9 @@ const groups = [
     const el = document.getElementById('route-' + letter);
     if (stops.length === 0) { state[letter] = null; el.innerHTML = '<p class="text-gray-400 text-sm">No stops on this route.</p>'; return; }
     el.innerHTML = '<p class="text-gray-500 text-sm">Optimizing…</p>';
-    const res = await fetch('/api/admin/optimize-route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stops, startSec, leg: letter }) });
+    const endInput = document.getElementById('end-addr-' + letter);
+    const endAddress = endInput ? endInput.value.trim() : '';
+    const res = await fetch('/api/admin/optimize-route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stops, startSec, leg: letter, end_address: endAddress }) });
     const d = await res.json();
     if (!res.ok || d.error) { el.innerHTML = `<p class="text-red-600 text-sm">Couldn't optimize: ${escapeHtml(d.detail || d.error || res.status)}</p>`; return; }
     state[letter] = { order: d.stops.map((s) => s.key), matrix: d.matrix, keys: d.keys, startSec };
