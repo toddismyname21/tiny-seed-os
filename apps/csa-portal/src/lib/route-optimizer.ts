@@ -113,15 +113,16 @@ async function computeMatrix(
   return m;
 }
 
-// ─── Solver (time-window-aware NN + 2-opt) ───────────────────────────
+// ─── Solver (time-window-aware NN + 2-opt + Or-opt) ─────────────────
 // Cost of an order = total drive seconds + a heavy penalty for any stop whose
 // arrival (start time + cumulative drive + service of earlier stops) is AFTER
-// its hard window. This makes 2-opt honor "deliver by 3 PM" while otherwise
-// minimizing drive time. Matrix index 0 = depot; `order` lists stop indices
-// (1..n-1) in visit order; the loop returns to depot at the end.
+// its hard window. This makes the local search honor "deliver by 3 PM" while
+// otherwise minimizing drive time. Matrix index 0 = depot; `order` lists stop
+// indices (1..n-1) in visit order; the loop returns to depot at the end.
 const WINDOW_PENALTY = 1e7;
 
-function orderCost(
+/** Exported for the unit test. */
+export function orderCost(
   order: number[],
   m: number[][],
   stops: RouteStop[],
@@ -144,37 +145,134 @@ function orderCost(
   return drive + penalty;
 }
 
-function solve(m: number[][], stops: RouteStop[], startSec: number): number[] {
+/**
+ * Solve the route order: multi-start local search with 2-opt + Or-opt.
+ *
+ * WHY Or-opt (added 2026-08-04, Todd): 2-opt only REVERSES segments — it is
+ * structurally unable to RELOCATE a stop out of the middle of the route in
+ * many configurations. The classic symptom of that gap is exactly what the
+ * driver reported: "we drove PAST a stop, then doubled back to it later."
+ * Or-opt tries moving every 1-, 2-, and 3-stop segment to every other
+ * position (both orientations — the drive-time matrix is asymmetric on real
+ * Pittsburgh roads), which repairs precisely that pattern.
+ *
+ * WHY multi-start: local search is path-dependent — a different move order can
+ * land in a different (occasionally worse) local optimum. We therefore run the
+ * combined 2-opt+Or-opt search from several starts and keep the best:
+ *   1. the pure-2-opt-converged order (the OLD solver's exact result, then
+ *      polished — mathematically guarantees we are never worse than before);
+ *   2. the raw nearest-neighbor seed;
+ *   3. three deterministic shuffles (seeded PRNG — same input, same output).
+ * At our stop counts (~15–25) each search is milliseconds.
+ *
+ * Exported for the unit test (route-optimizer.test.ts verifies brute-force
+ * optimality on small asymmetric instances + the corridor double-back case).
+ */
+export function solve(m: number[][], stops: RouteStop[], startSec: number): number[] {
   const n = m.length;
+  const cost = (o: number[]): number => orderCost(o, m, stops, startSec);
+
   // Nearest-neighbor seed from the depot.
   const unvisited = new Set<number>();
   for (let i = 1; i < n; i++) unvisited.add(i);
-  let order: number[] = [];
+  const nn: number[] = [];
   let cur = 0;
   while (unvisited.size) {
     let best = -1;
     let bd = Infinity;
     for (const j of unvisited) if (m[cur][j] < bd) { bd = m[cur][j]; best = j; }
-    order.push(best);
+    nn.push(best);
     unvisited.delete(best);
     cur = best;
   }
-  // 2-opt to convergence.
-  let improved = true;
-  let guard = 0;
-  while (improved && guard++ < 1000) {
-    improved = false;
-    for (let i = 0; i < order.length - 1; i++) {
-      for (let k = i + 1; k < order.length; k++) {
-        const cand = order.slice(0, i).concat(order.slice(i, k + 1).reverse(), order.slice(k + 1));
-        if (orderCost(cand, m, stops, startSec) < orderCost(order, m, stops, startSec) - 1e-6) {
-          order = cand;
-          improved = true;
+
+  // One full 2-opt sweep; returns [order, improved].
+  const twoOptPass = (order: number[], c0: number): [number[], number, boolean] => {
+    let order2 = order;
+    let c = c0;
+    let improved = false;
+    for (let i = 0; i < order2.length - 1; i++) {
+      for (let k = i + 1; k < order2.length; k++) {
+        const cand = order2.slice(0, i).concat(order2.slice(i, k + 1).reverse(), order2.slice(k + 1));
+        const cc = cost(cand);
+        if (cc < c - 1e-6) { order2 = cand; c = cc; improved = true; }
+      }
+    }
+    return [order2, c, improved];
+  };
+
+  // One full Or-opt sweep (relocate 1–3-stop segments, both orientations).
+  const orOptPass = (order: number[], c0: number): [number[], number, boolean] => {
+    let order2 = order;
+    let c = c0;
+    let improved = false;
+    for (let segLen = 1; segLen <= 3 && segLen < order2.length; segLen++) {
+      for (let i = 0; i + segLen <= order2.length; i++) {
+        const seg = order2.slice(i, i + segLen);
+        const rest = order2.slice(0, i).concat(order2.slice(i + segLen));
+        const variants = segLen > 1 ? [seg, [...seg].reverse()] : [seg];
+        for (let j = 0; j <= rest.length; j++) {
+          for (const s of variants) {
+            if (j === i && s === seg) continue;
+            const cand = rest.slice(0, j).concat(s, rest.slice(j));
+            const cc = cost(cand);
+            if (cc < c - 1e-6) { order2 = cand; c = cc; improved = true; }
+          }
         }
       }
     }
+    return [order2, c, improved];
+  };
+
+  const converge2opt = (start: number[]): number[] => {
+    let order = start;
+    let c = cost(order);
+    for (let guard = 0; guard < 1000; guard++) {
+      const [o2, c2, imp] = twoOptPass(order, c);
+      order = o2; c = c2;
+      if (!imp) break;
+    }
+    return order;
+  };
+
+  const convergeCombined = (start: number[]): number[] => {
+    let order = start;
+    let c = cost(order);
+    for (let guard = 0; guard < 1000; guard++) {
+      const [o2, c2, imp2] = twoOptPass(order, c);
+      const [o3, c3, imp3] = orOptPass(o2, c2);
+      order = o3; c = c3;
+      if (!imp2 && !imp3) break;
+    }
+    return order;
+  };
+
+  // Deterministic PRNG for reproducible shuffle starts (mulberry32).
+  let seed = 0x9e3779b9 ^ n;
+  const rand = (): number => {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const shuffled = (): number[] => {
+    const a = [...nn];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  const starts: number[][] = [converge2opt([...nn]), [...nn], shuffled(), shuffled(), shuffled()];
+  let best: number[] = starts[0];
+  let bestCost = Infinity;
+  for (const s of starts) {
+    const o = convergeCombined(s);
+    const c = cost(o);
+    if (c < bestCost) { best = o; bestCost = c; }
   }
-  return order;
+  return best;
 }
 
 /** A Google Maps directions deep-link for the full loop (one tap on the phone). */
@@ -246,7 +344,28 @@ export async function gatherDayStops(
       if (arr) arr.push(m);
       else rowsByCustomer.set(m.customer_id, [m]);
     }
+
+    // ── Not-routable exclusion (migration 0062) ──────────────────────
+    // A home-delivery customer can be flagged customers.routable = false to
+    // mean "deliver by hand, NOT optimized" (ungeocodable spot, one-off, etc.).
+    // We drop those from the optimizer's stop set here — STRICTLY additive:
+    // every existing customer defaults to routable = true, so with no flags set
+    // this query removes nothing and the stop set is identical to before. Only
+    // a customer explicitly set to false is excluded. They still appear on the
+    // route planner as a manual / not-routable stop (rendered separately).
+    const customerIds = Array.from(rowsByCustomer.keys());
+    const notRoutable = new Set<string>();
+    if (customerIds.length) {
+      const { data: flags } = await supabase
+        .from('customers')
+        .select('id, routable')
+        .in('id', customerIds)
+        .eq('routable', false);
+      for (const c of flags ?? []) notRoutable.add(c.id);
+    }
+
     for (const [customer_id, rows] of rowsByCustomer) {
+      if (notRoutable.has(customer_id)) continue; // manual stop, not optimized
       const rep =
         rows.find((r) => r.delivery_address && r.share_type === 'summer_veg') ??
         rows.find((r) => r.delivery_address) ??
@@ -303,6 +422,95 @@ export async function gatherDayStops(
   }
 
   return { stops, skipped };
+}
+
+// ─── Manual / not-routable stops (reference only — NOT optimized) ────
+/** A hand-delivered stop shown on the planner but never fed to the optimizer. */
+export interface ManualStop {
+  /** customers.id | wholesale_accounts.id — for the routable toggle. */
+  id: string;
+  kind: 'home' | 'wholesale';
+  name: string;
+  address: string;
+  phone: string | null;
+  /** Only home/customer manual stops can be toggled back to routable. */
+  toggleable: boolean;
+}
+
+/**
+ * Build the MANUAL / not-routable stops list for the route planner. These are
+ * deliberately EXCLUDED from the optimizer and shown so the driver still sees
+ * them (deliver by hand):
+ *   (a) customers flagged routable = false who are active home-delivery members
+ *       (delivery_address set, no pickup_location) — toggleable back to routable;
+ *   (b) wholesale accounts that have an address (e.g. EYV @ 424 E Ohio St) —
+ *       these are inherently off the CSA optimizer (it only routes wholesale
+ *       accounts that have an ORDER on the delivery date) but the driver may
+ *       still hand-deliver. Reference only, not toggleable.
+ *
+ * Pure reference: this NEVER feeds optimizeStops — it's a separate read.
+ */
+export async function gatherManualStops(
+  supabase: SupabaseClient<Database>,
+): Promise<ManualStop[]> {
+  const out: ManualStop[] = [];
+
+  // (a) Home-delivery customers explicitly flagged not-routable.
+  const { data: notRoutable } = await supabase
+    .from('customers')
+    .select('id, contact_name, address, phone, routable')
+    .eq('routable', false);
+  const flaggedIds = (notRoutable ?? []).map((c) => c.id);
+  if (flaggedIds.length) {
+    // Confirm each flagged customer is actually an active home-delivery member
+    // (has a delivery_address + no pickup_location) — those are the ones the
+    // optimizer would otherwise have routed. Prefer the member's
+    // delivery_address; fall back to the customer's own address.
+    const { data: mems } = await supabase
+      .from('members')
+      .select('customer_id, delivery_address, pickup_location_id, status')
+      .in('customer_id', flaggedIds)
+      .eq('status', 'active');
+    const homeAddrByCustomer = new Map<string, string>();
+    for (const m of mems ?? []) {
+      if (m.delivery_address && !m.pickup_location_id && !homeAddrByCustomer.has(m.customer_id)) {
+        homeAddrByCustomer.set(m.customer_id, m.delivery_address);
+      }
+    }
+    for (const c of notRoutable ?? []) {
+      const addr = homeAddrByCustomer.get(c.id) ?? c.address ?? '';
+      if (!homeAddrByCustomer.has(c.id)) continue; // not an active home-delivery member
+      out.push({
+        id: c.id,
+        kind: 'home',
+        name: c.contact_name,
+        address: addr,
+        phone: c.phone,
+        toggleable: true,
+      });
+    }
+  }
+
+  // (b) Wholesale accounts with an address (inherently off the CSA optimizer).
+  const { data: accts } = await supabase
+    .from('wholesale_accounts')
+    .select('id, restaurant_name, address, phone')
+    .not('address', 'is', null);
+  for (const a of accts ?? []) {
+    const addr = String(a.address ?? '').trim();
+    if (!addr) continue;
+    out.push({
+      id: a.id,
+      kind: 'wholesale',
+      name: a.restaurant_name,
+      address: addr,
+      phone: a.phone,
+      toggleable: false,
+    });
+  }
+
+  out.sort((x, y) => (x.kind === y.kind ? x.name.localeCompare(y.name) : x.kind === 'home' ? -1 : 1));
+  return out;
 }
 
 /** Optimize a chosen set of stops into the least-drive-time depot loop. */
