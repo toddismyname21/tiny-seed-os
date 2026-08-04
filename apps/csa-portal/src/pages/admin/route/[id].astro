@@ -17,6 +17,22 @@
  *   - "Start Route" button (when planned) or "X of Y done" progress
  */
 import AdminShell from '../../../components/AdminShell.astro';
+
+// OPEN-route end (Todd 2026-08-04): if this leg is configured to END somewhere
+// other than the farm (portal_settings route_end_address_<leg>), surface it to
+// the driver as the final destination banner.
+let routeEndAddress = '';
+{
+  const legVal = (route as unknown as { leg?: string } | null)?.leg;
+  if (legVal === 'A' || legVal === 'B') {
+    const { data: endRow } = await supabaseAdmin
+      .from('portal_settings')
+      .select('value')
+      .eq('key', `route_end_address_${legVal}`)
+      .maybeSingle();
+    routeEndAddress = ((endRow as { value: string | null } | null)?.value ?? '').trim();
+  }
+}
 import Card from '../../../components/Card.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { signProofUrl } from '../../../lib/delivery-proof';
@@ -43,7 +59,7 @@ type RouteRow = {
 };
 const { data: route, error: routeErr } = await supabase
   .from('delivery_routes')
-  .select('id, route_date, driver_name, status, total_stops, completed_stops, started_at, completed_at, notes')
+  .select('id, route_date, driver_name, status, total_stops, completed_stops, started_at, completed_at, notes, leg')
   .eq('id', routeId)
   .maybeSingle()
   .overrideTypes<RouteRow, { merge: false }>();
@@ -419,6 +435,12 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
             {route.completed_stops} of {route.total_stops} done
           </span>
         </div>
+
+        {routeEndAddress && (
+          <div class="rounded-ts-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+            🏁 This route ENDS at {routeEndAddress} — no return to the farm.
+          </div>
+        )}
 
         {/* Progress bar */}
         {route.total_stops > 0 && (

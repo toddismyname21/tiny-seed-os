@@ -316,7 +316,10 @@ const groups = [
       const s = byKey.get(k); const violated = s.windowEndSec != null && t > s.windowEndSec;
       rows.push({ s, leg, arrival: t, violated }); t += s.serviceSec; prev = i;
     }
-    drive += st.matrix[prev][0];
+    const endCol = st.end ? st.matrix.length - 1 : 0;
+    const endLeg = st.matrix[prev][endCol];
+    drive += endLeg;
+    const endEta = t + endLeg;
     const color = letter === 'A' ? '#059669' : '#4f46e5';
     const li = rows.map((r, i) => `
       <li draggable="true" data-key="${r.s.key}" class="route-row flex items-center gap-2 py-2 ${r.violated?'bg-red-50':''}" style="cursor:grab">
@@ -338,7 +341,9 @@ const groups = [
       <ol class="mb-2 divide-y divide-gray-100">
         <li class="py-1 text-xs font-semibold uppercase tracking-wide text-gray-400">START · Farm</li>
         ${li}
-        <li class="py-1 text-xs font-semibold uppercase tracking-wide text-gray-400">RETURN · Farm</li>
+        ${st.end
+          ? `<li class="py-2 text-xs font-semibold uppercase tracking-wide" style="color:${color}">🏁 ENDS · ${escapeHtml(st.end.address)} · ~${fmtClock(endEta)} (+${mins(endLeg)}m)</li>`
+          : '<li class="py-1 text-xs font-semibold uppercase tracking-wide text-gray-400">RETURN · Farm</li>'}
       </ol>
       <p class="mb-2 text-[11px] text-gray-400">Drag rows or use ▲▼ to reorder — ETAs update live.</p>
       <a href="${mapsUrl(st.order.map((k)=>byKey.get(k)))}" target="_blank" rel="noopener" class="mb-2 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-blue-600 px-4 text-base font-semibold text-white hover:bg-blue-700">🗺️ Open Route ${letter} in Google Maps</a>
@@ -405,7 +410,7 @@ const groups = [
     const res = await fetch('/api/admin/optimize-route', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stops, startSec, leg: letter, end_address: endAddress }) });
     const d = await res.json();
     if (!res.ok || d.error) { el.innerHTML = `<p class="text-red-600 text-sm">Couldn't optimize: ${escapeHtml(d.detail || d.error || res.status)}</p>`; return; }
-    state[letter] = { order: d.stops.map((s) => s.key), matrix: d.matrix, keys: d.keys, startSec };
+    state[letter] = { order: d.stops.map((s) => s.key), matrix: d.matrix, keys: d.keys, startSec, end: d.end || null };
     render(letter);
     // Warnings can embed a stop's name (home deliveries carry the member's
     // Shopify contact_name) — escape each line, keep the <br> joiner literal.

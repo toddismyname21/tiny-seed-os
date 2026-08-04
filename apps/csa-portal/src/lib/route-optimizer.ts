@@ -68,6 +68,9 @@ export interface OptimizeResult {
   matrix: number[][];
   /** keys[0] = '__depot__'; keys[i] = the stop.key at matrix index i. */
   keys: string[];
+  /** OPEN-route end (when configured): where the route finishes instead of the
+   *  farm, with the final leg + arrival — so UIs can SHOW the ending. */
+  end?: { address: string; legSec: number; arrivalSec: number };
 }
 
 const SERVICE = { csa: 300, home: 60, wholesale: 300 }; // 5 min / 1 min / 5 min
@@ -563,9 +566,12 @@ export async function optimizeStops(
     totalService += s.serviceSec;
     prev = i;
   }
-  totalDrive += m[prev][endIndex]; // close the route: farm loop OR the open end
+  const closeLeg = m[prev][endIndex];
+  totalDrive += closeLeg; // close the route: farm loop OR the open end
   if (endPt && endAddress) warnings.push(`Route ends at ${endAddress} (open route — no return to the farm).`);
+  const end = endPt && endAddress ? { address: endAddress, legSec: closeLeg, arrivalSec: t + closeLeg } : undefined;
   return {
+    end,
     stops: out,
     totalDriveSec: totalDrive,
     totalServiceSec: totalService,
