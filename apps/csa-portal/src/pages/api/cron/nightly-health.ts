@@ -544,18 +544,27 @@ async function runTagSync(): Promise<TagSyncResult> {
  * ────────────────────────────────────────────────────────────────── */
 
 async function checkSyncLag(): Promise<{ lagMinutes: number; lastSyncedAt: string | null }> {
+  // FIXED 2026-08-05 (Todd): lag is measured against the row's updated_at —
+  // the sync UPDATES the state row on EVERY completed run (the watermark
+  // write is clamped-but-always-executed), so updated_at = "when the sync
+  // last RAN". last_synced_at is the ORDER watermark and legitimately sits
+  // still on quiet nights (it only advances when an order is seen), which
+  // made the old metric a false-alarm generator: it flagged ⚠ 675-min "lag"
+  // on a perfectly healthy sync after an orderless night.
   const { data, error } = await supabaseAdmin
     .from('shopify_sync_state')
-    .select('last_synced_at')
+    .select('last_synced_at, updated_at')
     .eq('id', 1)
     .maybeSingle();
   if (error) {
     console.error('[nightly-health] sync state read failed:', error.message);
     return { lagMinutes: -1, lastSyncedAt: null };
   }
-  const ts = data?.last_synced_at ?? null;
-  if (!ts) return { lagMinutes: -1, lastSyncedAt: null };
-  const lagMs = Date.now() - new Date(ts).getTime();
+  const row = data as { last_synced_at: string | null; updated_at: string | null } | null;
+  const ranAt = row?.updated_at ?? null;
+  const ts = row?.last_synced_at ?? null;
+  if (!ranAt) return { lagMinutes: -1, lastSyncedAt: ts };
+  const lagMs = Date.now() - new Date(ranAt).getTime();
   return { lagMinutes: Math.round(lagMs / 60_000), lastSyncedAt: ts };
 }
 
