@@ -672,10 +672,12 @@ for (const stop of stopsOrdered) {
         if (lines) flexLinesAll.push(...lines);
       }
     }
-    // 💐 Flex-market bouquets are MADE by the flower crew — split them out of
-    // the box checklist and give them their own flower-kind label below.
+    // 💐 Flex-market bouquets are MADE by the flower crew and get their own
+    // label below — but they STAY on the box label's flex checklist too, so
+    // the delivery driver knows to grab the separate bouquet with this box
+    // (Todd 2026-08-05).
     const isBouquetLine = (l: { name: string | null }) => (l.name ?? '').toLowerCase().includes('bouquet');
-    const flexLines = flexLinesAll.filter((l) => !isBouquetLine(l));
+    const flexLines = flexLinesAll;
     const flexBouquetQty = flexLinesAll.filter(isBouquetLine).reduce((n, l) => n + l.qty, 0);
 
     // 1) The veg/flex/spring BOX label. Add-ons ride here; note flowers if any.
