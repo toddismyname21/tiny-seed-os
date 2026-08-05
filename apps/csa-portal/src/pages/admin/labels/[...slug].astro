@@ -298,6 +298,11 @@ interface LabelData {
   /** 'box' = the veg/flex/spring label; 'flower' = a SEPARATE Flower CSA label
    *  (Todd 2026-06-23: flowers always print their own label). */
   kind: 'box' | 'flower';
+  /** 💐 FLEX-MARKET BOUQUET label (Todd 2026-08-05): a member bought a
+   *  "Tiny Seed Fleurs Bouquet" à la carte — it's MADE by the flower crew, so
+   *  it prints as its own flower-kind label (rides ?type=flower) and is
+   *  EXCLUDED from the box label's flex checklist to keep veg pack clean. */
+  flexBouquetQty?: number;
   /** Box labels only: true when this customer ALSO has a flower share — we note
    *  "🌸 Flower CSA" on the box label and print a separate flower label. */
   hasFlower: boolean;
@@ -660,13 +665,18 @@ for (const stop of stopsOrdered) {
 
     // Flex lines: union across the box primary + add-on rows (flex sits on a
     // member row). Flower labels never carry flex.
-    const flexLines: Array<{ name: string | null; qty: number }> = [];
+    const flexLinesAll: Array<{ name: string | null; qty: number }> = [];
     if (boxPrimary) {
       for (const m of [boxPrimary, ...addons]) {
         const lines = flexByMember.get(m.id);
-        if (lines) flexLines.push(...lines);
+        if (lines) flexLinesAll.push(...lines);
       }
     }
+    // 💐 Flex-market bouquets are MADE by the flower crew — split them out of
+    // the box checklist and give them their own flower-kind label below.
+    const isBouquetLine = (l: { name: string | null }) => (l.name ?? '').toLowerCase().includes('bouquet');
+    const flexLines = flexLinesAll.filter((l) => !isBouquetLine(l));
+    const flexBouquetQty = flexLinesAll.filter(isBouquetLine).reduce((n, l) => n + l.qty, 0);
 
     // 1) The veg/flex/spring BOX label. Add-ons ride here; note flowers if any.
     if (boxPrimary) {
@@ -698,6 +708,23 @@ for (const stop of stopsOrdered) {
         owes,
         kind: 'flower',
         hasFlower: false,
+      });
+    }
+
+    // 3) 💐 A separate label for a FLEX-MARKET bouquet (made to order by the
+    //    flower crew, packed apart from the box — Todd 2026-08-05).
+    if (flexBouquetQty > 0 && (boxPrimary || flowerRows[0])) {
+      labels.push({
+        member: (boxPrimary ?? flowerRows[0])!,
+        stop,
+        distDate: distDateForStop(stop),
+        composition: null,
+        addonChips: [],
+        flexLines: [],
+        owes,
+        kind: 'flower',
+        hasFlower: false,
+        flexBouquetQty,
       });
     }
   }
@@ -1070,6 +1097,9 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                         ) : null;
                       })()}
                     </div>
+                    {label.flexBouquetQty && label.flexBouquetQty > 0 && (
+                      <div class="label-flower-note">💐 FLEX BOUQUET{label.flexBouquetQty > 1 ? ` ×${label.flexBouquetQty}` : ''} — Tiny Seed Fleurs (made to order)</div>
+                    )}
                     {label.kind === 'box' && label.hasFlower && (
                       <div class="label-flower-note">{t.alsoFlower}</div>
                     )}
