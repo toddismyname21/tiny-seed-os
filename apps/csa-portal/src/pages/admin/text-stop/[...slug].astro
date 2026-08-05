@@ -75,6 +75,21 @@ if (!stopTotals) {
 }
 const stopName = stopTotals.stop_name;
 
+// Stop ADDRESS in the arrival text (Todd 2026-08-05): members go to the
+// address, not the stop's nickname — critical when a stop MOVES (Zelienople
+// relocated to 102 N Pittsburgh St today). Real pickup stops only; the
+// home-delivery/sentinel buckets have no pickup_locations row.
+let stopAddress = '';
+{
+  const { data: locRow } = await supabase
+    .from('pickup_locations')
+    .select('address, city')
+    .eq('id', stopId)
+    .maybeSingle();
+  const lr = locRow as { address: string | null; city: string | null } | null;
+  if (lr?.address) stopAddress = lr.address + (lr.city ? `, ${lr.city}` : '');
+}
+
 // THIS week's recipients at THIS stop — the resolver's set (biweekly + season
 // + holds already applied). Sort by name for a stable, scannable list.
 const recipients: CycleMember[] = (cycle.byStop.get(stopId) ?? [])
@@ -124,7 +139,8 @@ function smsLink(toE164: string, body: string): string {
 
 /** Per-member arrival message. */
 function arrivalBody(firstName: string): string {
-  return `Hi ${firstName}! Your Tiny Seed Farm CSA share has arrived at ${stopName} 🌱 Come grab it whenever you're ready. — Tiny Seed`;
+  const where = stopAddress ? `${stopName} (${stopAddress})` : stopName;
+  return `Hi ${firstName}! Your Tiny Seed Farm CSA share has arrived at ${where} 🌱 Come grab it whenever you're ready. — Tiny Seed`;
 }
 
 // ─── Build the recipient rows + tallies ─────────────────────────────
@@ -156,7 +172,7 @@ const missing = total - textable.length;
 // ─── Group-compose link (iOS) ───────────────────────────────────────
 // sms:/open?addresses=+1NUM,+1NUM&body=ENCODED opens a single group message
 // on iPhone with everyone who has a valid number. Body has no name (group).
-const groupBody = `Your Tiny Seed Farm CSA share has arrived at ${stopName} 🌱`;
+const groupBody = `Your Tiny Seed Farm CSA share has arrived at ${stopAddress ? `${stopName} (${stopAddress})` : stopName} 🌱`;
 const groupAddresses = textable.map((r) => r.e164).join(',');
 const groupHref = textable.length > 0
   ? `sms:/open?addresses=${encodeURIComponent(groupAddresses)}&body=${encodeURIComponent(groupBody)}`
@@ -170,6 +186,7 @@ const DAY_LONG: Record<string, string> = {
 function distDateForDay(): string | null {
   if (stopTotals!.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
   if (stopTotals!.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  if (stopTotals!.day_of_week === 'Sun') return cycle.distribution_dates.Sun;
   if (stopTotals!.day_of_week === 'Wed') return cycle.distribution_dates.Wed;
   return null;
 }
