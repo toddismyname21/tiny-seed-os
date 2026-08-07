@@ -14678,7 +14678,7 @@ function doGet(e) {
       'cleanupDiscontinuedSeedlingItems',
       'applyBundlePricingToAllOrders',
       // Seedling archive viewer (2026-05-04)
-      'getArchivedSeedlingOrders'
+      'getArchivedSeedlingOrders',
     ]);
 
   if (!PUBLIC_GET_ACTIONS.has(action)) {
@@ -56036,25 +56036,134 @@ function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
  */
 function getTimesheet(params) {
   try {
-    const employeeId = params.employeeId;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    let employeeId = params.employeeId;
+    let resolvedEmployee = null;
+
+    // Optional: resolve employeeId from employeeName against USERS + EMPLOYEES.
+    // (only when an explicit employeeId was NOT provided).
+    if (!employeeId && params.employeeName) {
+      const nameQuery = params.employeeName.toString().trim();
+      if (!nameQuery) {
+        return { success: false, error: 'employeeName is empty' };
+      }
+
+      // Diacritic-safe normalization: lowercase + strip combining marks
+      // (e.g. "Villaseñor" -> "villasenor"). Applied to BOTH sides of the compare.
+      const normalize = function(s) {
+        return (s || '').toString().trim().toLowerCase()
+          .normalize('NFD').replace(/[̀-ͯ]/g, '');
+      };
+      const needle = normalize(nameQuery);
+
+      const matches = [];
+
+      // --- Source 1: USERS sheet (Full_Name) ---
+      const usersSheet = ss.getSheetByName('USERS');
+      if (usersSheet) {
+        const userData = usersSheet.getDataRange().getValues();
+        const userHeaders = userData[0] || [];
+        const idCol = userHeaders.indexOf('User_ID');
+        const nameCol = userHeaders.indexOf('Full_Name');
+        const isActiveCol = userHeaders.indexOf('Is_Active');
+        const statusCol = userHeaders.indexOf('Status');
+        if (idCol !== -1 && nameCol !== -1) {
+          for (let r = 1; r < userData.length; r++) {
+            const fullName = (userData[r][nameCol] || '').toString().trim();
+            if (!fullName) continue;
+            if (normalize(fullName).indexOf(needle) === -1) continue;
+
+            // Active check: Is_Active true/TRUE, or (blank Is_Active AND Status not Inactive)
+            let isActive;
+            const activeVal = isActiveCol !== -1 ? userData[r][isActiveCol] : '';
+            if (activeVal === true || activeVal === 'TRUE') {
+              isActive = true;
+            } else if (activeVal === false || activeVal === 'FALSE') {
+              isActive = false;
+            } else {
+              const statusVal = statusCol !== -1 ? (userData[r][statusCol] || '').toString().trim().toLowerCase() : '';
+              isActive = (statusVal !== 'inactive' && statusVal !== 'disabled');
+            }
+            if (!isActive) continue;
+
+            matches.push({ id: userData[r][idCol], name: fullName, source: 'USERS' });
+          }
+        }
+      }
+
+      // --- Source 2: legacy EMPLOYEES sheet (First_Name + ' ' + Last_Name) ---
+      // NOTE: Badge_PIN is intentionally never read/returned here.
+      const empSheet = ss.getSheetByName(EMPLOYEE_SHEETS.EMPLOYEES);
+      if (empSheet) {
+        const empData = empSheet.getDataRange().getValues();
+        const empHeaders = empData[0] || [];
+        const eIdCol = empHeaders.indexOf('Employee_ID');
+        const fnCol = empHeaders.indexOf('First_Name');
+        const lnCol = empHeaders.indexOf('Last_Name');
+        const eActiveCol = empHeaders.indexOf('Is_Active');
+        if (eIdCol !== -1 && (fnCol !== -1 || lnCol !== -1)) {
+          for (let r = 1; r < empData.length; r++) {
+            const fn = fnCol !== -1 ? (empData[r][fnCol] || '').toString().trim() : '';
+            const ln = lnCol !== -1 ? (empData[r][lnCol] || '').toString().trim() : '';
+            const fullName = (fn + ' ' + ln).trim();
+            if (!fullName) continue;
+            if (normalize(fullName).indexOf(needle) === -1) continue;
+
+            // Skip explicitly inactive rows (false / 'FALSE'); treat blank/other as active.
+            const activeVal = eActiveCol !== -1 ? empData[r][eActiveCol] : '';
+            if (activeVal === false || activeVal === 'FALSE') continue;
+
+            matches.push({ id: empData[r][eIdCol], name: fullName, source: 'EMPLOYEES' });
+          }
+        }
+      }
+
+      if (matches.length === 0) {
+        return { success: false, error: 'No active employee matches "' + nameQuery + '" (0 matches in USERS or EMPLOYEES)' };
+      }
+      if (matches.length > 1) {
+        const labeled = matches.map(function(m) { return m.name + ' [' + m.source + ']'; });
+        return {
+          success: false,
+          error: 'Ambiguous employeeName "' + nameQuery + '": ' + matches.length + ' matches — ' + labeled.join(', ')
+        };
+      }
+      employeeId = matches[0].id;
+      resolvedEmployee = { id: matches[0].id, name: matches[0].name, source: matches[0].source };
+    }
+
     if (!employeeId) {
       return { success: false, error: 'Employee ID required' };
     }
 
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
 
     if (!sheet) {
-      return { success: true, entries: [], payPeriod: getPayPeriod() };
+      const emptyResp = { success: true, entries: [], payPeriod: getPayPeriod() };
+      if (resolvedEmployee) emptyResp.resolvedEmployee = resolvedEmployee;
+      return emptyResp;
     }
 
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
 
-    // Get current pay period (bi-weekly)
+    // Get current pay period (bi-weekly) — still returned for backward compat
     const payPeriod = getPayPeriod();
-    const startDate = new Date(payPeriod.start);
-    const endDate = new Date(payPeriod.end);
+
+    // Optional: use explicit startDate/endDate range when BOTH are provided,
+    // otherwise fall back to the current pay period.
+    let rangeStart, rangeEnd;
+    const useCustomRange = !!(params.startDate && params.endDate);
+    if (useCustomRange) {
+      rangeStart = params.startDate;
+      rangeEnd = params.endDate;
+    } else {
+      rangeStart = payPeriod.start;
+      rangeEnd = payPeriod.end;
+    }
+    const startDate = new Date(rangeStart);
+    const endDate = new Date(rangeEnd);
     endDate.setHours(23, 59, 59);
 
     const entries = [];
@@ -56083,13 +56192,16 @@ function getTimesheet(params) {
     // Get hourly rate from employee sheet
     const hourlyRate = getEmployeeHourlyRate(employeeId);
 
-    return {
+    const response = {
       success: true,
       entries: entries,
       payPeriod: payPeriod,
+      range: { start: rangeStart, end: rangeEnd },
       totalHours: totalHours.toFixed(2),
       hourlyRate: hourlyRate
     };
+    if (resolvedEmployee) response.resolvedEmployee = resolvedEmployee;
+    return response;
   } catch (error) {
     return { success: false, error: error.toString() };
   }

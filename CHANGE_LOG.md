@@ -6,6 +6,78 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-07] getTimesheet employeeName resolution — EMPLOYEES sheet + diacritic-safe matching (FULLSTACK_BUILDER)
+
+Extends the earlier `getTimesheet` employeeName-resolution work in `apps_script/MERGED TOTAL.js`. The two H-2A workers we need timesheets for are NOT in USERS, so the USERS-only lookup returned 0 matches.
+
+**File:** `apps_script/MERGED TOTAL.js` — `getTimesheet()` name-resolution block only.
+
+**Changes:**
+- Name resolution now searches BOTH `USERS` (Full_Name) AND the legacy `EMPLOYEES` sheet (`EMPLOYEE_SHEETS.EMPLOYEES`), matching case-insensitively against `First_Name + ' ' + Last_Name` (contains). EMPLOYEES rows with `Is_Active === false`/`'FALSE'` are skipped; blank/other treated as active.
+- **Diacritic-safe compare**: added a `normalize()` helper — `String.trim().toLowerCase().normalize('NFD').replace(/[U+0300-U+036F]/g,'')` — applied to BOTH the query and each candidate name, so "Villaseñor" matches "villasenor". Verified locally: `normalize('Villaseñor') === 'villasenor'`.
+- Matches from both sources are combined; the exactly-one-match rule is unchanged. On zero matches the error now reads "... (0 matches in USERS or EMPLOYEES)"; on multi-match the error lists each matched name tagged with its source sheet, e.g. `Juan Villaseñor [EMPLOYEES], Juan Diaz [USERS]`.
+- **Badge_PIN / PIN values are never read or returned** in any code path.
+- `resolvedEmployee` now carries a `source` field (`USERS` | `EMPLOYEES`).
+
+Also adds the OPTIONAL `startDate`/`endDate` window (both required together) that replaces `getPayPeriod()` as the filter; `endDate` inclusive (23:59:59). Response keeps `payPeriod` for back-compat and adds `range:{start,end}` echoing the window used. Fully backward-compatible: `employeeId`-only calls with no range behave exactly as before.
+
+**Temporary diagnostics — ADDED, RUN, THEN FULLY REMOVED before final deploy:** `_diagUsersNames` and `_diagFindWorkers` (a redacted all-sheet scan that skips any column whose header contains pin/password/badge). Used to prove where the H-2A workers live. Both have been deleted from `doGet`, `PUBLIC_GET_ACTIONS`, and the function bodies; `grep -c _diag` = 0 in the final file. (`_diagFindWorkers` full-spreadsheet scan hit the Apps Script 6-min execution limit — the targeted USERS/EMPLOYEES/TIME_CLOCK diag was sufficient.)
+
+**Deploy:** `clasp push` + `clasp deploy -i AKfycby...REG4qm` → **final clean version @843** ("getTimesheet: optional date range + employeeName resolution"). Intermediate deploys @836–@842 contained the diagnostics and are superseded by @843.
+
+**Verification (live curl on @843):**
+- `employeeName=Todd` + range 2026-01-01→2026-08-07 → success, resolves USR-001 (Todd Wilson, source USERS), 3 entries, `range` echoed, `payPeriod` still present.
+- `employeeId=USR-001` no range → success, falls back to current pay period 2026-08-01→08-15.
+- `employeeName=e` → ambiguous 3-match error (Loren Kildoo, Ben Finley, Annabelle Deufel — all `[USERS]`).
+- Diag actions gone (`_diagFindWorkers` now returns the auth-gate "No token provided").
+
+**RESULT / DATA GAP (not a code bug):** the two Villaseñor H-2A workers do NOT exist in the data yet. USERS holds only Todd Wilson, Loren Kildoo, Ben Finley, Annabelle Deufel (`employeesMatch:[]`); TIME_CLOCK has only 5 distinct Employee_IDs (USR-001 ×3, USR-003, USR-192, plus test IDs `TEST_AUDIT`/`test`). All H-2A `employeeName` queries correctly return `"0 matches in USERS or EMPLOYEES"`. **Next step for Todd: add the two workers to USERS (Full_Name) — or EMPLOYEES — and ensure their TIME_CLOCK entries use that Employee_ID; then this endpoint will return their history.**
+
+---
+
+## [2026-08-03] CSA Pick & Pack combined print (?view=printpack): pallet-driven sections — CSA totals, Flex totals, per-order Wholesale blocks (FULLSTACK_BUILDER)
+
+Todd's ask: the combined print pack (`/admin/pick-pack/<week>?view=printpack`) should mirror how the pack floor stages by PALLET — build the CSA pallet, build the Flex pallet, then pack each wholesale order complete onto the wholesale pallet.
+
+**File:** `apps/csa-portal/src/pages/admin/pick-pack/[...slug].astro` (only file touched — box-contents catalog files deliberately left alone).
+
+**Frontmatter (data):**
+- Added `printpackWsaleOrders` — one entry per in-scope wholesale order (SAME `wholesale_orders` source + day/status/junk gates the pack-house matrix uses), each carrying the restaurant/account name (resolved from `wholesale_accounts.restaurant_name`, `(no account)` fallback), a `prettyDeliveryDate` label (e.g. "Wed, Aug 6", TZ-safe UTC-noon parse), and its line items (canonical library name when linked, vendor spelling as an `also:` note, qty + unit). Items A→Z within a block; blocks A→Z by account then delivery date. Market Wagon is just another account (no special-case).
+
+**Render (printpack only — three new sections between the overall harvest and the pack-house matrix):**
+1. **CSA — TOTALS** ("build the CSA pallet"): reuses `csaCombine` / `csaRowsShown` verbatim (same per-crop checklist as `?view=csa`, no new math). Own page.
+2. **FLEX — TOTALS** ("build the Flex pallet"): the SAME `flexRows` the overall merge folds in (status pending/locked/fulfilled, day-scoped like CSA), each a big line + qty + pen checkbox. Own page.
+3. **WHOLESALE — one checklist per order** ("pack each order complete → wholesale pallet"): one block per order, account name + delivery date heading, line items each with a pen checkbox. `break-inside: avoid` keeps a block whole. Own page group.
+
+**Print CSS (scoped under `.pp-printpack`):** `.pp-pallet-page { break-before: page }` for the three sections; `.pp-wsale-order { break-inside: avoid }`. Overall pick list, Pack House matrix, and market pages are UNCHANGED (their view guards + markup untouched). Screen-preview note updated to describe the new sections.
+
+**Verify:** `npm run build` ✓ (3.91s, Complete); `npx astro check` → 0 errors / 0 warnings in `[...slug].astro` (the 11 repo errors + all warnings are pre-existing, in other files: order/[token].astro, cron/*, pick-pack/current.astro, api/pick-pack/mark|state.ts).
+
+**Deploy:** BLOCKED — the `vercel` CLI is not permitted in this environment. NEEDS PM DEPLOY: `cd apps/csa-portal && vercel deploy --prod --yes --token=$(grep ^VERCEL_TOKEN= ../../.env.csa|cut -d= -f2-)`. Live verification of the 2026-08-03 week printpack (Flex totals + per-account wholesale blocks) is pending that deploy.
+
+---
+
+## [2026-08-02] CSA /admin/box-contents: product dropdown fed from the shared master catalog + add-new escape hatch (FULLSTACK_BUILDER)
+
+Todd's ask: "The contents should be a drop down list of available items. It should be the same items that we have for wholesale and market." Replaced the free-text `product_name` input on the weekly box-content editor with a catalog-fed `<select>` reading `product_library` (the same 75-item master catalog wholesale + market + flex use).
+
+**Frontend (`apps/csa-portal/src/pages/admin/box-contents.astro`):**
+- Product field is now a native `<select>` per row, options sourced from `product_library` (id → name), alphabetized and grouped by category via `<optgroup>` (uncategorized → trailing "Other"). Native select = best touch/one-hand UX (consistent with the existing unit select + Select.astro rationale).
+- Each row carries a hidden `library_id` + hidden `product_name` (the canonical library name), mirrored from the selected option on change. product_name STAYS populated because resolveCycle + labels + member /box read it; library_id is the canonical link.
+- "➕ Add new item…" escape hatch: picking it swaps the cell for an inline name + category (datalist) mini-form → POST to a new JSON endpoint that creates the `product_library` row, injects it as a selected option in every row's dropdown, and continues without a page reload (never blocks Todd mid-week). 409/duplicate falls back to selecting the existing item.
+- Existing rows: show as their catalog item via stored `library_id`, else a case-insensitive `product_name` match; unmatched legacy names render as a pre-selected "Not in catalog (legacy)" option so old weeks never break.
+- Copy-from-previous re-selects the dropdown by library_id (falls back to name match), so copied rows arrive linked.
+
+**Backend:**
+- New `apps/csa-portal/src/pages/api/admin/products/create-quick.ts` — JSON sibling of products/save (op=create): same `requireAdmin` + `isSameOriginPost` guards, same slugify, UNIQUE-name → 409. Returns `{ ok, product: { id, name, category } }`. Bare identity only (no wholesale/photo).
+- `api/admin/box-contents/save.ts`: accepts + validates `items[i][library_id]` (UUID regex; every non-null id checked to exist in `product_library` via one IN query → `unknown_product` error on mismatch); stamps `library_id` into the insert. product_name max raised 80→160 to match catalog names. Kept delete-and-replace semantics, admin gate, same-origin POST, duplicate-name guard.
+- `api/admin/box-contents/list.ts`: now returns `library_id` (for copy-from-previous re-select).
+- `src/lib/database.types.ts`: added `box_contents.library_id: string | null` (column + FK `box_contents_library_id_fkey` → product_library.id already existed in the live DB; verified via Management API).
+
+**Verify:** `npm run build` passes; `npx astro check` — 0 new errors/warnings/hints in touched files (pre-existing 11 errors are in unrelated files e.g. order/[token].astro); `npm run test:unit` 25 passed / 0 failed (box mapping + vacation cascade). DB schema confirmed: box_contents.library_id (uuid, FK to product_library.id) present; product_library has 75 items.
+
+**NOT deployed by the agent:** the `vercel deploy --prod` command is blocked in this environment (CLI invocation denied at the approval layer). Changes are committed and build-verified — Todd/PM must run the deploy + live authenticated verification.
+
 ## [2026-08-02] Grant Management: track all 3 active grants + list/switcher + Next Action (FULLSTACK_BUILDER)
 
 Upgraded the Grant Management dashboard from a single hardcoded grant (AIG-R1) to a full 3-grant portfolio with a list/switcher landing view.
