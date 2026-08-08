@@ -6,6 +6,25 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-07] Nightly vendor-invoice → QuickBooks Bills automation (FULLSTACK)
+
+New nightly cron in the CSA portal (`apps/csa-portal`) that scans Todd's inbox for vendor invoices, parses them with Claude, and enters the unpaid/low-value/high-confidence ones as **Bills** in QuickBooks production (realm 193514705221064). **Bill entry only — it never moves money** (no BillPayment/payment API call anywhere).
+
+**Files:**
+- NEW `apps/csa-portal/src/pages/api/cron/vendor-bills.ts` — pipeline: IMAP-fetch INBOX (imap.gmail.com SSL, IMAP_TODD_* app-password) last N days → prefilter (invoice-ish + hard-skips for own-domain, receivables from QB/bill.com, auto-paid Anthropic/Resend/Google/Apple, newsletters) → dedup on `vendor_invoice_log.gmail_message_id` → parse each (email text + PDF base64) with Anthropic `claude-sonnet-4-6` to strict JSON → QB duplicate check (fuzzy vendor + same DocNumber OR same amount ≤60d) + paid check (Purchase bank-feed match ≤60d) → entry rules (amount < $500 AND confidence=high AND not paid AND payable ⇒ create Bill; else flag) → log every candidate → one digest email to Todd (Resend). Auth: `Authorization: Bearer <CRON_SECRET>` (same as nightly-health). GET+POST (POST blocked by Astro cross-site guard, so cron/tests use GET). Optional `?days=` (backfill ≤90) + `?max=` (per-invocation candidate cap) for chunked backfills under the 60s ceiling; fetch + processing honor a wall-clock budget and mark `truncated` so re-invokes resume idempotently.
+- EDIT `apps/csa-portal/src/lib/quickbooks.ts` — added `findVendorsByNameLike` (token-normalized fuzzy match stripping punctuation + legal suffixes so "Goat Rodeo Farm & Dairy, LLC" matches existing "Goat Rodeo Farm & Dairy LLC"), `findOrCreateVendor`, `queryVendorBills`, `queryVendorPurchases`, `createBill` (posts to `/bill` AP — NOT `/billpayment`). No payment helper anywhere.
+- EDIT `apps/csa-portal/src/lib/database.types.ts` — added `vendor_invoice_log` table type.
+- EDIT `apps/csa-portal/astro.config.mjs` — declared `IMAP_TODD_USER` / `IMAP_TODD_APP_PASSWORD` / `ANTHROPIC_API_KEY` (server-secret, optional); set Vercel adapter `maxDuration: 60`.
+- EDIT `apps/csa-portal/vercel.json` — added cron `{"path":"/api/cron/vendor-bills","schedule":"0 10 * * *"}` (06:00 ET). Accepted as 2nd of Hobby's 2 crons; existing flex-list-reminder untouched.
+- EDIT `apps/csa-portal/package.json` — added deps `imapflow`, `mailparser` (+ `@types/mailparser`), pure-JS, traced into the Vercel serverless bundle.
+- NEW Supabase table `vendor_invoice_log` created via the Management API SQL endpoint (project melizsvabemhaqeaqtyw).
+
+**Account map (verified live):** produce/food/farm → Id 26 COGS; supplies/equipment → Id 41 Farming Supplies; unclear → Id 20 Ask My Accountant.
+
+**Why:** Automate accounts-payable data entry without ever risking an auto-payment. Bills land in QBO for a human to review + pay.
+
+**Verification (live, production):** Nightly 3-day run: 2 candidates, both bill.com receivables `skipped_not_payable`, 0 entered, no digest, `truncated:false`. 45-day backfill (chunked): all 4 Goat Rodeo invoices (9531/9568/9592/9611) `skipped_duplicate` against existing Bills 19279–19282; Tiny Seed receivables `skipped_not_payable`; Trellis Legal $700 `flagged_review` (≥$500 cap); Vercel receipt `skipped_paid`; Redhawk #0008950497 $462 legitimately `entered` (Bill 19288). Auth: unauth + bad-token both HTTP 401. A fuzzy-match bug found during testing created 5 dup bills + 3 dup vendors — all deleted/deactivated, QB restored, fix verified. Safety audit: zero payment/BillPayment calls; $500 cap enforced.
+
 ## [2026-08-07] getTimesheet employeeName resolution — EMPLOYEES sheet + diacritic-safe matching (FULLSTACK_BUILDER)
 
 Extends the earlier `getTimesheet` employeeName-resolution work in `apps_script/MERGED TOTAL.js`. The two H-2A workers we need timesheets for are NOT in USERS, so the USERS-only lookup returned 0 matches.
@@ -23,13 +42,11 @@ Also adds the OPTIONAL `startDate`/`endDate` window (both required together) tha
 
 **Temporary diagnostics — ADDED, RUN, THEN FULLY REMOVED before final deploy:** `_diagUsersNames` and `_diagFindWorkers` (a redacted all-sheet scan that skips any column whose header contains pin/password/badge). Used to prove where the H-2A workers live. Both have been deleted from `doGet`, `PUBLIC_GET_ACTIONS`, and the function bodies; `grep -c _diag` = 0 in the final file. (`_diagFindWorkers` full-spreadsheet scan hit the Apps Script 6-min execution limit — the targeted USERS/EMPLOYEES/TIME_CLOCK diag was sufficient.)
 
-**Deploy:** `clasp push` + `clasp deploy -i AKfycby...REG4qm` → **final clean version @843** ("getTimesheet: optional date range + employeeName resolution"). Intermediate deploys @836–@842 contained the diagnostics and are superseded by @843.
+**Deploy:** `clasp push` + `clasp deploy -i AKfycby...REG4qm` → **final clean version @846** ("getTimesheet: EMPLOYEES + diacritic name resolution (clean, temp diag removed)"). Intermediate deploys @839–@844 contained the diagnostics/whitelist and are superseded by @846. Final `clasp push` reported "Script is already up to date" (local == server, diag-free), and `grep -c _diag` = 0 in source.
 
-**Verification (live curl on @843):**
-- `employeeName=Todd` + range 2026-01-01→2026-08-07 → success, resolves USR-001 (Todd Wilson, source USERS), 3 entries, `range` echoed, `payPeriod` still present.
-- `employeeId=USR-001` no range → success, falls back to current pay period 2026-08-01→08-15.
-- `employeeName=e` → ambiguous 3-match error (Loren Kildoo, Ben Finley, Annabelle Deufel — all `[USERS]`).
-- Diag actions gone (`_diagFindWorkers` now returns the auth-gate "No token provided").
+**Verification (live curl on @846):**
+- `employeeName=Ulloa|Diaz|Juan` + range 2026-05-01→2026-08-07 → all `{"success":false,"error":"No active employee matches \"...\" (0 matches in USERS or EMPLOYEES)"}` (verbatim).
+- Diag action gone (`_diagFindWorkers` now returns the auth-gate `{"success":false,"error":"No token provided"}` — unreachable, no PII exposure).
 
 **RESULT / DATA GAP (not a code bug):** the two Villaseñor H-2A workers do NOT exist in the data yet. USERS holds only Todd Wilson, Loren Kildoo, Ben Finley, Annabelle Deufel (`employeesMatch:[]`); TIME_CLOCK has only 5 distinct Employee_IDs (USR-001 ×3, USR-003, USR-192, plus test IDs `TEST_AUDIT`/`test`). All H-2A `employeeName` queries correctly return `"0 matches in USERS or EMPLOYEES"`. **Next step for Todd: add the two workers to USERS (Full_Name) — or EMPLOYEES — and ensure their TIME_CLOCK entries use that Employee_ID; then this endpoint will return their history.**
 

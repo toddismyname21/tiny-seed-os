@@ -10,6 +10,13 @@ export default defineConfig({
   output: 'server',
   adapter: vercel({
     webAnalytics: { enabled: false },
+    // Give server functions the full Hobby-plan ceiling. The nightly
+    // vendor-bills cron (/api/cron/vendor-bills) makes one Anthropic call +
+    // several QuickBooks round-trips PER candidate; the 3-day production
+    // window is only a handful of candidates (seconds), but a wide backfill
+    // (?days=45) can approach the limit, so we take the max the plan allows
+    // rather than the 10s default.
+    maxDuration: 60,
   }),
 
   site: 'https://csa.tinyseedfarm.com',
@@ -162,6 +169,30 @@ export default defineConfig({
         access: 'secret',
         optional: true,
       }),
+
+      // ── QuickBooks Online (Intuit) OAuth 2.0 ──
+      // Farm bookkeeping integration: create/sync invoices, customers, items.
+      // Connect flow: /admin/quickbooks/connect → Intuit authorize →
+      // /admin/quickbooks/callback (token exchange) → tokens stored in
+      // portal_settings (qb_* keys). All `optional` so a build without them set
+      // still succeeds; the endpoints guard presence at runtime. Set in Vercel.
+      // QB_ENVIRONMENT is 'sandbox' or 'production'.
+      QB_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      QB_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+      QB_ENVIRONMENT: envField.string({ context: 'server', access: 'secret', optional: true }),
+      QB_REDIRECT_URI: envField.string({ context: 'server', access: 'secret', optional: true }),
+
+      // ── Nightly vendor-invoice → QuickBooks Bills cron (/api/cron/vendor-bills) ──
+      // IMAP_TODD_* are the app-password IMAP creds for todd@'s Gmail inbox
+      // (imap.gmail.com, SSL) — the cron reads the last few days of INBOX to
+      // find new vendor invoices. ANTHROPIC_API_KEY parses each candidate email
+      // + PDF into strict JSON via the Anthropic Messages API. All SERVER-SECRET
+      // and `optional` so a local build/check (where they're absent) still
+      // succeeds; the cron guards their presence at runtime and returns a typed
+      // error rather than 500-ing. Live as Vercel env vars.
+      IMAP_TODD_USER: envField.string({ context: 'server', access: 'secret', optional: true }),
+      IMAP_TODD_APP_PASSWORD: envField.string({ context: 'server', access: 'secret', optional: true }),
+      ANTHROPIC_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
     },
   },
 });

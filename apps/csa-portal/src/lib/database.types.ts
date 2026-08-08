@@ -205,6 +205,12 @@ export interface Database {
           is_swappable: boolean;
           swap_options: string[] | null;
           notes: string | null;
+          // FK → product_library.id (box_contents_library_id_fkey). Set when
+          // the item was picked from the shared master catalog in the box
+          // editor. NULL for legacy rows whose product_name has no catalog
+          // match. product_name stays the source of truth for reads
+          // (resolveCycle, /box, labels) — library_id is the canonical link.
+          library_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -241,6 +247,38 @@ export interface Database {
                   provider: Database['public']['Tables']['notification_log']['Row']['provider'] }
                 & Partial<Database['public']['Tables']['notification_log']['Row']>;
         Update: Partial<Database['public']['Tables']['notification_log']['Row']>;
+        Relationships: [];
+      };
+      /** Audit log for the nightly vendor-invoice → QuickBooks Bills cron
+       *  (/api/cron/vendor-bills). One row per email candidate the cron
+       *  considered, keyed by gmail_message_id for idempotency. `action`
+       *  records the disposition. Bill-entry only — this table NEVER records
+       *  a payment (the cron makes no payment API calls). */
+      vendor_invoice_log: {
+        Row: {
+          id: string;
+          gmail_message_id: string;
+          email_date: string | null;
+          from_addr: string | null;
+          subject: string | null;
+          vendor: string | null;
+          invoice_number: string | null;
+          amount: number | null;
+          due_date: string | null;
+          action:
+            | 'entered'
+            | 'flagged_review'
+            | 'skipped_duplicate'
+            | 'skipped_paid'
+            | 'skipped_not_payable';
+          qb_bill_id: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: { gmail_message_id: string;
+                  action: Database['public']['Tables']['vendor_invoice_log']['Row']['action'] }
+              & Partial<Database['public']['Tables']['vendor_invoice_log']['Row']>;
+        Update: Partial<Database['public']['Tables']['vendor_invoice_log']['Row']>;
         Relationships: [];
       };
       box_swaps: {
