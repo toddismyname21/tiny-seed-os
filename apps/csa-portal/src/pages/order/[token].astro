@@ -165,6 +165,18 @@ if (account) {
   products = data ?? [];
 }
 
+// "Coming soon" teaser strip (Todd 2026-08-10) — plain-text list managed in
+// portal_settings key `wholesale_coming_soon`. Empty/missing = no banner.
+let comingSoon = '';
+if (account) {
+  const { data } = await supabaseAdmin
+    .from('portal_settings')
+    .select('value')
+    .eq('key', 'wholesale_coming_soon')
+    .maybeSingle();
+  comingSoon = ((data as { value?: string } | null)?.value ?? '').trim();
+}
+
 // A view model with the effective (tier-discounted) unit price + resolved photo.
 interface CatalogItem {
   id: string;
@@ -377,6 +389,12 @@ const minOrderCents = account?.min_order_cents ?? 0;
           </div>
         ) : (
           <>
+            {comingSoon && (
+              <div class="mb-6 rounded-ts-lg border border-amber-300 bg-amber-50 px-4 py-3">
+                <p class="text-sm font-semibold text-amber-900">🌱 Coming soon from the field</p>
+                <p class="mt-0.5 text-sm text-amber-800">{comingSoon}</p>
+              </div>
+            )}
             {groups.map((group) => (
               <section class="mb-7">
                 <h2 class="mb-3 flex items-center gap-2 font-display text-base font-bold uppercase tracking-wide text-ts-text">
