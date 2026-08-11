@@ -102,7 +102,19 @@ export async function geocodeAddress(
   return geocode(address, key);
 }
 
-/** NxN drive-time matrix (seconds) for [depot, ...stops] via the Routes API. */
+/**
+ * NxN drive-time matrix (seconds) for [depot, ...stops] via the Routes API.
+ *
+ * CHUNKED (2026-08-11): computeRouteMatrix enforces origins×destinations ≤ 625
+ * elements per request (25×25 — confirmed live via INVALID_ARGUMENT). To
+ * support routes beyond ~23 stops we split the ORIGINS into blocks of
+ * floor(625 / N) and issue one request per block (each against all N
+ * destinations), then stitch the row-slices into the full N×N matrix.
+ * N=50 → block=12 → 5 sequential requests (sequential to stay far from QPS
+ * limits; adds well under a second per extra request).
+ */
+const MATRIX_MAX_ELEMENTS = 625;
+
 async function computeMatrix(
   pts: { lat: number; lng: number }[],
   key: string,
@@ -110,22 +122,31 @@ async function computeMatrix(
   const wp = (p: { lat: number; lng: number }) => ({
     waypoint: { location: { latLng: { latitude: p.lat, longitude: p.lng } } },
   });
-  const r = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
-    method: 'POST',
-    headers: {
-      'X-Goog-Api-Key': key,
-      'Content-Type': 'application/json',
-      'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,condition',
-    },
-    body: JSON.stringify({ origins: pts.map(wp), destinations: pts.map(wp), travelMode: 'DRIVE' }),
-  });
-  const d: any = await r.json();
-  if (!r.ok) throw new Error('Routes matrix failed: ' + JSON.stringify(d).slice(0, 300));
   const n = pts.length;
   const m = Array.from({ length: n }, () => Array(n).fill(Infinity));
-  for (const e of d) {
-    const sec = e.duration ? parseInt(String(e.duration).replace('s', ''), 10) : Infinity;
-    m[e.originIndex][e.destinationIndex] = e.condition === 'ROUTE_EXISTS' ? sec : Infinity;
+  const blockSize = Math.max(1, Math.floor(MATRIX_MAX_ELEMENTS / n));
+  for (let start = 0; start < n; start += blockSize) {
+    const originBlock = pts.slice(start, start + blockSize);
+    const r = await fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', {
+      method: 'POST',
+      headers: {
+        'X-Goog-Api-Key': key,
+        'Content-Type': 'application/json',
+        'X-Goog-FieldMask': 'originIndex,destinationIndex,duration,condition',
+      },
+      body: JSON.stringify({
+        origins: originBlock.map(wp),
+        destinations: pts.map(wp),
+        travelMode: 'DRIVE',
+      }),
+    });
+    const d: any = await r.json();
+    if (!r.ok) throw new Error('Routes matrix failed: ' + JSON.stringify(d).slice(0, 300));
+    for (const e of d) {
+      const sec = e.duration ? parseInt(String(e.duration).replace('s', ''), 10) : Infinity;
+      // originIndex is relative to this block — offset back into the full matrix.
+      m[start + e.originIndex][e.destinationIndex] = e.condition === 'ROUTE_EXISTS' ? sec : Infinity;
+    }
   }
   for (let i = 0; i < n; i++) m[i][i] = 0;
   return m;
