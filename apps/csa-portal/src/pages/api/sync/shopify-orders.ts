@@ -1021,6 +1021,28 @@ async function handle(request: Request, url: URL): Promise<Response> {
         const outcome = await issueStoreCreditDelta(order.customerGid, creditPlan.total);
         flexCreditedThisOrder = outcome.credited;
 
+        // Record the PRINCIPAL as its own ledger row (fix 2026-08-11):
+        // previously only the bonus row was written, so the member-facing
+        // history never showed the top-up itself and audits saw "bonus
+        // without principal". Reason deliberately does NOT contain
+        // "loyalty bonus" so getLoyaltyBonusTotal's ilike filter is
+        // unaffected. Same idempotency guard as the bonus row (the
+        // per-order shopify_order_sync ledger).
+        if (outcome.credited > 0) {
+          const { error: prinErr } = await supabaseAdmin.from('flex_transactions').insert({
+            email,
+            type: 'credit',
+            amount: plan.flexAmount,
+            reason: `Flex top-up (order ${order.name})`,
+            order_id: order.id,
+          });
+          if (prinErr) {
+            // Credit already issued in Shopify — surface loudly for
+            // reconciliation, but do not unwind the credit.
+            throw new Error(`flex principal row insert: ${prinErr.message}`);
+          }
+        }
+
         // Record the loyalty-bonus portion in Supabase — ONLY after a
         // confirmed credit (credited > 0) and when a bonus is owed. The
         // per-order ledger guard above is what guarantees this row is
