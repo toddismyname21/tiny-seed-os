@@ -23,7 +23,7 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 }
 
-const COLS = new Set(['pickup_location_id', 'member_id', 'wholesale_customer_id']);
+const COLS = new Set(['pickup_location_id', 'member_id', 'wholesale_customer_id', 'manual_stop_id']);
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!isSameOriginPost(request, PORTAL_ORIGIN)) return json({ error: 'forbidden' }, 403);
@@ -65,6 +65,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     pickup_location_id: s.ref.col === 'pickup_location_id' ? s.ref.id : null,
     member_id: s.ref.col === 'member_id' ? s.ref.id : null,
     wholesale_customer_id: s.ref.col === 'wholesale_customer_id' ? s.ref.id : null,
+    manual_stop_id: s.ref.col === 'manual_stop_id' ? s.ref.id : null,
     stop_order: i + 1,
     scheduled_time: (typeof s.scheduledTime === 'string' && /^\d{2}:\d{2}/.test(s.scheduledTime)) ? s.scheduledTime : null,
     status: 'pending',

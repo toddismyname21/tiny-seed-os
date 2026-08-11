@@ -24,10 +24,10 @@ import { resolveCycle } from './cycle';
 /** The farm — start AND end of every route (Rochester, confirmed by Todd). */
 export const DEPOT = { name: 'Farm (Rochester)', lat: 40.7456252, lng: -80.1610368 };
 
-export type StopKind = 'csa' | 'home' | 'wholesale';
+export type StopKind = 'csa' | 'home' | 'wholesale' | 'manual';
 
 export interface RouteStop {
-  /** Stable key for toggling a stop off: pickup stop_id | customer_id | account_id. */
+  /** Stable key: pickup stop_id | customer_id | account_id | 'manual:<id>'. */
   key: string;
   name: string;
   lat: number;
@@ -43,8 +43,13 @@ export interface RouteStop {
    *  deciding Route A vs B (Todd 2026-06-24). Home + wholesale + pickup. */
   address?: string;
   /** The delivery_stops target FK this stop saves to (for "Save & send to
-   *  driver"). Exactly one column per the delivery_stops_target_xor CHECK. */
-  ref?: { col: 'pickup_location_id' | 'member_id' | 'wholesale_customer_id'; id: string };
+   *  driver"). Exactly one column per the delivery_stops_target_xor CHECK
+   *  (extended to four columns by migration 0084 to allow manual stops). */
+  ref?: { col: 'pickup_location_id' | 'member_id' | 'wholesale_customer_id' | 'manual_stop_id'; id: string };
+  /** Pre-assigned route leg for a MANUAL stop (from route_manual_stops.leg).
+   *  The planner defaults every gathered stop to leg A; a manual stop instead
+   *  starts on the leg Todd chose when he added it. Only set for kind==='manual'. */
+  leg?: 'A' | 'B';
 }
 
 export interface OptimizedStop extends RouteStop {
@@ -85,6 +90,16 @@ async function geocode(address: string, key: string): Promise<{ lat: number; lng
   if (d.status !== 'OK' || !d.results?.[0]) return null;
   const l = d.results[0].geometry.location;
   return { lat: l.lat, lng: l.lng };
+}
+
+/** Public geocode: the SAME Google Geocoding call the gather + optimizer use, so
+ *  a manual stop is geocoded identically to every other stop. Returns null when
+ *  the address doesn't resolve. */
+export async function geocodeAddress(
+  address: string,
+  key: string,
+): Promise<{ lat: number; lng: number } | null> {
+  return geocode(address, key);
 }
 
 /** NxN drive-time matrix (seconds) for [depot, ...stops] via the Routes API. */
@@ -429,6 +444,43 @@ export async function gatherDayStops(
         ref: a.customer_id ? { col: 'wholesale_customer_id', id: a.customer_id } : undefined,
       });
     }
+  }
+
+  // 4) MANUAL / ad-hoc stops for this delivery date (migration 0084). Todd adds
+  //    these on the planner (name + address + optional note, assigned to Route A
+  //    or B). They are geocoded at insert time and flow through the SAME
+  //    optimize → save → driver → pack/load pipeline as any other stop. Merged
+  //    here so a single gather returns everything the day needs. Strictly
+  //    additive: with no active manual stops for the date, nothing changes.
+  //    `key` is 'manual:<id>' so it never collides with a pickup/customer/account
+  //    UUID key. The stop carries its OWN leg (route_manual_stops.leg) so the
+  //    planner can pre-assign it to the leg Todd chose.
+  const { data: manuals } = await supabase
+    .from('route_manual_stops')
+    .select('id, leg, name, address, lat, lng, service_sec, note')
+    .eq('route_date', deliveryDate)
+    .eq('is_active', true);
+  for (const m of (manuals ?? []) as Array<{
+    id: string; leg: string; name: string; address: string;
+    lat: number | null; lng: number | null; service_sec: number | null; note: string | null;
+  }>) {
+    // A manual stop is only routable if it geocoded (lat/lng on the row). If a
+    // geocode failed at insert time we still surface it as skipped so Todd sees
+    // it and can re-add — never silently drop it.
+    if (m.lat == null || m.lng == null) { skipped.push(`${m.name} (manual, no coordinates)`); continue; }
+    const leg = m.leg === 'B' ? 'B' : 'A';
+    stops.push({
+      key: 'manual:' + m.id,
+      name: m.name,
+      lat: +m.lat,
+      lng: +m.lng,
+      kind: 'manual',
+      serviceSec: typeof m.service_sec === 'number' ? m.service_sec : 180,
+      detail: m.note ? `manual · ${m.note}` : 'manual stop',
+      address: m.address,
+      leg,
+      ref: { col: 'manual_stop_id', id: m.id },
+    });
   }
 
   return { stops, skipped };

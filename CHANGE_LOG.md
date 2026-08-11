@@ -6,6 +6,27 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-11] Manual (ad-hoc) stops for the route planner (FULLSTACK_BUILDER)
+
+Todd can now add a one-off "manual stop" (name + address + optional note, assigned to Route A or B) on `/admin/route-plan` for a specific delivery date, and it flows through the ENTIRE pipeline — gather → optimize → save → driver view → pack/load order — persisting per date and removable. Strictly additive: with no manual stops, every gathered stop set + saved route is byte-identical to before.
+
+**DB (migration 0084, applied live to Supabase melizsvabemhaqeaqtyw):**
+- NEW `apps/csa-portal/../../supabase/migrations/0084_route_manual_stops.sql` — (1) new `route_manual_stops` table (route_date, leg A/B check, name, address, lat/lng, service_sec default 180, note, is_active, created_at) with a `(route_date, is_active)` index + admin-only RLS (`is_admin_caller()`); (2) `delivery_stops.manual_stop_id uuid` FK → route_manual_stops (ON DELETE SET NULL); (3) EXTENDED the `delivery_stops_target_xor` CHECK from exactly-one-of-three to exactly-one-of-FOUR (pickup_location_id | member_id | wholesale_customer_id | manual_stop_id). Verified first that NO views/rules depend on delivery_stops (pg_depend) and its 3 triggers are generic (totals/audit/updated_at) — safe to drop+re-add the check. Round-trip tested on live DB: a manual-only stop inserts, a zero-target row is still rejected.
+
+**Files:**
+- NEW `apps/csa-portal/src/pages/api/admin/route-manual-stops.ts` — POST (admin-authed + same-origin, same guard as optimize-route): validates + geocodes server-side with the same Google Geocoding call the gather uses, inserts a row, returns it (`geocoded` flag; fail-soft — an unresolvable address still saves with NULL lat/lng so Todd sees + fixes it). DELETE {id}: soft-delete (is_active=false), with an explicit any-method same-origin guard (isSameOriginPost only enforces on POST).
+- EDIT `apps/csa-portal/src/lib/route-optimizer.ts` — added `'manual'` to `StopKind`, `manual_stop_id` to `RouteStop.ref.col`, optional `leg` on RouteStop, exported `geocodeAddress` (public wrapper over the private geocoder), and merged active `route_manual_stops` for the delivery date into `gatherDayStops` (key `manual:<id>`, kind `manual`, serviceSec from the row, carrying its own leg). **The solver (`solve`/`orderCost`/`optimizeStops`/`computeMatrix`) was NOT touched** — route-optimizer.test.ts still passes.
+- EDIT `apps/csa-portal/src/pages/admin/route-plan/index.astro` — "➕ Add a stop" card (name/address/note + A/B selector) that POSTs the API then reloads; a per-date list of existing manual stops each with a ✕ remove (DELETE); a `📌 Manual stops` group in the A/B/Off assign list; manual stops pre-assign to their own leg; a `MANUAL` badge in the optimized-route rows.
+- EDIT `apps/csa-portal/src/pages/api/admin/route/save-optimized.ts` — accept `manual_stop_id` in the target COLS + write it in the row map (so `manual:<id>` orderKeys save to delivery_stops).
+- EDIT `apps/csa-portal/src/pages/api/admin/optimize-route.ts` — allow `kind: 'manual'` through the stop-shape coercion.
+- EDIT `apps/csa-portal/src/lib/saved-route.ts` — resolve `manual_stop_id` stops → orderKey `manual:<id>`, name/address from route_manual_stops; added `'manual'` to SavedRouteStop.kind.
+- EDIT `apps/csa-portal/src/lib/load-order.ts` — added `'manual'` to LoadStopKind (pack/load surfaces number + render manual stops; loadStopCount returns null for them, KIND_ICON falls back — no crash).
+- EDIT `apps/csa-portal/src/pages/admin/route/[id].astro` (driver view) — added `manual_stop_id` to the stops SELECT + StopRow, a bounded route_manual_stops resolution query, `manual` branches in stopHeading/stopSubtitle/stopAddress/stopKind/stopMarker (name + address + note; 📌 marker; Navigate uses the manual address; no Text button — manual stops have no phone), and an amber "📌 Manual" badge in the next-stop card + stop list.
+- EDIT `apps/csa-portal/src/pages/admin/pack-load/[...slug].astro` — `manual: '📌'` in KIND_ICON.
+- EDIT `apps/csa-portal/src/lib/database.types.ts` — added `route_manual_stops` table type, `delivery_stops.manual_stop_id`, and `delivery_routes.leg` (the latter fixed a pre-existing save-optimized type error).
+
+**Verification:** `npm run build` passes. `astro check` introduced ZERO new errors (one remaining route/[id] `route`-used-before-declaration error is pre-existing in the committed OPEN-route-end block, untouched). `route-optimizer.test.ts` + `load-order.test.ts` pass (no solver regression). Deployed to Vercel prod (dpl_JCp2Mtj2xhvGHwW26y9AZMKLg7NZ, READY) → https://csa.tinyseedfarm.com. Endpoint live + auth-gated (POST no-session → 403, bad-origin → 403). Live end-to-end test against prod infra: geocoded "4770 Liberty Ave, Pittsburgh, PA 15224" (→ 40.4607564, -79.9477944), inserted for route_date 2026-08-19 leg A with lat/lng populated, soft-deleted (is_active=false confirmed), then hard-cleaned — 2026-08-12 (tomorrow's live delivery) never touched. No emails/texts sent.
+
 ## [2026-08-11] Route optimizer stop cap 24 → 48 (FULLSTACK_BUILDER)
 
 Raised the over-conservative stop cap in the CSA delivery-route optimizer from 24 to 48.

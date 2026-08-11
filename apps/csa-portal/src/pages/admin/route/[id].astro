@@ -77,6 +77,7 @@ type StopRow = {
   pickup_location_id: string | null;
   member_id: string | null;
   wholesale_customer_id: string | null;
+  manual_stop_id: string | null;
   stop_order: number;
   status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
   scheduled_time: string | null;
@@ -91,7 +92,7 @@ type StopRow = {
 const { data: stops, error: stopsErr } = await supabase
   .from('delivery_stops')
   .select(`
-    id, pickup_location_id, member_id, wholesale_customer_id, stop_order, status,
+    id, pickup_location_id, member_id, wholesale_customer_id, manual_stop_id, stop_order, status,
     scheduled_time, eta, arrived_at, completed_at, proof_photo_url, exception_notes,
     pickup_location:pickup_locations(name, address, city, host_name),
     member:members(id, delivery_address, customer:customers(contact_name, email, phone))
@@ -137,6 +138,30 @@ if (wholesaleCustomerIds.length > 0) {
         phone: a.phone,
       });
     }
+  }
+}
+
+// ─── Resolve MANUAL (ad-hoc) stops ───────────────────────────────────
+// A manual stop carries manual_stop_id (FK → route_manual_stops.id) with the
+// other three target FKs NULL. Its display name/address/note come from
+// route_manual_stops. One bounded query keyed by the manual ids on this route.
+type ManualStopRow = { name: string; address: string; note: string | null };
+const manualStopById = new Map<string, ManualStopRow>();
+const manualStopIds = Array.from(
+  new Set(stopList.map((s) => s.manual_stop_id).filter((v): v is string => !!v))
+);
+if (manualStopIds.length > 0) {
+  type MRow = { id: string; name: string; address: string; note: string | null };
+  const { data: mrows, error: mErr } = await supabase
+    .from('route_manual_stops')
+    .select('id, name, address, note')
+    .in('id', manualStopIds)
+    .overrideTypes<MRow[], { merge: false }>();
+  if (mErr) {
+    console.error('[admin/route/[id]] route_manual_stops fetch failed:', mErr.message);
+  }
+  for (const m of (mrows ?? [])) {
+    manualStopById.set(m.id, { name: m.name, address: m.address, note: m.note });
   }
 }
 
@@ -283,7 +308,17 @@ function wholesaleAcct(stop: StopRow): WholesaleAcct | null {
   return wholesaleByCustomerId.get(stop.wholesale_customer_id) ?? null;
 }
 
+/** The resolved manual (ad-hoc) stop, or null. */
+function manualStop(stop: StopRow): ManualStopRow | null {
+  if (!stop.manual_stop_id) return null;
+  return manualStopById.get(stop.manual_stop_id) ?? null;
+}
+
 function stopHeading(stop: StopRow): string {
+  const ms = manualStop(stop);
+  if (ms) {
+    return ms.name;
+  }
   const wa = wholesaleAcct(stop);
   if (wa) {
     return wa.restaurant_name;
@@ -298,6 +333,11 @@ function stopHeading(stop: StopRow): string {
 }
 
 function stopSubtitle(stop: StopRow): string {
+  const ms = manualStop(stop);
+  if (ms) {
+    // Address, then the optional note on a follow-on line via " · ".
+    return [ms.address, ms.note].filter(Boolean).join(' · ');
+  }
   const wa = wholesaleAcct(stop);
   if (wa) {
     return wa.address ?? '';
@@ -319,6 +359,10 @@ function stopSubtitle(stop: StopRow): string {
  * Returns '' when no usable address exists → caller hides the Navigate button.
  */
 function stopAddress(stop: StopRow): string {
+  const ms = manualStop(stop);
+  if (ms) {
+    return (ms.address ?? '').trim();
+  }
   const wa = wholesaleAcct(stop);
   if (wa) {
     return (wa.address ?? '').trim();
@@ -347,17 +391,18 @@ function mapsDirUrl(address: string): string {
 }
 
 /** Classify a stop for marker + text-link branching. */
-type StopKind = 'wholesale' | 'host' | 'home';
+type StopKind = 'wholesale' | 'host' | 'home' | 'manual';
 function stopKind(stop: StopRow): StopKind {
+  if (stop.manual_stop_id) return 'manual';
   if (stop.wholesale_customer_id) return 'wholesale';
   if (stop.pickup_location_id) return 'host';
   return 'home';
 }
 
-/** Emoji marker for a stop: 🍽 wholesale · 📦 host pickup · 🏠 home delivery. */
+/** Emoji marker for a stop: 🍽 wholesale · 📦 host pickup · 🏠 home · 📌 manual. */
 function stopMarker(stop: StopRow): string {
   const k = stopKind(stop);
-  return k === 'wholesale' ? '🍽 ' : k === 'host' ? '📦 ' : '🏠 ';
+  return k === 'wholesale' ? '🍽 ' : k === 'host' ? '📦 ' : k === 'manual' ? '📌 ' : '🏠 ';
 }
 
 /** Bare digits/+ from a stored phone for an sms: deep link, or '' when none. */
@@ -520,6 +565,11 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
               Wholesale
             </p>
           )}
+          {nextStopKind === 'manual' && (
+            <p class="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-800">
+              📌 Manual stop
+            </p>
+          )}
 
           <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
             {/* Navigate — universal Google Maps directions deep link. */}
@@ -654,6 +704,9 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
                   )}
                   {kind === 'wholesale' && (
                     <p class="mt-0.5 text-xs text-ts-text-muted">Wholesale</p>
+                  )}
+                  {kind === 'manual' && (
+                    <p class="mt-0.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-amber-800">📌 Manual</p>
                   )}
                 </div>
                 <div class="flex shrink-0 items-center gap-2">

@@ -13,6 +13,7 @@
  *   - pickup stop  → orderKey 'pl:' + pickup_location_id
  *   - home member  → orderKey 'cust:' + the member's customer_id
  *   - wholesale    → orderKey 'wc:' + wholesale_customer_id
+ *   - manual stop  → orderKey 'manual:' + route_manual_stops.id (migration 0084)
  * No saved route → hasSavedRoute=false and an empty map (callers fall back).
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -33,7 +34,7 @@ export function deliveryDateForDay(weekStarting: string, day: DeliveryDay): stri
 
 export interface SavedRouteStop {
   stop_order: number;
-  kind: 'pickup' | 'home' | 'wholesale';
+  kind: 'pickup' | 'home' | 'wholesale' | 'manual';
   name: string;
   address: string | null;
   phone: string | null;
@@ -73,7 +74,7 @@ export async function loadWeekRoutes(
   const routeIds = routes.map((r: any) => r.id);
   const { data: stopsRaw } = await supabase
     .from('delivery_stops')
-    .select('route_id, stop_order, pickup_location_id, member_id, wholesale_customer_id, scheduled_time')
+    .select('route_id, stop_order, pickup_location_id, member_id, wholesale_customer_id, manual_stop_id, scheduled_time')
     .in('route_id', routeIds)
     .order('stop_order', { ascending: true });
   if (!stopsRaw || stopsRaw.length === 0) return empty;
@@ -82,6 +83,7 @@ export async function loadWeekRoutes(
   const plIds = [...new Set(stopsRaw.filter((s: any) => s.pickup_location_id).map((s: any) => s.pickup_location_id))] as string[];
   const memIds = [...new Set(stopsRaw.filter((s: any) => s.member_id).map((s: any) => s.member_id))] as string[];
   const wcIds = [...new Set(stopsRaw.filter((s: any) => s.wholesale_customer_id).map((s: any) => s.wholesale_customer_id))] as string[];
+  const manualIds = [...new Set(stopsRaw.filter((s: any) => s.manual_stop_id).map((s: any) => s.manual_stop_id))] as string[];
 
   const plMap = new Map<string, any>();
   if (plIds.length) {
@@ -97,6 +99,11 @@ export async function loadWeekRoutes(
   if (wcIds.length) {
     const { data } = await supabase.from('wholesale_accounts').select('customer_id, restaurant_name, address, phone').in('customer_id', wcIds);
     for (const a of data ?? []) wcMap.set((a as any).customer_id, a);
+  }
+  const manualMap = new Map<string, any>();
+  if (manualIds.length) {
+    const { data } = await supabase.from('route_manual_stops').select('id, name, address, note').in('id', manualIds);
+    for (const m of data ?? []) manualMap.set((m as any).id, m);
   }
 
   const stopsByRoute = new Map<string, any[]>();
@@ -125,6 +132,11 @@ export async function loadWeekRoutes(
         kind = 'home'; name = m?.customer?.contact_name ?? 'Member';
         address = m?.delivery_address ?? null; phone = m?.customer?.phone ?? null;
         orderKey = 'cust:' + (m?.customer_id ?? s.member_id);
+      } else if (s.manual_stop_id) {
+        const ms = manualMap.get(s.manual_stop_id);
+        kind = 'manual'; name = ms?.name ?? 'Manual stop';
+        address = ms?.address ?? null; phone = null;
+        orderKey = 'manual:' + s.manual_stop_id;
       } else {
         const a = wcMap.get(s.wholesale_customer_id);
         kind = 'wholesale'; name = a?.restaurant_name ?? 'Wholesale';

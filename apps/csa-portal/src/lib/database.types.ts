@@ -352,6 +352,9 @@ export interface Database {
         Row: {
           id: string;
           route_date: string;
+          // 'A' | 'B' — which truck/run. Present in the live table (route-save
+          // stream); declared here so save-optimized's .eq('leg', ...) typechecks.
+          leg: string;
           driver_id: string | null;
           driver_name: string;
           status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
@@ -382,6 +385,12 @@ export interface Database {
           // The migration that adds this column is owned by the route-save
           // stream; declared here so the driver view's SELECT typechecks.
           wholesale_customer_id: string | null;
+          // Manual / ad-hoc stop FK → route_manual_stops.id (migration 0084).
+          // Set when this stop is a one-off manual stop added on the route
+          // planner; the other three target FKs are NULL. Display comes from
+          // route_manual_stops (name/address/note). Extends the target XOR to
+          // exactly-one-of-four.
+          manual_stop_id: string | null;
           stop_order: number;
           status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
           scheduled_time: string | null;
@@ -399,6 +408,30 @@ export interface Database {
           Database['public']['Tables']['delivery_stops']['Row']
         >;
         Update: Partial<Database['public']['Tables']['delivery_stops']['Row']>;
+        Relationships: [];
+      };
+      route_manual_stops: {
+        // Ad-hoc "manual stops" for the route planner (migration 0084): a one-off
+        // delivery Todd adds to Route A/B for a specific date. Geocoded on insert;
+        // soft-deleted via is_active. Flows through gather → optimize → save →
+        // driver view → pack/load order like any other stop.
+        Row: {
+          id: string;
+          route_date: string;
+          leg: 'A' | 'B';
+          name: string;
+          address: string;
+          lat: number | null;
+          lng: number | null;
+          service_sec: number;
+          note: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: { route_date: string; name: string; address: string } & Partial<
+          Database['public']['Tables']['route_manual_stops']['Row']
+        >;
+        Update: Partial<Database['public']['Tables']['route_manual_stops']['Row']>;
         Relationships: [];
       };
       shopify_sync_state: {

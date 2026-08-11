@@ -39,14 +39,15 @@ import type { Database } from './database.types';
 import { loadWeekRoutes, type WeekRoutes } from './saved-route';
 
 /** Stop kind, mirrored from saved-route (pickup location / home member /
- *  wholesale restaurant). */
-export type LoadStopKind = 'pickup' | 'home' | 'wholesale';
+ *  wholesale restaurant / ad-hoc manual stop). */
+export type LoadStopKind = 'pickup' | 'home' | 'wholesale' | 'manual';
 
 export interface LoadStop {
   /** The saved-route orderKey — the join key every surface maps to:
-   *    pickup    → 'pl:'   + pickup_location_id
-   *    home      → 'cust:' + customer_id
-   *    wholesale → 'wc:'   + wholesale customer_id (customers.id) */
+   *    pickup    → 'pl:'     + pickup_location_id
+   *    home      → 'cust:'   + customer_id
+   *    wholesale → 'wc:'     + wholesale customer_id (customers.id)
+   *    manual    → 'manual:' + route_manual_stops.id */
   key: string;
   name: string;
   kind: LoadStopKind;
