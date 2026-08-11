@@ -6,6 +6,17 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-11] Route optimizer stop cap 24 → 48 (FULLSTACK_BUILDER)
+
+Raised the over-conservative stop cap in the CSA delivery-route optimizer from 24 to 48.
+
+**Files:**
+- EDIT `apps/csa-portal/src/pages/api/admin/optimize-route.ts` — guard changed from `stops.length > 24` to `stops.length > 48`; detail message now `Max 48 stops per route (50-location Routes matrix limit incl. farm start + end address).`
+
+**Why:** `computeMatrix` in `src/lib/route-optimizer.ts` builds an N×N `computeRouteMatrix` request over `[DEPOT, ...stops, (optional endPt)]` and sets NO `routingPreference`, so it defaults to `TRAFFIC_UNAWARE` — 2500-element / 50×50-location limit per request. Worst case N = stops + 2 (farm depot + open-route end address), so the true safe cap is 48 stops, not 24.
+
+**Verification:** Read `route-optimizer.ts` — confirmed `pts = endPt ? [DEPOT, ...stops, endPt] : [DEPOT, ...stops]` (N = stops + 1 or + 2) and no `routingPreference` in `computeMatrix`. grep of `src/` confirms line 55 was the ONLY hard-coded 24-stop cap (other `24` hits are `fmtClock` hour math + comment dates). `tsc --noEmit` clean for both files. No backend/frontend consumer of the `too_many_stops` error string other than this endpoint.
+
 ## [2026-08-07] Nightly vendor-invoice → QuickBooks Bills automation (FULLSTACK)
 
 New nightly cron in the CSA portal (`apps/csa-portal`) that scans Todd's inbox for vendor invoices, parses them with Claude, and enters the unpaid/low-value/high-confidence ones as **Bills** in QuickBooks production (realm 193514705221064). **Bill entry only — it never moves money** (no BillPayment/payment API call anywhere).

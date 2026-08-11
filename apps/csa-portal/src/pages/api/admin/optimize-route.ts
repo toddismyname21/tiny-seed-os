@@ -45,14 +45,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       name: String(s.name),
       lat: s.lat,
       lng: s.lng,
-      kind: s.kind === 'home' || s.kind === 'wholesale' ? s.kind : 'csa',
+      kind: s.kind === 'home' || s.kind === 'wholesale' || s.kind === 'manual' ? s.kind : 'csa',
       serviceSec: Math.max(0, Math.min(3600, s.serviceSec)),
       windowEndSec: typeof s.windowEndSec === 'number' ? s.windowEndSec : undefined,
       detail: typeof s.detail === 'string' ? s.detail : undefined,
     }));
 
   if (stops.length === 0) return json({ error: 'no_valid_stops' }, 400);
-  if (stops.length > 24) return json({ error: 'too_many_stops', detail: 'Max 24 stops per route (Routes matrix limit).' }, 400);
+  if (stops.length > 48) return json({ error: 'too_many_stops', detail: 'Max 48 stops per route (50-location Routes matrix limit incl. farm start + end address).' }, 400);
 
   const startSec = typeof body.startSec === 'number' ? body.startSec : undefined;
 
