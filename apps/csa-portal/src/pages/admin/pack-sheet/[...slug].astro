@@ -155,12 +155,77 @@ if (loadOrder && stopOrder.some((s) => s.stop_id === HOME_DELIVERY_BUCKET_ID)) {
   }
 }
 
+// ─── WHOLESALE stops on the pack sheet (Todd 2026-08-12) ─────────────
+// "Can we have the wholesale on there too? So we are not missing anything
+// in the loading order?" Wholesale orders for this day's delivery date are
+// rendered as their own stop sections, interleaved at their saved-route
+// LOAD position (orderKey `wc:<customers.id>`), each with an item checklist.
+const WHOLESALE_PREFIX = 'wholesale__';
+interface WholesaleSection {
+  stop_id: string;            // wholesale__<customers.id>
+  customer_id: string;        // customers.id (wc: orderKey target)
+  name: string;               // restaurant name
+  items: { name: string; qty: number }[];
+  note: string | null;
+}
+const wholesaleSections: WholesaleSection[] = [];
+{
+  // The sheet's delivery date for the selected tab (Wed default; 'all' → Wed).
+  const wsDay: 'Tue' | 'Wed' | 'Sat' | 'Sun' = day === 'all' || day === 'Tue' ? 'Wed' : day;
+  const wsDate = cycle.distribution_dates[wsDay];
+  const { data: wsOrders } = await supabase
+    .from('wholesale_orders')
+    .select('id, account_id, notes, wholesale_accounts:account_id ( restaurant_name, customer_id )')
+    .eq('delivery_date', wsDate)
+    .in('status', ['submitted', 'confirmed', 'packed']);
+  const orderIds = (wsOrders ?? []).map((o: any) => o.id);
+  const itemsByOrder = new Map<string, { name: string; qty: number }[]>();
+  if (orderIds.length > 0) {
+    const { data: wsItems } = await supabase
+      .from('wholesale_order_items')
+      .select('order_id, product_name, qty')
+      .in('order_id', orderIds);
+    for (const it of (wsItems ?? []) as any[]) {
+      const arr = itemsByOrder.get(it.order_id) ?? [];
+      arr.push({ name: it.product_name, qty: Number(it.qty) });
+      itemsByOrder.set(it.order_id, arr);
+    }
+  }
+  // One section per ACCOUNT (merge multiple orders for the same restaurant).
+  const byAccount = new Map<string, WholesaleSection>();
+  for (const o of (wsOrders ?? []) as any[]) {
+    const acct = o.wholesale_accounts;
+    if (!acct) continue;
+    const cid = acct.customer_id ?? o.account_id; // customers.id preferred (wc: key)
+    const key = `${WHOLESALE_PREFIX}${cid}`;
+    const sec = byAccount.get(key) ?? {
+      stop_id: key, customer_id: cid, name: acct.restaurant_name ?? 'Wholesale', items: [], note: null,
+    };
+    sec.items.push(...(itemsByOrder.get(o.id) ?? []));
+    byAccount.set(key, sec);
+  }
+  wholesaleSections.push(...byAccount.values());
+}
+const wholesaleByStopId = new Map(wholesaleSections.map((w) => [w.stop_id, w]));
+// Interleave: each wholesale section joins the stop flow as a synthetic stop.
+for (const w of wholesaleSections) {
+  bodyStops.push({
+    stop_id: w.stop_id, stop_name: w.name, day_of_week: 'Wed',
+    boxes_small: 0, boxes_large: 0,
+    addons: { mushroom: 0, bread: 0, cheese: 0, coffee: 0, eggs: 0, unknown: 0 },
+    flex_orders: 0, owes_count: 0,
+  });
+}
+
 /** LEG-then-LOAD sort value (POSITIVE_INFINITY off-route → sorts to the end). */
 function stopSortValue(stop: StopTotals): number {
   if (!loadOrder) return INF;
   if (stop.stop_id === `${HOME_SPLIT_PREFIX}unassigned`) return INF;
   if (stop.stop_id.startsWith(HOME_CUST_PREFIX)) {
     return loadOrder.orderValue(`cust:${stop.stop_id.slice(HOME_CUST_PREFIX.length)}`);
+  }
+  if (stop.stop_id.startsWith(WHOLESALE_PREFIX)) {
+    return loadOrder.orderValue(`wc:${stop.stop_id.slice(WHOLESALE_PREFIX.length)}`);
   }
   return loadOrder.orderValue(`pl:${stop.stop_id}`);
 }
@@ -200,6 +265,11 @@ function loadBannerForStop(stop: StopTotals): LoadBanner | null {
     if (!range) return null;
     const legLabel = legsSeen.size === 1 ? legTag([...legsSeen][0]) : '';
     return { load: `LOAD ${range}`, sub: `${seqs.length} home stop${seqs.length === 1 ? '' : 's'}${legLabel}` };
+  }
+  if (stop.stop_id.startsWith(WHOLESALE_PREFIX)) {
+    const st = loadOrder.wholesaleCustomer(stop.stop_id.slice(WHOLESALE_PREFIX.length));
+    if (!st) return null;
+    return { load: `LOAD #${st.loadSeq}`, sub: `wholesale · #${st.routeSeq} of ${st.legTotal}${legTag(st.leg)}` };
   }
   const st = loadOrder.pickup(stop.stop_id);
   if (!st) return null;
@@ -565,6 +635,27 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
   ) : (
     <div class="ps-doc">
       {orderedStops.map((stop) => {
+        // WHOLESALE section: item checklist instead of member rows.
+        const ws = wholesaleByStopId.get(stop.stop_id);
+        if (ws) {
+          const wsBanner = loadBannerForStop(stop);
+          return (
+            <div class="ps-stop ps-wholesale">
+              <div class="ps-stop-head">
+                {wsBanner && <span class="ps-load">🚚 {wsBanner.load}</span>}
+                <span class="ps-stop-name">🏬 {ws.name}</span>
+                <span class="ps-stop-sub">WHOLESALE · {ws.items.length} item{ws.items.length === 1 ? '' : 's'}{wsBanner ? ` · ${wsBanner.sub}` : ''}</span>
+              </div>
+              {ws.items.map((it) => (
+                <div class="ps-member">
+                  <span class="ps-check" aria-hidden="true"></span>
+                  <span class="ps-name">{it.name}</span>
+                  <span class="ps-size">× {it.qty}</span>
+                </div>
+              ))}
+            </div>
+          );
+        }
         const rows = compactRowsForStop(stop);
         if (rows.length === 0) return null;
         const loadBanner = loadBannerForStop(stop);
@@ -637,6 +728,14 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
     padding: 0.25rem 0 0.2rem;
     margin-top: 0.4rem;
     border-bottom: 2px solid #111827;
+  }
+  /* WHOLESALE sections — amber band so the crew can't miss restaurant crates
+   * in the load flow (Todd 2026-08-12). Fixed hex for print fidelity. */
+  .ps-wholesale .ps-stop-head {
+    background: #fef3c7;          /* amber-100 */
+    border-bottom-color: #b45309; /* amber-700 */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .ps-load {
     background: #0f172a; color: #fff;
