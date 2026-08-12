@@ -40,10 +40,12 @@ type RouteRow = {
   started_at: string | null;
   completed_at: string | null;
   notes: string | null;
+  paused_at: string | null;
+  pause_total_sec: number;
 };
 const { data: route, error: routeErr } = await supabase
   .from('delivery_routes')
-  .select('id, route_date, driver_name, status, total_stops, completed_stops, started_at, completed_at, notes, leg')
+  .select('id, route_date, driver_name, status, total_stops, completed_stops, started_at, completed_at, notes, leg, paused_at, pause_total_sec')
   .eq('id', routeId)
   .maybeSingle()
   .overrideTypes<RouteRow, { merge: false }>();
@@ -422,6 +424,21 @@ function smsDigits(phone: string | null | undefined): string {
 const routeReady = stopList.length > 0;
 const allDone = route.total_stops > 0 && route.completed_stops === route.total_stops;
 
+// ─── Driver break state (migration 0085) ────────────────────────────
+// paused_at is non-null WHILE the driver is on a break. The header shows a
+// "☕ Start break" button when active, or an amber "On break since h:mm"
+// banner + "▶️ Resume route" when paused. Only meaningful on an in-progress
+// route (a planned/completed/cancelled route can't be on a break).
+const isPaused = route.status === 'in_progress' && !!route.paused_at;
+const pausedSinceLabel =
+  isPaused && route.paused_at
+    ? new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true,
+      }).format(new Date(route.paused_at))
+    : '';
+// Break controls are only relevant once the route is rolling.
+const showBreakControl = route.status === 'in_progress';
+
 // ─── NEXT STOP — first stop not yet completed/exception ─────────────
 // The driver's primary target. stopList is already ordered by stop_order,
 // so the first non-terminal stop is the next one on the route. When every
@@ -522,6 +539,41 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
           <p class="rounded-ts-md bg-ts-primary/10 px-4 py-3 text-sm text-ts-text">
             ✓ All stops complete. Route will auto-complete on the next status change.
           </p>
+        )}
+
+        {/* ════ Driver break (migration 0085) ════
+             Big, thumb-friendly (h-16 / 64px) toggle. On an active route it's
+             "☕ Start break"; while paused an amber banner + "▶️ Resume route".
+             Members watching /account/track see a "driver is on a break" note
+             and their ETA folds in the running break time. Vanilla fetch — no
+             page-model dependency. */}
+        {showBreakControl && (
+          <div class="flex flex-col gap-3" data-break-control data-route-id={route.id} data-paused={isPaused ? '1' : '0'}>
+            {isPaused && (
+              <div
+                class="flex items-center gap-2 rounded-ts-md bg-amber-100 px-4 py-3 text-sm font-semibold text-amber-800"
+                data-break-banner
+                role="status"
+                aria-live="polite"
+              >
+                <span aria-hidden="true">☕</span>
+                On break since {pausedSinceLabel}
+              </div>
+            )}
+            <button
+              type="button"
+              data-break-toggle
+              data-action={isPaused ? 'resume' : 'pause'}
+              class:list={[
+                'inline-flex h-16 w-full items-center justify-center gap-2 rounded-ts-md px-6 text-lg font-semibold shadow-ts-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 [touch-action:manipulation]',
+                isPaused
+                  ? 'bg-ts-primary text-white hover:bg-ts-primary-dark focus-visible:outline-ts-primary'
+                  : 'border-2 border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 focus-visible:outline-amber-400',
+              ]}
+            >
+              <span data-break-label>{isPaused ? '▶️ Resume route' : '☕ Start break'}</span>
+            </button>
+          </div>
         )}
       </div>
       <p class="mt-3 hidden text-xs text-ts-danger" data-route-error role="alert" aria-live="polite"></p>
@@ -1057,6 +1109,48 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
         setRouteError('Network error.');
         startBtn.disabled = false;
         startLabel.textContent = 'Start route';
+      }
+    });
+  }
+
+  // ─── Driver break toggle (migration 0085) ───────────────────────────
+  // POST { route_id, action } to /api/admin/route/pause, then reload so the
+  // header flips between "Start break" and the amber "On break" banner +
+  // "Resume route". Reuses setRouteError for the shared route error line.
+  const breakControl = document.querySelector<HTMLElement>('[data-break-control]');
+  const breakToggle = breakControl?.querySelector<HTMLButtonElement>('[data-break-toggle]') ?? null;
+  const breakLabel = breakControl?.querySelector<HTMLElement>('[data-break-label]') ?? null;
+  if (breakControl && breakToggle && breakLabel) {
+    breakToggle.addEventListener('click', async () => {
+      const id = breakControl.getAttribute('data-route-id') || '';
+      const action = breakToggle.getAttribute('data-action') || '';
+      if (!id || (action !== 'pause' && action !== 'resume')) return;
+      breakToggle.disabled = true;
+      breakLabel.textContent = action === 'pause' ? 'Starting break…' : 'Resuming…';
+      setRouteError(null);
+      try {
+        const body = new FormData();
+        body.set('route_id', id);
+        body.set('action', action);
+        const res = await fetch('/api/admin/route/pause', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          body,
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || !j.ok) {
+          setRouteError(j.error || `Could not update break (HTTP ${res.status})`);
+          breakToggle.disabled = false;
+          breakLabel.textContent = action === 'pause' ? '☕ Start break' : '▶️ Resume route';
+          return;
+        }
+        // Reload so the banner + button state re-render from the server truth.
+        window.location.reload();
+      } catch (e) {
+        setRouteError('Network error.');
+        breakToggle.disabled = false;
+        breakLabel.textContent = action === 'pause' ? '☕ Start break' : '▶️ Resume route';
       }
     });
   }

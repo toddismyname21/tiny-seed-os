@@ -363,6 +363,13 @@ export interface Database {
           started_at: string | null;
           completed_at: string | null;
           notes: string | null;
+          // Driver break tracking (migration 0085). paused_at is non-null WHILE
+          // the driver is on a break (set on pause, cleared to NULL on resume);
+          // pause_total_sec accumulates break seconds already taken on the route
+          // (the resume action adds the just-ended break duration). Members read
+          // both (delivery_routes_member_read USING(true)) for the tracking page.
+          paused_at: string | null;
+          pause_total_sec: number;
           created_at: string;
           updated_at: string;
         };

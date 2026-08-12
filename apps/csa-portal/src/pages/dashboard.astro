@@ -951,6 +951,22 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       )}
 
       {/* ═════════════════════════════════════════════════════════════
+          TRACK MY BOX entry (2026-08-12). On a delivery day — when the
+          member is tracker-eligible AND a route actually exists for them
+          today (initial status is not 'none') — link to the full-screen
+          /account/track page. Minimal, additive: hidden every other day.
+          ═════════════════════════════════════════════════════════════ */}
+      {trackerEligibleShare && initialDeliveryStatus && initialDeliveryStatus.state !== 'none' && (
+        <a
+          href="/account/track"
+          class="inline-flex h-14 w-full items-center justify-center gap-2 rounded-ts-xl border-2 border-ts-primary/40 bg-ts-primary/5 px-5 text-base font-semibold text-ts-primary shadow-ts-sm transition-all duration-150 ease-[var(--ease-ts)] hover:bg-ts-primary/10 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary [touch-action:manipulation]"
+        >
+          <span aria-hidden="true">🚚</span>
+          Track my box
+        </a>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════
           ADMIN-ONLY DENIAL BANNER (one-time, ?error=admin_only)
           Shown when a non-admin lands here after trying /admin/*.
           ═════════════════════════════════════════════════════════════ */}

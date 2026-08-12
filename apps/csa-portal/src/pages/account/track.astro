@@ -1,0 +1,489 @@
+---
+/**
+ * /account/track — member-facing "Track My Box" (delivery-morning tracker).
+ *
+ * Answers the one question a member has on a delivery morning: "where's my
+ * box?". Resolves the logged-in member → their stop on TODAY's route (or, off a
+ * delivery day, tells them which weekday to come back), then renders one of four
+ * calm, big-type, mobile-first states:
+ *
+ *   no_route   → not a delivery day / no route yet: "Your box arrives {weekday}.
+ *                Track it here on delivery morning." + their pickup/stop name.
+ *   planned    → route exists, not started: "The truck is being loaded — usually
+ *                rolling by mid-morning." + "estimated {h:mm}" from scheduled_time.
+ *   in_progress→ route rolling, my stop not done: "🚚 {n} stops away" + a live-ish
+ *                ETA (my scheduled_time + observed delay + any running break) and,
+ *                while paused, a "driver is on a break" banner.
+ *   delivered  → my stop completed/exception: "✅ Delivered at {h:mm}" (+ host-
+ *                pickup "grab it before {close}" messaging).
+ *
+ * PRIVACY (spec §C.5): we NEVER show another member's name/address. The page
+ * reveals only COUNTS ("4 stops away") + times. To compute those counts + the
+ * running delay we must read OTHER stops' stop_order / status / scheduled_time /
+ * completed_at — which member RLS deliberately hides (delivery_stops_member_read
+ * only exposes the member's OWN stop). So we split the reads:
+ *   1. The member's cookie-scoped client (Astro.locals.supabase) proves WHICH
+ *      stop is theirs (RLS-enforced) + reads their own stop's fields.
+ *   2. supabaseAdmin reads ONLY the PII-free scheduling columns (stop_order,
+ *      status, scheduled_time, completed_at) for the whole route — never names,
+ *      addresses, phones, photos, or notes. Those never leave the server.
+ * The honest ETA math itself lives in the pure, unit-tested lib/track.ts.
+ *
+ * Auth: middleware.ts enforces the /account prefix; the redirect below is
+ * belt-and-suspenders.
+ */
+import MemberShell from '../../components/MemberShell.astro';
+import Card from '../../components/Card.astro';
+import Button from '../../components/Button.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { supabaseAdmin } from '../../lib/supabase';
+import { firstNameOf, isFarmPickup, todayET } from '../../lib/delivery';
+import { computeTrackingState, type TrackStop } from '../../lib/track';
+
+const user = Astro.locals.user;
+if (!user || !user.email) {
+  return Astro.redirect('/login', 303);
+}
+const supabase = Astro.locals.supabase;
+
+const now = new Date();
+const today = todayET(now);
+
+// ─── Day-of-week helpers ────────────────────────────────────────────
+const DAY_LONG: Record<string, string> = {
+  Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+  Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday',
+};
+
+/** Pretty "1:24 PM" from an epoch-ms in America/New_York. */
+function prettyClock(ms: number | null): string {
+  if (ms == null) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true,
+  }).format(new Date(ms));
+}
+
+/** Pretty "1 PM" / "1:24 PM" from a bare HH:MM:SS TIME string. */
+function prettyTimeStr(raw: string | null): string {
+  if (!raw) return '';
+  if (/^\d{2}:\d{2}/.test(raw)) {
+    const [h, m] = raw.split(':');
+    const hh = Number(h);
+    const period = hh >= 12 ? 'PM' : 'AM';
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return m === '00' ? `${h12} ${period}` : `${h12}:${m} ${period}`;
+  }
+  return raw;
+}
+
+/**
+ * Anchor a bare TIME ('HH:MM:SS') on a route DATE ('YYYY-MM-DD') to an
+ * epoch-ms in America/New_York — DST-correct. We can't just append a fixed
+ * offset (EDT is -04:00 in summer, EST -05:00 in winter). Instead we discover
+ * the actual UTC offset for that wall-clock moment by formatting a UTC guess
+ * back into ET and measuring the difference, then correct once.
+ */
+function scheduledEpochMs(routeDate: string, time: string | null): number | null {
+  if (!time) return null;
+  const m = /^(\d{2}):(\d{2})(?::(\d{2}))?/.exec(time);
+  if (!m) return null;
+  const [ , hh, mm, ss ] = m;
+  const [Y, Mo, D] = routeDate.split('-').map(Number);
+  if (!Y || !Mo || !D) return null;
+  // First guess: treat the wall time as if it were UTC.
+  const guess = Date.UTC(Y, Mo - 1, D, Number(hh), Number(mm), Number(ss ?? '0'));
+  // What ET wall-clock does that guess actually represent?
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour12: false, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(new Date(guess));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? '0');
+  // 'hour' can format 24:00 as '24' on some runtimes; normalise.
+  const gotHour = get('hour') % 24;
+  const asUTCofET = Date.UTC(get('year'), get('month') - 1, get('day'), gotHour, get('minute'), get('second'));
+  // offset = how far the guess's ET rendering is from the guess itself.
+  const offsetMs = asUTCofET - guess;
+  return guess - offsetMs;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 1. Resolve the member's stop on TODAY's route via the RLS-scoped client.
+//    Mirrors lib/delivery.fetchDeliveryStatus: members can SELECT all routes
+//    (no PII) and ONLY their own delivery_stops row. If multiple routes exist
+//    today (multi-leg / multi-driver), we consider each and take the first one
+//    the member actually has a stop on.
+// ─────────────────────────────────────────────────────────────────────
+type MemberRouteRow = {
+  id: string;
+  driver_name: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  route_date: string;
+  paused_at: string | null;
+};
+const { data: todayRoutes, error: routesErr } = await supabase
+  .from('delivery_routes')
+  .select('id, driver_name, status, route_date, paused_at')
+  .eq('route_date', today)
+  .order('created_at', { ascending: false })
+  .overrideTypes<MemberRouteRow[], { merge: false }>();
+if (routesErr) {
+  console.error('[account/track] routes fetch failed:', routesErr.message);
+}
+
+type MyStopRow = {
+  id: string;
+  route_id: string;
+  status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
+  stop_order: number;
+  scheduled_time: string | null;
+  completed_at: string | null;
+  pickup_location_id: string | null;
+  member_id: string | null;
+  pickup_location: { name: string; time_end: string | null } | null;
+};
+
+let myRoute: MemberRouteRow | null = null;
+let myStop: MyStopRow | null = null;
+
+for (const r of todayRoutes ?? []) {
+  const { data: stops, error: stopErr } = await supabase
+    .from('delivery_stops')
+    .select(`
+      id, route_id, status, stop_order, scheduled_time, completed_at,
+      pickup_location_id, member_id,
+      pickup_location:pickup_locations(name, time_end)
+    `)
+    .eq('route_id', r.id)
+    .order('stop_order', { ascending: true })
+    .limit(1)
+    .overrideTypes<MyStopRow[], { merge: false }>();
+  if (stopErr) {
+    console.error('[account/track] my-stop fetch failed:', stopErr.message);
+    continue;
+  }
+  const s = stops?.[0] ?? null;
+  if (s) { myRoute = r; myStop = s; break; }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 2. PII-FREE route stops (counts + times only) via the admin client.
+//    Only when the member is actually ON today's route. We read NOTHING
+//    that identifies another member — just stop_order/status/scheduled/
+//    completed. These figures never leave the server except as aggregate
+//    counts + the member's own ETA.
+// ─────────────────────────────────────────────────────────────────────
+let allStops: TrackStop[] = [];
+if (myRoute && myStop) {
+  const { data: scheduleRows, error: schedErr } = await supabaseAdmin
+    .from('delivery_stops')
+    .select('stop_order, status, scheduled_time, completed_at')
+    .eq('route_id', myRoute.id)
+    .overrideTypes<
+      Array<{
+        stop_order: number;
+        status: TrackStop['status'];
+        scheduled_time: string | null;
+        completed_at: string | null;
+      }>,
+      { merge: false }
+    >();
+  if (schedErr) {
+    console.error('[account/track] route schedule fetch failed:', schedErr.message);
+  }
+  allStops = (scheduleRows ?? []).map((s) => ({
+    stop_order: s.stop_order,
+    status: s.status,
+    scheduled_ms: scheduledEpochMs(myRoute!.route_date, s.scheduled_time),
+    completed_ms: s.completed_at ? Date.parse(s.completed_at) : null,
+  }));
+}
+
+// ─── 3. Compute the member-facing tracking state (pure). ─────────────
+const myTrackStop: TrackStop | null = myStop
+  ? {
+      stop_order: myStop.stop_order,
+      status: myStop.status,
+      scheduled_ms: scheduledEpochMs(myRoute!.route_date, myStop.scheduled_time),
+      completed_ms: myStop.completed_at ? Date.parse(myStop.completed_at) : null,
+    }
+  : null;
+
+const tracking = computeTrackingState({
+  routeStatus: myRoute?.status ?? null,
+  now_ms: now.getTime(),
+  pausedAt_ms: myRoute?.paused_at ? Date.parse(myRoute.paused_at) : null,
+  myStop: myTrackStop,
+  allStops,
+});
+
+const driverName = firstNameOf(myRoute?.driver_name) ?? 'Todd';
+
+// ─────────────────────────────────────────────────────────────────────
+// 4. NO-ROUTE fallback context. When the member has no stop today, we tell
+//    them WHICH weekday their box comes + their pickup/stop name. Resolve
+//    from their own member row(s) via RLS. A host-pickup member's day comes
+//    from pickup_locations.day_of_week; a home-delivery member is on the
+//    canonical Wednesday. Self-pickup (Rochester farm) members walk up — no
+//    driver — so we tell them plainly there's no tracking.
+// ─────────────────────────────────────────────────────────────────────
+type MyMemberRow = {
+  pickup_location_id: string | null;
+  delivery_address: string | null;
+  pickup_day: string | null;
+  pickup_location: { name: string; day_of_week: string | null; time_end: string | null } | null;
+};
+let pickupName: string | null = null;
+let pickupWeekdayLong: string | null = null;
+let isHomeDelivery = false;
+let isSelfPickupFarm = false;
+if (!myStop) {
+  const { data: memberRows, error: memberErr } = await supabase
+    .from('members')
+    .select(`
+      pickup_location_id, delivery_address, pickup_day,
+      pickup_location:pickup_locations(name, day_of_week, time_end)
+    `)
+    .in('status', ['active', 'paused', 'onboarding'])
+    .order('start_date', { ascending: false })
+    .overrideTypes<MyMemberRow[], { merge: false }>();
+  if (memberErr) {
+    console.error('[account/track] member fetch failed:', memberErr.message);
+  }
+  const primary = (memberRows ?? [])[0] ?? null;
+  if (primary) {
+    isHomeDelivery =
+      !primary.pickup_location_id &&
+      typeof primary.delivery_address === 'string' &&
+      primary.delivery_address.trim().length > 0;
+    if (isHomeDelivery) {
+      pickupName = 'Home delivery';
+      pickupWeekdayLong = DAY_LONG['Wed'];
+    } else if (primary.pickup_location) {
+      pickupName = primary.pickup_location.name;
+      isSelfPickupFarm = isFarmPickup(primary.pickup_location.name);
+      const dow = primary.pickup_location.day_of_week ?? primary.pickup_day ?? 'Wed';
+      pickupWeekdayLong = DAY_LONG[dow] ?? dow;
+    }
+  }
+}
+
+// ─── Display strings for the in-progress + delivered states. ────────
+const etaLabel = prettyClock(tracking.eta_ms);
+const scheduledLabel = prettyTimeStr(myStop?.scheduled_time ?? null);
+const deliveredLabel = prettyClock(tracking.completed_ms);
+const isHostStop = !!myStop?.pickup_location_id;
+const stopDisplayName =
+  myStop?.pickup_location?.name ?? (myStop?.member_id ? 'your door' : pickupName ?? 'your stop');
+// Host-pickup "grab it before {close}" close time.
+const closeLabel = prettyTimeStr(myStop?.pickup_location?.time_end ?? null);
+const runningLate = tracking.state === 'in_progress' && tracking.delay_ms >= 10 * 60_000;
+---
+
+<MemberShell
+  title="Track my box — Tiny Seed Farm CSA"
+  description="Live delivery tracking for your Tiny Seed Farm CSA box."
+  canonical="https://csa.tinyseedfarm.com/account/track"
+  userEmail={user.email}
+  active="home"
+  back={{ href: '/dashboard', label: 'Dashboard' }}
+  mainClass="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 py-8 sm:px-6 sm:py-12"
+>
+  {/* ═══ Heading ═══ */}
+  <section aria-labelledby="track-heading">
+    <div class="flex items-center gap-3">
+      <span
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
+        aria-hidden="true"
+      >
+        🚚
+      </span>
+      <h1 id="track-heading" class="font-display text-3xl font-bold tracking-tight text-ts-text sm:text-4xl">
+        Track my box
+      </h1>
+    </div>
+  </section>
+
+  {/* ═══════════════════════════════════════════════════════════════════
+      STATE: no_route — not a delivery day / no route yet.
+      ═══════════════════════════════════════════════════════════════════ */}
+  {tracking.state === 'no_route' && (
+    isSelfPickupFarm ? (
+      <EmptyState title="Farm pickup — no delivery tracking" icon="🌱" tone="default" dashed={false}>
+        You pick up right at the farm, so there's no truck to track. We'll have
+        your share ready during pickup hours.
+        <Fragment slot="action">
+          <Button href="/dashboard" variant="secondary" size="md">Back to dashboard</Button>
+        </Fragment>
+      </EmptyState>
+    ) : (
+      <Card padding="lg" elevation="sm" tone="primary">
+        <div class="flex flex-col items-center gap-3 text-center">
+          <span class="text-4xl" aria-hidden="true">📦</span>
+          <p class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+            {pickupWeekdayLong
+              ? <>Your box arrives {pickupWeekdayLong}.</>
+              : <>Your box is on the way soon.</>}
+          </p>
+          <p class="max-w-prose text-base leading-relaxed text-ts-text-secondary">
+            Track it here on delivery morning — you'll see when {driverName} is on
+            the road and how close your stop is.
+          </p>
+          {pickupName && (
+            <p class="mt-1 inline-flex items-center gap-2 rounded-full bg-ts-bg-muted px-4 py-2 text-sm font-semibold text-ts-text">
+              <span aria-hidden="true">{isHomeDelivery ? '🏡' : '📍'}</span>
+              {pickupName}
+            </p>
+          )}
+        </div>
+      </Card>
+    )
+  )}
+
+  {/* ═══════════════════════════════════════════════════════════════════
+      STATE: planned — route exists, not started.
+      ═══════════════════════════════════════════════════════════════════ */}
+  {tracking.state === 'planned' && (
+    <Card padding="lg" elevation="md" tone="primary">
+      <div class="flex flex-col items-center gap-3 text-center">
+        <span class="text-4xl" aria-hidden="true">📦</span>
+        <p class="font-display text-xl font-bold text-ts-text sm:text-2xl">
+          The truck is being loaded
+        </p>
+        <p class="max-w-prose text-base leading-relaxed text-ts-text-secondary">
+          {driverName} is packing up — usually rolling by mid-morning. Check back
+          soon and we'll show you how close your box is.
+        </p>
+        {scheduledLabel && (
+          <p class="mt-1 inline-flex items-center gap-2 rounded-full bg-ts-primary/10 px-4 py-2 text-sm font-semibold text-ts-primary">
+            <span aria-hidden="true">🕘</span>
+            Estimated around {scheduledLabel}
+          </p>
+        )}
+      </div>
+    </Card>
+  )}
+
+  {/* ═══════════════════════════════════════════════════════════════════
+      STATE: in_progress — route rolling, my stop not done.
+      ═══════════════════════════════════════════════════════════════════ */}
+  {tracking.state === 'in_progress' && (
+    <div class="flex flex-col gap-4">
+      {/* On-break banner */}
+      {tracking.onBreak && (
+        <div
+          role="status"
+          aria-live="polite"
+          class="flex items-center gap-3 rounded-ts-xl border border-ts-accent/40 bg-ts-accent/5 px-4 py-3 text-sm font-semibold text-ts-accent"
+        >
+          <span class="text-xl" aria-hidden="true">☕</span>
+          {driverName} is on a quick break — times will shift a bit.
+        </div>
+      )}
+
+      <Card padding="lg" elevation="md" tone="primary">
+        <div class="flex flex-col items-center gap-3 text-center">
+          <span class="text-5xl" aria-hidden="true">🚚</span>
+          <p class="font-display text-3xl font-extrabold tracking-tight text-ts-text sm:text-4xl">
+            {tracking.stopsAway === 0
+              ? "You're next!"
+              : <>{tracking.stopsAway} stop{tracking.stopsAway === 1 ? '' : 's'} away</>}
+          </p>
+          <p class="text-base leading-relaxed text-ts-text-secondary">
+            {driverName} is out delivering
+            {isHostStop ? <> and heading toward {stopDisplayName}.</> : <> right now.</>}
+          </p>
+
+          {etaLabel && (
+            <div class="mt-2 flex flex-col items-center gap-1">
+              <span class="text-xs font-semibold uppercase tracking-wider text-ts-text-muted">
+                Estimated arrival
+              </span>
+              <span class="font-display text-2xl font-bold tabular-nums text-ts-primary">
+                {etaLabel}
+              </span>
+              {runningLate && (
+                <span class="text-xs font-medium text-ts-text-muted">
+                  Running a little behind today — thanks for your patience.
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      <p class="text-center text-xs text-ts-text-muted">
+        This page updates on its own every minute.
+      </p>
+    </div>
+  )}
+
+  {/* ═══════════════════════════════════════════════════════════════════
+      STATE: delivered — my stop completed / exception.
+      ═══════════════════════════════════════════════════════════════════ */}
+  {tracking.state === 'delivered' && (
+    <Card padding="lg" elevation="md" tone={tracking.wasException ? 'muted' : 'primary'}>
+      <div class="flex flex-col items-center gap-3 text-center">
+        <span class="text-5xl" aria-hidden="true">{tracking.wasException ? '📩' : '✅'}</span>
+        {tracking.wasException ? (
+          <>
+            <p class="font-display text-2xl font-bold text-ts-text">
+              There was a hiccup at your stop
+            </p>
+            <p class="max-w-prose text-base leading-relaxed text-ts-text-secondary">
+              {driverName} ran into an issue delivering today — we'll be in touch
+              to make it right. Questions? Email
+              <a href="mailto:todd@tinyseedfarmpgh.com" class="ml-1 font-semibold text-ts-primary underline-offset-2 hover:underline">
+                todd@tinyseedfarmpgh.com
+              </a>.
+            </p>
+          </>
+        ) : (
+          <>
+            <p class="font-display text-2xl font-bold text-ts-text sm:text-3xl">
+              {isHostStop ? 'Dropped off' : 'Delivered'}
+              {deliveredLabel ? <> at {deliveredLabel}</> : ''}
+            </p>
+            {isHostStop ? (
+              <p class="max-w-prose text-base leading-relaxed text-ts-text-secondary">
+                Your box is at {stopDisplayName}
+                {closeLabel ? <> — grab it before {closeLabel}.</> : '.'}
+              </p>
+            ) : (
+              <p class="max-w-prose text-base leading-relaxed text-ts-text-secondary">
+                Your box was delivered to your door. Enjoy your share! 🌿
+              </p>
+            )}
+          </>
+        )}
+        <div class="mt-2">
+          <Button href="/dashboard" variant="secondary" size="md">Back to dashboard</Button>
+        </div>
+      </div>
+    </Card>
+  )}
+
+  {/* ═══ Auto-refresh (spec §C.3). Only while the box is actively moving —
+       a settled state (delivered / no route) doesn't need to reload. Uses a
+       tab-visibility-aware 60s interval; a hidden tab doesn't burn reloads. ═══ */}
+  {(tracking.state === 'in_progress' || tracking.state === 'planned') && (
+    <script is:inline>
+      (function () {
+        var INTERVAL = 60000;
+        function tick() {
+          if (document.visibilityState === 'visible') {
+            window.location.reload();
+          }
+        }
+        var timer = window.setInterval(tick, INTERVAL);
+        // Reload promptly when the member returns to the tab after being away.
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') {
+            window.clearInterval(timer);
+            window.location.reload();
+          }
+        });
+      })();
+    </script>
+  )}
+</MemberShell>
