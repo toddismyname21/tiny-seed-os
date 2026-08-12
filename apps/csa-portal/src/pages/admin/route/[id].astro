@@ -17,22 +17,6 @@
  *   - "Start Route" button (when planned) or "X of Y done" progress
  */
 import AdminShell from '../../../components/AdminShell.astro';
-
-// OPEN-route end (Todd 2026-08-04): if this leg is configured to END somewhere
-// other than the farm (portal_settings route_end_address_<leg>), surface it to
-// the driver as the final destination banner.
-let routeEndAddress = '';
-{
-  const legVal = (route as unknown as { leg?: string } | null)?.leg;
-  if (legVal === 'A' || legVal === 'B') {
-    const { data: endRow } = await supabaseAdmin
-      .from('portal_settings')
-      .select('value')
-      .eq('key', `route_end_address_${legVal}`)
-      .maybeSingle();
-    routeEndAddress = ((endRow as { value: string | null } | null)?.value ?? '').trim();
-  }
-}
 import Card from '../../../components/Card.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { signProofUrl } from '../../../lib/delivery-proof';
@@ -69,6 +53,25 @@ if (routeErr) {
 }
 if (!route) {
   return Astro.redirect('/admin/route?error=not_found', 303);
+}
+
+// OPEN-route end (Todd 2026-08-04; FIXED 2026-08-12): if this leg is configured
+// to END somewhere other than the farm (portal_settings route_end_address_<leg>),
+// surface it to the driver as the final destination banner. NOTE: this block
+// previously sat ABOVE the route fetch (used `route` before declaration) —
+// a runtime TDZ ReferenceError that 500'd EVERY authed driver-page load since
+// 8/4, which iPhones surfaced as a "download" prompt.
+let routeEndAddress = '';
+{
+  const legVal = (route as unknown as { leg?: string } | null)?.leg;
+  if (legVal === 'A' || legVal === 'B') {
+    const { data: endRow } = await supabaseAdmin
+      .from('portal_settings')
+      .select('value')
+      .eq('key', `route_end_address_${legVal}`)
+      .maybeSingle();
+    routeEndAddress = ((endRow as { value: string | null } | null)?.value ?? '').trim();
+  }
 }
 
 // ─── Load stops with joins for display ──────────────────────────────
