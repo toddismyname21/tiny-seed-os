@@ -208,10 +208,13 @@ const groups = [
         <Card padding="md" elevation="sm" as="section">
           <h2 class="mb-2 text-lg font-semibold text-emerald-700">Route A</h2>
           <div id="route-A" class="text-sm text-gray-500">Assign stops to A and tap Optimize.</div>
+          {/* Map renders here after optimize (client-injected). Hidden until then. */}
+          <div id="map-A" class="mt-3 hidden overflow-hidden rounded-ts-md border border-gray-200" style="height:360px"></div>
         </Card>
         <Card padding="md" elevation="sm" as="section">
           <h2 class="mb-2 text-lg font-semibold text-indigo-700">Route B</h2>
           <div id="route-B" class="text-sm text-gray-500">Optional second truck/run.</div>
+          <div id="map-B" class="mt-3 hidden overflow-hidden rounded-ts-md border border-gray-200" style="height:360px"></div>
         </Card>
       </div>
     </div>
@@ -351,7 +354,13 @@ const groups = [
   </Card>
 </AdminShell>
 
-<script is:inline define:vars={{ allStops: stops, depot: DEPOT, routeDate: route_date }}>
+{/* SECURITY: GOOGLE_MAPS_API_KEY is server-side, but the Maps JavaScript API
+    requires the key in the browser, so we inject it via define:vars below. This
+    puts the key in the served HTML — acceptable here because the page is
+    admin-authed (middleware-gated). The key MUST be HTTP-referrer-restricted in
+    Google Cloud Console (restrict to csa.tinyseedfarm.com) so a leaked key can't
+    be used from other origins. */}
+<script is:inline define:vars={{ allStops: stops, depot: DEPOT, routeDate: route_date, mapsKey: GOOGLE_MAPS_API_KEY }}>
   const byKey = new Map(allStops.map((s) => [s.key, s]));
   // Default everyone to leg A, EXCEPT a manual stop, which starts on the leg
   // Todd chose when he added it (route_manual_stops.leg, carried on the stop).
@@ -391,6 +400,221 @@ const groups = [
     const o = `${depot.lat},${depot.lng}`;
     const wp = orderedStops.map((s) => `${s.lat},${s.lng}`).join('|');
     return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${o}&travelmode=driving&waypoints=${encodeURIComponent(wp)}`;
+  }
+
+  // ─── ROUTE MAP VISUAL (BACKLOG #1) ───────────────────────────────────────
+  // An interactive Google Map per leg, under its results table: 🚜 depot →
+  // numbered stops in drive order → 🏁 end (when an end address is set). Manual
+  // stops render amber. A road-following polyline via DirectionsService (chunked
+  // past Google's 25-waypoint limit) with a geodesic fallback so the line never
+  // vanishes. Additive: render() calls renderMap(letter) after every (re)render,
+  // so reorders + re-optimizes redraw automatically.
+  const mapState = { loaded: false, loading: null, api: {} }; // Maps JS load status
+  // Per-leg live map objects so we can tear down markers/lines on redraw.
+  const legMap = { A: { map: null, markers: [], line: null, dir: null }, B: { map: null, markers: [], line: null, dir: null } };
+  const MAP_COLOR = { A: '#059669', B: '#4f46e5' };
+  // Monotonic per-leg token: a redraw bumps it so a slower in-flight Directions
+  // call from a prior renderMap() knows it's stale and won't draw a stale line.
+  const mapRenderToken = { A: 0, B: 0 };
+
+  // Load the Maps JavaScript API exactly once, lazily (only when a route first
+  // optimizes — never on initial page load). Uses the official inline bootstrap
+  // loader so we can `await google.maps.importLibrary(...)`.
+  function loadMaps() {
+    if (mapState.loaded) return Promise.resolve();
+    if (mapState.loading) return mapState.loading;
+    if (!mapsKey) return Promise.reject(new Error('Maps key missing'));
+    mapState.loading = new Promise((resolve, reject) => {
+      // Official inline loader (g.maps.Loader) — dedupes, supports importLibrary.
+      (g => { var h, a, k, p = "The Google Maps JavaScript API", c = "google", l = "importLibrary", q = "__ib__", m = document, b = window; b = b[c] || (b[c] = {}); var d = b.maps || (b.maps = {}), r = new Set(), e = new URLSearchParams(), u = () => h || (h = new Promise(async (f, n) => { await (a = m.createElement("script")); e.set("libraries", [...r] + ""); for (k in g) e.set(k.replace(/[A-Z]/g, t => "_" + t[0].toLowerCase()), g[k]); e.set("callback", c + ".maps." + q); a.src = `https://maps.${c}apis.com/maps/api/js?` + e; d[q] = f; a.onerror = () => h = n(Error(p + " could not load.")); a.nonce = m.querySelector("script[nonce]")?.nonce || ""; m.head.append(a); })); d[l] ? console.warn(p + " only loads once. Ignoring:", g) : d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)); })({ key: mapsKey, v: "weekly" });
+      (async () => {
+        try {
+          const [core, maps, marker] = await Promise.all([
+            google.maps.importLibrary('core'),
+            google.maps.importLibrary('maps'),
+            google.maps.importLibrary('marker'),
+          ]);
+          const routes = await google.maps.importLibrary('routes').catch(() => null);
+          mapState.api = { ...core, ...maps, ...marker, routes };
+          mapState.loaded = true;
+          resolve();
+        } catch (err) { reject(err); }
+      })();
+    });
+    return mapState.loading;
+  }
+
+  // Tear down a leg's markers/polyline/renderer before drawing fresh ones.
+  function clearLegOverlays(letter) {
+    const lm = legMap[letter];
+    lm.markers.forEach((mk) => { try { mk.map = null; mk.setMap && mk.setMap(null); } catch (_) {} });
+    lm.markers = [];
+    if (lm.line) { try { lm.line.setMap(null); } catch (_) {} lm.line = null; }
+    if (lm.dir) { try { lm.dir.setMap(null); } catch (_) {} lm.dir = null; }
+  }
+
+  // Build a marker (AdvancedMarkerElement when available, else classic Marker).
+  function makeMarker(letter, position, opts) {
+    const g = google.maps;
+    const lm = legMap[letter];
+    if (g.marker && g.marker.AdvancedMarkerElement) {
+      const pin = document.createElement('div');
+      pin.style.cssText = `display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:13px;font-weight:700;color:#fff;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);background:${opts.bg}`;
+      pin.textContent = opts.label;
+      const mk = new g.marker.AdvancedMarkerElement({ map: lm.map, position, content: pin, title: opts.title });
+      lm.markers.push(mk);
+      return mk;
+    }
+    const mk = new g.Marker({
+      map: lm.map, position, title: opts.title,
+      label: { text: opts.label, color: '#fff', fontSize: '12px', fontWeight: '700' },
+      icon: {
+        path: g.SymbolPath.CIRCLE, scale: 13, fillColor: opts.bg, fillOpacity: 1,
+        strokeColor: '#fff', strokeWeight: 2,
+      },
+    });
+    lm.markers.push(mk);
+    return mk;
+  }
+
+  // Draw a straight-line (geodesic) fallback so the map is never lineless.
+  function drawFallbackLine(letter, path) {
+    const g = google.maps;
+    const lm = legMap[letter];
+    lm.line = new g.Polyline({
+      map: lm.map, path, geodesic: true,
+      strokeColor: MAP_COLOR[letter], strokeOpacity: 0.85, strokeWeight: 4,
+    });
+  }
+
+  // Draw a road-following polyline via DirectionsService. Google allows ≤25
+  // waypoints (origin + destination + ≤23 intermediate) per request — chunk
+  // consecutive segments past that, stitching each chunk's overview path. Any
+  // failure → geodesic fallback for that segment.
+  async function drawDirections(letter, depotPos, orderedPositions, endTarget) {
+    const g = google.maps;
+    const lm = legMap[letter];
+    const ds = new g.DirectionsService();
+    // Full ordered point list: depot → stops… → (end address OR depot).
+    // endTarget is a string address (DirectionsService geocodes it) or a LatLng.
+    const dest = endTarget != null ? endTarget : depotPos;
+    // Chunk the intermediate stops so each request has ≤23 waypoints.
+    const MAX_WP = 23;
+    const combined = []; // overview path points to stitch into one polyline
+    let ok = true;
+    // Build chunk boundaries over the ordered stop positions.
+    let chunkStart = 0;
+    let prevOrigin = depotPos;
+    while (chunkStart < orderedPositions.length) {
+      const chunkStops = orderedPositions.slice(chunkStart, chunkStart + MAX_WP);
+      const isLast = chunkStart + MAX_WP >= orderedPositions.length;
+      const chunkDest = isLast ? dest : chunkStops[chunkStops.length - 1];
+      const waypoints = (isLast ? chunkStops : chunkStops.slice(0, -1)).map((p) => ({ location: p, stopover: true }));
+      try {
+        const res = await ds.route({
+          origin: prevOrigin, destination: chunkDest, waypoints,
+          optimizeWaypoints: false, travelMode: g.TravelMode.DRIVING,
+        });
+        const path = res.routes?.[0]?.overview_path;
+        if (path && path.length) combined.push(...path);
+        else { ok = false; break; }
+      } catch (_) { ok = false; break; }
+      prevOrigin = chunkDest;
+      chunkStart += MAX_WP;
+    }
+    // Empty route (no stops) — single depot→dest request.
+    if (orderedPositions.length === 0) {
+      try {
+        const res = await ds.route({ origin: depotPos, destination: dest, travelMode: g.TravelMode.DRIVING });
+        const path = res.routes?.[0]?.overview_path;
+        if (path && path.length) combined.push(...path); else ok = false;
+      } catch (_) { ok = false; }
+    }
+    if (ok && combined.length) {
+      lm.line = new g.Polyline({
+        map: lm.map, path: combined, geodesic: false,
+        strokeColor: MAP_COLOR[letter], strokeOpacity: 0.9, strokeWeight: 5,
+      });
+      return true;
+    }
+    return false;
+  }
+
+  // Render (or re-render) the map for a leg from its current state.order.
+  async function renderMap(letter) {
+    const container = document.getElementById('map-' + letter);
+    const st = state[letter];
+    if (!container) return;
+    if (!st || !st.order.length) { container.classList.add('hidden'); return; }
+    if (!mapsKey) { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+    const token = ++mapRenderToken[letter]; // this render's identity
+    try { await loadMaps(); } catch (_) { container.classList.add('hidden'); return; }
+    if (token !== mapRenderToken[letter]) return; // superseded while Maps loaded
+    const g = google.maps;
+    const lm = legMap[letter];
+    // First render for this leg: create the map instance.
+    if (!lm.map) {
+      lm.map = new g.Map(container, {
+        center: { lat: depot.lat, lng: depot.lng }, zoom: 11,
+        mapId: 'DEMO_MAP_ID', // required for AdvancedMarkerElement; harmless otherwise
+        mapTypeControl: false, streetViewControl: false, fullscreenControl: true,
+        gestureHandling: 'cooperative',
+      });
+    }
+    clearLegOverlays(letter);
+
+    const depotPos = { lat: depot.lat, lng: depot.lng };
+    // Ordered stop positions (skip any stop missing coords — should be none).
+    const orderedStops = st.order.map((k) => byKey.get(k)).filter((s) => s && typeof s.lat === 'number' && typeof s.lng === 'number');
+    const orderedPositions = orderedStops.map((s) => ({ lat: s.lat, lng: s.lng }));
+
+    // Markers: depot (🚜 green), numbered stops (manual = amber), end (🏁).
+    makeMarker(letter, depotPos, { label: '🚜', bg: '#047857', title: depot.name + ' — start' });
+    orderedStops.forEach((s, i) => {
+      const manual = s.kind === 'manual';
+      makeMarker(letter, { lat: s.lat, lng: s.lng }, {
+        label: String(i + 1),
+        bg: manual ? '#d97706' : MAP_COLOR[letter],
+        title: `${i + 1}. ${s.name}${manual ? ' (manual stop)' : ''}${s.address ? ' — ' + s.address : ''}`,
+      });
+    });
+
+    // End target: string address if an open-route end is set, else loop to farm.
+    let endTarget = null; // string address OR null (=farm loop)
+    if (st.end && st.end.address) endTarget = st.end.address;
+
+    // Fit bounds to depot + all stops (end address geocodes async in Directions;
+    // bounds still include it once Directions resolves via extend below).
+    const bounds = new g.LatLngBounds();
+    bounds.extend(depotPos);
+    orderedPositions.forEach((p) => bounds.extend(p));
+    if (!bounds.isEmpty()) lm.map.fitBounds(bounds, 48);
+
+    // Road-following polyline (chunked); geodesic fallback on any failure.
+    const drawn = await drawDirections(letter, depotPos, orderedPositions, endTarget);
+    if (token !== mapRenderToken[letter]) {
+      // A newer render started while Directions was in flight — drop this line so
+      // we don't paint a stale route over the current one.
+      if (drawn && lm.line) { try { lm.line.setMap(null); } catch (_) {} lm.line = null; }
+      return;
+    }
+    if (!drawn) {
+      // Geodesic fallback: depot → stops → (depot, since we can't resolve the
+      // end address without a geocode; the loop keeps the line meaningful).
+      const fallbackPath = [depotPos, ...orderedPositions, depotPos];
+      drawFallbackLine(letter, fallbackPath);
+    } else if (endTarget) {
+      // Directions resolved the end address; extend bounds to the drawn line so
+      // the 🏁 destination is on-screen.
+      const b2 = new g.LatLngBounds();
+      lm.line.getPath().forEach((pt) => b2.extend(pt));
+      if (!b2.isEmpty()) lm.map.fitBounds(b2, 48);
+      // Place a 🏁 marker at the polyline's last point (the geocoded end).
+      const pathArr = lm.line.getPath();
+      const last = pathArr.getAt(pathArr.getLength() - 1);
+      makeMarker(letter, { lat: last.lat(), lng: last.lng() }, { label: '🏁', bg: '#111827', title: 'Ends: ' + st.end.address });
+    }
   }
 
   // recompute ETAs/total for a route's CURRENT order (from its matrix) + render
@@ -439,6 +663,7 @@ const groups = [
       <div data-saveresult="${letter}" class="mt-2 text-sm"></div>`;
     wireReorder(letter);
     el.querySelector(`[data-save="${letter}"]`)?.addEventListener('click', () => saveRoute(letter));
+    renderMap(letter); // draw / redraw the route map for this leg (additive; safe if Maps not yet loaded)
   }
 
   function wireReorder(letter) {
