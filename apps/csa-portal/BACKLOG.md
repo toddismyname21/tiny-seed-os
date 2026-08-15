@@ -4,11 +4,8 @@ Owner-requested features, in priority order. PM_ARCHITECT maintains this file.
 
 ## Queued
 
-### 2. "Track my box" — member-facing driver tracker (Todd, 2026-08-11)
-Members see delivery progress on delivery day; kills "did the driver come yet?" texts.
-- Phase 1 (backbone): checkpoint-based — driver completes stops in the driver view →
-  member tracking page shows "N stops away, ETA ~time" (ETAs from the optimizer's
-  drive-time matrix on the saved route). No GPS, no battery drain, works always.
+### 2. "Track my box" Phase 2 — live GPS pin (Todd, 2026-08-11)
+Phase 1 (checkpoint tracker + break button) SHIPPED 2026-08-13 — see Done.
 - Phase 2 (nice-to-have): live GPS pin while the driver view is foregrounded
   (navigator.geolocation.watchPosition → API → member map). Mobile-web limit:
   pauses when screen locks — Phase 1 remains source of truth.
@@ -28,6 +25,17 @@ Arrival texts are manual `sms:` deep links from the driver's phone. Needs Todd
 ~20-min setup session (account/number/A2P). Never worked historically.
 
 ## Done
+- Thursday Draft + Phone Approve flex list (2026-08-15) — the weekly Farm Flex list
+  now STAGES itself every Thursday (the flex-list-reminder cron clones the current
+  live items into next week as an invisible draft: is_active=false, draft_on=true)
+  and NEVER publishes without Todd's explicit tap. Phone-first review page
+  `/admin/flex-review/[week]` with big ON/OFF toggles, tap-to-edit price/qty, quick-add,
+  and one sticky PUBLISH button (sets is_active = draft_on for the whole week + stamps
+  portal_settings `flex_published_<week>`). Before publish, toggles write draft_on
+  (members see nothing); after publish, edits go live immediately. The Thursday email
+  leads with "review & publish" + item count + link. A fail-soft daily nudge on the
+  vendor-bills cron emails Todd Fri–Mon if a week is staged but still unpublished
+  (members can't order). New column via migration 0086 (draft_on). No 3rd cron added.
 - Route-plan map visual (2026-08-13) — interactive Google Map per route (A/B) on
   `/admin/route-plan`: 🚜 depot → numbered stops in drive order → 🏁 end marker
   (when an open-route end address is set); manual stops render amber. Road-following

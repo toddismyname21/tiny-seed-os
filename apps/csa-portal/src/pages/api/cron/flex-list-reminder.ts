@@ -39,6 +39,10 @@ import type { Database } from '../../../lib/database.types';
 import {
   resolveWeekSetup, upcomingSetupWeek, type WeekSetupReadiness,
 } from '../../../lib/week-setup';
+import {
+  createNextWeekDraft, draftTargetWeek, type DraftCreateResult,
+} from '../../../lib/flex-draft';
+import { prettyWeek } from '../../../lib/flex-order';
 
 export const prerender = false;
 
@@ -79,6 +83,7 @@ function escapeHtml(s: string): string {
 
 async function sendReminderEmail(
   setup: WeekSetupReadiness,
+  draft: DraftCreateResult,
 ): Promise<{ ok: boolean; detail: string }> {
   try {
     if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
@@ -93,76 +98,98 @@ async function sendReminderEmail(
       timeZone: 'America/New_York',
     }).format(new Date());
 
-    // Only nudge about the surfaces that are STILL EMPTY for the upcoming week.
-    // When nothing is missing the email is a calm "all set" confirmation.
-    const missing = setup.missing;
-    const allReady = setup.allReady;
-
-    const subject = allReady
-      ? `Next week is set up — ${setup.weekLabel}`
-      : `Set up next week — ${missing.map((m) => m.label).join(' · ')}`;
-
     const linkFor = (href: string): string => `${ADMIN_ORIGIN}${href}`;
 
-    // Plain-text body.
+    // The FLEX DRAFT is now the headline of this email: it stages itself every
+    // Thursday and needs Todd's explicit publish tap. The review link is the
+    // primary CTA.
+    const draftWeekLabel = prettyWeek(draft.week);
+    const reviewHref = `/admin/flex-review/${draft.week}`;
+    const reviewLink = linkFor(reviewHref);
+    const draftCount = draft.itemCount;
+    const hasDraft = draft.itemCount > 0;
+
+    const subject = hasDraft
+      ? `Review & publish next week's flex — ${draftWeekLabel} (${draftCount} item${draftCount === 1 ? '' : 's'})`
+      : `Set up next week's flex — ${draftWeekLabel}`;
+
+    // Only nudge about the OTHER surfaces (box/market) that are still empty.
+    const otherMissing = setup.missing.filter((m) => m.area !== 'flex');
+
+    // ── Plain-text body ──
     const textLines: string[] = [
-      'Good morning Todd — the weekly setup window is open (the Flex list goes live to members today, Thursday).',
-      '',
-      `For ${setup.weekLabel}:`,
+      'Good morning Todd — next week\'s Farm Flex list is staged and waiting for your OK.',
       '',
     ];
-    if (allReady) {
-      textLines.push('Everything is set — Box, Flex, and Market all have items for next week. Nothing to do.');
+    if (hasDraft) {
+      textLines.push(
+        `A draft of ${draftCount} item${draftCount === 1 ? '' : 's'} for ${draftWeekLabel} is ready.`,
+        'Nothing is live to members yet — review it, toggle off anything you don\'t have, fix prices, then tap Publish:',
+        `  ${reviewLink}`,
+      );
     } else {
-      textLines.push('These still need setting:');
-      for (const item of missing) {
-        const what =
-          item.area === 'box'
-            ? 'Box — publish next week’s standard box (what members swap from)'
-            : item.area === 'flex'
-              ? 'Flex — toggle on what you have, set prices/qty (this is also the swap menu)'
-              : 'Market — set the farmers-market stall list (units + prices)';
+      textLines.push(
+        `No items to stage for ${draftWeekLabel} yet (last week had nothing to clone).`,
+        'Build the list, then publish it:',
+        `  ${reviewLink}`,
+      );
+    }
+    if (otherMissing.length > 0) {
+      textLines.push('', 'Also still needs setting for next week:');
+      for (const item of otherMissing) {
+        const what = item.area === 'box'
+          ? 'Box — publish next week\'s standard box (what members swap from)'
+          : 'Market — set the farmers-market stall list (units + prices)';
         textLines.push(`  • ${what}`);
         textLines.push(`    ${linkFor(item.href)}`);
       }
-      textLines.push('');
-      textLines.push('Flex window opens Thursday, closes Tuesday 6 AM.');
     }
-    textLines.push('');
-    textLines.push(`— Tiny Seed CSA (${dateStr})`);
+    textLines.push('', 'Reminder: the flex list NEVER goes live until you tap Publish. Field conditions change fast.');
+    textLines.push('', `— Tiny Seed CSA (${dateStr})`);
     const text = textLines.join('\n');
 
-    // HTML body.
+    // ── HTML body ──
+    const draftBlock = hasDraft
+      ? `<p style="margin:0 0 6px">A draft of <b>${draftCount} item${draftCount === 1 ? '' : 's'}</b> for <b>${escapeHtml(draftWeekLabel)}</b> is staged. ` +
+        `Nothing is live to members yet — review it, toggle off what you don\'t have, fix prices, then publish.</p>`
+      : `<p style="margin:0 0 6px">There was nothing to auto-stage for <b>${escapeHtml(draftWeekLabel)}</b> yet. Build the list, then publish it.</p>`;
+
+    const ctaButton =
+      `<a href="${reviewLink}" style="display:inline-block;background:#15803d;color:#fff;` +
+      `text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;font-size:15px;margin:8px 0 4px">` +
+      `Review &amp; publish →</a>`;
+
     const AREA_BLURB: Record<string, string> = {
       box: 'Publish next week’s standard box — that’s what members swap from.',
-      flex: 'Toggle on what you have (add from your archive), set prices &amp; quantities. Your Flex availability is also the swap menu.',
       market: 'Set the farmers-market stall list — units &amp; prices for the week.',
     };
-
-    const bodyHtml = allReady
-      ? `<p style="margin:0 0 14px">Everything is set — <b>Box</b>, <b>Flex</b>, and <b>Market</b> all have items for next week. Nothing to do. 🎉</p>`
-      : `<p style="margin:0 0 14px">These still need setting for next week:</p>` +
+    const otherBlock = otherMissing.length > 0
+      ? `<p style="margin:18px 0 8px;font-weight:600;color:#111827">Also still needs setting:</p>` +
         `<table role="presentation" style="width:100%;border-collapse:collapse;margin:0 0 14px">` +
-        missing.map((item) => (
+        otherMissing.map((item) => (
           `<tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb">` +
           `<p style="margin:0 0 4px;font-weight:700;color:#111827">${escapeHtml(item.label)}</p>` +
-          `<p style="margin:0 0 6px;color:#4b5563;font-size:13px">${AREA_BLURB[item.area]}</p>` +
-          `<a href="${linkFor(item.href)}" style="display:inline-block;background:#15803d;color:#fff;` +
+          `<p style="margin:0 0 6px;color:#4b5563;font-size:13px">${AREA_BLURB[item.area] ?? ''}</p>` +
+          `<a href="${linkFor(item.href)}" style="display:inline-block;background:#374151;color:#fff;` +
           `text-decoration:none;padding:7px 14px;border-radius:6px;font-weight:600;font-size:13px">` +
           `Set ${escapeHtml(item.label)} →</a>` +
           `</td></tr>`
         )).join('') +
-        `</table>` +
-        `<p style="margin:0 0 14px;color:#6b7280;font-size:13px">Flex window opens Thursday, closes Tuesday 6&nbsp;AM.</p>`;
+        `</table>`
+      : '';
 
     const html =
       `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;` +
       `max-width:600px;margin:0 auto;color:#1f2937;line-height:1.6">` +
-      `<p style="font-size:18px;font-weight:700;margin:0 0 4px;color:#15803d">${escapeHtml(subject)}</p>` +
-      `<p style="color:#6b7280;font-size:14px;margin:0 0 16px">${escapeHtml(setup.weekLabel)} · ${dateStr} · America/New_York</p>` +
-      `<p style="margin:0 0 14px">Good morning Todd — the weekly setup window is open (the Flex list goes live to members today, Thursday).</p>` +
-      bodyHtml +
-      `<p style="color:#6b7280;font-size:13px;margin-top:24px">` +
+      `<p style="font-size:18px;font-weight:700;margin:0 0 4px;color:#15803d">Next week's flex draft is staged — review &amp; publish</p>` +
+      `<p style="color:#6b7280;font-size:14px;margin:0 0 16px">${escapeHtml(draftWeekLabel)} · ${dateStr} · America/New_York</p>` +
+      `<p style="margin:0 0 12px">Good morning Todd — next week's Farm Flex list is staged and waiting for your OK.</p>` +
+      draftBlock +
+      ctaButton +
+      otherBlock +
+      `<p style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;color:#92400e;font-size:13px;margin:16px 0 0">` +
+      `The flex list <strong>never</strong> goes live until you tap Publish — field conditions change fast.</p>` +
+      `<p style="color:#6b7280;font-size:13px;margin-top:20px">` +
       `Automated weekly reminder from /api/cron/flex-list-reminder.</p>` +
       `</div>`;
 
@@ -200,6 +227,29 @@ async function handle(request: Request): Promise<Response> {
   if (denial) return denial;
 
   const ranAt = new Date().toISOString();
+  const url = new URL(request.url);
+  // ?dry=1 → compute the draft (and readiness) but perform NO insert and send
+  // NO email. Returns exactly what a real run WOULD do, for safe verification.
+  const dryRun = url.searchParams.get('dry') === '1';
+
+  // ── 1. STAGE next week's flex draft (idempotent). ──────────────────
+  // The delivery week to stage is the COMING Monday (this cron fires Thursday).
+  // createNextWeekDraft clones the current live list into is_active=false /
+  // draft_on=true rows, or no-ops if the target week already has rows. Fail-soft:
+  // a DB hiccup here must not abort the reminder email.
+  const targetWeek = draftTargetWeek();
+  let draft: DraftCreateResult = {
+    week: targetWeek,
+    sourceWeek: '',
+    status: 'no_source',
+    itemCount: 0,
+    didInsert: false,
+  };
+  try {
+    draft = await createNextWeekDraft(supabaseAdmin, targetWeek, { dryRun });
+  } catch (e) {
+    console.error('[flex-list-reminder] createNextWeekDraft threw (swallowed):', e);
+  }
 
   // Resolve the box/flex/market readiness for the upcoming cycle (the SAME
   // check the admin-home banner uses). Service-role client — no cookies in
@@ -212,8 +262,20 @@ async function handle(request: Request): Promise<Response> {
     console.error('[flex-list-reminder] resolveWeekSetup threw (swallowed):', e);
   }
 
+  // Dry-run: report the plan without sending or logging.
+  if (dryRun) {
+    return jsonResponse({
+      ok: true,
+      dry_run: true,
+      draft,
+      readiness_week: setup?.week ?? null,
+      readiness_missing: setup?.missing.map((m) => m.area) ?? null,
+      ran_at: ranAt,
+    });
+  }
+
   const emailOutcome = setup
-    ? await sendReminderEmail(setup)
+    ? await sendReminderEmail(setup, draft)
     : { ok: false, detail: 'readiness_unavailable' };
 
   // Best-effort audit row so admin/sync can correlate runs. Fail-soft — a
@@ -233,6 +295,10 @@ async function handle(request: Request): Promise<Response> {
         week: setup?.week ?? null,
         missing: setup?.missing.map((m) => m.area) ?? null,
         all_ready: setup?.allReady ?? null,
+        draft_week: draft.week,
+        draft_status: draft.status,
+        draft_item_count: draft.itemCount,
+        draft_did_insert: draft.didInsert,
       } as unknown as Database['public']['Tables']['notification_log']['Row']['metadata'],
     });
   } catch (e) {
@@ -241,6 +307,7 @@ async function handle(request: Request): Promise<Response> {
 
   return jsonResponse({
     ok: true,
+    draft,
     week: setup?.week ?? null,
     missing: setup?.missing.map((m) => m.area) ?? null,
     all_ready: setup?.allReady ?? null,

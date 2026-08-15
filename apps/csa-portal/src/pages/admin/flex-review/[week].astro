@@ -1,0 +1,571 @@
+---
+/**
+ * /admin/flex-review/[week] — the phone-first "review & publish" page for the
+ * weekly Farm Flex draft.
+ *
+ * THE FLOW THIS SERVES
+ * ────────────────────
+ * Every Thursday the flex-list-reminder cron STAGES next week's list (a clone
+ * of the current live items) as a DRAFT — rows with is_active=false, so members
+ * see nothing yet. Todd gets an email with a link to THIS page. Here he:
+ *   • sees every item (draft + live) with a big ON/OFF toggle,
+ *   • taps a price or qty to edit it inline,
+ *   • quick-adds anything new,
+ *   • and taps ONE green PUBLISH button to make the list live to members.
+ *
+ * Field conditions change fast, so NOTHING goes live until he taps publish.
+ *
+ * PUBLISH SEMANTICS (see lib/flex-draft.ts)
+ * ─────────────────────────────────────────
+ *   • BEFORE publish: toggles write `draft_on` (desired state); rows stay
+ *     is_active=false (invisible). PUBLISH copies draft_on → is_active for the
+ *     whole week and stamps portal_settings `flex_published_<week>`.
+ *   • AFTER publish: toggles write is_active directly — edits are LIVE
+ *     immediately. The publish bar shows "✅ Published <date>".
+ *
+ * Design brief: Employee/Field-adjacent — big touch targets (≥44px), high
+ * contrast, works one-handed on a phone in the field. All mutations POST JSON
+ * to /api/admin/flex-review; the page degrades to a full reload on error.
+ *
+ * Auth: middleware gates /admin/* to admin/staff; the API re-checks requireAdmin.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import {
+  centsToDollars, formatCents, prettyWeek, isYMD, categoryEmoji,
+  FLEX_UNITS, FLEX_CATEGORIES,
+} from '../../../lib/flex-order';
+import { getPublishedAt } from '../../../lib/flex-draft';
+
+const supabase = Astro.locals.supabase;
+
+// ─── Week param ──────────────────────────────────────────────────────
+const weekParam = (Astro.params.week ?? '') as string;
+if (!isYMD(weekParam)) {
+  return Astro.redirect('/admin/flex-inventory?error=bad_week', 303);
+}
+const week = weekParam;
+
+// ─── Published state ─────────────────────────────────────────────────
+const publishedAt = await getPublishedAt(supabase, week);
+const isPublished = !!publishedAt;
+
+// ─── Items for the week (draft + live), library-first photo ──────────
+type ItemRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  unit: string;
+  price_cents: number;
+  available_qty: number;
+  remaining_qty: number;
+  photo_url: string | null;
+  is_active: boolean;
+  draft_on: boolean;
+  is_featured: boolean;
+  coming_soon: boolean;
+  library: { photo_url: string | null } | null;
+};
+
+const { data: itemRows, error: fetchErr } = await supabase
+  .from('flex_inventory')
+  .select(
+    'id, name, category, unit, price_cents, available_qty, remaining_qty, ' +
+    'photo_url, is_active, draft_on, is_featured, coming_soon, ' +
+    'library:product_library ( photo_url )'
+  )
+  .eq('cycle_code', 'WEEKLY')
+  .eq('week_starting', week)
+  .order('category', { ascending: true, nullsFirst: false })
+  .order('name', { ascending: true })
+  .overrideTypes<ItemRow[], { merge: false }>();
+
+if (fetchErr) {
+  console.error('[admin/flex-review] fetch failed:', fetchErr.message);
+}
+const items: ItemRow[] = itemRows ?? [];
+
+function displayPhoto(it: ItemRow): string | null {
+  return it.library?.photo_url ?? it.photo_url ?? null;
+}
+
+// The "desired ON" flag the UI toggle reflects: draft_on before publish,
+// is_active after publish.
+function isOn(it: ItemRow): boolean {
+  return isPublished ? it.is_active : it.draft_on;
+}
+
+const onCount = items.filter(isOn).length;
+const offCount = items.length - onCount;
+
+const publishedDateLabel = publishedAt
+  ? new Intl.DateTimeFormat('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York',
+    }).format(new Date(publishedAt))
+  : '';
+---
+
+<AdminShell
+  title="Review & publish"
+  subtitle={prettyWeek(week)}
+  pageTitle="Flex review — Tiny Seed Admin"
+  canonical={`https://csa.tinyseedfarm.com/admin/flex-review/${week}`}
+>
+  {/* ════ Status banner ════ */}
+  {isPublished ? (
+    <div
+      role="status"
+      class="rounded-ts-md border border-ts-primary/30 bg-ts-primary/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-primary">Published.</span> This list is LIVE
+      to members. Any change you make below goes live immediately.
+    </div>
+  ) : (
+    <div
+      role="status"
+      class="rounded-ts-md border border-ts-accent/40 bg-ts-accent/5 px-4 py-3 text-sm text-ts-text"
+    >
+      <span class="font-semibold text-ts-accent-dark">Draft — not live yet.</span>{' '}
+      Members can't see this list. Toggle what you have, fix prices, then tap
+      <span class="font-semibold"> Publish</span> to make it live.
+    </div>
+  )}
+
+  {/* ════ Quick add ════ */}
+  <Card padding="md" elevation="sm" class="mt-4">
+    <details class="group">
+      <summary
+        class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+      >
+        <span class="font-display text-lg font-bold">+ Add an item</span>
+        <span class="text-sm font-medium text-ts-text-secondary">tap to open</span>
+      </summary>
+      <form id="add-form" class="mt-4 grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label for="add-name" class="mb-1 block text-sm font-semibold text-ts-text">Name</label>
+          <input
+            id="add-name" name="name" type="text" required maxlength="120"
+            placeholder="e.g. Salad Turnips"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-[44px]"
+          />
+        </div>
+        <div>
+          <label for="add-price" class="mb-1 block text-sm font-semibold text-ts-text">Price ($)</label>
+          <input
+            id="add-price" name="price" type="text" inputmode="decimal" required
+            placeholder="4.50"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-[44px]"
+          />
+        </div>
+        <div>
+          <label for="add-qty" class="mb-1 block text-sm font-semibold text-ts-text">Qty cap</label>
+          <input
+            id="add-qty" name="qty" type="number" min="0" step="1" required
+            placeholder="20"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-[44px]"
+          />
+        </div>
+        <div>
+          <label for="add-unit" class="mb-1 block text-sm font-semibold text-ts-text">Unit</label>
+          <input
+            id="add-unit" name="unit" type="text" list="add-units" required maxlength="30" value="each"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-[44px]"
+          />
+          <datalist id="add-units">{FLEX_UNITS.map((u) => <option value={u}></option>)}</datalist>
+        </div>
+        <div>
+          <label for="add-category" class="mb-1 block text-sm font-semibold text-ts-text">Category</label>
+          <input
+            id="add-category" name="category" type="text" list="add-categories" maxlength="60"
+            placeholder="e.g. Roots"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-[44px]"
+          />
+          <datalist id="add-categories">{FLEX_CATEGORIES.map((c) => <option value={c}></option>)}</datalist>
+        </div>
+        <div class="col-span-2">
+          <button
+            type="submit"
+            class="inline-flex min-h-[44px] w-full items-center justify-center rounded-ts-md bg-ts-primary px-5 text-base font-semibold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          >
+            Add to {isPublished ? 'the live list' : 'the draft'}
+          </button>
+          <p id="add-status" role="status" aria-live="polite" class="mt-2 text-sm text-ts-text-muted"></p>
+        </div>
+      </form>
+    </details>
+  </Card>
+
+  {/* ════ Item list ════ */}
+  <Card padding="none" elevation="sm" class="mt-4">
+    <div class="flex items-center justify-between gap-3 border-b border-ts-border px-4 py-4 sm:px-5">
+      <h2 class="font-display text-lg font-bold text-ts-text">
+        {items.length === 0 ? 'No items' : `${items.length} ${items.length === 1 ? 'item' : 'items'}`}
+      </h2>
+      <a
+        href={`/admin/flex-inventory?week=${week}`}
+        class="text-sm font-medium text-ts-text-secondary underline-offset-2 hover:text-ts-primary hover:underline"
+      >
+        Full editor →
+      </a>
+    </div>
+
+    {items.length === 0 ? (
+      <div class="px-5 py-12 text-center">
+        <p class="text-4xl" aria-hidden="true">🌿</p>
+        <p class="mt-3 text-base font-medium text-ts-text">Nothing staged for this week yet.</p>
+        <p class="mt-1 text-sm text-ts-text-muted">
+          Add an item above, or build the week in the
+          <a href={`/admin/flex-inventory?week=${week}`} class="font-medium text-ts-primary underline underline-offset-2"> full editor</a>.
+        </p>
+      </div>
+    ) : (
+      <ul role="list" id="item-list" class="divide-y divide-ts-border">
+        {items.map((it) => {
+          const on = isOn(it);
+          const thumb = displayPhoto(it);
+          return (
+            <li
+              class={`flex items-center gap-3 px-4 py-4 sm:px-5 ${on ? '' : 'opacity-60'}`}
+              data-item
+              data-id={it.id}
+              data-on={on ? '1' : '0'}
+            >
+              {/* Thumb */}
+              <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-ts-md border border-ts-border bg-ts-bg-surface text-2xl">
+                {thumb
+                  ? <img src={thumb} alt="" width="56" height="56" loading="lazy" class="h-full w-full object-cover" data-thumb-grayscale={on ? undefined : ''} />
+                  : <span aria-hidden="true">{categoryEmoji(it.category)}</span>}
+              </div>
+
+              {/* Name + inline edit */}
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-semibold text-ts-text">{it.name}</p>
+                <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm tabular-nums">
+                  {/* Price — tap to edit */}
+                  <button
+                    type="button"
+                    class="inline-flex min-h-[32px] items-center gap-1 rounded-ts-md border border-transparent px-1 text-ts-text-secondary hover:border-ts-border hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                    data-edit="price"
+                    data-price-cents={it.price_cents}
+                    aria-label={`Edit price for ${it.name}`}
+                  >
+                    <span data-price-display>{formatCents(it.price_cents)}</span>
+                    <span aria-hidden="true" class="text-ts-text-muted">✎</span>
+                  </button>
+                  <span class="text-ts-text-muted">·</span>
+                  <span class="text-ts-text-secondary">{it.unit}</span>
+                  <span class="text-ts-text-muted">·</span>
+                  {/* Qty — tap to edit */}
+                  <button
+                    type="button"
+                    class="inline-flex min-h-[32px] items-center gap-1 rounded-ts-md border border-transparent px-1 text-ts-text-secondary hover:border-ts-border hover:text-ts-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+                    data-edit="qty"
+                    data-avail={it.available_qty}
+                    aria-label={`Edit quantity cap for ${it.name}`}
+                  >
+                    <span data-qty-display>{it.available_qty} cap</span>
+                    <span aria-hidden="true" class="text-ts-text-muted">✎</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* ON/OFF toggle — large touch target */}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={on ? 'true' : 'false'}
+                data-toggle
+                class="relative inline-flex h-11 w-[72px] shrink-0 items-center rounded-full border-2 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary aria-checked:border-ts-primary aria-checked:bg-ts-primary/90 border-ts-border bg-ts-bg-surface"
+                aria-label={`${on ? 'Turn off' : 'Turn on'} ${it.name}`}
+              >
+                <span
+                  data-knob
+                  class="pointer-events-none absolute left-1 flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-bold shadow-ts-sm transition-transform duration-150"
+                  style={on ? 'transform:translateX(28px)' : ''}
+                >
+                  <span data-knob-label>{on ? 'ON' : 'OFF'}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </Card>
+
+  {/* ════ Sticky PUBLISH bar ════ */}
+  <div
+    class="sticky bottom-0 left-0 right-0 z-20 mt-4 border-t border-ts-border bg-ts-bg-base/95 px-4 py-3 backdrop-blur sm:px-5"
+    style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));"
+    data-publish-bar
+    data-week={week}
+    data-published={isPublished ? '1' : '0'}
+  >
+    <div class="mx-auto flex max-w-3xl items-center gap-3">
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold text-ts-text tabular-nums" data-count-line>
+          <span data-on-count>{onCount}</span> on · <span data-off-count>{offCount}</span> off
+        </p>
+        {isPublished ? (
+          <p class="text-xs text-ts-text-muted" data-publish-sub>✅ Published {publishedDateLabel}</p>
+        ) : (
+          <p class="text-xs text-ts-text-muted" data-publish-sub>Not live — members can't order yet.</p>
+        )}
+      </div>
+      {isPublished ? (
+        <button
+          type="button"
+          data-publish-btn
+          class="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-5 text-base font-semibold text-ts-text transition-all duration-150 hover:border-ts-primary/40 hover:text-ts-primary active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+        >
+          Re-publish
+        </button>
+      ) : (
+        <button
+          type="button"
+          data-publish-btn
+          disabled={items.length === 0}
+          class="inline-flex min-h-[48px] shrink-0 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-bold text-white shadow-ts-sm transition-all duration-150 hover:bg-ts-primary-dark active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Publish
+        </button>
+      )}
+    </div>
+    <p data-publish-status role="status" aria-live="assertive" class="mx-auto mt-2 max-w-3xl text-sm"></p>
+  </div>
+
+  <script is:inline define:vars={{ week, isPublished }}>
+    (function () {
+      const API = '/api/admin/flex-review';
+
+      async function post(payload) {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        });
+        let data = null;
+        try { data = await res.json(); } catch (e) { /* non-JSON */ }
+        if (!res.ok || !data || data.ok !== true) {
+          const msg = (data && data.error) || 'Something went wrong. Try again.';
+          throw new Error(msg);
+        }
+        return data;
+      }
+
+      function fmtCents(c) {
+        return '$' + (c / 100).toFixed(2);
+      }
+
+      /* ── Recount ON/OFF and update the publish bar ── */
+      function recount() {
+        const rows = document.querySelectorAll('[data-item]');
+        let on = 0;
+        rows.forEach((r) => { if (r.getAttribute('data-on') === '1') on += 1; });
+        const off = rows.length - on;
+        const onEl = document.querySelector('[data-on-count]');
+        const offEl = document.querySelector('[data-off-count]');
+        if (onEl) onEl.textContent = String(on);
+        if (offEl) offEl.textContent = String(off);
+      }
+
+      function flashStatus(el, msg, kind) {
+        if (!el) return;
+        el.textContent = msg;
+        el.className = 'mt-2 text-sm ' + (
+          kind === 'error' ? 'text-ts-danger font-medium'
+          : kind === 'ok' ? 'text-ts-primary font-medium'
+          : 'text-ts-text-muted'
+        );
+      }
+
+      /* ── Toggle on/off ── */
+      document.querySelectorAll('[data-toggle]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const li = btn.closest('[data-item]');
+          if (!li) return;
+          const id = li.getAttribute('data-id');
+          const currentlyOn = li.getAttribute('data-on') === '1';
+          const next = !currentlyOn;
+
+          // Optimistic UI.
+          setToggleUI(btn, li, next);
+          btn.disabled = true;
+          try {
+            await post({ action: 'toggle', id: id, on: next, week: week });
+            recount();
+          } catch (e) {
+            // Roll back.
+            setToggleUI(btn, li, currentlyOn);
+            recount();
+            alert('Couldn\'t update that item — ' + e.message);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      function setToggleUI(btn, li, on) {
+        li.setAttribute('data-on', on ? '1' : '0');
+        btn.setAttribute('aria-checked', on ? 'true' : 'false');
+        li.classList.toggle('opacity-60', !on);
+        const knob = btn.querySelector('[data-knob]');
+        const label = btn.querySelector('[data-knob-label]');
+        if (knob) knob.style.transform = on ? 'translateX(28px)' : '';
+        if (label) label.textContent = on ? 'ON' : 'OFF';
+      }
+
+      /* ── Inline edit price / qty ── */
+      document.querySelectorAll('[data-edit]').forEach((btn) => {
+        btn.addEventListener('click', () => startEdit(btn));
+      });
+
+      function startEdit(btn) {
+        if (btn.dataset.editing === '1') return;
+        btn.dataset.editing = '1';
+        const li = btn.closest('[data-item]');
+        const id = li.getAttribute('data-id');
+        const kind = btn.getAttribute('data-edit'); // 'price' | 'qty'
+        const original = btn.innerHTML;
+
+        const input = document.createElement('input');
+        input.className =
+          'w-20 rounded-ts-md border border-ts-primary bg-ts-bg-base px-2 py-1 text-base text-ts-text tabular-nums focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-[36px]';
+        if (kind === 'price') {
+          input.type = 'text';
+          input.inputMode = 'decimal';
+          input.value = (Number(btn.getAttribute('data-price-cents')) / 100).toFixed(2);
+        } else {
+          input.type = 'number';
+          input.min = '0';
+          input.step = '1';
+          input.value = btn.getAttribute('data-avail') || '0';
+        }
+
+        btn.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let done = false;
+        async function commit() {
+          if (done) return;
+          done = true;
+          const raw = input.value.trim();
+          const payload = { action: 'edit', id: id, week: week };
+          let displayText = '';
+          if (kind === 'price') {
+            const dollars = parseFloat(raw.replace(/^\$/, '').replace(/,/g, ''));
+            if (!isFinite(dollars) || dollars < 0) { restore(); return; }
+            const cents = Math.round(dollars * 100);
+            payload.price_cents = cents;
+            btn.setAttribute('data-price-cents', String(cents));
+            displayText = fmtCents(cents);
+          } else {
+            const qty = parseInt(raw, 10);
+            if (!isFinite(qty) || qty < 0) { restore(); return; }
+            payload.available_qty = qty;
+            btn.setAttribute('data-avail', String(qty));
+            displayText = qty + ' cap';
+          }
+          try {
+            await post(payload);
+            // Update the button's display span, then restore the button.
+            const disp = kind === 'price'
+              ? btn.querySelector('[data-price-display]')
+              : btn.querySelector('[data-qty-display]');
+            if (disp) disp.textContent = displayText;
+            restore();
+          } catch (e) {
+            alert('Couldn\'t save that change — ' + e.message);
+            restore();
+          }
+        }
+        function restore() {
+          input.replaceWith(btn);
+          btn.dataset.editing = '0';
+        }
+        function cancel() {
+          if (done) return;
+          done = true;
+          btn.innerHTML = original;
+          restore();
+        }
+
+        input.addEventListener('blur', commit);
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+          else if (ev.key === 'Escape') { ev.preventDefault(); done = true; restore(); }
+        });
+      }
+
+      /* ── Quick add ── */
+      const addForm = document.getElementById('add-form');
+      if (addForm) {
+        addForm.addEventListener('submit', async (ev) => {
+          ev.preventDefault();
+          const status = document.getElementById('add-status');
+          const name = addForm.name.value.trim();
+          const priceRaw = addForm.price.value.trim().replace(/^\$/, '').replace(/,/g, '');
+          const dollars = parseFloat(priceRaw);
+          const qty = parseInt(addForm.qty.value, 10);
+          const unit = addForm.unit.value.trim();
+          const category = addForm.category.value.trim();
+          if (!name || !isFinite(dollars) || dollars < 0 || !isFinite(qty) || qty < 0 || !unit) {
+            flashStatus(status, 'Fill in a name, valid price, qty and unit.', 'error');
+            return;
+          }
+          const btn = addForm.querySelector('button[type=submit]');
+          if (btn) btn.disabled = true;
+          flashStatus(status, 'Adding…', 'info');
+          try {
+            await post({
+              action: 'add', week: week, name: name,
+              price_cents: Math.round(dollars * 100),
+              unit: unit, available_qty: qty,
+              category: category || null,
+            });
+            // Simplest correct refresh: reload so the new row renders in place
+            // with all its wired handlers (avoids partial-DOM handler drift).
+            window.location.reload();
+          } catch (e) {
+            flashStatus(status, 'Couldn\'t add — ' + e.message, 'error');
+            if (btn) btn.disabled = false;
+          }
+        });
+      }
+
+      /* ── Publish ── */
+      const pubBtn = document.querySelector('[data-publish-btn]');
+      const pubStatus = document.querySelector('[data-publish-status]');
+      if (pubBtn) {
+        pubBtn.addEventListener('click', async () => {
+          const already = document.querySelector('[data-publish-bar]').getAttribute('data-published') === '1';
+          const verb = already ? 're-publish' : 'publish';
+          if (!window.confirm(
+            already
+              ? 'Re-publish this list? Current toggles become the live list immediately.'
+              : 'Publish this list to members? Only items toggled ON will be orderable.'
+          )) return;
+          pubBtn.disabled = true;
+          flashStatus(pubStatus, (already ? 'Re-publishing…' : 'Publishing…'), 'info');
+          try {
+            const res = await post({ action: 'publish', week: week });
+            flashStatus(
+              pubStatus,
+              '✅ Published — ' + res.on_count + ' item' + (res.on_count === 1 ? '' : 's') + ' live to members.',
+              'ok'
+            );
+            // Reload so the page renders its published state (post-publish
+            // toggles write is_active directly).
+            setTimeout(() => window.location.reload(), 900);
+          } catch (e) {
+            flashStatus(pubStatus, 'Couldn\'t publish — ' + e.message, 'error');
+            pubBtn.disabled = false;
+          }
+        });
+      }
+    })();
+  </script>
+</AdminShell>

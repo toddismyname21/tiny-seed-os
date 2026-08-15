@@ -56,6 +56,10 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { supabaseAdmin } from '../../../lib/supabase';
 import {
+  nudgeTargetWeek, getPublishedAt, draftPublishState,
+} from '../../../lib/flex-draft';
+import { prettyWeek } from '../../../lib/flex-order';
+import {
   quickbooksConfigured,
   getConnection,
   findVendorsByNameLike,
@@ -811,6 +815,83 @@ async function sendDigest(
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+ * UNPUBLISHED-FLEX-DRAFT NUDGE (fail-soft addition, Thursday-draft system)
+ *
+ * Piggybacks on this DAILY cron (we're capped at 2 Vercel Hobby crons, both
+ * used). On Fri–Mon ET, if the upcoming delivery week has a flex DRAFT staged
+ * (rows exist) but NOTHING is live to members (no active rows AND no
+ * flex_published_<week> marker), email Todd a one-line nudge with the review
+ * link. At most one per day (this cron runs once daily). Entirely fail-soft:
+ * a hiccup here never affects the vendor-bills pipeline.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const ADMIN_ORIGIN = 'https://csa.tinyseedfarm.com';
+
+async function maybeSendUnpublishedFlexNudge(): Promise<{
+  ran: boolean;
+  week: string | null;
+  reason: string;
+}> {
+  try {
+    // Only Fri/Sat/Sun/Mon ET produce a target week; other days are a no-op.
+    const week = nudgeTargetWeek();
+    if (!week) return { ran: false, week: null, reason: 'not_a_nudge_day' };
+
+    // Published already? The marker's presence is the source of truth.
+    const publishedAt = await getPublishedAt(supabaseAdmin, week);
+    if (publishedAt) return { ran: false, week, reason: 'already_published' };
+
+    // Draft staged but nothing live?
+    const state = await draftPublishState(supabaseAdmin, week);
+    if (!state) return { ran: false, week, reason: 'state_unavailable' };
+    if (state.total === 0) return { ran: false, week, reason: 'no_draft' };
+    if (state.active > 0) return { ran: false, week, reason: 'has_active_rows' };
+
+    // → Draft exists, nothing live, not published: nudge.
+    if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+      return { ran: false, week, reason: 'resend_not_configured' };
+    }
+
+    const weekLabel = prettyWeek(week);
+    const reviewLink = `${ADMIN_ORIGIN}/admin/flex-review/${week}`;
+    const subject = `Flex list still unpublished — ${weekLabel}`;
+    const text = [
+      `Todd — the Farm Flex list for ${weekLabel} is staged (${state.total} item${state.total === 1 ? '' : 's'}) but NOT published, so members can't order yet.`,
+      '',
+      'Review & publish:',
+      `  ${reviewLink}`,
+      '',
+      '— Tiny Seed CSA (automated daily check)',
+    ].join('\n');
+    const html =
+      `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;color:#1f2937;line-height:1.6">` +
+      `<p style="font-size:18px;font-weight:700;margin:0 0 6px;color:#b45309">Flex list still unpublished</p>` +
+      `<p style="color:#6b7280;font-size:14px;margin:0 0 14px">${escapeHtml(weekLabel)}</p>` +
+      `<p style="margin:0 0 12px">The Farm Flex list for <b>${escapeHtml(weekLabel)}</b> is staged ` +
+      `(<b>${state.total} item${state.total === 1 ? '' : 's'}</b>) but <b>not published</b> — members can't order yet.</p>` +
+      `<a href="${reviewLink}" style="display:inline-block;background:#15803d;color:#fff;text-decoration:none;` +
+      `padding:12px 22px;border-radius:8px;font-weight:700;font-size:15px">Review &amp; publish →</a>` +
+      `<p style="color:#6b7280;font-size:13px;margin-top:20px">Automated daily check from /api/cron/vendor-bills.</p>` +
+      `</div>`;
+
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: RESEND_FROM_EMAIL, to: [DIGEST_TO], subject, text, html }),
+    });
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      console.error(`[vendor-bills] flex nudge send failed (HTTP ${resp.status}): ${detail.slice(0, 200)}`);
+      return { ran: false, week, reason: `resend_http_${resp.status}` };
+    }
+    return { ran: true, week, reason: 'sent' };
+  } catch (e) {
+    console.error('[vendor-bills] flex nudge threw (swallowed):', e);
+    return { ran: false, week: null, reason: 'threw' };
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
  * HANDLER
  * ────────────────────────────────────────────────────────────────────────── */
 
@@ -984,8 +1065,13 @@ async function handle(request: Request): Promise<Response> {
     emailOutcome = await sendDigest(entered, flagged, paid);
   }
 
+  // ── Fail-soft: nudge Todd if next week's flex list is staged but unpublished.
+  // Runs AFTER the bills pipeline so a nudge failure can never affect billing.
+  const flexNudge = await maybeSendUnpublishedFlexNudge();
+
   return jsonResponse({
     ok: true,
+    flex_nudge: flexNudge,
     window_days: days,
     candidates_after_prefilter: candidates.length,
     hard_skips: skipTally,

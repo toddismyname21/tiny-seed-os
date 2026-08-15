@@ -810,6 +810,12 @@ export interface Database {
           coming_soon: boolean;
           /** Week's featured extra (hero treatment on the ordering page). */
           is_featured: boolean;
+          /** DRAFT desired-visible state for the Thursday-draft flex list
+           *  (migration 0086). While a week is unpublished the row stays
+           *  is_active=false (invisible to members) and draft_on holds whether
+           *  PUBLISH should turn it on. PUBLISH sets is_active = draft_on for the
+           *  whole week; after publish, toggles write is_active directly. */
+          draft_on: boolean;
           restock_alert_threshold: number;
           /** FK → product_library.id — the shared archive product this week's
            *  item was loaded from (photo + description source; migration 0045). */
