@@ -108,13 +108,13 @@ export function formatCents(cents: number): string {
 const WEEK_ONE = '2026-06-08';
 
 /** ONE-WEEK CUTOFF EXTENSION (Todd, 2026-08-09): the flex list for the week
- *  of Aug 10 went live over the weekend (same pattern as Aug 3), so the
+ *  of Aug 17 went live over the weekend (third week running), so the
  *  Wednesday-run close is extended Monday 7 AM → TUESDAY 7 AM ET for THIS
  *  WEEK ONLY. This also keeps the order page resolving to THIS delivery week
  *  (currentOrderWeek) through the extended window instead of rolling to next
  *  week. Weekend-run cutoff (Thu 7 AM) unchanged. Announced to flex members
- *  by email. Remove after 2026-08-11 (harmless if left — the week passes). */
-const WEEK_EXTENDED_TUE = '2026-08-10';
+ *  by email. Remove after 2026-08-18 (harmless if left — the week passes). */
+const WEEK_EXTENDED_TUE = '2026-08-17';
 
 /* ──────────────────────────────────────────────────────────────────
  * Pickup-day-aware cutoff (Todd 2026-06-12)
