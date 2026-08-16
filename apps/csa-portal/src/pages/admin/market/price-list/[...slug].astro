@@ -48,6 +48,7 @@ const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_inpu
 // ─── Active offerings for the week (joined to the master product) ───
 type OfferingRow = {
   id: string;
+  library_id: string;
   name: string | null;
   unit: string;
   price_cents: number;
@@ -56,7 +57,7 @@ type OfferingRow = {
 
 const { data: offeringRows, error: offeringsErr } = await supabase
   .from('market_offerings')
-  .select('id, name, unit, price_cents, library:product_library ( name, category )')
+  .select('id, library_id, name, unit, price_cents, library:product_library ( name, category )')
   .eq('week_starting', week_starting)
   .eq('is_active', true)
   .overrideTypes<OfferingRow[], { merge: false }>();
@@ -64,7 +65,14 @@ const { data: offeringRows, error: offeringsErr } = await supabase
 if (offeringsErr) {
   console.error('[admin/market/price-list] offerings fetch failed:', offeringsErr.message);
 }
-const offerings: OfferingRow[] = offeringRows ?? [];
+// ONE line per PRODUCT — a product has a separate offering per market (3+ rows)
+// but the same name/price, so the stall sheet dedupes by library_id (Todd).
+const seenProduct = new Set<string>();
+const offerings: OfferingRow[] = (offeringRows ?? []).filter((o) => {
+  if (seenProduct.has(o.library_id)) return false;
+  seenProduct.add(o.library_id);
+  return true;
+});
 
 /** Display name: offering override → library name → fallback. */
 function offeringName(o: OfferingRow): string {
@@ -181,14 +189,15 @@ const offeringCount = offerings.length;
             </h3>
             <ul class="mt-1">
               {group.items.map((o) => (
-                <li class="price-row flex items-baseline gap-2 py-1.5">
-                  <span class="price-name text-base font-semibold text-ts-text sm:text-lg">
+                <li class="price-row flex items-baseline gap-2 py-1.5" data-lib={o.library_id} data-week={week_starting}>
+                  <span class="price-name editable text-base font-semibold text-ts-text sm:text-lg" contenteditable="true" spellcheck="false" data-field="name" title="Click to rename">
                     {offeringName(o)}
                   </span>
                   <span class="price-dots flex-1 self-end border-b border-dotted border-ts-text/40" aria-hidden="true"></span>
                   <span class="price-amount shrink-0 text-base font-bold tabular-nums text-ts-text sm:text-lg">
-                    {formatCents(o.price_cents)}<span class="text-ts-text-secondary">/{o.unit}</span>
+                    <span aria-hidden="true">$</span><span class="price-num editable" contenteditable="true" spellcheck="false" data-field="price" title="Click to change the price">{o.price_cents > 0 ? formatCents(o.price_cents).replace('$', '') : ''}</span><span class="text-ts-text-secondary">/{o.unit}</span>
                   </span>
+                  <span class="price-saved screen-only" aria-hidden="true">✓ saved</span>
                 </li>
               ))}
             </ul>
@@ -197,6 +206,48 @@ const offeringCount = offerings.length;
       </div>
     )}
   </div>
+
+  <div id="save-toast" class="save-toast screen-only" role="status" aria-live="polite">✓ Changes saved</div>
+
+  <script is:inline>
+    (function () {
+      var toast = document.getElementById('save-toast');
+      function showToast() {
+        if (!toast) return;
+        toast.classList.add('show');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(function () { toast.classList.remove('show'); }, 1900);
+      }
+      // Inline click-to-edit NAME + PRICE on the stall sheet → AJAX to the SAME
+      // endpoint the signs page uses, so a change here persists through the system.
+      function save(row) {
+        var nameEl = row.querySelector('.price-name');
+        var priceEl = row.querySelector('[data-field="price"]');
+        var name = (nameEl ? nameEl.textContent : '').replace(/\s+/g, ' ').trim();
+        var priceRaw = (priceEl ? priceEl.textContent : '').replace(/[^0-9.]/g, '').trim();
+        if (priceEl) priceEl.textContent = priceRaw;
+        var fd = new FormData();
+        fd.append('week_starting', row.getAttribute('data-week'));
+        fd.append('library_id', row.getAttribute('data-lib'));
+        fd.append('name', name);            // preserve the name override
+        fd.append('price_dollars', priceRaw);
+        fd.append('ajax', '1');
+        fetch('/api/admin/market/sign-edit', { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j && j.ok) {
+              showToast();
+              var s = row.querySelector('.price-saved');
+              if (s) { s.classList.add('show'); setTimeout(function () { s.classList.remove('show'); }, 1500); }
+            }
+          }).catch(function () {});
+      }
+      document.querySelectorAll('.price-row .editable').forEach(function (el) {
+        el.addEventListener('blur', function () { save(el.closest('.price-row')); });
+        el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+      });
+    })();
+  </script>
 </AdminShell>
 
 <style is:global>
@@ -228,10 +279,25 @@ const offeringCount = offerings.length;
    *  slot) at print time via print:hidden. Anything else screen-only carries
    *  `.screen-only`. The price list prints in normal flow from the top of
    *  page 1. Mirrors /admin/route-sheet/[...slug].astro. */
+  /* ── Inline click-to-edit name + price (screen only) ── */
+  .price-row { position: relative; }
+  .price-name.editable { cursor: text; border-radius: 3px; outline: none; }
+  .price-name.editable:hover { box-shadow: inset 0 -2px 0 0 rgba(0,0,0,0.18); }
+  .price-name.editable:focus { background: rgba(22,163,74,0.08); box-shadow: 0 0 0 2px rgba(22,163,74,0.5); }
+  .price-num { display: inline-block; min-width: 1.4rem; border-radius: 3px; outline: none; cursor: text; }
+  .price-num:hover { box-shadow: inset 0 -2px 0 0 rgba(0,0,0,0.22); }
+  .price-num:focus { background: rgba(22,163,74,0.1); box-shadow: 0 0 0 2px rgba(22,163,74,0.55); }
+  .price-saved { position: absolute; right: 0; top: -0.95rem; font-size: 0.68rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 0 6px; border-radius: 999px; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+  .price-saved.show { opacity: 1; }
+  /* Global "saved" popup. */
+  .save-toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translate(-50%, 1rem); z-index: 50; background: #16a34a; color: #fff; font-size: 0.95rem; font-weight: 700; padding: 0.65rem 1.25rem; border-radius: 999px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+  .save-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
     body, html { background: white !important; }
     .screen-only { display: none !important; }
+    .price-num:hover, .price-num:focus { box-shadow: none; background: transparent; }
     .price-row, .price-group { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>

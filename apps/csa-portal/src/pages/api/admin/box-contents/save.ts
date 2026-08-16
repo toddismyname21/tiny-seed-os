@@ -7,6 +7,16 @@
  *                  flower, flex, add_on, wholesale_csa)
  *   - items[i][product_name] / [variety] / [quantity] / [unit]
  *     / [is_swappable] (boolean) / [swap_options] (comma-separated string)
+ *     / [library_id] (optional UUID → product_library.id)
+ *
+ * library_id: when the item was picked from the shared master catalog
+ * (product_library — the same catalog wholesale/market/flex use), the editor
+ * sends its UUID. We validate every non-blank library_id actually exists
+ * (rejecting stale/tampered ids), then stamp BOTH library_id AND the canonical
+ * product_name (already the library name, mirrored client-side) into the row.
+ * product_name stays populated because resolveCycle + labels + the member /box
+ * page read it; library_id is the canonical link back to the catalog. Legacy /
+ * one-off rows may omit library_id (NULL) and still save on product_name.
  *
  * Semantics: REPLACES the full set of items for (week_date, share_type).
  * Implementation:
@@ -43,13 +53,20 @@ const CANONICAL_SHARES = new Set([
   'spring_veg', 'summer_veg', 'fall_veg', 'flower', 'flex', 'add_on', 'wholesale_csa',
 ]);
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const ItemSchema = z.object({
-  product_name: z.string().trim().min(1).max(80),
+  // product_name is the source of truth for reads; max raised to 160 to match
+  // product_library.name (catalog names can exceed the old 80-char cap).
+  product_name: z.string().trim().min(1).max(160),
   variety: z.string().trim().max(80).nullable(),
   quantity: z.number().nonnegative().max(1_000),
   unit: z.string().trim().min(1).max(30),
   is_swappable: z.boolean(),
   swap_options: z.array(z.string().trim().min(1).max(80)).max(20),
+  // Optional link to the shared master catalog. Blank/absent → null (legacy
+  // or one-off item). Non-blank must be a UUID; existence is checked below.
+  library_id: z.string().trim().regex(UUID_RE).nullable(),
 });
 
 type ParsedItem = z.infer<typeof ItemSchema>;
@@ -78,6 +95,9 @@ function parseItems(formData: FormData): unknown[] {
     } else if (field === 'variety') {
       const v = String(value).trim();
       bucket[field] = v.length === 0 ? null : v;
+    } else if (field === 'library_id') {
+      const v = String(value).trim();
+      bucket[field] = v.length === 0 ? null : v;
     } else {
       bucket[field] = String(value);
     }
@@ -88,6 +108,7 @@ function parseItems(formData: FormData): unknown[] {
     if (b.is_swappable === undefined) b.is_swappable = false;
     if (b.swap_options === undefined) b.swap_options = [];
     if (b.variety === undefined) b.variety = null;
+    if (b.library_id === undefined) b.library_id = null;
   }
   return Array.from(buckets.entries())
     .sort((a, b) => a[0] - b[0])
@@ -147,6 +168,33 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     seen.add(k);
   }
 
+  // Validate that every non-null library_id actually exists in the shared
+  // catalog (reject stale ids from an old tab or a tampered form). One IN
+  // query covers all rows; the deduped set is tiny (~one box's worth).
+  const libraryIds = Array.from(
+    new Set(validated.map((it) => it.library_id).filter((v): v is string => v !== null))
+  );
+  if (libraryIds.length > 0) {
+    const { data: existing, error: libErr } = await locals.supabase
+      .from('product_library')
+      .select('id')
+      .in('id', libraryIds);
+    if (libErr) {
+      console.error('[api/admin/box-contents/save] library check failed:', libErr.message);
+      return redirect(
+        `/admin/box-contents?week=${weekDate}&share_type=${shareType}&error=invalid_input`,
+        303
+      );
+    }
+    const found = new Set((existing ?? []).map((r) => r.id));
+    if (found.size !== libraryIds.length) {
+      return redirect(
+        `/admin/box-contents?week=${weekDate}&share_type=${shareType}&error=unknown_product`,
+        303
+      );
+    }
+  }
+
   // Step 1: delete existing rows for (week_date, share_type).
   const { error: deleteErr } = await locals.supabase
     .from('box_contents')
@@ -167,6 +215,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       week_date: weekDate,
       share_type: shareType,
       product_name: it.product_name,
+      library_id: it.library_id,
       variety: it.variety,
       quantity: it.quantity,
       unit: it.unit,

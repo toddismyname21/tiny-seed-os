@@ -1004,6 +1004,98 @@ const printpackMarkets: MarketRender[] = view === 'printpack'
       .map(buildMarketRender)
   : [];
 
+/* ── Combined print pack — PALLET-STAGING sections (owner 2026-08-03) ─────────
+ *   Todd stages the pack floor by PALLET: build the CSA pallet, build the Flex
+ *   pallet, then pack each wholesale order complete onto the wholesale pallet.
+ *   The combined pack mirrors that staging with three added checklist sections
+ *   (page 1 stays the overall harvest; the pack-house matrix + markets are
+ *   unchanged):
+ *     • CSA — TOTALS      : the SAME per-crop CSA checklist as ?view=csa (built
+ *                           above via csaCombine / csaRowsShown — reused verbatim,
+ *                           no new math), so "build the CSA pallet".
+ *     • FLEX — TOTALS     : the à-la-carte flex demand for the week aggregated to
+ *                           item totals (flexRows — the SAME source the overall
+ *                           merge folds in), each a big line + pen checkbox, so
+ *                           "build the Flex pallet".
+ *     • WHOLESALE — ONE CHECKLIST PER ORDER : one block per order delivering this
+ *                           week (same wholesale_orders source + day/status/junk
+ *                           gates the pack-house matrix uses), account/restaurant
+ *                           name as the heading, its line items each with a pen
+ *                           checkbox — "pack each order complete → wholesale pallet".
+ *   All three are print/preview artifacts (plain pen checkboxes, no live board),
+ *   so no data-pp-line attrs are wired (printpack has no #pp-live-config). */
+
+/** One line inside a per-order wholesale checklist block. */
+interface PrintpackWsaleItem { name: string; qty: number; unit: string; sourceName?: string; }
+/** One wholesale ORDER staged as its own pallet checklist for the combined pack. */
+interface PrintpackWsaleOrder {
+  id: string;
+  /** Restaurant / account name (or "(no account)" when an order has none). */
+  accountName: string;
+  /** Delivery-date label, e.g. "Wed, Aug 6" — the crew's deadline for the pallet. */
+  deliveryLabel: string;
+  items: PrintpackWsaleItem[];
+}
+/** Pretty a YYYY-MM-DD delivery date as "Wed, Aug 6" on the farm clock (TZ-safe:
+ *  parsed as UTC noon so the DOW/day never slip across the timezone boundary). */
+function prettyDeliveryDate(ymd: string): string {
+  const d = new Date(`${ymd}T12:00:00Z`);
+  return new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(d);
+}
+let printpackWsaleOrders: PrintpackWsaleOrder[] = [];
+if (view === 'printpack') {
+  // Resolve restaurant names for the in-scope orders (SAME lookup the pack-house
+  // matrix uses); orders with no account fall back to a "(no account)" heading so
+  // nothing is lost. Market Wagon is just another account here — no special-case.
+  const ppWsAcctIds = Array.from(new Set(
+    (wholesaleOrderRows ?? []).map((o) => o.account_id).filter(Boolean),
+  )) as string[];
+  const ppWsAcctName = new Map<string, string>();
+  if (ppWsAcctIds.length > 0) {
+    const { data: ppAcctRows } = await db
+      .from('wholesale_accounts')
+      .select('id, restaurant_name')
+      .in('id', ppWsAcctIds)
+      .overrideTypes<{ id: string; restaurant_name: string }[], { merge: false }>();
+    for (const a of ppAcctRows ?? []) ppWsAcctName.set(a.id, a.restaurant_name);
+  }
+  const NO_ACCT_LABEL = lang === 'es' ? '(sin cuenta)' : '(no account)';
+  for (const o of wholesaleOrderRows ?? []) {
+    // SAME delivery-day scope + item gates as wholesaleMap / the matrix, so the
+    // per-order blocks carry exactly the demand the totals do.
+    if (!inScope(wholesaleTabFor(o.delivery_date))) continue;
+    const items: PrintpackWsaleItem[] = [];
+    for (const it of o.items ?? []) {
+      const rawName = it.product_name?.trim();
+      if (!rawName || isJunkProductName(rawName)) continue;
+      const qty = Number(it.qty) || 0;
+      if (qty <= 0) continue;
+      // Show the canonical library name when linked (matches the harvest sheet),
+      // with the vendor's own spelling as an "also:" note when it differs — so the
+      // crew matches a crate labeled by the vendor.
+      const libName = it.product?.library?.name?.trim() || null;
+      const name = libName ?? rawName;
+      const sourceName = libName && normCrop(rawName) !== normCrop(libName) ? rawName : undefined;
+      const unit = it.product?.unit?.trim() || 'each';
+      items.push({ name, qty, unit, sourceName });
+    }
+    if (items.length === 0) continue; // an all-junk / empty order stages nothing
+    // Items A→Z within the block (crew reads the pallet top-to-bottom).
+    items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const accountName = o.account_id ? (ppWsAcctName.get(o.account_id) ?? NO_ACCT_LABEL) : NO_ACCT_LABEL;
+    printpackWsaleOrders.push({
+      id: o.id, accountName, deliveryLabel: prettyDeliveryDate(o.delivery_date), items,
+    });
+  }
+  // Order blocks alphabetically by account, then by delivery date (a restaurant
+  // with two orders this week stages its earlier delivery first).
+  printpackWsaleOrders.sort((a, b) =>
+    a.accountName.localeCompare(b.accountName, undefined, { sensitivity: 'base' })
+    || a.deliveryLabel.localeCompare(b.deliveryLabel));
+}
+
 const DAY_LONG: Record<string, string> = {
   Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
   Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
@@ -1298,8 +1390,8 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
       <>
         <p class="screen-only mb-4 rounded-ts-md border border-ts-border bg-ts-bg-muted/40 px-4 py-3 text-sm text-ts-text-secondary">
           🖨 <strong class="text-ts-text">Combined print pack.</strong> This is a preview — press
-          <strong class="text-ts-text"> Print</strong> for the whole document: harvest totals, then the
-          pack house by item, then each market on its own page.
+          <strong class="text-ts-text"> Print</strong> for the whole document: harvest totals, then the CSA,
+          Flex and per-order wholesale pallets, then the pack house by item, then each market on its own page.
         </p>
         <header class="doc-band pp-printpack-header mb-4 rounded-ts-lg px-5 py-4">
           <p class="font-display text-sm font-bold uppercase tracking-wide sm:text-base">
@@ -1526,6 +1618,156 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
           </div>
         )}
         <p class="mt-4 text-xs text-ts-text-muted">{t.pickOnce}</p>
+      </section>
+    )}
+
+    {/* ═══════════════ COMBINED PACK — CSA TOTALS (build the CSA pallet) ═══════════════
+        Todd's pallet-staging order (2026-08-03): after the overall harvest, the
+        combined pack stages each pallet. This is the SAME per-crop CSA checklist
+        as ?view=csa — reusing csaCombine / csaRowsShown verbatim (no new math) —
+        started on its own page (.pp-pallet-page). Plain pen checkboxes only (no
+        live board on printpack), so the data-pp-line attrs are omitted here. */}
+    {view === 'printpack' && (
+      <section aria-labelledby="pp-csa-total-heading" class="harvest-doc pp-pallet-page">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">CSA harvest · {prettyWeekHeader(week_starting)} · {dayScopeLabel}</p>
+          <h2 id="pp-csa-total-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🥬 CSA — totals (build the CSA pallet)</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">{totalCsaBoxes} boxes · box demand from the cycle resolver</p>
+        </header>
+        {csaRows.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">No box plan published for this week.</p>
+          </Card>
+        ) : (
+          <ol class="mt-4 flex flex-col">
+            {csaCombine.combined.map((g) => (
+              <CombinedHarvestRow harvestCrop={g.harvestCrop} totalLb={g.totalLb} variants={g.variants} fmtLb={fmtLb} />
+            ))}
+            {csaRowsShown.map((r) => {
+              const lb = packLb(r.crop, r.qty, r.unit);
+              return (
+                <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                  <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                  <p class="min-w-0 flex-1 text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
+                  <div class="shrink-0 text-right">
+                    <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
+                    <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
+                    {lb != null && (
+                      <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                        {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        <p class="mt-4 text-xs text-ts-text-muted">
+          Box totals reflect each member's resolved composition (default plan + locked swaps + allergy substitutions).
+        </p>
+      </section>
+    )}
+
+    {/* ═══════════════ COMBINED PACK — FLEX TOTALS (build the Flex pallet) ═══════════════
+        The à-la-carte flex demand for the week aggregated to item totals — the
+        SAME flexRows the overall merge folds in (status pending/locked/fulfilled,
+        day-scoped exactly like CSA). Big line + qty + pen checkbox per item, so
+        the crew builds the Flex pallet. Own page (.pp-pallet-page). */}
+    {view === 'printpack' && (
+      <section aria-labelledby="pp-flex-total-heading" class="harvest-doc pp-pallet-page">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Flex harvest · {prettyWeekHeader(week_starting)} · {dayScopeLabel}</p>
+          <h2 id="pp-flex-total-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🌿 Flex — totals (build the Flex pallet)</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">À-la-carte flex orders for the week (pending / locked / fulfilled)</p>
+        </header>
+        {flexRows.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">No flex à-la-carte orders for this week.</p>
+          </Card>
+        ) : (
+          <ol class="mt-4 flex flex-col">
+            {flexRows.map((r) => {
+              const lb = packLb(r.crop, r.qty, r.unit);
+              return (
+                <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                  <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-xl font-bold leading-tight text-ts-text">{r.crop}</p>
+                    {r.sourceName && (
+                      <p class="mt-0.5 text-xs font-medium italic text-ts-text-muted">{t.alsoWord}: {r.sourceName}</p>
+                    )}
+                  </div>
+                  <div class="shrink-0 text-right">
+                    <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{r.qty.toLocaleString()}</span>
+                    <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{r.unit}</span>
+                    {lb != null && (
+                      <p class="mt-0.5 font-display text-base font-extrabold tabular-nums leading-none text-ts-primary">
+                        {fmtLb(lb)}<span class="ml-1 text-xs font-semibold text-ts-text-secondary">to harvest</span>
+                      </p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        <p class="mt-4 text-xs text-ts-text-muted">
+          Flex à-la-carte item totals across every member's order for the week — pick these so we have them for the Flex pallet.
+        </p>
+      </section>
+    )}
+
+    {/* ═══════════════ COMBINED PACK — WHOLESALE, ONE CHECKLIST PER ORDER ═══════════════
+        Todd: pack each wholesale order COMPLETE, order by order, onto the
+        wholesale pallet. One block per order delivering this week (SAME source +
+        day/status/junk gates the pack-house matrix uses; Market Wagon is just
+        another account), restaurant name as the heading with its delivery date,
+        each line item a big line + qty + pen checkbox. Blocks are A→Z by account;
+        break-inside: avoid keeps a block whole on a page. Own page group. */}
+    {view === 'printpack' && (
+      <section aria-labelledby="pp-wsale-total-heading" class="harvest-doc pp-pallet-page pp-wsale-orders">
+        <header class="doc-band rounded-ts-lg px-5 py-4">
+          <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Wholesale harvest · {prettyWeekHeader(week_starting)} · {dayScopeLabel}</p>
+          <h2 id="pp-wsale-total-heading" class="mt-1 font-display text-3xl font-bold sm:text-4xl">🍽 Wholesale — one checklist per order</h2>
+          <p class="mt-1 text-sm font-semibold opacity-95">Pack each order complete → wholesale pallet</p>
+        </header>
+        {printpackWsaleOrders.length === 0 ? (
+          <Card tone="muted" padding="lg" elevation="sm">
+            <p class="text-center text-sm text-ts-text-secondary">No wholesale orders delivering this week.</p>
+          </Card>
+        ) : (
+          <div class="mt-4 flex flex-col gap-5">
+            {printpackWsaleOrders.map((o) => (
+              <section class="pp-wsale-order harvest-group" aria-label={`${o.accountName} — ${o.deliveryLabel}`}>
+                <h3 class="group-head category-head rounded-ts-md px-4 py-2 font-display text-lg font-bold">
+                  {o.accountName}
+                  <span class="ml-2 text-sm font-semibold opacity-80">— deliver {o.deliveryLabel}</span>
+                </h3>
+                <ol class="mt-2 flex flex-col">
+                  {o.items.map((it) => (
+                    <li class="harvest-row flex items-center gap-4 border-b border-ts-border/60 py-3">
+                      <span class="harvest-check inline-block h-7 w-7 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-xl font-bold leading-tight text-ts-text">{it.name}</p>
+                        {it.sourceName && (
+                          <p class="mt-0.5 text-xs font-medium italic text-ts-text-muted">{t.alsoWord}: {it.sourceName}</p>
+                        )}
+                      </div>
+                      <div class="shrink-0 text-right">
+                        <span class="font-display text-3xl font-extrabold tabular-nums leading-none text-ts-text">{it.qty.toLocaleString()}</span>
+                        <span class="ml-1 text-sm font-semibold text-ts-text-secondary">{it.unit}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        )}
+        <p class="mt-4 text-xs text-ts-text-muted">
+          One checklist per wholesale order delivering this week — pack each order complete before it goes on the wholesale pallet.
+        </p>
       </section>
     )}
 
@@ -2231,6 +2473,12 @@ const ppPct = ppTotal > 0 ? Math.round((ppComplete / ppTotal) * 100) : 0;
        trailing blank page a break-after on the last market would leave. */
     .pp-printpack .packhouse-doc { break-before: page; page-break-before: always; }
     .pp-printpack .pp-market-page { break-before: page; page-break-before: always; }
+    /* Pallet-staging sections (CSA totals, Flex totals, Wholesale per-order) each
+       start a fresh page so the crew stages one pallet per sheet. */
+    .pp-printpack .pp-pallet-page { break-before: page; page-break-before: always; }
+    /* Keep each wholesale ORDER block whole on a page — a restaurant's checklist
+       should never split across a page break mid-pallet. */
+    .pp-printpack .pp-wsale-order { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>
 

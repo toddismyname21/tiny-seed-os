@@ -95,6 +95,7 @@ const DAY_LONG: Record<string, string> = {
 function distDateForStop(stop: StopTotals): string {
   if (stop.day_of_week === 'Tue') return cycle.distribution_dates.Tue;
   if (stop.day_of_week === 'Sat') return cycle.distribution_dates.Sat;
+  if (stop.day_of_week === 'Sun') return cycle.distribution_dates.Sun;
   return cycle.distribution_dates.Wed;
 }
 

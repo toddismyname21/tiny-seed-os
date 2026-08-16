@@ -1,0 +1,290 @@
+---
+/**
+ * /admin/wholesale/import — Wholesale order PDF importer.
+ *
+ * Upload a vendor order PDF (Harvie purchase order or Market Wagon fill ticket),
+ * parse it (POST /api/admin/wholesale/import/parse — no DB writes), review/edit
+ * the lines + product mappings, then confirm (POST /import/commit) which writes a
+ * wholesale_orders row so /admin/wholesale/pack + /labels generate automatically.
+ *
+ * All interactivity is inline vanilla JS doing same-origin POSTs; no framework.
+ * Service-role work happens server-side in the two API routes (admin-gated).
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+
+export const prerender = false;
+---
+
+<AdminShell
+  title="Import wholesale order"
+  subtitle="Upload a Harvie or Market Wagon order PDF → it becomes a pick & pack order"
+  pageTitle="Import wholesale order — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <a
+      href="/admin/wholesale"
+      class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary"
+    >← Hub</a>
+  </Fragment>
+
+  {/* ── Step 1: upload ───────────────────────────────────────────── */}
+  <Card padding="lg" elevation="sm" class="mb-5">
+    <h2 class="mb-1 text-lg font-semibold text-gray-900">1 · Upload PDF</h2>
+    <p class="mb-3 text-sm text-gray-500">
+      Drop in the vendor’s order PDF. We’ll detect the vendor and pull out the line items.
+    </p>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <input
+        id="pdf-input"
+        type="file"
+        accept=".pdf,application/pdf"
+        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-gray-700 file:mr-3 file:rounded-ts-md file:border-0 file:bg-ts-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-ts-primary hover:file:bg-ts-primary/20 sm:max-w-md"
+      />
+      <button
+        id="parse-btn"
+        type="button"
+        class="inline-flex h-11 min-h-[44px] items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-transform hover:bg-ts-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      >Parse PDF</button>
+    </div>
+    <p id="parse-status" class="mt-2 text-sm" role="status" aria-live="polite"></p>
+  </Card>
+
+  {/* ── Step 2: review (revealed after a successful parse) ───────── */}
+  <section id="review" hidden>
+    <Card padding="lg" elevation="sm" class="mb-4">
+      <h2 class="mb-3 text-lg font-semibold text-gray-900">2 · Review &amp; map</h2>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Vendor</span>
+          <input id="f-vendor" type="text" readonly class="w-full rounded-ts-md border border-ts-border bg-gray-50 px-3 py-2 text-sm text-gray-700" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Delivery date</span>
+          <input id="f-date" type="date" class="w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-gray-700 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Vendor ref</span>
+          <input id="f-ref" type="text" class="w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-gray-700 focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+        </label>
+      </div>
+    </Card>
+
+    <Card padding="none" elevation="sm" class="mb-4 overflow-x-auto">
+      <table class="w-full min-w-[640px] text-sm">
+        <thead>
+          <tr class="bg-emerald-50 text-left">
+            <th class="px-3 py-2 font-semibold">From the PDF</th>
+            <th class="w-24 px-3 py-2 font-semibold">Qty</th>
+            <th class="px-3 py-2 font-semibold">Map to product</th>
+          </tr>
+        </thead>
+        <tbody id="lines-body"></tbody>
+      </table>
+    </Card>
+
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <button
+        id="commit-btn"
+        type="button"
+        class="inline-flex h-11 min-h-[44px] items-center justify-center rounded-ts-md bg-ts-primary px-5 text-sm font-semibold text-white shadow-ts-sm transition-transform hover:bg-ts-primary-dark active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+      >Confirm &amp; create order</button>
+      <p id="commit-status" class="text-sm" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+</AdminShell>
+
+<script is:inline>
+  (function () {
+    var pdfInput = document.getElementById('pdf-input');
+    var parseBtn = document.getElementById('parse-btn');
+    var parseStatus = document.getElementById('parse-status');
+    var review = document.getElementById('review');
+    var fVendor = document.getElementById('f-vendor');
+    var fDate = document.getElementById('f-date');
+    var fRef = document.getElementById('f-ref');
+    var linesBody = document.getElementById('lines-body');
+    var commitBtn = document.getElementById('commit-btn');
+    var commitStatus = document.getElementById('commit-status');
+
+    // Held between parse → commit.
+    var state = { vendor: '', vendor_display: '', products: [], lines: [] };
+
+    function setStatus(el, msg, kind) {
+      el.textContent = msg || '';
+      el.className =
+        'mt-2 text-sm ' +
+        (kind === 'error'
+          ? 'text-ts-danger'
+          : kind === 'ok'
+            ? 'text-ts-primary'
+            : 'text-gray-500');
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function productOptions(selectedId) {
+      var html = '<option value="">— leave unmapped —</option>';
+      for (var i = 0; i < state.products.length; i++) {
+        var p = state.products[i];
+        var label = p.name + (p.unit ? ' (' + p.unit + ')' : '');
+        var sel = String(p.id) === String(selectedId) ? ' selected' : '';
+        html += '<option value="' + escapeHtml(p.id) + '"' + sel + '>' + escapeHtml(label) + '</option>';
+      }
+      return html;
+    }
+
+    function renderLines() {
+      var rows = '';
+      for (var i = 0; i < state.lines.length; i++) {
+        var ln = state.lines[i];
+        var priceNote =
+          ln.unit_price_cents == null
+            ? ''
+            : ' · $' + (ln.unit_price_cents / 100).toFixed(2) + '/unit';
+        rows +=
+          '<tr class="border-t border-gray-100 align-top" data-i="' + i + '">' +
+            '<td class="px-3 py-2"><div class="font-medium text-gray-900">' +
+              escapeHtml(ln.raw_description) +
+            '</div><div class="text-xs text-gray-400">' +
+              escapeHtml(ln.vendor_key) + escapeHtml(priceNote) +
+            '</div></td>' +
+            '<td class="px-3 py-2"><input type="number" min="0" step="0.01" value="' +
+              escapeHtml(ln.qty) +
+              '" class="qty-input w-20 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 py-1.5 text-sm focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" /></td>' +
+            '<td class="px-3 py-2"><select class="map-select w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 py-1.5 text-sm focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30">' +
+              productOptions(ln.mapped_product_id) +
+            '</select></td>' +
+          '</tr>';
+      }
+      linesBody.innerHTML = rows;
+    }
+
+    function syncStateFromInputs() {
+      var trs = linesBody.querySelectorAll('tr[data-i]');
+      for (var i = 0; i < trs.length; i++) {
+        var tr = trs[i];
+        var idx = parseInt(tr.getAttribute('data-i'), 10);
+        var qtyEl = tr.querySelector('.qty-input');
+        var selEl = tr.querySelector('.map-select');
+        var qty = parseFloat(qtyEl.value);
+        state.lines[idx].qty = isFinite(qty) ? qty : 0;
+        var pid = selEl.value || null;
+        state.lines[idx].mapped_product_id = pid;
+        // Keep a product_name that always has a value (pack page renders off it).
+        if (pid) {
+          var match = state.products.filter(function (p) { return String(p.id) === String(pid); })[0];
+          state.lines[idx].product_name = match ? match.name : state.lines[idx].raw_description;
+        } else {
+          state.lines[idx].product_name = state.lines[idx].raw_description;
+        }
+      }
+    }
+
+    parseBtn.addEventListener('click', function () {
+      var file = pdfInput.files && pdfInput.files[0];
+      if (!file) {
+        setStatus(parseStatus, 'Choose a PDF first.', 'error');
+        return;
+      }
+      parseBtn.disabled = true;
+      setStatus(parseStatus, 'Parsing ' + file.name + '…', 'info');
+
+      var fd = new FormData();
+      fd.append('file', file);
+
+      fetch('/api/admin/wholesale/import/parse', { method: 'POST', body: fd })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.j || !res.j.ok) {
+            var msg = res.j && res.j.detail ? res.j.detail : (res.j && res.j.error) || 'Parse failed.';
+            setStatus(parseStatus, 'Could not parse: ' + msg, 'error');
+            return;
+          }
+          var j = res.j;
+          state.vendor = j.vendor;
+          state.vendor_display = j.vendor_display;
+          state.products = j.products || [];
+          state.lines = (j.lines || []).map(function (ln) {
+            return {
+              vendor_key: ln.vendor_key,
+              raw_description: ln.raw_description,
+              qty: ln.qty,
+              unit_price_cents: ln.unit_price_cents,
+              mapped_product_id: ln.mapped_product_id || null,
+              product_name: ln.mapped_product_name || ln.raw_description
+            };
+          });
+          fVendor.value = j.vendor_display;
+          fDate.value = j.delivery_date || '';
+          fRef.value = j.external_ref || '';
+          renderLines();
+          review.hidden = false;
+          setStatus(
+            parseStatus,
+            'Parsed ' + state.lines.length + ' line' + (state.lines.length === 1 ? '' : 's') +
+              ' from ' + j.vendor_display + '. Review below.',
+            'ok'
+          );
+          review.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        })
+        .catch(function (e) {
+          setStatus(parseStatus, 'Network error: ' + e.message, 'error');
+        })
+        .finally(function () { parseBtn.disabled = false; });
+    });
+
+    commitBtn.addEventListener('click', function () {
+      if (!fDate.value) {
+        setStatus(commitStatus, 'A delivery date is required.', 'error');
+        return;
+      }
+      syncStateFromInputs();
+      commitBtn.disabled = true;
+      setStatus(commitStatus, 'Creating order…', 'info');
+
+      var payload = {
+        vendor: state.vendor,
+        vendor_display: state.vendor_display,
+        delivery_date: fDate.value,
+        external_ref: fRef.value ? fRef.value.trim() : null,
+        lines: state.lines.map(function (ln) {
+          return {
+            vendor_key: ln.vendor_key,
+            product_id: ln.mapped_product_id || null,
+            product_name: ln.product_name,
+            qty: ln.qty,
+            unit_price_cents: ln.unit_price_cents == null ? null : ln.unit_price_cents
+          };
+        })
+      };
+
+      fetch('/api/admin/wholesale/import/commit', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.j || !res.j.ok) {
+            var msg = res.j && res.j.error ? res.j.error : 'Commit failed.';
+            setStatus(commitStatus, 'Could not create order: ' + msg, 'error');
+            commitBtn.disabled = false;
+            return;
+          }
+          setStatus(commitStatus, 'Order created — opening pick & pack…', 'ok');
+          window.location.href = res.j.redirect || '/admin/wholesale';
+        })
+        .catch(function (e) {
+          setStatus(commitStatus, 'Network error: ' + e.message, 'error');
+          commitBtn.disabled = false;
+        });
+    });
+  })();
+</script>

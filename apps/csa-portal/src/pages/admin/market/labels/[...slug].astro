@@ -1,0 +1,462 @@
+---
+/**
+ * /admin/market/labels/[week] — printable FARMERS-MARKET PRODUCT SIGNS.
+ *
+ * REBUILT to the Tiny Seed OS "Sale Sign" design (labels.html) that Todd dialed
+ * in + verified against signage research (researcher 2026-06-26):
+ *   - 2-column layout: LEFT = logo / crop kicker / big product name / USDA seal /
+ *     footer; RIGHT = a BOLD BRAND-COLOR price block (research #9: a colored
+ *     price block beats plain black-on-white).
+ *   - Price is the dominant element (~3:1 over the name), Barlow Condensed 900.
+ *   - NO "$" — bare numeral (Cornell pricing-psychology study; research #4).
+ *   - Unit shown under the price (research #7); "2 for X" bulk/deal line on the
+ *     SAME sign (research #6). Herbs show "MIX & MATCH" on the bulk line.
+ *   - USDA Organic seal on a light background (research #10 / USDA rules).
+ *   - 2 signs per Letter page (the size the design was tuned for).
+ *
+ * ONE sign per PRODUCT (deduped by library_id). No-price items render a blank,
+ * hand-writable price field. Inline edit (name + price) persists via
+ * /api/admin/market/sign-edit. Per-sign print toggle + select all/none.
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import Card from '../../../../components/Card.astro';
+import { mondayOfWeek, isMonday } from '../../../../lib/cycle';
+
+const supabase = Astro.locals.supabase;
+const slugParam = (Astro.params.slug ?? '') as string;
+const segments = slugParam.split('/').filter(Boolean);
+if (segments.length === 0) return Astro.redirect('/admin/market', 303);
+const week_input = segments[0];
+if (!/^\d{4}-\d{2}-\d{2}$/.test(week_input)) return Astro.redirect('/admin/market?error=bad_week', 303);
+const week_starting = isMonday(week_input) ? week_input : mondayOfWeek(week_input);
+
+const okFlag = Astro.url.searchParams.get('ok');
+const okSaved = okFlag === 'saved';
+const okAdded = okFlag === 'added';
+const errCode = Astro.url.searchParams.get('error');
+
+const LOGO_SRC = '/tiny-seed-logo-bw.png';
+const USDA_SRC = '/usda-organic-seal.svg';
+
+type OfferingRow = {
+  library_id: string;
+  name: string | null;
+  unit: string;
+  price_cents: number;
+  deal_qty: number | null;
+  deal_price_cents: number | null;
+  library: { name: string; category: string | null } | null;
+};
+
+const { data: offeringRows, error: offeringsErr } = await supabase
+  .from('market_offerings')
+  .select('library_id, name, unit, price_cents, deal_qty, deal_price_cents, library:product_library ( name, category )')
+  .eq('week_starting', week_starting)
+  .eq('is_active', true)
+  .overrideTypes<OfferingRow[], { merge: false }>();
+if (offeringsErr) console.error('[admin/market/labels] offerings fetch failed:', offeringsErr.message);
+
+const byProduct = new Map<string, OfferingRow>();
+for (const o of offeringRows ?? []) if (!byProduct.has(o.library_id)) byProduct.set(o.library_id, o);
+
+/** Category → the Sale Sign accent class (veg green / herb teal / flower pink). */
+function accentClass(category: string | null): string {
+  const c = (category ?? '').toLowerCase();
+  if (c.includes('herb')) return 'cat-herb';
+  if (c.includes('flower') || c.includes('garnish')) return 'cat-flower';
+  if (c.includes('mushroom') || c.includes('specialty')) return 'cat-other';
+  return 'cat-veg';
+}
+/** Bare numeral — NO "$" (pricing psychology): "4" / "4.50". */
+function dollars(cents: number): string {
+  const v = cents / 100;
+  return Number.isInteger(v) ? `${v}` : `${v.toFixed(2)}`;
+}
+function nameOf(o: OfferingRow): string { return o.name ?? o.library?.name ?? 'Untitled'; }
+
+interface Sign {
+  library_id: string;
+  crop: string;        // category kicker
+  name: string;
+  accentCls: string;
+  price: string;       // numeral, or '' for a blank hand-write field
+  unit: string;
+  bulk: string;        // "2 FOR 7" / "2 FOR 5 · MIX & MATCH" / ''
+}
+const signs: Sign[] = Array.from(byProduct.values())
+  .sort((a, b) => nameOf(a).localeCompare(nameOf(b)))
+  .map((o) => {
+    const isHerb = (o.library?.category ?? '').toLowerCase().includes('herb');
+    let bulk = '';
+    if (o.deal_qty && o.deal_price_cents) {
+      bulk = `${o.deal_qty} FOR ${dollars(o.deal_price_cents)}`;
+      if (isHerb) bulk += ' · MIX & MATCH';
+    }
+    return {
+      library_id: o.library_id,
+      crop: o.library?.category ?? '',
+      name: nameOf(o),
+      accentCls: accentClass(o.library?.category ?? null),
+      price: o.price_cents > 0 ? dollars(o.price_cents) : '',
+      unit: o.unit && o.unit !== 'each' ? `per ${o.unit}` : 'each',
+      bulk,
+    };
+  });
+
+// 4 signs per Letter page (2×2, landscape) — same design, smaller.
+const perSheet = 4;
+const sheetCount = Math.max(1, Math.ceil(signs.length / perSheet));
+const padded: (Sign | null)[] = [...signs];
+while (padded.length < sheetCount * perSheet) padded.push(null);
+
+const prettyWk = (() => {
+  const [y, m, d] = week_starting.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+})();
+---
+
+<AdminShell
+  title="Market product signs"
+  subtitle={`Week of ${prettyWk} · ${signs.length} sign${signs.length === 1 ? '' : 's'} · 4 per page (landscape)`}
+  pageTitle="Market signs — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <button type="button" onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">🖨 Print signs</button>
+    <a href={`/admin/market?week=${week_starting}`} class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">← Market</a>
+  </Fragment>
+
+  {signs.length === 0 ? (
+    <Card padding="lg" elevation="sm"><p class="text-sm text-gray-500">No active market products for the week of {prettyWk}. Add them in <a class="text-ts-primary underline" href={`/admin/market?week=${week_starting}`}>the market editor</a>.</p></Card>
+  ) : (
+    <Fragment>
+      {okSaved && <div class="screen-only edit-toast">✓ Saved — the signs, price sheet, and market lists are updated.</div>}
+      {okAdded && <div class="screen-only edit-toast">✓ Added — your new sign is below, ready to print.</div>}
+      {errCode && <div class="screen-only edit-toast err">Couldn't do that ({errCode}). Try again.</div>}
+      <details class="screen-only edit-panel add-panel">
+        <summary>➕ Add a sign — for a last-minute item</summary>
+        <form method="POST" action="/api/admin/market/sign-add" class="add-form">
+          <input type="hidden" name="week_starting" value={week_starting} />
+          <input type="text" name="name" placeholder="Item name (e.g. Sungold Tomatoes)" required class="add-name" />
+          <select name="category" class="add-cat" aria-label="Color category">
+            <option value="Vegetables">Veg (green)</option>
+            <option value="Herbs">Herbs (teal)</option>
+            <option value="Flowers">Flowers (pink)</option>
+            <option value="Other">Other (gray)</option>
+          </select>
+          <span class="edit-dollar">$</span>
+          <input type="number" name="price_dollars" step="0.01" min="0" placeholder="price — optional" class="add-price" />
+          <input type="text" name="unit" placeholder="unit (each)" class="add-unit" />
+          <button type="submit" class="edit-save">Add sign</button>
+        </form>
+        <p class="add-hint">Leave the price blank for a hand-write sign. It's added to this week's market list (so it shows on the price sheet too).</p>
+      </details>
+      <details class="screen-only edit-panel">
+        <summary>✏️ Edit names &amp; prices — saves through the whole system (signs · price sheet · pick lists)</summary>
+        <div class="edit-grid">
+          {Array.from(byProduct.values()).sort((a, b) => nameOf(a).localeCompare(nameOf(b))).map((o) => (
+            <form method="POST" action="/api/admin/market/sign-edit" class="edit-row">
+              <input type="hidden" name="week_starting" value={week_starting} />
+              <input type="hidden" name="library_id" value={o.library_id} />
+              <input type="text" name="name" value={nameOf(o)} aria-label="Product name" class="edit-name" />
+              <span class="edit-dollar">$</span>
+              <input type="number" name="price_dollars" step="0.01" min="0" value={o.price_cents > 0 ? (o.price_cents / 100).toFixed(2) : ''} placeholder="—" aria-label="Price" class="edit-price" />
+              <button type="submit" class="edit-save">Save</button>
+            </form>
+          ))}
+        </div>
+      </details>
+      <div class="screen-only print-controls">
+        <span class="pc-label">Print:</span>
+        <button type="button" id="sel-all" class="pc-btn">Select all</button>
+        <button type="button" id="sel-none" class="pc-btn">Select none</button>
+        <span id="sel-count" class="pc-count"></span>
+        <span class="pc-hint">Uncheck a sign to leave it out — print just the few you need.</span>
+      </div>
+      <div class="screen-only blank-controls">
+        <span class="pc-label">🖊 Blank signs:</span>
+        <select id="blank-cat" class="pc-select" aria-label="Blank sign color">
+          <option value="cat-veg">Veg (green)</option>
+          <option value="cat-herb">Herbs (teal)</option>
+          <option value="cat-flower">Flowers (pink)</option>
+          <option value="cat-other">Other (gray)</option>
+        </select>
+        <button type="button" id="blank-add" class="pc-btn">+ Add one</button>
+        <button type="button" id="blank-page" class="pc-btn">+ Add a full page (4)</button>
+        <button type="button" id="blank-clear" class="pc-btn">Clear</button>
+        <span id="blank-count" class="pc-count"></span>
+        <span class="pc-hint">Blank signs (4 per page) to hand-write a name &amp; price at market — for anything you brought but didn't note. Type one in now, or leave it empty to write on.</span>
+      </div>
+      <p class="screen-only mb-3 text-xs text-ts-text-muted">Print at 100% on Letter paper — 2 signs per page. No-price items print a blank box to hand-write the price.</p>
+
+      <div class="sign-doc">
+        {Array.from({ length: sheetCount }, (_, sheetIdx) => (
+          <section class="sign-sheet">
+            {padded.slice(sheetIdx * perSheet, sheetIdx * perSheet + perSheet).map((s) => (
+              s ? (
+                <div class={`sale-sign ${s.accentCls}`} data-lib={s.library_id} data-week={week_starting}>
+                  <label class="sign-toggle screen-only"><input type="checkbox" class="sign-cb" checked /> Print</label>
+                  <div class="ss-left">
+                    <div class="ss-header"><img class="ss-farm-logo" src={LOGO_SRC} alt="Tiny Seed Farm" /></div>
+                    <div class="ss-main">
+                      {s.crop && <div class="ss-crop">{s.crop}</div>}
+                      <div class={`ss-variety ${s.name.length <= 9 ? 'short' : s.name.length >= 17 ? 'long' : ''} editable`} contenteditable="true" spellcheck="false" data-field="name" title="Click to rename">{s.name}</div>
+                      <img class="ss-usda-seal" src={USDA_SRC} alt="USDA Certified Organic" />
+                    </div>
+                    <div class="ss-footer"><span>Certified Organic</span><span>tinyseedfarm.com</span></div>
+                  </div>
+                  <div class={`ss-right ${s.price ? '' : 'is-blank'}`}>
+                    <div class="ss-price-label">{s.unit}</div>
+                    <div class={`ss-price ${s.price.length >= 3 ? 'long' : ''} editable`} contenteditable="true" spellcheck="false" data-field="price" title="Click to change the price">{s.price}</div>
+                    {s.bulk && <div class="ss-price-bulk-line">{s.bulk}</div>}
+                  </div>
+                  <span class="sign-saved screen-only" aria-hidden="true">✓ saved</span>
+                </div>
+              ) : null
+            ))}
+          </section>
+        ))}
+      </div>
+
+      <div id="blank-doc" class="sign-doc"></div>
+    </Fragment>
+  )}
+
+  <div id="save-toast" class="save-toast screen-only" role="status" aria-live="polite">✓ Changes saved</div>
+
+  <script is:inline>
+    (function () {
+      var toast = document.getElementById('save-toast');
+      function showToast() {
+        if (!toast) return;
+        toast.classList.add('show');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(function () { toast.classList.remove('show'); }, 1900);
+      }
+      // ── Print toggle ──
+      function update() {
+        var cbs = document.querySelectorAll('.sign-cb');
+        var n = 0;
+        cbs.forEach(function (cb) {
+          var sign = cb.closest('.sale-sign');
+          if (!sign) return;
+          if (cb.checked) { sign.classList.remove('no-print'); n++; }
+          else { sign.classList.add('no-print'); }
+        });
+        var c = document.getElementById('sel-count');
+        if (c) c.textContent = n + ' of ' + cbs.length + ' selected';
+      }
+      document.querySelectorAll('.sign-cb').forEach(function (cb) { cb.addEventListener('change', update); });
+      var a = document.getElementById('sel-all'), z = document.getElementById('sel-none');
+      if (a) a.addEventListener('click', function () { document.querySelectorAll('.sign-cb').forEach(function (cb) { cb.checked = true; }); update(); });
+      if (z) z.addEventListener('click', function () { document.querySelectorAll('.sign-cb').forEach(function (cb) { cb.checked = false; }); update(); });
+      update();
+
+      // ── Inline click-to-edit: name + price, saved on blur/Enter ──
+      function flashSaved(sign) {
+        var s = sign.querySelector('.sign-saved');
+        if (!s) return;
+        s.classList.add('show');
+        setTimeout(function () { s.classList.remove('show'); }, 1500);
+      }
+      function saveSign(sign) {
+        var nameEl = sign.querySelector('[data-field="name"]');
+        var priceEl = sign.querySelector('[data-field="price"]');
+        var name = (nameEl ? nameEl.textContent : '').replace(/\s+/g, ' ').trim();
+        var priceRaw = (priceEl ? priceEl.textContent : '').replace(/[^0-9.]/g, '').trim();
+        // Normalize what's shown (drop any "$" the user typed; keep name tidy).
+        if (nameEl) nameEl.textContent = name;
+        if (priceEl) {
+          priceEl.textContent = priceRaw;
+          if (priceRaw.length >= 3) priceEl.classList.add('long'); else priceEl.classList.remove('long');
+        }
+        var right = sign.querySelector('.ss-right');
+        if (right) { if (priceRaw === '') right.classList.add('is-blank'); else right.classList.remove('is-blank'); }
+        var fd = new FormData();
+        fd.append('week_starting', sign.getAttribute('data-week'));
+        fd.append('library_id', sign.getAttribute('data-lib'));
+        fd.append('name', name);
+        fd.append('price_dollars', priceRaw);
+        fd.append('ajax', '1');
+        sign.classList.add('saving');
+        fetch('/api/admin/market/sign-edit', { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { sign.classList.remove('saving'); if (j && j.ok) { flashSaved(sign); showToast(); } })
+          .catch(function () { sign.classList.remove('saving'); });
+      }
+      document.querySelectorAll('.sale-sign [data-field]').forEach(function (el) {
+        el.addEventListener('blur', function () { saveSign(el.closest('.sale-sign')); });
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+        });
+      });
+
+      // ── Blank hand-write signs (client-only; not saved — throwaway templates) ──
+      var LOGO = '/tiny-seed-logo-bw.png';
+      var USDA = '/usda-organic-seal.svg';
+      var blankDoc = document.getElementById('blank-doc');
+      var blankCat = document.getElementById('blank-cat');
+      function blankSignHTML(cat) {
+        return '<div class="sale-sign ' + cat + ' blank-sign">' +
+          '<div class="ss-left">' +
+            '<div class="ss-header"><img class="ss-farm-logo" src="' + LOGO + '" alt="Tiny Seed Farm" /></div>' +
+            '<div class="ss-main">' +
+              '<div class="ss-crop blank-kicker" contenteditable="true" spellcheck="false"></div>' +
+              '<div class="ss-variety blank-line" contenteditable="true" spellcheck="false"></div>' +
+              '<img class="ss-usda-seal" src="' + USDA + '" alt="USDA Certified Organic" />' +
+            '</div>' +
+            '<div class="ss-footer"><span>Certified Organic</span><span>tinyseedfarm.com</span></div>' +
+          '</div>' +
+          '<div class="ss-right is-blank">' +
+            '<div class="ss-price-label" contenteditable="true" spellcheck="false">each</div>' +
+            '<div class="ss-price" contenteditable="true" spellcheck="false"></div>' +
+          '</div>' +
+        '</div>';
+      }
+      function lastBlankSheet() {
+        if (!blankDoc) return null;
+        var sheets = blankDoc.querySelectorAll('.sign-sheet');
+        var last = sheets[sheets.length - 1];
+        if (!last || last.children.length >= 4) {
+          last = document.createElement('section');
+          last.className = 'sign-sheet';
+          blankDoc.appendChild(last);
+        }
+        return last;
+      }
+      function updateBlankCount() {
+        var n = blankDoc ? blankDoc.querySelectorAll('.blank-sign').length : 0;
+        var c = document.getElementById('blank-count');
+        if (c) c.textContent = n ? (n + ' blank' + (n === 1 ? '' : 's') + ' ready') : '';
+      }
+      function addBlank() {
+        var sheet = lastBlankSheet();
+        if (!sheet) return;
+        var cat = blankCat ? blankCat.value : 'cat-veg';
+        var tmp = document.createElement('div');
+        tmp.innerHTML = blankSignHTML(cat);
+        sheet.appendChild(tmp.firstChild);
+        updateBlankCount();
+      }
+      var bAdd = document.getElementById('blank-add');
+      var bPage = document.getElementById('blank-page');
+      var bClear = document.getElementById('blank-clear');
+      if (bAdd) bAdd.addEventListener('click', addBlank);
+      if (bPage) bPage.addEventListener('click', function () { for (var i = 0; i < 4; i++) addBlank(); });
+      if (bClear) bClear.addEventListener('click', function () { if (blankDoc) blankDoc.innerHTML = ''; updateBlankCount(); });
+    })();
+  </script>
+</AdminShell>
+
+<style is:global>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Inter:wght@400;600;700;800&display=swap');
+  .screen-only { display: block; }
+  .sign-doc { display: flex; flex-direction: column; gap: 1.25rem; align-items: center; }
+  /* 2×2 grid of signs per sheet (landscape proportions). */
+  .sign-sheet { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 0.2in; width: 10in; height: 7.6in; }
+
+  /* ── The Sale Sign (ported from labels.html, accents preserved) — fills its
+       2×2 grid cell. ── */
+  .sale-sign {
+    position: relative; width: 100%; height: 100%; background: #fff; color: #0a0a0a;
+    display: grid; grid-template-columns: 1.55fr 1fr; overflow: hidden;
+    border: 1px solid #e2e2e2;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .sale-sign.cat-veg { --ss-accent: #16a34a; }
+  .sale-sign.cat-flower { --ss-accent: #be185d; }
+  .sale-sign.cat-herb { --ss-accent: #2a9d8f; }
+  .sale-sign.cat-other { --ss-accent: #475569; }
+  .ss-left { padding: 0.18in 0.2in; display: flex; flex-direction: column; justify-content: space-between; border-right: 2.5px solid var(--ss-accent); min-width: 0; }
+  .ss-header { display: flex; justify-content: center; align-items: center; padding-bottom: 0.07in; border-bottom: 1.5px solid #ededed; }
+  .ss-farm-logo { height: 0.62in; width: auto; max-width: 2.4in; object-fit: contain; display: block; }
+  .ss-main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.04in 0; min-height: 0; }
+  .ss-crop { font-size: 8pt; font-weight: 600; text-transform: uppercase; letter-spacing: 3px; color: var(--ss-accent); margin-bottom: 3pt; }
+  .ss-variety { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 28pt; line-height: 0.94; letter-spacing: -0.7px; color: #0a0a0a; text-transform: uppercase; }
+  .ss-variety.short { font-size: 34pt; }
+  .ss-variety.long { font-size: 20pt; }
+  .ss-usda-seal { height: 0.58in; width: 0.58in; object-fit: contain; display: block; margin: 0.09in auto 0; }
+  .ss-footer { display: flex; justify-content: space-between; font-size: 6.5pt; color: #999; padding-top: 0.06in; border-top: 1px solid #ededed; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* RIGHT — bold brand-color PRICE block (research #9). */
+  .ss-right { background: var(--ss-accent); color: #fff; padding: 0.18in 0.14in; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .ss-price-label { font-size: 8.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; opacity: 0.85; }
+  .ss-price { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 900; font-size: 74pt; line-height: 0.82; letter-spacing: -2px; }
+  .ss-price.long { font-size: 50pt; letter-spacing: -1.5px; }
+  .ss-price-bulk-line { font-family: 'Barlow Condensed', Inter, sans-serif; font-size: 10.5pt; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.95; margin-top: 5pt; padding-top: 5pt; border-top: 1.5px solid rgba(255,255,255,0.35); }
+  /* No price → blank, hand-writable field (white so a pen reads). */
+  .ss-right.is-blank { background: #fff; color: var(--ss-accent); }
+  .ss-right.is-blank .ss-price-label { opacity: 1; }
+  .ss-right.is-blank .ss-price { min-width: 0.9in; min-height: 0.6in; border-bottom: 3px solid currentColor; margin-top: 6pt; }
+
+  /* ── Inline click-to-edit affordances (screen only — print ignores :hover/:focus) ── */
+  .editable { cursor: text; border-radius: 4px; outline: none; transition: box-shadow 0.12s, background 0.12s; }
+  .ss-main .editable:hover { box-shadow: inset 0 -2px 0 0 rgba(0,0,0,0.2); }
+  .ss-right .editable:hover { box-shadow: inset 0 -2px 0 0 rgba(255,255,255,0.55); }
+  .ss-main .editable:focus { background: rgba(0,0,0,0.04); box-shadow: 0 0 0 2px rgba(22,163,74,0.55); }
+  .ss-right .editable:focus { background: rgba(255,255,255,0.18); box-shadow: 0 0 0 2px rgba(255,255,255,0.75); }
+  .sign-saved { position: absolute; top: 6px; right: 8px; z-index: 3; font-size: 0.7rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 1px 7px; border-radius: 999px; opacity: 0; transform: translateY(-3px); transition: opacity 0.15s, transform 0.15s; pointer-events: none; }
+  .sign-saved.show { opacity: 1; transform: translateY(0); }
+  .saving { opacity: 0.88; }
+  /* Global "saved" popup. */
+  .save-toast { position: fixed; left: 50%; bottom: 1.5rem; transform: translate(-50%, 1rem); z-index: 50; background: #16a34a; color: #fff; font-size: 0.95rem; font-weight: 700; padding: 0.65rem 1.25rem; border-radius: 999px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; }
+  .save-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ── Inline edit panel + print controls (screen only) ── */
+  .sign-toggle { position: absolute; top: 4px; left: 6px; z-index: 2; font-size: 0.65rem; color: #6b7280; display: flex; align-items: center; gap: 3px; background: rgba(255,255,255,0.9); padding: 1px 5px; border-radius: 4px; }
+  .edit-toast { margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: #dcfce7; color: #166534; font-size: 0.85rem; font-weight: 600; }
+  .edit-toast.err { background: #fee2e2; color: #991b1b; }
+  .edit-panel { margin-bottom: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.85rem; }
+  .edit-panel summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; color: #374151; }
+  .edit-grid { margin-top: 0.75rem; display: grid; gap: 0.4rem; }
+  .edit-row { display: flex; align-items: center; gap: 0.4rem; }
+  .edit-name { flex: 1; min-width: 0; padding: 0.3rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; }
+  .edit-dollar { color: #6b7280; }
+  .edit-price { width: 5rem; padding: 0.3rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; }
+  .edit-save { padding: 0.3rem 0.8rem; border-radius: 0.4rem; background: #16a34a; color: #fff; font-size: 0.8rem; font-weight: 600; border: none; cursor: pointer; }
+  .edit-save:hover { background: #15803d; }
+  .add-panel summary { color: #15803d; }
+  .add-form { margin-top: 0.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+  .add-name { flex: 1 1 12rem; min-width: 0; padding: 0.35rem 0.55rem; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; }
+  .add-cat { padding: 0.35rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; background: #fff; }
+  .add-price { width: 8rem; padding: 0.35rem 0.55rem; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; }
+  .add-unit { width: 7rem; padding: 0.35rem 0.55rem; border: 1px solid #d1d5db; border-radius: 0.4rem; font-size: 0.85rem; }
+  .add-hint { margin-top: 0.5rem; font-size: 0.78rem; color: #9ca3af; }
+  .print-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; font-size: 0.85rem; }
+  .pc-label { font-weight: 600; color: #374151; }
+  .pc-btn { padding: 0.25rem 0.6rem; border: 1px solid #d1d5db; border-radius: 0.4rem; background: #fff; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+  .pc-btn:hover { border-color: #16a34a; color: #15803d; }
+  .pc-count { color: #6b7280; font-variant-numeric: tabular-nums; }
+  .pc-hint { color: #9ca3af; font-size: 0.78rem; }
+  .blank-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; font-size: 0.85rem; }
+  .pc-select { padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.4rem; background: #fff; font-size: 0.8rem; font-weight: 600; }
+
+  /* ── Blank hand-write signs (built client-side) — a name line + a price line
+       to fill in at market. Same Sale Sign frame, with write-on rules that show
+       only while the field is empty. ── */
+  .blank-sign .ss-crop.blank-kicker:empty { min-height: 9pt; }
+  .blank-sign .ss-variety.blank-line { width: 86%; margin: 0 auto; }
+  .blank-sign .ss-variety.blank-line:empty { min-height: 0.62in; border-bottom: 3px solid #cbd5e1; }
+  .ss-right.is-blank .ss-price:not(:empty) { border-bottom: 0; min-height: 0; }
+
+  @media print {
+    /* Strip the page/document chrome so the sheets reach every edge. */
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+    .screen-only { display: none !important; }
+    .sale-sign.no-print { display: none !important; }
+    .sign-doc { gap: 0; margin: 0; align-items: stretch; }
+    /* FULL-BLEED 2×2 — each sheet fills one landscape page edge-to-edge, no gaps,
+       so cutting the paper in quarters yields 4 equal signs (Todd: no margins,
+       just cut in four). The thin hairline border doubles as the cut guide.
+       Page breaks go BEFORE each sheet (never AFTER the last one) so there is no
+       trailing blank page — that empty page is what put the website URL/date in
+       the bottom margin. */
+    .sign-sheet { width: 11in; height: 8.5in; gap: 0; break-inside: avoid; }
+    .sign-sheet:not(:first-child) { break-before: page; page-break-before: always; }
+    .sign-doc + .sign-doc > .sign-sheet:first-child { break-before: page; page-break-before: always; }
+    .sale-sign { border: 0.5pt solid #cfcfcf; }
+    .sale-sign, .ss-left, .ss-right, .ss-farm-logo, .ss-usda-seal, .ss-price, .ss-variety, .ss-crop {
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    @page { size: letter landscape; margin: 0; }
+  }
+</style>

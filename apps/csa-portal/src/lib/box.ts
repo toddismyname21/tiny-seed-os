@@ -2,9 +2,12 @@
  * Box-customization helpers shared between /box, /api/box/swap, and
  * /api/box/swap-undo.
  *
- * Pittsburgh is in America/New_York (Eastern). Boxes deliver Wednesday
- * — the cutoff for swaps is **Tuesday at 8:00 AM Eastern** (24 hours
- * before delivery, so the warehouse can finalize the pack list).
+ * Pittsburgh is in America/New_York (Eastern). The swap cutoff is UNIFIED with
+ * Farm Flex and pickup-day-aware (Todd 2026-06-26): Sat/Sun-market members lock
+ * Thursday 7 AM ET; everyone else (Tue market / Wed CSA / home delivery) locks
+ * the cycle Monday 7 AM ET. isCutoffPassed delegates to lib/flex-order.ts
+ * `cutoffEpochMs` — the single source of truth. (The formatInTZ /
+ * computeETInstantMs helpers below are now unused — slated for cleanup.)
  *
  * Implementation notes:
  *   - We don't pull a TZ database. Instead we use Intl.DateTimeFormat
@@ -18,66 +21,33 @@
  *     We check `now_ET >= cutoff` to decide if the cutoff has passed.
  */
 
-import { mondayOfWeek, addDays } from './cycle';
+import { mondayOfWeek } from './cycle';
+import { cutoffEpochMs, type PickupDay } from './flex-order';
 
 export const OWNER_EMAIL = 'todd@tinyseedfarmpgh.com';
 
 /**
- * Cutoff = Tuesday 8 AM Eastern, where week_date is the following
- * Wednesday delivery date.
+ * Has the box-customization cutoff passed for this cycle week?
  *
- * Returns true if `now` is at or past the cutoff for `week_date`.
+ * UNIFIED CUTOFF (Todd 2026-06-26): box swaps share the SAME pickup-day-aware
+ * deadline as Farm Flex, delegated to `cutoffEpochMs` (lib/flex-order.ts) — the
+ * single source of truth, so the two can never drift apart again. The member's
+ * pickup day selects which cutoff applies:
+ *   • Sat/Sun markets (weekend run)                         → Thursday 7 AM ET
+ *   • Tue market / Wed CSA / home delivery / no-pickup       → Monday 7 AM ET
  *
- * Example:
- *   isCutoffPassed('2026-05-13', new Date('2026-05-12T13:00:00Z'))
- *      → false (it's 9 AM ET on Tuesday — cutoff is 8 AM ET, so passed)
- *   wait — UTC 13:00 on May 12 = ET 09:00 on May 12 (EDT). 9 AM > 8 AM
- *      → so this should be true. Let's check the implementation below.
+ * `weekDate` may be the cycle MONDAY or the delivery WEDNESDAY — we normalize to
+ * the cycle Monday so behaviour is identical for either input. `pickupDay`
+ * defaults to null (→ the Monday cutoff) so a missing pickup never grants the
+ * later weekend window by accident.
+ *
+ * Returns true if `now` is at or past the cutoff for `weekDate`.
  */
-export function isCutoffPassed(weekDate: string, now: Date): boolean {
-  // Validate the incoming cycle date.
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(weekDate);
-  if (!m) {
-    // Defensive: caller should validate, but if a malformed date sneaks
-    // in we treat it as "no cutoff passed" so the API returns a more
-    // useful error elsewhere (invalid_input) rather than 403'ing.
-    return false;
-  }
-
-  // CYCLE-WEEK NORMALIZATION (2026-06-14): the cutoff is always Tuesday 8 AM
-  // Eastern of the cycle's delivery week — and that's true whether the caller
-  // passes the delivery WEDNESDAY (the /box page's `targetWeek`) or the cycle
-  // MONDAY (the key box_contents/box_swaps actually use, which the swap +
-  // swap-undo APIs now receive as `week_date`). We anchor on the cycle Monday
-  // and add 1 day → Tuesday, so cutoff behaviour is identical for both inputs
-  // and does NOT shift when the DB key moved Wed→Mon. (mondayOfWeek of a
-  // Wednesday or of a Monday both yield that week's Monday; +1 = Tuesday.)
-  const tueDate = addDays(mondayOfWeek(weekDate), 1); // 'YYYY-MM-DD' Tuesday
-  const tm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(tueDate)!;
-  const year = Number(tm[1]);
-  const month = Number(tm[2]); // 1-12
-  const day = Number(tm[3]);
-
-  // Anchor the Tuesday at noon UTC for arithmetic; re-extract ET parts below.
-  const tueUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-
-  // Get the Tuesday's calendar date *in Eastern time*. (For Wed dates
-  // that don't span a DST boundary at the day level this matches the
-  // calendar arithmetic above; for safety we still re-derive.)
-  const tueET = formatInTZ(tueUTC, 'America/New_York');
-
-  // Now compute the cutoff Date object as 8:00 AM ET on tueET. We use
-  // a known trick: format `Date.UTC(...)` candidate values until the
-  // ET wall clock matches. Simpler — and correct — approach: build the
-  // cutoff in ET via the offset.
-  //
-  // We compute the ET offset for the *Tuesday at 8 AM* moment by
-  // formatting an arbitrary instant near it and reading
-  // `formatToParts.timeZoneName` (e.g. "EDT" or "EST"), then we use
-  // a hardcoded EDT/EST offset map.
-  const cutoffMs = computeETInstantMs(tueET.year, tueET.month, tueET.day, 8, 0);
-
-  return now.getTime() >= cutoffMs;
+export function isCutoffPassed(weekDate: string, now: Date, pickupDay: PickupDay = null): boolean {
+  // Defensive: malformed date → treat as "not passed" so callers surface a
+  // clearer invalid_input error elsewhere rather than 403'ing.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekDate)) return false;
+  return now.getTime() >= cutoffEpochMs(mondayOfWeek(weekDate), pickupDay);
 }
 
 /**

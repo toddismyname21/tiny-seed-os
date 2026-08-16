@@ -43,3 +43,7 @@ blob-report/
 .vercel
 scripts/out/
 .csa_inbox_state.json
+
+# Python bytecode (build artifact)
+__pycache__/
+*.pyc

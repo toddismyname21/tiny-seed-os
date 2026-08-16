@@ -73,12 +73,33 @@ function slugify(name: string): string {
     .slice(0, 80) || 'product';
 }
 
+/**
+ * Parse the optional "Pack weight (lb)" input into a numeric or null.
+ *   - blank/absent → null (unknown — the harvest list shows only the count).
+ *   - a finite, non-negative decimal → that number (e.g. 0.25, 0.75).
+ *   - anything else (non-numeric, negative, absurd) → undefined (invalid),
+ *     which the caller turns into an invalid_input error.
+ * Cap at 100 lb: a single packed unit is a clamshell/bag, never a pallet — a
+ * larger value is a typo we should reject rather than silently harvest tons.
+ */
+function parsePackWeight(v: FormDataEntryValue | null): number | null | undefined {
+  const s = strOrNull(v);
+  if (s === null) return null;
+  const n = Number(s);
+  if (!Number.isFinite(n) || n < 0 || n > 100) return undefined;
+  return n;
+}
+
 /** Identity fields shared by create + update (the product_library row). */
 const Identity = z.object({
   name: z.string().trim().min(1).max(160),
   category: z.string().trim().max(80).nullable(),
   unit: z.string().trim().min(1).max(40),
   description: z.string().trim().max(2000).nullable(),
+  // Shared harvest-line name grouping packaging variants of the SAME raw crop
+  // (migration 0064). Blank → null (harvests as its own line). Same 160-char
+  // cap as a product name, since it IS a crop/product name.
+  harvest_crop: z.string().trim().max(160).nullable(),
 });
 
 export const POST: APIRoute = async ({ request, locals, redirect }) => {
@@ -112,11 +133,21 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     category: strOrNull(form.get('category')),
     unit: String(form.get('unit') ?? '').trim(),
     description: strOrNull(form.get('description')),
+    harvest_crop: strOrNull(form.get('harvest_crop')),
   });
   if (!identity.success) {
     return redirect(back('error', 'invalid_input', anchorFor(id)), 303);
   }
   const d = identity.data;
+
+  // ── Pack weight (lb) — optional per-product pounds-in-one-packed-unit ──
+  // Portioned items (clamshell salad mixes, Big Bagz) are harvested BY WEIGHT;
+  // this drives the total-pounds figure on the Pick & Pack harvest list.
+  // null = clear it (unknown); a bad value fails validation like identity.
+  const packWeight = parsePackWeight(form.get('pack_weight_lb'));
+  if (packWeight === undefined) {
+    return redirect(back('error', 'invalid_input', anchorFor(id)), 303);
+  }
 
   // ── Wholesale link inputs ─────────────────────────────────────────
   const listWholesale = form.get('list_wholesale') === 'true';
@@ -146,6 +177,8 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       slug: slugify(d.name),
       category: d.category,
       description: d.description,
+      pack_weight_lb: packWeight,
+      harvest_crop: d.harvest_crop,
       // NOTE: product_library has no `unit` column — unit lives on the
       // channel listings. We persist the chosen unit onto the wholesale
       // listing below (and the form keeps it for the next edit via that row).
@@ -169,6 +202,8 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
         slug: slugify(d.name),
         category: d.category,
         description: d.description,
+        pack_weight_lb: packWeight,
+        harvest_crop: d.harvest_crop,
         updated_at: new Date().toISOString(),
       })
       .eq('id', libraryId);

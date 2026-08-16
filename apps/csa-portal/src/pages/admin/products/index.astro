@@ -54,13 +54,15 @@ type ProductRow = {
   category: string | null;
   description: string | null;
   photo_url: string | null;
+  pack_weight_lb: number | null;
+  harvest_crop: string | null;
   wholesale_products: WholesaleLink[] | null;
 };
 
 const { data: rows, error: fetchErr } = await supabase
   .from('product_library')
   .select(
-    'id, name, category, description, photo_url, ' +
+    'id, name, category, description, photo_url, pack_weight_lb, harvest_crop, ' +
     'wholesale_products:wholesale_products!library_id ( id, price_cents, unit, is_active )'
   )
   .order('category', { ascending: true, nullsFirst: false })
@@ -93,6 +95,13 @@ function unitFor(p: ProductRow): string {
 const categorySet = new Set<string>(FLEX_CATEGORIES);
 for (const p of products) if (p.category) categorySet.add(p.category);
 const categories = Array.from(categorySet).sort((a, b) => a.localeCompare(b));
+
+// Existing harvest-crop names for the datalist — so grouping a new variant into
+// an existing harvest line ("King Spring Mix") is a pick, not a re-type (a typo
+// would silently fail to combine). De-duped, alphabetized.
+const harvestCropSet = new Set<string>();
+for (const p of products) if (p.harvest_crop) harvestCropSet.add(p.harvest_crop);
+const harvestCrops = Array.from(harvestCropSet).sort((a, b) => a.localeCompare(b));
 
 // ─── Flash ──────────────────────────────────────────────────────────
 const okFlag = url.searchParams.get('ok');
@@ -152,6 +161,9 @@ const searchIndex = products.map((p) => ({
   <datalist id="product-units">
     {FLEX_UNITS.map((u) => <option value={u}></option>)}
   </datalist>
+  <datalist id="product-harvest-crops">
+    {harvestCrops.map((h) => <option value={h}></option>)}
+  </datalist>
 
   {/* ════ Add product ════ */}
   <Card padding="md" elevation="sm">
@@ -194,6 +206,32 @@ const searchIndex = products.map((p) => ({
           class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
         />
       </FormRow>
+
+      <div class="sm:col-span-2">
+        <FormRow
+          label="Pack weight (lb)" htmlFor="add-pack-weight"
+          help="For portioned items harvested by weight (e.g. clamshell salad mix = 0.25, 12 oz Big Bag = 0.75). Leave blank for count-only items. Shows total pounds on the harvest list."
+        >
+          <input
+            id="add-pack-weight" type="text" inputmode="decimal" name="pack_weight_lb"
+            placeholder="e.g. 0.25"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          />
+        </FormRow>
+      </div>
+
+      <div class="sm:col-span-2">
+        <FormRow
+          label="Harvest crop" htmlFor="add-harvest-crop"
+          help="Group packaging variants of the same raw green (clamshell + Big Bagz) under one harvest name so the pick list shows ONE combined line in total pounds. e.g. both 'King Spring Mix' and 'King Spring (Big Bagz)' → 'King Spring Mix'. Leave blank to harvest as its own line."
+        >
+          <input
+            id="add-harvest-crop" type="text" name="harvest_crop" list="product-harvest-crops" maxlength="160"
+            placeholder="e.g. King Spring Mix"
+            class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+          />
+        </FormRow>
+      </div>
 
       <div class="sm:col-span-2">
         <FormRow label="Description" htmlFor="add-desc" help="Optional. Shown to members + chefs.">
@@ -295,10 +333,16 @@ const searchIndex = products.map((p) => ({
                       {p.category ?? <span class="text-ts-text-muted">Uncategorized</span>}
                       <span class="text-ts-text-muted"> · {seedUnit}</span>
                     </p>
-                    <p class="mt-1.5">
+                    <p class="mt-1.5 flex flex-wrap items-center gap-1.5">
                       {w
                         ? <Badge variant="green" size="xs">Wholesale {formatCents(w.price_cents)}</Badge>
                         : <Badge variant="gray" size="xs">Not in wholesale</Badge>}
+                      {p.pack_weight_lb != null && (
+                        <Badge variant="amber" size="xs">{p.pack_weight_lb} lb / unit</Badge>
+                      )}
+                      {p.harvest_crop != null && (
+                        <Badge variant="gray" size="xs">🌾 {p.harvest_crop}</Badge>
+                      )}
                     </p>
                   </div>
                   <span class="shrink-0 self-center text-sm font-medium text-ts-text-secondary transition-transform duration-150 group-open:rotate-90" aria-hidden="true">›</span>
@@ -359,6 +403,30 @@ const searchIndex = products.map((p) => ({
                         id={`unit-${p.id}`} type="text" name="unit" required list="product-units" maxlength="40"
                         value={seedUnit}
                         class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                      />
+                    </FormRow>
+
+                    <FormRow
+                      label="Pack weight (lb)" htmlFor={`pw-${p.id}`}
+                      help="Portioned items harvested by weight (clamshell salad mix = 0.25, 12 oz Big Bag = 0.75). Blank = count only. Shows total lb on the harvest list."
+                    >
+                      <input
+                        id={`pw-${p.id}`} type="text" inputmode="decimal" name="pack_weight_lb"
+                        value={p.pack_weight_lb ?? ''}
+                        placeholder="e.g. 0.25"
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text tabular-nums placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
+                      />
+                    </FormRow>
+
+                    <FormRow
+                      label="Harvest crop" htmlFor={`hc-${p.id}`}
+                      help="Group packaging variants of the same raw green (clamshell + Big Bagz) under one harvest name → the pick list shows ONE combined line in total pounds. Blank = harvests as its own line."
+                    >
+                      <input
+                        id={`hc-${p.id}`} type="text" name="harvest_crop" list="product-harvest-crops" maxlength="160"
+                        value={p.harvest_crop ?? ''}
+                        placeholder="e.g. King Spring Mix"
+                        class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-4 py-3 text-base text-ts-text placeholder:text-ts-text-muted focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30 min-h-11"
                       />
                     </FormRow>
 

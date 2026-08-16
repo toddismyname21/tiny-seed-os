@@ -1,0 +1,92 @@
+---
+/**
+ * /admin/quickbooks — QuickBooks Online integration console (Intuit "Launch URL").
+ *
+ * Shows the current connection status and Connect / Disconnect controls. The
+ * OAuth handshake runs through /admin/quickbooks/connect → Intuit authorize →
+ * /admin/quickbooks/callback; tokens are stored in portal_settings (qb_* keys).
+ * Admin-gated by middleware (all /admin/*). See lib/quickbooks.ts.
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import Card from '../../components/Card.astro';
+import { quickbooksConfigured, getConnection } from '../../lib/quickbooks';
+
+const configured = quickbooksConfigured();
+const conn = configured ? await getConnection() : null;
+const q = Astro.url.searchParams;
+const notice = q.get('connected') === '1' ? 'connected'
+  : q.get('disconnected') === '1' ? 'disconnected'
+  : q.get('error') ? `error:${q.get('error')}` : '';
+const prettyConnectedAt = conn?.connectedAt
+  ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' }).format(new Date(conn.connectedAt))
+  : '';
+---
+
+<AdminShell title="QuickBooks" subtitle="Connect Tiny Seed Farm OS to QuickBooks Online for invoicing & bookkeeping.">
+  {notice === 'connected' && (
+    <div class="mb-4 rounded-ts-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+      ✅ Connected to QuickBooks Online.
+    </div>
+  )}
+  {notice === 'disconnected' && (
+    <div class="mb-4 rounded-ts-lg border border-ts-border bg-ts-bg-muted px-4 py-3 text-sm text-ts-text">
+      Disconnected from QuickBooks.
+    </div>
+  )}
+  {notice.startsWith('error:') && (
+    <div class="mb-4 rounded-ts-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+      Couldn’t complete the QuickBooks connection ({notice.slice(6)}). Please try again.
+    </div>
+  )}
+
+  <Card>
+    {!configured && (
+      <div class="space-y-2">
+        <p class="font-semibold text-ts-text">Not configured</p>
+        <p class="text-sm text-ts-text-muted">
+          The QuickBooks app credentials aren’t set on the server yet. Once the
+          Intuit Client ID/Secret are added, the Connect button appears here.
+        </p>
+      </div>
+    )}
+
+    {configured && conn?.connected && (
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-green-500"></span>
+          <span class="font-semibold text-ts-text">Connected</span>
+          <span class="rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs uppercase tracking-wide text-ts-text-muted">{conn.environment}</span>
+        </div>
+        <dl class="grid grid-cols-1 gap-1 text-sm text-ts-text sm:grid-cols-2">
+          <div><dt class="text-ts-text-muted">Company (Realm) ID</dt><dd class="font-medium">{conn.realmId}</dd></div>
+          {prettyConnectedAt && <div><dt class="text-ts-text-muted">Connected</dt><dd class="font-medium">{prettyConnectedAt}</dd></div>}
+        </dl>
+        <div class="flex flex-wrap gap-3 pt-2">
+          <a href="/admin/quickbooks/connect" class="inline-flex items-center rounded-ts-md border border-ts-border px-4 py-2 text-sm font-medium text-ts-text hover:bg-ts-bg-muted">Reconnect</a>
+          <form method="POST" action="/admin/quickbooks/disconnect">
+            <button type="submit" class="inline-flex items-center rounded-ts-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Disconnect</button>
+          </form>
+        </div>
+      </div>
+    )}
+
+    {configured && !conn?.connected && (
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="inline-block h-2.5 w-2.5 rounded-full bg-ts-text-muted"></span>
+          <span class="font-semibold text-ts-text">Not connected</span>
+          <span class="rounded-full bg-ts-bg-muted px-2 py-0.5 text-xs uppercase tracking-wide text-ts-text-muted">{conn?.environment}</span>
+        </div>
+        <p class="text-sm text-ts-text-muted">
+          Connect your QuickBooks Online company to create and sync invoices,
+          customers, and sales from Tiny Seed Farm OS.
+        </p>
+        <div class="pt-1">
+          <a href="/admin/quickbooks/connect" class="inline-flex items-center rounded-ts-md bg-[#2CA01C] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">
+            Connect to QuickBooks
+          </a>
+        </div>
+      </div>
+    )}
+  </Card>
+</AdminShell>

@@ -21,6 +21,10 @@ import {
   type CycleMember,
 } from '../../../lib/cycle';
 import { categoryEmoji } from '../../../lib/flex-order';
+import {
+  fetchAllOpenDueNoticesWithMember, isNoticeOverdue,
+  type NoticeWithMember,
+} from '../../../lib/notices';
 
 const supabase = Astro.locals.supabase;
 const slugParam = (Astro.params.slug ?? '') as string;
@@ -37,11 +41,30 @@ const dayTab = dayTabRaw === 'thu' ? 'thu' : 'mon';
 const cycle = await resolveCycle(supabase, week_starting);
 
 // ─── Determine which members ship on the selected harvest day ──────
-// Mon harvest serves Tue + Wed distributions; Thu serves Sat.
-const targetDays: ('Tue' | 'Wed' | 'Sat')[] = dayTab === 'mon' ? ['Tue', 'Wed'] : ['Sat'];
-const membersForHarvest: CycleMember[] = targetDays.flatMap(
-  (d) => cycle.byDistributionDay.get(d) ?? [],
+// Mon harvest serves Tue + Wed pickups; Thu serves Sat + Sun pickups.
+// We classify each member by their ACTUAL pickup weekday, NOT by
+// cycle.byDistributionDay — that map collapses Sunday pickups into its
+// 'Wed' default, which would drop Sunday markets (e.g. South Side) onto the
+// Monday harvest. Sat/Sun → Thursday; everything else (Tue/Wed, home
+// delivery, no-pickup) → Monday.
+function harvestTabFor(m: CycleMember): 'mon' | 'thu' {
+  const d = m.pickup_location?.day_of_week;
+  return d === 'Sat' || d === 'Sun' ? 'thu' : 'mon';
+}
+// Every member receiving this cycle (across all distribution buckets, deduped
+// by id) — A/B + holds + season already applied by resolveCycle.
+const allReceiving: CycleMember[] = (() => {
+  const seen = new Set<string>();
+  const out: CycleMember[] = [];
+  for (const arr of cycle.byDistributionDay.values()) {
+    for (const m of arr) if (!seen.has(m.id)) { seen.add(m.id); out.push(m); }
+  }
+  return out;
+})();
+const membersForHarvest: CycleMember[] = allReceiving.filter(
+  (m) => harvestTabFor(m) === dayTab,
 );
+const targetDaysLabel = dayTab === 'mon' ? 'Tue + Wed' : 'Sat + Sun';
 
 // ─── Aggregate harvest quantities by crop + unit ───────────────────
 interface HarvestRow {
@@ -100,10 +123,7 @@ const rows = Array.from(harvestMap.values()).sort((a, b) => {
 //   Sat distribution         → Thu harvest
 // Then keep only the flex orders whose member maps to the current dayTab.
 const memberHarvestDay = new Map<string, 'mon' | 'thu'>();
-for (const d of ['Tue', 'Wed'] as const) {
-  for (const m of cycle.byDistributionDay.get(d) ?? []) memberHarvestDay.set(m.id, 'mon');
-}
-for (const m of cycle.byDistributionDay.get('Sat') ?? []) memberHarvestDay.set(m.id, 'thu');
+for (const m of allReceiving) memberHarvestDay.set(m.id, harvestTabFor(m));
 
 interface FlexOrderRow {
   member_id: string;
@@ -348,6 +368,29 @@ const totalDistinctCrops = rows.length;
 const totalBoxesThisHarvest = membersForHarvest.filter((m) => m.share_type === 'summer_veg').length;
 const totalBiweeklyExcluded = cycle.excluded_biweekly.length;
 const totalOnHoldExcluded = cycle.excluded_on_hold.length;
+
+/* ── MAKE-UPS TO ADD — additive accounting of owed make-up promises ──
+ *   The harvest list drives WHAT THE CREW PICKS. If the farm owes a member a
+ *   double mushroom / make-good bread, the crew must harvest that extra product
+ *   too — otherwise we won't HAVE it to pack (the owner's complaint). We do NOT
+ *   fold this into resolveCycle (too invasive/risky); instead we surface a
+ *   SEPARATE, clearly-labeled subtotal from member_notices (open + due/overdue,
+ *   ALL stops incl. general) — the SAME source the pack sheets read, so the
+ *   makeup count is consistent across harvest / pick-pack / pack-sheet. Make-ups
+ *   are per-week, not tied to a Mon/Thu split, so they show on BOTH tabs. []
+ *   on error (additive, never blocks the page). */
+const makeupNotices: NoticeWithMember[] = await fetchAllOpenDueNoticesWithMember(
+  supabase, week_starting,
+);
+function makeupTag(n: NoticeWithMember): { text: string; overdue: boolean } {
+  const overdue = isNoticeOverdue(n.due_week, week_starting);
+  if (n.due_week == null) return { text: 'next opportunity', overdue: false };
+  const d = new Date(`${n.due_week}T12:00:00Z`);
+  const pretty = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(d);
+  return { text: overdue ? `OVERDUE since ${pretty}` : `due ${pretty}`, overdue };
+}
 ---
 
 <AdminShell
@@ -389,7 +432,7 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
           : 'border-transparent text-ts-text-secondary hover:border-ts-border-strong hover:text-ts-text',
       ].join(' ')}
     >
-      Thursday harvest <span class="ml-2 text-xs text-ts-text-muted">→ Sat</span>
+      Thursday harvest <span class="ml-2 text-xs text-ts-text-muted">→ Sat + Sun</span>
     </a>
   </nav>
 
@@ -398,7 +441,7 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
     <Card padding="md" elevation="sm">
       <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Boxes to pick</div>
       <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalBoxesThisHarvest}</div>
-      <div class="mt-1 text-xs text-ts-text-secondary">summer_veg members on {targetDays.join(' + ')}</div>
+      <div class="mt-1 text-xs text-ts-text-secondary">summer_veg members on {targetDaysLabel}</div>
     </Card>
     <Card padding="md" elevation="sm">
       <div class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Distinct crops</div>
@@ -414,6 +457,55 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
       <div class="mt-1 font-display text-3xl font-bold tabular-nums text-ts-text">{totalOnHoldExcluded}</div>
     </Card>
   </section>
+
+  {/* ── ⚠ MAKE-UPS TO ADD — additive subtotal on top of the harvest ──
+      Owed make-up promises the crew must harvest THIS week on top of the
+      box / flex / wholesale / market demand below — otherwise the farm won't
+      HAVE the product to pack (the owner's complaint). Reads the SAME
+      member_notices source as the pack sheets, so the count is consistent
+      across harvest / pick-pack / pack-sheet. Overdue ones flagged red. Shown
+      on BOTH harvest tabs (make-ups aren't tied to a Mon/Thu split). */}
+  {makeupNotices.length > 0 && (
+    <section aria-labelledby="makeups-heading" class="makeups-banner flex flex-col gap-3 rounded-ts-lg border-[3px] p-4 sm:p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="makeups-heading" class="flex items-center gap-2 font-display text-xl font-extrabold uppercase tracking-wide">
+          <span aria-hidden="true">⚠</span>
+          Make-ups to add — harvest these too
+        </h2>
+        <span class="inline-flex items-center rounded-full bg-white/70 px-3 py-1 text-sm font-extrabold tabular-nums">
+          {makeupNotices.length} owed
+        </span>
+      </div>
+      <p class="text-sm font-medium">
+        Owed items the farm promised members. Harvest these ON TOP of the box totals below — they're additive.
+      </p>
+      <ul class="flex flex-col divide-y divide-ts-border/40">
+        {makeupNotices.map((n) => {
+          const tag = makeupTag(n);
+          return (
+            <li class="flex items-start gap-4 py-2.5">
+              <span class="inline-block h-6 w-6 shrink-0 rounded border-2 border-ts-text bg-white print:border-black" aria-hidden="true"></span>
+              <div class="min-w-0 flex-1">
+                <p class="text-base font-bold leading-snug text-ts-text">
+                  {n.member_name && <span>{n.member_name} — </span>}{n.title}
+                </p>
+                {n.detail && (
+                  <p class="mt-0.5 whitespace-pre-wrap break-words text-sm leading-snug text-ts-text-secondary">{n.detail}</p>
+                )}
+              </div>
+              <span class={[
+                'shrink-0 self-center rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide',
+                tag.overdue ? 'bg-ts-danger/15 text-ts-danger' : 'bg-ts-bg-muted text-ts-text-secondary',
+              ].join(' ')}>{tag.text}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p class="text-xs font-medium text-ts-text-secondary">
+        Resolve make-ups on the pack sheet or the <a href="/admin/notices" class="font-semibold text-ts-primary hover:underline">Notices page</a>.
+      </p>
+    </section>
+  )}
 
   {/* ── COMBINED HARVEST — the unified pick across ALL channels ──── */}
   <section aria-labelledby="combined-heading" class="flex flex-col gap-3">
@@ -699,6 +791,16 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
 </AdminShell>
 
 <style is:global>
+  /* ⚠ MAKE-UPS subtotal — loud red, prints in color (a missed make-up is the
+     failure this exists to prevent). */
+  .makeups-banner {
+    background: #fee2e2;
+    border-color: #dc2626;
+    color: #7f1d1d;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   @media print {
     @page { size: Letter portrait; margin: 0.5in; }
     body, html { background: white !important; }
@@ -707,5 +809,6 @@ const totalOnHoldExcluded = cycle.excluded_on_hold.length;
       display: none !important;
     }
     main > div:first-child { padding-top: 0 !important; }
+    .makeups-banner { break-inside: avoid; page-break-inside: avoid; }
   }
 </style>

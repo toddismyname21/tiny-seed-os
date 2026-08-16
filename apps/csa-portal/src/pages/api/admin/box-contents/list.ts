@@ -8,9 +8,13 @@
  * Response shape (matches the editor's JS expectation):
  *   {
  *     "items": [
- *       { product_name, variety, quantity, unit, is_swappable, swap_options }
+ *       { product_name, variety, quantity, unit, is_swappable, swap_options, library_id }
  *     ]
  *   }
+ *
+ * library_id is included so the editor can re-select the catalog dropdown on
+ * a copied row (falling back to a case-insensitive name match client-side
+ * when the source row predates the dropdown and has no library_id).
  */
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../lib/admin';
@@ -44,7 +48,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
 
   const { data, error } = await locals.supabase
     .from('box_contents')
-    .select('product_name, variety, quantity, unit, is_swappable, swap_options')
+    .select('product_name, variety, quantity, unit, is_swappable, swap_options, library_id')
     .eq('week_date', week)
     .eq('share_type', shareType)
     .order('product_name', { ascending: true });

@@ -1,0 +1,19 @@
+---
+/**
+ * /admin/pack-load — landing. Bounces straight to the live Pack & Load board
+ * for the requested (or current) delivery week. There is no separate list view:
+ * the board IS the screen the crew works on, so we redirect to it immediately.
+ *
+ * ?week=YYYY-MM-DD lets an admin open a specific week (snapped to its Monday);
+ * with no param we default to currentDeliveryWeek() — the week being executed
+ * right now (same canonical "active week" the manifests/labels/pack sheets use).
+ */
+import { mondayOfWeek, currentDeliveryWeek } from '../../../lib/cycle';
+
+const wkParam = Astro.url.searchParams.get('week') ?? '';
+const week_starting = wkParam && /^\d{4}-\d{2}-\d{2}$/.test(wkParam)
+  ? mondayOfWeek(wkParam)
+  : currentDeliveryWeek();
+
+return Astro.redirect(`/admin/pack-load/${week_starting}`, 303);
+---

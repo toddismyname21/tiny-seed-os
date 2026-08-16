@@ -75,10 +75,10 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   const { member_id, week_date, original_item } = parsed.data;
 
   // ─── Authorization ─────────────────────────────────────────────────
-  type MemberRow = { id: string; status: string };
+  type MemberRow = { id: string; status: string; pickup_location: { day_of_week: string | null } | null };
   const { data: memberData, error: memberErr } = await locals.supabase
     .from('members')
-    .select('id, status')
+    .select('id, status, pickup_location:pickup_locations ( day_of_week )')
     .eq('id', member_id)
     .maybeSingle()
     .overrideTypes<MemberRow, { merge: false }>();
@@ -95,11 +95,13 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     return jsonResponse(403, { ok: false, error: 'forbidden' });
   }
 
-  // ─── Cutoff enforcement ────────────────────────────────────────────
+  // ─── Cutoff enforcement (unified, pickup-day-aware) ────────────────
+  // Same deadline as a forward swap / Flex: Sat/Sun → Thursday 7 AM ET;
+  // everyone else → Monday 7 AM ET.
   const overrideCutoff =
     url.searchParams.get('override_cutoff') === 'true' &&
     user.email === OWNER_EMAIL;
-  if (!overrideCutoff && isCutoffPassed(week_date, new Date())) {
+  if (!overrideCutoff && isCutoffPassed(week_date, new Date(), memberData.pickup_location?.day_of_week ?? null)) {
     return jsonResponse(403, { ok: false, error: 'cutoff_passed' });
   }
 

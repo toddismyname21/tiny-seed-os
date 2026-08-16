@@ -38,6 +38,7 @@ import Card from '../../components/Card.astro';
 import Tabs from '../../components/Tabs.astro';
 import Select from '../../components/Select.astro';
 import FormRow from '../../components/FormRow.astro';
+import { FLEX_CATEGORIES } from '../../lib/flex-order';
 
 const supabase = Astro.locals.supabase;
 const url = Astro.url;
@@ -108,6 +109,55 @@ if (!weekOptions.some((o) => o.value === week)) {
   weekOptions.unshift({ value: week, label: `${fmtWeekPretty(week)} (selected)` });
 }
 
+// ─── Fetch the shared master catalog (product_library) ──────────────
+// This is the SAME source of truth the wholesale + market + flex admins
+// read. The item field below is a dropdown fed from it (Todd's ask: "the
+// same items that we have for wholesale and market"). Alphabetized, and
+// grouped by category via <optgroup> for scanability.
+type LibraryProduct = { id: string; name: string; category: string | null };
+
+const { data: libraryRows, error: libraryErr } = await supabase
+  .from('product_library')
+  .select('id, name, category')
+  .order('name', { ascending: true });
+
+if (libraryErr) {
+  console.error('[admin/box-contents] product_library fetch failed:', libraryErr.message);
+}
+const libraryProducts: LibraryProduct[] = (libraryRows ?? []) as LibraryProduct[];
+
+// Group the catalog by category for <optgroup> rendering. Uncategorized items
+// fall into a trailing "Other" group. Categories + items are both alphabetized.
+const UNCATEGORIZED = 'Other';
+const libraryByCategory = new Map<string, LibraryProduct[]>();
+for (const p of libraryProducts) {
+  const key = (p.category ?? '').trim() || UNCATEGORIZED;
+  const bucket = libraryByCategory.get(key) ?? [];
+  bucket.push(p);
+  libraryByCategory.set(key, bucket);
+}
+const libraryGroups = Array.from(libraryByCategory.entries())
+  .sort(([a], [b]) => {
+    // Keep "Other" last; otherwise alphabetical.
+    if (a === UNCATEGORIZED) return 1;
+    if (b === UNCATEGORIZED) return -1;
+    return a.localeCompare(b);
+  })
+  .map(([category, products]) => ({ category, products }));
+
+// Case-insensitive name → library id, for matching EXISTING rows that were
+// typed as free text before this dropdown existed (requirement 3).
+const libraryIdByLowerName = new Map<string, string>();
+for (const p of libraryProducts) {
+  libraryIdByLowerName.set(p.name.trim().toLowerCase(), p.id);
+}
+
+// Category datalist source for the "add new item" escape hatch (deduped +
+// alphabetized, seeded with the curated list so an empty catalog still helps).
+const categorySet = new Set<string>(FLEX_CATEGORIES);
+for (const p of libraryProducts) if (p.category) categorySet.add(p.category);
+const addNewCategories = Array.from(categorySet).sort((a, b) => a.localeCompare(b));
+
 // ─── Fetch box contents for (week, share_type) ──────────────────────
 type ItemRow = {
   id: string;
@@ -118,11 +168,12 @@ type ItemRow = {
   is_swappable: boolean;
   swap_options: string[] | null;
   notes: string | null;
+  library_id: string | null;
 };
 
 const { data: itemRows, error: fetchErr } = await supabase
   .from('box_contents')
-  .select('id, product_name, variety, quantity, unit, is_swappable, swap_options, notes')
+  .select('id, product_name, variety, quantity, unit, is_swappable, swap_options, notes, library_id')
   .eq('week_date', week)
   .eq('share_type', shareType)
   .order('product_name', { ascending: true });
@@ -132,6 +183,18 @@ if (fetchErr) {
 }
 
 const items: ItemRow[] = (itemRows ?? []) as ItemRow[];
+
+/**
+ * Resolve the library_id an existing row should show as selected:
+ *   1. its stored library_id (authoritative), else
+ *   2. a case-insensitive product_name match against the catalog.
+ * Returns '' when neither resolves (a legacy name with no catalog match —
+ * we still render it as a custom option so old weeks never break, req 3).
+ */
+function resolveLibraryId(it: ItemRow): string {
+  if (it.library_id) return it.library_id;
+  return libraryIdByLowerName.get(it.product_name.trim().toLowerCase()) ?? '';
+}
 
 // ─── Count for each share_type for the tabs ─────────────────────────
 const { data: countsRaw } = await supabase
@@ -155,6 +218,12 @@ const tabs = CANONICAL_SHARE_TYPES.map((s) => ({
 // ─── Banner state ───────────────────────────────────────────────────
 const okFlag = url.searchParams.get('ok');
 const errorFlag = url.searchParams.get('error');
+const ERROR_COPY: Record<string, string> = {
+  invalid_input: 'Some fields were invalid — please check and try again.',
+  duplicate_product: 'Two rows use the same product — each item can appear only once per share.',
+  unknown_product: "One of the items isn't in the catalog anymore — reload the page and pick it again.",
+};
+const errorMessage = errorFlag ? (ERROR_COPY[errorFlag] ?? errorFlag) : null;
 
 // ─── Unit options ───────────────────────────────────────────────────
 const UNIT_OPTIONS = [
@@ -191,7 +260,7 @@ const UNIT_OPTIONS = [
       role="alert"
       class="rounded-ts-md border border-ts-danger/30 bg-ts-danger/5 px-4 py-3 text-sm text-ts-text"
     >
-      <span class="font-semibold text-ts-danger">Couldn't save.</span> {errorFlag}
+      <span class="font-semibold text-ts-danger">Couldn't save.</span> {errorMessage}
     </div>
   )}
 
@@ -297,22 +366,43 @@ const UNIT_OPTIONS = [
             </p>
           </div>
         )}
-        {items.map((it, idx) => (
+        {items.map((it, idx) => {
+          const selectedLibId = resolveLibraryId(it);
+          // A legacy row whose name has no catalog match: render it as a
+          // custom, pre-selected option so it still shows + saves (req 3).
+          const isUnmatchedLegacy = selectedLibId === '';
+          return (
           <div
             class="grid grid-cols-1 gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-3 sm:grid-cols-[2fr_1.5fr_5rem_8rem_auto] sm:items-end"
             data-row
             data-idx={idx}
           >
             <FormRow label="Product" htmlFor={`product-${idx}`}>
-              <input
+              {/* library_id travels alongside product_name; the save endpoint
+                  validates it exists and stamps BOTH columns. */}
+              <input type="hidden" name={`items[${idx}][library_id]`} value={selectedLibId} data-library-id-field />
+              {/* product_name stays the source of truth for reads (resolveCycle,
+                  /box, labels). Mirrored from the selected option on change. */}
+              <input type="hidden" name={`items[${idx}][product_name]`} value={it.product_name} required maxlength="160" data-product-name-field />
+              <select
                 id={`product-${idx}`}
-                type="text"
-                name={`items[${idx}][product_name]`}
-                value={it.product_name}
-                required
-                maxlength="80"
-                class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
-              />
+                data-product-select
+                class="block w-full appearance-none rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30"
+              >
+                {isUnmatchedLegacy && (
+                  <optgroup label="Not in catalog (legacy)">
+                    <option value="" data-name={it.product_name} selected>{it.product_name}</option>
+                  </optgroup>
+                )}
+                {libraryGroups.map((g) => (
+                  <optgroup label={g.category}>
+                    {g.products.map((p) => (
+                      <option value={p.id} data-name={p.name} selected={!isUnmatchedLegacy && p.id === selectedLibId}>{p.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+                <option value="__add_new__" data-add-new>➕ Add new item…</option>
+              </select>
             </FormRow>
             <FormRow label="Variety" htmlFor={`variety-${idx}`}>
               <input
@@ -389,7 +479,8 @@ const UNIT_OPTIONS = [
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div class="flex flex-wrap items-center gap-3 border-t border-ts-border pt-4">
@@ -404,28 +495,92 @@ const UNIT_OPTIONS = [
         </p>
       </div>
     </form>
+
+    {/* Catalog for the client JS (build selects on new/copied rows). The
+        "add new item" category picker uses the datalist below. */}
+    <script is:inline type="application/json" id="box-library-groups" set:html={JSON.stringify(libraryGroups)} />
+    <datalist id="box-add-categories">
+      {addNewCategories.map((c) => <option value={c}></option>)}
+    </datalist>
+
     <script>
-      // Editor wiring: add/remove rows + show/hide swap-options block.
+      // Editor wiring: product dropdown (catalog-fed) + add-new escape hatch
+      // + add/remove rows + show/hide swap-options block.
       const form = document.querySelector<HTMLFormElement>('[data-box-form]');
       const rowsContainer = document.querySelector<HTMLElement>('[data-rows]');
       const addBtn = document.querySelector<HTMLButtonElement>('[data-add-row]');
       const copyBtn = document.querySelector<HTMLButtonElement>('[data-copy-prev]');
-      if (!form || !rowsContainer) {
-        /* nothing more to wire */
-      } else {
+
+      type LibProduct = { id: string; name: string; category: string | null };
+      type LibGroup = { category: string; products: LibProduct[] };
+
+      // Catalog groups injected by the server.
+      const libraryGroups: LibGroup[] = (() => {
+        try {
+          const el = document.getElementById('box-library-groups');
+          return el ? JSON.parse(el.textContent || '[]') : [];
+        } catch { return []; }
+      })();
+
+      // id → name and lowercased-name → id, for select-building + legacy match.
+      const nameById = new Map<string, string>();
+      const idByLowerName = new Map<string, string>();
+      for (const g of libraryGroups) {
+        for (const p of g.products) {
+          nameById.set(p.id, p.name);
+          idByLowerName.set(p.name.trim().toLowerCase(), p.id);
+        }
+      }
+
+      /** HTML-escape a value for safe interpolation into markup. */
+      function esc(s: string): string {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      /**
+       * Build the product <select> markup (grouped by category + trailing
+       * "Add new item…"). If a legacyName is supplied with no matching
+       * library option, it's rendered as a pre-selected custom option so
+       * copied/legacy rows never vanish.
+       */
+      function productSelectHTML(idx: number, selectedId: string, legacyName: string | null): string {
+        const groups = libraryGroups.map((g) => {
+          const opts = g.products.map((p) =>
+            `<option value="${esc(p.id)}" data-name="${esc(p.name)}"${p.id === selectedId ? ' selected' : ''}>${esc(p.name)}</option>`
+          ).join('');
+          return `<optgroup label="${esc(g.category)}">${opts}</optgroup>`;
+        }).join('');
+        const legacyOpt = (legacyName && !selectedId)
+          ? `<optgroup label="Not in catalog (legacy)"><option value="" data-name="${esc(legacyName)}" selected>${esc(legacyName)}</option></optgroup>`
+          : '';
+        return `<select id="product-${idx}" data-product-select class="block w-full appearance-none rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30">${legacyOpt}${groups}<option value="__add_new__" data-add-new>➕ Add new item…</option></select>`;
+      }
+
+      const UNIT_OPTIONS = [
+        'lb','oz','bunch','each','head','pint','quart','bag','bouquet','stem'
+      ];
+
+      if (form && rowsContainer) {
         let nextIdx = rowsContainer.querySelectorAll('[data-row]').length;
 
-        const UNIT_OPTIONS = [
-          'lb','oz','bunch','each','head','pint','quart','bag','bouquet','stem'
-        ];
-
-        function makeRowHTML(idx: number): string {
+        function makeRowHTML(idx: number, opts?: { selectedId?: string; legacyName?: string | null }): string {
           const unitOpts = UNIT_OPTIONS.map((u) => `<option value="${u}">${u}</option>`).join('');
+          const selId = opts?.selectedId ?? '';
+          const legacy = opts?.legacyName ?? null;
+          // The hidden product_name mirrors the selection; seed it now so a
+          // never-touched copied row still submits the right name.
+          const seededName = selId ? (nameById.get(selId) ?? '') : (legacy ?? '');
           return `
 <div class="grid grid-cols-1 gap-3 rounded-ts-md border border-ts-border bg-ts-bg-base p-3 sm:grid-cols-[2fr_1.5fr_5rem_8rem_auto] sm:items-end" data-row data-idx="${idx}">
   <div class="flex flex-col gap-1.5">
     <label class="text-sm font-semibold text-ts-text" for="product-${idx}">Product</label>
-    <input id="product-${idx}" type="text" name="items[${idx}][product_name]" required maxlength="80" class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+    <input type="hidden" name="items[${idx}][library_id]" value="${esc(selId)}" data-library-id-field />
+    <input type="hidden" name="items[${idx}][product_name]" value="${esc(seededName)}" required maxlength="160" data-product-name-field />
+    ${productSelectHTML(idx, selId, legacy)}
   </div>
   <div class="flex flex-col gap-1.5">
     <label class="text-sm font-semibold text-ts-text" for="variety-${idx}">Variety</label>
@@ -459,14 +614,141 @@ const UNIT_OPTIONS = [
           document.querySelector('[data-empty-msg]')?.remove();
         }
 
+        /** Sync a row's hidden library_id + product_name from its select. */
+        function syncRowFromSelect(sel: HTMLSelectElement): void {
+          const row = sel.closest<HTMLElement>('[data-row]');
+          if (!row) return;
+          const libField = row.querySelector<HTMLInputElement>('[data-library-id-field]');
+          const nameField = row.querySelector<HTMLInputElement>('[data-product-name-field]');
+          const opt = sel.selectedOptions[0];
+          if (!libField || !nameField || !opt) return;
+          const val = sel.value;
+          if (val === '__add_new__') return; // handled by the add-new flow
+          libField.value = val === '' ? '' : val;      // '' = legacy custom option
+          nameField.value = opt.getAttribute('data-name') ?? '';
+        }
+
+        /**
+         * Add-new escape hatch: swap the row's product cell for a small inline
+         * form (name + category + create/cancel). On create, POST to
+         * /api/admin/products/create-quick, then inject the new item as a
+         * selected option in a fresh dropdown so Todd continues without a reload.
+         */
+        function openAddNew(sel: HTMLSelectElement): void {
+          const cell = sel.parentElement; // the flex-col wrapper
+          if (!cell) return;
+          const row = sel.closest<HTMLElement>('[data-row]');
+          const idx = row?.getAttribute('data-idx') ?? '0';
+          // The category input uses the server-rendered #box-add-categories
+          // datalist (built from `categories`), so no inline options needed.
+          const wrap = document.createElement('div');
+          wrap.className = 'flex flex-col gap-2 rounded-ts-md border border-ts-primary/40 bg-ts-primary/5 p-2';
+          wrap.setAttribute('data-add-new-form', '');
+          wrap.innerHTML = `
+<label class="text-xs font-semibold text-ts-primary" for="newname-${idx}">New item name</label>
+<input id="newname-${idx}" type="text" maxlength="160" placeholder="e.g. Rainbow Chard" data-add-name class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+<label class="text-xs font-semibold text-ts-text-secondary" for="newcat-${idx}">Category (optional)</label>
+<input id="newcat-${idx}" type="text" maxlength="80" list="box-add-categories" placeholder="e.g. Greens" data-add-cat class="block w-full rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-2 text-sm text-ts-text focus:border-ts-primary focus:outline-none focus:ring-2 focus:ring-ts-primary/30" />
+<div class="flex items-center gap-2 pt-1">
+  <button type="button" data-add-create class="inline-flex h-9 items-center justify-center rounded-ts-md bg-ts-primary px-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-ts-primary-dark active:scale-[0.98]">Create + select</button>
+  <button type="button" data-add-cancel class="inline-flex h-9 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 text-sm font-medium text-ts-text hover:border-ts-primary/40">Cancel</button>
+</div>
+<p class="text-xs text-ts-danger" data-add-error hidden></p>`;
+          sel.hidden = true;
+          cell.appendChild(wrap);
+          const nameInput = wrap.querySelector<HTMLInputElement>('[data-add-name]');
+          nameInput?.focus();
+
+          const cancel = () => { wrap.remove(); sel.hidden = false; sel.value = ''; syncRowFromSelect(sel); };
+          wrap.querySelector<HTMLButtonElement>('[data-add-cancel]')?.addEventListener('click', cancel);
+
+          wrap.querySelector<HTMLButtonElement>('[data-add-create]')?.addEventListener('click', async () => {
+            const errEl = wrap.querySelector<HTMLElement>('[data-add-error]');
+            const nameVal = (nameInput?.value ?? '').trim();
+            const catVal = (wrap.querySelector<HTMLInputElement>('[data-add-cat]')?.value ?? '').trim();
+            const showErr = (msg: string) => { if (errEl) { errEl.textContent = msg; errEl.hidden = false; } };
+            if (errEl) errEl.hidden = true;
+            if (!nameVal) { showErr('Enter an item name.'); nameInput?.focus(); return; }
+            const createBtn = wrap.querySelector<HTMLButtonElement>('[data-add-create]');
+            if (createBtn) { createBtn.disabled = true; createBtn.textContent = 'Creating…'; }
+            try {
+              const fd = new FormData();
+              fd.append('name', nameVal);
+              if (catVal) fd.append('category', catVal);
+              const resp = await fetch('/api/admin/products/create-quick', {
+                method: 'POST', body: fd, credentials: 'same-origin',
+              });
+              const data = await resp.json().catch(() => null);
+              if (resp.status === 409) {
+                // Already in the catalog — select the existing item instead.
+                const existingId = idByLowerName.get(nameVal.toLowerCase());
+                if (existingId) {
+                  selectLibraryItem(sel, existingId);
+                  wrap.remove(); sel.hidden = false;
+                  return;
+                }
+                showErr('That item already exists — pick it from the list.');
+                return;
+              }
+              if (!resp.ok || !data || !data.ok || !data.product) {
+                throw new Error((data && data.error) || 'create_failed');
+              }
+              const prod = data.product as LibProduct;
+              // Register it locally so future dropdowns include it too.
+              nameById.set(prod.id, prod.name);
+              idByLowerName.set(prod.name.trim().toLowerCase(), prod.id);
+              addOptionToAllSelects(prod);
+              selectLibraryItem(sel, prod.id);
+              wrap.remove(); sel.hidden = false;
+            } catch (err) {
+              console.error('create-quick failed:', err);
+              showErr("Couldn't create that item. Please try again.");
+            } finally {
+              if (createBtn) { createBtn.disabled = false; createBtn.textContent = 'Create + select'; }
+            }
+          });
+        }
+
+        /** Select a library item in a row's dropdown + sync hidden fields.
+         *  Inserts the option if it isn't present (e.g. brand-new item). */
+        function selectLibraryItem(sel: HTMLSelectElement, libId: string): void {
+          let opt = Array.prototype.find.call(sel.options, (o: HTMLOptionElement) => o.value === libId) as HTMLOptionElement | undefined;
+          if (!opt) {
+            opt = document.createElement('option');
+            opt.value = libId;
+            opt.textContent = nameById.get(libId) ?? '';
+            opt.setAttribute('data-name', nameById.get(libId) ?? '');
+            // Insert before the "add new" sentinel.
+            const addNew = sel.querySelector('[data-add-new]');
+            sel.insertBefore(opt, addNew);
+          }
+          sel.value = libId;
+          syncRowFromSelect(sel);
+        }
+
+        /** Add a newly-created product as an option to every product select
+         *  (so it's pickable on other rows immediately). */
+        function addOptionToAllSelects(prod: LibProduct): void {
+          const selects = document.querySelectorAll<HTMLSelectElement>('[data-product-select]');
+          selects.forEach((s) => {
+            if (Array.prototype.some.call(s.options, (o: HTMLOptionElement) => o.value === prod.id)) return;
+            const opt = document.createElement('option');
+            opt.value = prod.id;
+            opt.textContent = prod.name;
+            opt.setAttribute('data-name', prod.name);
+            const addNew = s.querySelector('[data-add-new]');
+            s.insertBefore(opt, addNew);
+          });
+        }
+
         addBtn?.addEventListener('click', () => {
           clearEmptyMessage();
           const html = makeRowHTML(nextIdx);
           nextIdx += 1;
           rowsContainer.insertAdjacentHTML('beforeend', html);
-          // Focus the new product input
           const newRow = rowsContainer.lastElementChild as HTMLElement | null;
-          newRow?.querySelector<HTMLInputElement>('input[type="text"]')?.focus();
+          const sel = newRow?.querySelector<HTMLSelectElement>('[data-product-select]');
+          if (sel) { syncRowFromSelect(sel); sel.focus(); }
         });
 
         rowsContainer.addEventListener('click', (ev) => {
@@ -476,12 +758,18 @@ const UNIT_OPTIONS = [
           }
         });
 
-        // Show/hide swap-options input when checkbox toggles.
+        // Row-level change handling: product select, swap toggle.
         rowsContainer.addEventListener('change', (ev) => {
-          const t = ev.target as HTMLInputElement;
+          const t = ev.target as HTMLElement;
+          if (t.matches('[data-product-select]')) {
+            const sel = t as HTMLSelectElement;
+            if (sel.value === '__add_new__') { openAddNew(sel); return; }
+            syncRowFromSelect(sel);
+            return;
+          }
           if (t.matches('[data-swap-toggle]')) {
             const wrap = t.closest('[data-row]')?.querySelector<HTMLElement>('[data-swap-options-wrap]');
-            if (wrap) wrap.classList.toggle('hidden', !t.checked);
+            if (wrap) wrap.classList.toggle('hidden', !(t as HTMLInputElement).checked);
           }
         });
 
@@ -502,13 +790,23 @@ const UNIT_OPTIONS = [
             type CopyItem = {
               product_name: string; variety: string | null; quantity: number;
               unit: string; is_swappable: boolean; swap_options: string[] | null;
+              library_id: string | null;
             };
             for (const item of data.items as CopyItem[]) {
-              const html = makeRowHTML(nextIdx);
+              // Resolve which catalog option this copied row should select:
+              // stored library_id first, else a case-insensitive name match.
+              const resolvedId = item.library_id
+                ?? idByLowerName.get(item.product_name.trim().toLowerCase())
+                ?? '';
+              const html = makeRowHTML(nextIdx, {
+                selectedId: resolvedId,
+                legacyName: resolvedId ? null : item.product_name,
+              });
               rowsContainer.insertAdjacentHTML('beforeend', html);
               const row = rowsContainer.lastElementChild as HTMLElement;
               const $ = <T extends Element = HTMLInputElement>(sel: string) => row.querySelector<T>(sel);
-              ($('input[name$="[product_name]"]') as HTMLInputElement).value = item.product_name;
+              const sel = $('[data-product-select]') as unknown as HTMLSelectElement;
+              syncRowFromSelect(sel);
               ($('input[name$="[variety]"]') as HTMLInputElement).value = item.variety ?? '';
               ($('input[name$="[quantity]"]') as HTMLInputElement).value = String(item.quantity);
               ($('select[name$="[unit]"]') as unknown as HTMLSelectElement).value = item.unit;

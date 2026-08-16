@@ -113,11 +113,12 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     share_size: string | null;
     status: string;
     swap_credits: number;
+    pickup_location: { day_of_week: string | null } | null;
   };
 
   const { data: memberData, error: memberErr } = await locals.supabase
     .from('members')
-    .select('id, share_type, share_size, status, swap_credits')
+    .select('id, share_type, share_size, status, swap_credits, pickup_location:pickup_locations ( day_of_week )')
     .eq('id', member_id)
     .maybeSingle()
     .overrideTypes<MemberRow, { merge: false }>();
@@ -136,15 +137,16 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     return jsonResponse(403, { ok: false, error: 'forbidden' });
   }
 
-  // ─── Cutoff enforcement ────────────────────────────────────────────
-  // Cutoff is Tuesday 8 AM Eastern of the cycle week. isCutoffPassed
-  // normalizes whatever cycle date it's given (here: the cycle Monday) to
-  // that week's Tuesday, so the cutoff is unchanged by the Wed→Mon key move.
-  // After cutoff, swaps are frozen. Owner bypass via ?override_cutoff=true.
+  // ─── Cutoff enforcement (unified, pickup-day-aware) ────────────────
+  // The swap cutoff is the SAME deadline as Farm Flex (lib/flex-order.ts):
+  // Sat/Sun-market members → Thursday 7 AM ET; everyone else → Monday 7 AM ET.
+  // isCutoffPassed normalizes whatever cycle date it's given (here: the cycle
+  // Monday) to that week's Monday. After cutoff, swaps are frozen. Owner bypass
+  // via ?override_cutoff=true.
   const overrideCutoff =
     url.searchParams.get('override_cutoff') === 'true' &&
     user.email === OWNER_EMAIL;
-  if (!overrideCutoff && isCutoffPassed(week_date, new Date())) {
+  if (!overrideCutoff && isCutoffPassed(week_date, new Date(), memberData.pickup_location?.day_of_week ?? null)) {
     return jsonResponse(403, { ok: false, error: 'cutoff_passed' });
   }
 

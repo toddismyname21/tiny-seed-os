@@ -104,17 +104,29 @@ test('mondayOfWeek(delivery Wednesday) → that cycle Monday', () => {
   assertEq(mondayOfWeek('2026-06-15'), '2026-06-15', 'Monday is a fixed point');
 });
 
-test('isCutoffPassed cutoff is identical whether keyed by Wed or Mon', () => {
-  // Cutoff = Tue Jun 16 2026, 08:00 ET (EDT, UTC-4) = 12:00:00Z.
-  // For the Jun 17 cycle: Wednesday key and Monday key must agree exactly.
-  const justBefore = new Date('2026-06-16T11:59:00Z'); // 07:59 ET Tue — open
-  const justAfter = new Date('2026-06-16T12:00:00Z'); // 08:00 ET Tue — closed
-  // Wednesday key (the /box page-level call).
-  assertEq(isCutoffPassed('2026-06-17', justBefore), false, 'Wed key: open before 8AM ET');
-  assertEq(isCutoffPassed('2026-06-17', justAfter), true, 'Wed key: closed at 8AM ET');
-  // Monday key (what the swap + swap-undo APIs now receive).
-  assertEq(isCutoffPassed('2026-06-15', justBefore), false, 'Mon key: open before 8AM ET');
-  assertEq(isCutoffPassed('2026-06-15', justAfter), true, 'Mon key: closed at 8AM ET');
+test('isCutoffPassed: unified Monday 7 AM cutoff (Wed run), keyed by Wed or Mon', () => {
+  // UNIFIED CUTOFF (Todd 2026-06-26): Wednesday-run members (pickupDay
+  // null/Tue/Wed) lock at the cycle Monday 07:00 ET. Jun 17 cycle → cycle
+  // Monday Jun 15; cutoff = Mon Jun 15 07:00 ET (EDT, UTC-4) = 11:00:00Z.
+  const justBefore = new Date('2026-06-15T10:59:00Z'); // 06:59 ET Mon — open
+  const justAfter = new Date('2026-06-15T11:00:00Z'); // 07:00 ET Mon — closed
+  // Wednesday key (the /box page call) and Monday key (the swap APIs) must agree.
+  assertEq(isCutoffPassed('2026-06-17', justBefore), false, 'Wed key: open before Mon 7AM ET');
+  assertEq(isCutoffPassed('2026-06-17', justAfter), true, 'Wed key: closed at Mon 7AM ET');
+  assertEq(isCutoffPassed('2026-06-15', justBefore), false, 'Mon key: open before Mon 7AM ET');
+  assertEq(isCutoffPassed('2026-06-15', justAfter), true, 'Mon key: closed at Mon 7AM ET');
+});
+
+test('isCutoffPassed: weekend-market members get the later Thursday 7 AM cutoff', () => {
+  // Sat/Sun pickup → Thursday 07:00 ET (cycle Monday + 3). Jun 15 cycle →
+  // Thu Jun 18 07:00 ET = 11:00:00Z. A weekend member is STILL OPEN after the
+  // Monday cutoff — proving the cutoff is pickup-day-aware.
+  const monAfter = new Date('2026-06-15T12:00:00Z'); // past Mon 7AM, but...
+  assertEq(isCutoffPassed('2026-06-15', monAfter, 'Sat'), false, 'Sat: still open after Mon cutoff');
+  const thuBefore = new Date('2026-06-18T10:59:00Z'); // 06:59 ET Thu — open
+  const thuAfter = new Date('2026-06-18T11:00:00Z'); // 07:00 ET Thu — closed
+  assertEq(isCutoffPassed('2026-06-15', thuBefore, 'Sat'), false, 'Sat: open before Thu 7AM ET');
+  assertEq(isCutoffPassed('2026-06-15', thuAfter, 'Sun'), true, 'Sun: closed at Thu 7AM ET');
 });
 
 let failures = 0;
