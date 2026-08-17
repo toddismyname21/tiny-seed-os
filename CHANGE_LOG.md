@@ -24,9 +24,17 @@ Two production data migrations, both applied and verified. No code changed — t
 - Prices set by Todd 2026-08-17. Reconciled two that were wrong in the catalog but right in the wild: Cherry Tomatoes $5.00 → **$4.75/lb** (what Allegro and Cafe Verde actually pay) and Shishito $5.50 → **$6.00/lb** (reactivated). **Seconds Tomatoes $1.65/lb** promoted from a hand-typed line on Mediterra's order to a real SKU. Green Beans **$3.00/lb** matches the existing Harvie rate.
 - Result: **25 active items** (was 21), retired rows kept inactive for next season.
 
-**Still open / found but not fixed:**
-- 🔴 `wholesale_list_wed_enabled` and `wholesale_list_fri_enabled` are both **false**, and `fresh_sheet_confirmed_wed` = 2026-07-22. No chef has had an availability list in ~4 weeks. This is why George texted "am I working off the same list from you guys this week?" on Aug 3.
-- 🔴 The saved `fresh_sheet_note` still reads "Peppers & tomatoes coming soon!" plus last-call broccolini and peak cucumbers — stale from July, and the opposite of the current message.
+**Also done 2026-08-17 (config, no migration):**
+- **Availability list gates turned ON** (`wholesale_list_wed_enabled` / `_fri_enabled` were both false since ~Jul 22 — no chef had received a list in four weeks, which is why George Austin texted "am I working off the same list from you guys this week?" on Aug 3). Safe to enable: the `wholesale-list-wed` / `wholesale-list-fri` cron ROUTES exist but are **not in `vercel.json` crons**, so nothing auto-fires. Per Todd, the auto-fires stay off until he's caught up — re-adding them to `vercel.json` is the remaining step.
+- **`fresh_sheet_note` rewritten.** It still read "🌶️🍅 Peppers & tomatoes coming soon!" plus last-call broccolini and peak cucumbers — stale from July and the exact opposite of the current message. Now leads with tomatoes at peak (incl. seconds at $1.65) and the new pepper/eggplant lines.
+- **28 personalized availability emails sent** from todd@ (one per account, each with its own order-token link) to Tier 1 actives + prospects who had opened the order portal. All 28 tokens verified HTTP 200 with the new catalog rendering and retired items gone BEFORE sending. Zero failures.
+- **Two apology/recovery emails sent**: Csilla Thackray (Titusz) — threaded into the Aug 4 email where the "answer by end of day" was promised and never delivered; confirms the Aug 7 order is cancelled and unbillable, earlier invoices deliberately withheld pending Todd's verification. John Rezzetano — first email ever sent to him (all prior contact was by text); explains the misspelled-address root cause and lists $321.05 across four orders.
+- **Monday Pack Team checklist PDF** generated and emailed to Todd for markup. Assembled from the TodayFlow Monday deck, `CREW_SECTIONS` pick order, the `?view=printpack` composition and `COOLER_LAYOUT.md` — NOT invented. The email explicitly lists what is not covered (start/break times, wash-station steps, sanitation, food safety, label/box division).
+
+**Still open:**
+- 🔴 Corrections to the responsibilities board: John Rezzetano's real total is **$321.05**, not $283.05, and his 5 "missing prices" are all filled in. Csilla's dandelion substitution **was already priced** at $15/bunch — her 7/29 bills at $73.20, not $43.20.
+- 🔴 John's Aug 11 "Carrots ×4 @ $4.00" is still ambiguous (4 bunches vs 4 carrots) — he has been asked directly.
+- 🔴 St. Ferdinand, St. Ferdinand (PASS) and North Hills Community Outreach have **no email address** — unreachable, and duplicated accounts. Linda Leary's food-bank availability list is due **Wed 2026-08-19**.
 - 🔴 St. Ferdinand, St. Ferdinand (PASS) and North Hills Community Outreach have **no email address** — unreachable through the system, and duplicated accounts.
 - Center for Hope routes only to Sue Otto; Ginny Kellinger places the orders now and Marc Rattay needs copies. Neither is a contact.
 
