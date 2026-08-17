@@ -6,6 +6,34 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-17] Role realignment — `staff` was admin-equivalent for six people (PM_ARCHITECT)
+
+**`0091_role_realignment.sql`** — applied and verified.
+
+`staff` is not a reduced role. `resolveAdminRole()` accepts admin OR staff and nothing anywhere narrows staff:
+
+```
+if (data.role !== 'admin' && data.role !== 'staff') return null;
+```
+
+**71** API routes under `/api/admin` are gated on `requireAdmin` and staff passes every one; only **10** use `requireCrew`. So `staff` meant member PII, QuickBooks/invoicing, pricing, campaign sending to the full member list, and exports.
+
+Measured before the change: **7 accounts held that access** (Todd as admin + 6 staff) and **0 accounts held `crew`** — the limited role migration 0068 was built for. The harvest manager could open the books; a departed contractor still had a live login.
+
+Todd's call: *"Loren, Ben, Amelia and myself are the only staff, the rest are crew."*
+
+| Role | After |
+|---|---|
+| admin (1) | Todd |
+| staff (3) | Loren (member-facing), Ben (harvest manager), Amelia |
+| crew (3) | Marigrace, Jackson, Sam |
+
+Demotions are **by explicit email, one row at a time** — a blanket `WHERE role='staff' AND email NOT IN (…)` would silently sweep up any account added between authoring and running. Guarded with an assertion that refuses to leave zero admins.
+
+⚠️ **Sam (skpollac@gmail.com) should be REMOVED, not demoted.** She is off the farm and her MacBook retires 2026-08-23. Crew is strictly safer than staff so the demotion landed now, but deleting an account does not belong buried in a role migration — it needs Todd's explicit call, tracked with revoking her SSH key.
+
+**Why this matters for the pack-crew checklist work:** `crew` is enforced twice — the middleware allowlist (`CREW_ALLOWED_PREFIXES` = handoff, cooler, pick-pack) and, as the real backstop, RLS `is_ops_caller()`, which only clears the three PII-free ops tables. That is what makes it safe to give Annabelle and the two H-2A Juan Pablos a login at all. Merging staff and crew into one role — the original suggestion — would have handed seasonal field crew every member's home address and the books.
+
 ## [2026-08-17] Wholesale catalog rebuilt for August + Butter Joint chef handoff (PM_ARCHITECT)
 
 Two production data migrations, both applied and verified. No code changed — the catalog and contact routing are read at runtime from Supabase, so production reflects these immediately.
