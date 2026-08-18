@@ -134,6 +134,8 @@ const LABEL_STRINGS: Record<Lang, {
   stopColorCode: string;
   sizeColorCode: string;
   addonColorCode: string;
+  /** Loud header on the owed-make-up band (0092 label change). */
+  makeupHdr: string;
   otherAddon: string;
   noStops: string;
   // Empty states
@@ -175,6 +177,7 @@ const LABEL_STRINGS: Record<Lang, {
     stopColorCode: 'Stop color code',
     sizeColorCode: 'Box size color code',
     addonColorCode: 'Add-on color code',
+    makeupHdr: '\u26a0 MAKE-UP OWED \u2014 PACK THIS',
     otherAddon: 'Other add-on',
     noStops: 'No active stops for this week.',
     emptyFiltered: 'No labels match this filter for this week. Try clearing the filter or picking another week.',
@@ -218,6 +221,7 @@ const LABEL_STRINGS: Record<Lang, {
     stopColorCode: 'Código de color de parada',
     sizeColorCode: 'Código de color de tamaño',
     addonColorCode: 'Código de color de extras',
+    makeupHdr: '\u26a0 COMPENSACIÓN PENDIENTE \u2014 EMPACAR ESTO',
     otherAddon: 'Otro extra',
     noStops: 'No hay paradas activas esta semana.',
     emptyFiltered: 'Ninguna etiqueta coincide con este filtro esta semana. Quite el filtro o elija otra semana.',
@@ -248,6 +252,34 @@ const cycle = await resolveCycle(supabase, week_starting);
 // PACK ORDER TIED TO ROUTE: the saved, optimized route (planner → "Save & send
 // to driver") sets the delivery sequence; labels print in that order so the
 // stack matches the truck. Empty map → falls back to day→stop→name below.
+/* ── MAKE-UPS ON THE LABEL (Todd 2026-08-18) ──────────────────────────────
+ * Owed make-ups already ride the top of the PACK sheet, but the label — the
+ * thing physically stuck to the box — never showed them, so a promised second
+ * mushroom got packed only if someone remembered. Nobody received mushrooms
+ * the week of 2026-08-10, which turned that gap into ~11 missed promises in a
+ * single week.
+ *
+ * Source of truth is member_notices (status='open'), the SAME table the pack
+ * sheet reads — not a second list that can drift. Anything due THIS week or
+ * earlier is still owed, so overdue promises keep surfacing until fulfilled
+ * rather than silently ageing out. Keyed by customer_id so it lands on every
+ * label that customer has. */
+const { data: makeupRows } = await supabase
+  .from('member_notices')
+  .select('customer_id, title, due_week')
+  .eq('status', 'open')
+  .or(`due_week.lte.${week_starting},due_week.is.null`)
+  .overrideTypes<Array<{ customer_id: string | null; title: string; due_week: string | null }>, { merge: false }>();
+
+const makeupsByCustomer = new Map<string, string[]>();
+for (const r of makeupRows ?? []) {
+  if (!r.customer_id) continue;
+  const list = makeupsByCustomer.get(r.customer_id) ?? [];
+  // Strip the "Name: " prefix the notices carry — the label already names them.
+  list.push(r.title.replace(/^[^:]{1,40}:\s*/, ''));
+  makeupsByCustomer.set(r.customer_id, list);
+}
+
 const weekRoutes = await loadWeekRoutes(supabase, week_starting);
 // TRUCK LOAD NUMBER (Todd 2026-07): the same saved route also numbers the stops
 // in load order (1 = load first = last drive stop). We print that number on each
@@ -1105,6 +1137,17 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                     {label.kind === 'box' && label.hasFlower && (
                       <div class="label-flower-note">{t.alsoFlower}</div>
                     )}
+                    {label.kind !== 'flower' && (makeupsByCustomer.get(label.member.customer_id)?.length ?? 0) > 0 && (
+                      <div class="label-makeup">
+                        <div class="label-makeup-hdr">{t.makeupHdr}</div>
+                        {makeupsByCustomer.get(label.member.customer_id)!.map((m) => (
+                          <div class="label-makeup-line">
+                            <span class="makeup-checkbox" aria-hidden="true"></span>
+                            <span>{m}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {label.addonChips.length > 0 && (
                       <div class="label-chips">
                         {label.addonChips.map((chip) => (
@@ -1402,6 +1445,46 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
   }
 
   /* ── Add-on chips (req 4): color-coded badges; print in color ───── */
+  /* MAKE-UPS — deliberately the loudest thing on the label. A missed promise
+     costs a member; a slightly ugly label costs nothing. Colors are forced to
+     print with -webkit-print-color-adjust so the band survives the printer. */
+  .label-makeup {
+    margin: 2px 0 3px;
+    padding: 3px 6px;
+    border: 2.5px solid #991b1b;
+    border-radius: 3px;
+    background: #fee2e2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .label-makeup-hdr {
+    font-size: 8.5pt;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #7f1d1d;
+    line-height: 1.15;
+  }
+  .label-makeup-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    font-size: 10pt;
+    font-weight: 800;
+    color: #7f1d1d;
+    line-height: 1.2;
+  }
+  .makeup-checkbox {
+    flex: 0 0 auto;
+    width: 9px;
+    height: 9px;
+    margin-top: 2px;
+    border: 1.5px solid #7f1d1d;
+    border-radius: 2px;
+  }
+
   .label-chips {
     display: flex;
     flex-wrap: wrap;

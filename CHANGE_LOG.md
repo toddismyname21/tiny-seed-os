@@ -6,6 +6,38 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-18] Make-ups now print ON THE CSA LABEL (PM_ARCHITECT)
+
+**DEPLOYED to production.** `src/pages/admin/labels/[...slug].astro`.
+
+Owed make-ups already rode the top of the PACK sheet, but the **label — the thing physically stuck to the box — never showed them**, so a promised second portion got packed only if a human remembered. Nobody received mushrooms the week of 2026-08-10, which turned that gap into 11 broken promises in one week, on top of members who had already been missed twice.
+
+- Reads **`member_notices` (status='open')** — the SAME table the pack sheet uses, not a parallel list that can drift. Generic by design: **every** make-up now prints, not just mushrooms (Todd: "let's get notices directly on LABELS moving forward").
+- `due_week <= this cycle` **or NULL**, so an overdue promise keeps surfacing until it is actually fulfilled instead of silently ageing out.
+- Renders a loud red band with a tick box above the add-on chips, `-webkit-print-color-adjust: exact` so the colour survives the printer, `break-inside: avoid`. Suppressed on the separate flower label to avoid double-printing.
+- EN + ES (`⚠ MAKE-UP OWED — PACK THIS` / `⚠ COMPENSACIÓN PENDIENTE — EMPACAR ESTO`).
+- Keyed on `customer_id`, so it lands on every label that customer has.
+
+Implementation note: added ONE query + ONE render block rather than threading a new field through the four `LabelData` construction sites — smaller blast radius on a 1,600-line print-critical page.
+
+**Evidence:** `npm run build` → Complete, 0 errors. `npx astro check` → **11 errors, zero in this file** (below the 13-error baseline; the only `labels` error is pre-existing in the unrelated `wholesale/labels/index.astro`, plus one pre-existing unused-var warning at line 1064). Deployed and confirmed Ready in Production.
+
+### The mushroom incident, reconciled against resolveCycle
+Todd's report that **nobody** got mushrooms the week of 8/10 — not just the 17 already apologised to — was verified and the numbers rebuilt:
+
+| | |
+|---|---|
+| Mushroom add-ons riding **this** week | 19 rows / 18 customers |
+| Riding **last** week (all missed) | 19 rows / 17 customers |
+| **Portions to pack this week** | **30** (was being packed as 15) |
+| Owed but NOT riding this week | 7 customers → notices moved to 8/24 |
+
+**Drew Gifford holds TWO mushroom shares → 4 portions this week**, confirming Todd's "one customer gets two shares and should get four."
+
+Also corrected during the sweep:
+- **Anna Phillips** — her add-on did NOT ride on 7/06 or 7/20 although her box did (classic biweekly add-on/box A–B misalignment). She reported it twice and was never captured. Notice created for 2 make-ups. ⚠️ An earlier check wrongly reported her as having NO member rows — that was a bad query selecting a non-existent `is_active` column on `members`, which fails silently. She is correctly in the system.
+- **Maggie Debski** — also missed **bread** on 8/12 and asked for a double in the same email; only the mushroom promise had been recorded. Notice created.
+
 ## [2026-08-17] Role realignment — `staff` was admin-equivalent for six people (PM_ARCHITECT)
 
 **`0091_role_realignment.sql`** — applied and verified.
