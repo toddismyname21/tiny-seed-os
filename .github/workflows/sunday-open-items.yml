@@ -1,0 +1,50 @@
+# Sunday open-items digest — "make sure we don't let something slip" (Todd, 2026-08-19).
+#
+# Todd's open work lives in three places that are never read together: the
+# responsibilities board, the CSA to-do, and member_notices (promises made to a
+# specific customer). Items go stale silently — Kelly Corrigan's promised pickup
+# stop sat three weeks past its due date; a week of mushroom make-ups nearly went
+# out unpacked. This mails every unclosed item once a week.
+#
+# Runs in GitHub Actions rather than on Todd's Mac so it fires whether or not the
+# laptop is open. Reads the markdown straight from the repo at HEAD.
+name: Sunday Open Items
+
+on:
+  schedule:
+    # 11:00 UTC Sunday = 7:00 AM ET (EDT). Lands before the week starts.
+    - cron: '0 11 * * 0'
+  workflow_dispatch:        # so Todd can fire it any time from the Actions tab
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build the digest
+        id: build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 scripts/digest/sunday_open_items.py > digest.txt
+          echo "total=$(grep -m1 '^TOTAL OPEN:' digest.txt | sed 's/[^0-9]*//')" >> "$GITHUB_OUTPUT"
+          echo "overdue=$(grep -c '^    \* \[' digest.txt || true)" >> "$GITHUB_OUTPUT"
+          cat digest.txt
+
+      - name: Email it
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          from: Tiny Seed OS
+          to: todd@tinyseedfarmpgh.com
+          subject: "Open items — ${{ steps.build.outputs.total }} still open, ${{ steps.build.outputs.overdue }} overdue promises"
+          body: file://digest.txt
