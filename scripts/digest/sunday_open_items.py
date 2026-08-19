@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCES = [
     ("Responsibilities board", ROOT / "docs" / "TODD_RESPONSIBILITIES_BOARD.md"),
     ("CSA to-do",              ROOT / "docs" / "CSA_TODO.md"),
+    ("Software ideas",         ROOT / "docs" / "SOFTWARE_IDEAS.md"),
 ]
 CHECKBOX = re.compile(r"^\s*[-*]\s*\[( |x|X)\]\s*(.+?)\s*$")
 HEADING  = re.compile(r"^(#{2,4})\s*(.+?)\s*$")
