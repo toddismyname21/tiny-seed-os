@@ -108,3 +108,65 @@ ongoing arrangement it belongs in the lease Marlene is drafting, with a stated m
   records**. All three need fixing at once.
 - **Point 4 is the live risk.** It is the only term that runs forward, and it is the one
   Todd never agreed to.
+
+
+---
+
+## WHICH TANK DID HE CONCEDE ON?  (Todd's question, 2026-08-20)
+
+**The October 2025 tank — the one Todd filled himself. Which is the tank that is now empty.**
+
+The `.4 × 823` credit is 40% of Todd's **$822.78 Reed Oil cheque (#7136, 28 Oct 2025)**.
+Don's wording — *"refund for diesel I used last year"*, written March 2026 — means 2025.
+
+### The complete fuel history, simplified
+
+| # | What happened | Charged | Refunded | Todd's net |
+|---|---|---|---|---|
+| 1 | **Dec 2024** — fuel standing in the tanks (invoice 104788) | $914.00 | −$134.00 | **$780.00** |
+| 2 | **Jun–Nov 2025** — monthly 20% share of *that same Dec-24 fuel*: gasoline + diesel, 5 × $156.08 | $780.40 | −$780.40 | **$0.00** |
+| 3 | **Jun–Nov 2025** — same monthly share, **propane**, 5 × $85.40 | $427.00 | — | **$427.00** |
+| 4 | **Oct 2025** — Todd refills the tank himself (Reed Oil) | $822.78 | −$329.00 | **$493.78** |
+| | **TOTAL** | **$2,944.18** | **−$1,243.40** | **$1,700.78** |
+
+### What he actually conceded
+
+The monthly fuel share was billed **six times** — invoices 104803, 104809, 104812, 104822,
+104827, 104832 — and **every line references "Dec24"**, i.e. the same December 2024 fuel
+quantities re-billed month after month:
+
+```
+20%  Propane   (427Dec24)          85.40
+20%  Gasoline  (80%419Dec24)       67.04
+20%  Diesel    (60%724Dec24)       89.04
+                                  241.48 / month
+```
+
+Invoice 104832x shows propane *"corrected to 0"* — Don had already voided the sixth month
+himself. He then refunded the **diesel and gasoline** on the remaining five ($156.08 × 5 =
+$780.40) and **kept the propane** ($85.40 × 5 = $427.00). That is point 4 of his email.
+
+---
+
+## 🔴 THERE IS NO FORWARD PLAN — the tank is empty as of 2026-08-20
+
+Everything above is **retroactive**. It settled a tank after it was burned. Nothing in any
+email, text, invoice or draft lease says who fills the tank next, or how the split is
+calculated.
+
+Two things have changed since the settlement:
+
+1. **The monthly fuel line has stopped.** Invoices 104857 (July) and 104859 (August) 2026
+   carry Buildings, Electric, Tractors and Equipment/Machinery — **no fuel line at all**.
+   So there is currently no mechanism billing Todd for fuel in either direction.
+2. **The 40% was a one-off estimate**, justified by *"larger tractors used 3x fuel of
+   smaller kaboda"* — no hour meter reading or log was ever produced.
+
+### Three questions to settle BEFORE the tank is filled — these belong in the lease
+
+1. **Who buys the fuel?** Todd did last time and had to wait months for Don's share.
+2. **What is the split and how is it measured?** Tractor hour meters would settle it
+   objectively. Don's horsepower reasoning is plausible but it is an estimate, and he is
+   the party who benefits if it is wrong.
+3. **Propane and gasoline — is Todd really bearing 100%?** $427 has been paid on that
+   basis, from a single unanswered sentence.
