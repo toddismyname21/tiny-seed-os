@@ -1,34 +1,31 @@
 # Kretschmann ↔ Tiny Seed — Running Ledger 2026
 
-_Started 2026-08-20. Don invoices on PAPER left on Todd's desk, not email, so nothing
-reconciles itself. This file is the single record. Every invoice gets a row the day it
-is photographed._
+_Started 2026-08-20. Don invoices on PAPER left on Todd's desk, not by email, so nothing
+reconciles itself. This file is the single record._
 
-**Why this exists:** the 2026 arrears dispute (Don's figure $16,775 vs. Todd's ~$9,715)
-happened because payments and credits lived in memory, paper and one spreadsheet emailed
-once a quarter. That was settled and paid off in July 2026. This ledger exists so it does
-not recur.
+**Why this exists:** the 2026 arrears dispute (Don $16,775 vs. Todd ~$9,715) happened
+because payments and credits lived in memory, paper, and a spreadsheet emailed once a
+quarter. It was settled and paid off in July 2026 with FSA loan funds. This ledger exists
+so it cannot recur.
 
 ---
 
-## Open balance
+## BOTTOM LINE
 
 | | |
 |---|---|
-| **CREDIT owed to Tiny Seed (June overpayment)** | **−$2,498.44** |
-| Invoices received since (see below) | +$2,767.18 |
-| **Net currently owed to Kretschmann** | **$268.74** |
+| Don's Aug 1 summary asks for | **$5,132.26** |
+| Correction — invoice 104859 overstates its own line items | **−$100.00** |
+| Correction — June overpayment credit, dropped from his sheet | **−$2,498.44** |
+| **NET ACTUALLY OWED** | **$2,533.82** |
 
-⚠️ **INCOMPLETE — invoices 104857 and 104858 have not been seen.** Do not pay from this
-figure until those two are photographed and entered.
+**Do not pay $5,132.26.** That is $2,598.44 more than is owed.
 
 ---
 
-## The June overpayment — $2,498.44
+## Problem 1 — the credits vanished from the summary sheet
 
-Don's June summary (`SUMMARYInvoicesJu1.xls`, sent 2026-06-20) listed credits at the top
-and netted to **$1,217.24**. His covering email: *"Please can you pay the summed amount,
-as it reflects previous credits."*
+Don's **June** summary (`SUMMARYInvoicesJu1.xls`, 2026-06-20) opened with five credits:
 
 | Credit | Amount |
 |---|---|
@@ -37,70 +34,88 @@ as it reflects previous credits."*
 | Gas/diesel refund, 5 × $156.08 (2025) | −$780.40 |
 | Gas/diesel refund, $914 − 780 (inv 104788, 2024) | −$134.00 |
 | Don's share of diesel, .4 × 823 (2025) | −$329.00 |
-| **Total credits** | **−$2,498.40** |
+| **Total** | **−$2,498.40** |
 
-| Invoice | Month | Description | Amount |
-|---|---|---|---|
-| 104851 | May 2026 | Supplies | $865.00 |
-| 104852 | Jun 2026 | Supplies | $485.60 |
-| 104853 | Jun 2026 | Pine St. House | $1,000.00 |
-| 104854 | Jun 2026 | Bldgs, Mach, Util | $1,365.04 |
-| | | **Gross** | **$3,715.64** |
+His covering email: *"Please can you pay the summed amount, as it reflects previous
+credits."* Net asked: **$1,217.24**.
 
-**Paid: check #1751, dated 6-17-2026, $3,715.68** — the GROSS, credits not applied.
-Memo line reads "851, 852, 853, 854". Cleared 2026-06-22.
+Don's **August 1** summary has **no credit section at all** — six invoices and a total.
+The credits are simply gone.
+
+They were never consumed, because the June payment did not apply them (below).
+
+## Problem 2 — the June check paid the GROSS, not the net
+
+| | |
+|---|---|
+| June invoices 104851–104854, gross | $3,715.64 |
+| Don's own stated net after credits | **$1,217.24** |
+| **Check #1751 (dated 6-17-2026, cleared 6-22)** | **$3,715.68** |
+| **Overpayment** | **$2,498.44** |
+
+Check memo reads "851, 852, 853, 854". It was also 4¢ over even the gross.
 
 **Sequence, for the record:**
 - 6/17 — check left in the barn mail for the gross amount
 - 6/20 — Don sends the tally showing net $1,217.24
 - 6/20 — Todd emails: *"I can void that check and write a new one for 1217.24"*
-- — Don says **verbally** he has already cashed it. No text, no email reply. Verified:
-  zero messages in the Jun 12–30 window mention check/void/cash/invoice/credit, and
-  Don's next emails (6/23, 6/26) are about lettuce and task lists.
+- — Don answers **verbally** that he has already cashed it. **No text, no email.**
+  Verified: zero messages Jun 12–30 mention check/void/cash/invoice/credit; his next
+  emails (6/23 lettuce, 6/26 task list) never address it.
 - 6/22 — check clears at $3,715.68
 
-**Overpayment = $3,715.68 − $1,217.24 = $2,498.44.** (The check was also 4¢ over even the
-gross figure.)
+## Problem 3 — invoice 104859 is $100 over its own line items
 
----
-
-## Invoices received after June
-
-| Invoice | Date | Description | Amount | Status |
-|---|---|---|---|---|
-| 104855 | 2026-07-01 | 1 × 2" Layflat 300' new | $134.00 | unpaid |
-| 104856 | 2026-07-01 | Pine St. House — July | $1,000.00 | unpaid |
-| **104857** | — | **NOT YET SEEN** | ? | missing |
-| **104858** | — | **NOT YET SEEN** | ? | missing |
-| 104859 | 2026-08-01 | Buildings Lease Aug $411.51 · **Electric Aug $200.00** · Tractors Lease Aug $329.94 · Equipment/Machinery Aug $473.63 | $1,515.08 | unpaid |
-| 104860 | 2026-08-01 ⚠️ | 2005 Ford 250 truck, 107 mi YTD @ $1.50 = $160.50, less inspection credit $42.40 | $118.10 | unpaid |
-| | | **Total received** | **$2,767.18** | |
-
-⚠️ **104860 is printed "8/1/2025"** — almost certainly a typo for 2026, since 104859 from
-the same batch reads 8/1/2026. Confirm with Don rather than assume.
-
----
-
-## Recurring monthly charges, as far as we can tell
-
-There is **no written monthly rent figure anywhere** — it has always been ad-hoc invoices.
-This matters for the lease negotiation with Marlene. From what has been seen:
-
-| Line | Seen at | Frequency |
+| Line | Aug (104859) | Jul (104857) |
 |---|---|---|
-| Pine St. House | $1,000.00 | monthly (Jun 104853, Jul 104856) |
+| Buildings Lease | $411.51 | $411.51 |
+| Electric | $200.00 | $150.00 |
+| Tractors Lease | $329.94 | $329.94 |
+| Equipment/Machinery | $473.63 | $473.63 |
+| **Sum of lines** | **$1,415.08** | **$1,365.08** |
+| **Stated TOTAL** | **$1,515.08** ⚠️ | $1,365.08 ✓ |
+
+July adds up exactly. August is overstated by **$100.00**, and that error carries into
+the summary sheet total.
+
+---
+
+## Invoices — July & August 2026 (Don's summary, 8/1/2026)
+
+| Invoice | Month | Description | Stated | Correct |
+|---|---|---|---|---|
+| 104855 | Jul | 1 × 2" Layflat 300' new | $134.00 | $134.00 |
+| 104856 | Jul | Pine St. House — July | $1,000.00 | $1,000.00 |
+| 104857 | Jul | Buildings 411.51 · Electric 150.00 · Tractors 329.94 · Equip 473.63 | $1,365.08 | $1,365.08 |
+| 104858 | Aug | Pine St. House — August | $1,000.00 | $1,000.00 |
+| 104859 | Aug | Buildings 411.51 · Electric 200.00 · Tractors 329.94 · Equip 473.63 | $1,515.08 ⚠️ | **$1,415.08** |
+| 104860 | Aug | Truck 107 mi YTD @ $1.50 = $160.50, less inspection credit $42.40 | $118.10 | $118.10 |
+| | | **TOTAL** | **$5,132.26** | **$5,032.26** |
+
+_(104860 is printed "8/1/2025" but Don's own summary lists it as Aug 2026 — resolved.)_
+
+---
+
+## Recurring monthly charges
+
+No written monthly rent figure exists anywhere — it has always been ad-hoc invoices.
+This matters for the lease negotiation with Marlene.
+
+| Line | Amount | Notes |
+|---|---|---|
+| Pine St. House | $1,000.00 | monthly |
 | Buildings Lease | $411.51 | monthly |
 | Tractors Lease | $329.94 | monthly |
 | Equipment/Machinery | $473.63 | monthly |
-| Electric | $200.00 | monthly |
-| Supplies | varies | as incurred |
+| Electric | $150–200 | varies |
+| **Recurring subtotal** | **~$2,365–2,415** | per month |
+| Supplies / materials | varies | as incurred |
 | Truck mileage | $1.50/mi | YTD, less inspection credits |
 
 ---
 
 ## Standing asks of Don
 
-1. **Email the invoices** rather than printing them onto Todd's desk. Asked before; still not happening.
-2. **Confirm the $2,498.44 credit** is being carried.
-3. **104857 and 104858** — send them.
-4. **Confirm 104860's date** (printed 2025).
+1. **Restore the $2,498.44 credit** — it was on the June sheet and has disappeared.
+2. **Correct invoice 104859** — $1,415.08, not $1,515.08.
+3. **Email invoices** rather than printing them onto Todd's desk. Asked before; still not happening.
