@@ -64,7 +64,23 @@ Check memo reads "851, 852, 853, 854". It was also 4¢ over even the gross.
   emails (6/23 lettuce, 6/26 task list) never address it.
 - 6/22 — check clears at $3,715.68
 
-## Problem 3 — invoice 104859 is $100 over its own line items
+## Problem 3 — invoice 104859: electric raised $50 with no notice
+
+Electric has been **$150.00/month**. On August's invoice it is **$200.00** — a 33%
+increase, with no notice, no explanation, and no supporting bill. June's bundled
+invoice (104854, $1,365.04) is within 4¢ of July's $1,365.08, which indicates electric
+was $150 in June too.
+
+| Month | Electric |
+|---|---|
+| June (104854, bundled) | ~$150 (inferred — total within 4¢ of July's) |
+| July (104857) | **$150.00** |
+| August (104859) | **$200.00** ⚠️ +$50, unannounced |
+
+This is separate from the arithmetic error below, and it is the one that recurs — a $50
+unannounced rise costs $600/yr if it stands. Ask for the basis before accepting it.
+
+## Problem 4 — invoice 104859 is $100 over its own line items
 
 | Line | Aug (104859) | Jul (104857) |
 |---|---|---|
@@ -118,4 +134,5 @@ This matters for the lease negotiation with Marlene.
 
 1. **Restore the $2,498.44 credit** — it was on the June sheet and has disappeared.
 2. **Correct invoice 104859** — $1,415.08, not $1,515.08.
-3. **Email invoices** rather than printing them onto Todd's desk. Asked before; still not happening.
+3. **Explain the electric increase** — $150 → $200 with no notice. Ask for the basis and the underlying bill.
+4. **Email invoices** rather than printing them onto Todd's desk. Asked before; still not happening.

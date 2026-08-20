@@ -6,6 +6,16 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-20] Web search capability + Sunday open-items digest (PM_ARCHITECT)
+
+**`scripts/research/websearch.py`** — general web search from Bash, for the 7 of 9 agents that have no `WebSearch` tool. Diagnosis: only `researcher` and `marketing-claude` declare it; `pm-coordinator` has none. Even `researcher` returned "No such tool available" at runtime twice despite declaring it AND being allowed in `settings.local.json`. Outbound HTTPS works fine — the blocker was scraping search engines with no browser User-Agent, which gets bot-challenged. With a normal UA, DuckDuckGo's html endpoint returns clean parseable results. **Two full research passes on multi-agent architecture had been completed blind to the open web because of this.** Limits documented in the module docstring: undocumented endpoint, no date filtering, results are a starting point for fetching pages and must never be cited as evidence.
+
+**`scripts/digest/sunday_open_items.py` + `.github/workflows/sunday-open-items.yml`** — Sunday 7 AM ET email of everything still open, so nothing slips. Reads four sources: `member_notices` (promises made to a named customer), `TODD_RESPONSIBILITIES_BOARD.md`, `CSA_TODO.md`, and the new `docs/SOFTWARE_IDEAS.md`. Promises to members lead the email and overdue ones are called out first — a promise past its due date is what actually costs a member. Runs in GitHub Actions, not on the Mac, so it fires whether or not the laptop is open. **Fails loudly** if `member_notices` is unreachable rather than reporting zero. Currently 119 open items, 21 member promises of which 12 overdue. NOT yet fired manually — the secrets need proving before Sunday.
+
+**`docs/research/`** — three research passes on multi-agent organization committed (`MULTI_AGENT_ORGANIZATION_2026.md`, `MULTI_AGENT_OPTIONS_2026.md`, `MULTI_AGENT_FINAL_2026.md`) plus the Feb 2026 baseline they update. Pass 3 corrected two earlier claims: the widely-quoted "41–86.7% of multi-agent systems fail in production" measures benchmark task-failure for fully-autonomous frameworks (the word "production" appears nowhere in the paper), and Supabase Branching is not the clean fix pass 2 described from the docs alone.
+
+---
+
 ## [2026-08-20] Shared-kernel edit lock + timestamp migration convention (FULLSTACK_BUILDER)
 
 Multi-terminal safety work ahead of running dedicated CSA / Wholesale / Grants terminals in git worktrees. Worktrees isolate most files; a few are shared by every domain and previously relied on a human remembering to claim them in `.claude/rules/active-locks.md` (which had never actually been used). Replaced the convention with enforcement.
