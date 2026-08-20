@@ -19,7 +19,42 @@ the 6 paper invoices from July/August 2026 (104855–104860) transcribed from ph
 | **104859** | 2026-08-01 | $1,415.08 | $1,515.08 | **+$100.00** | unpaid — catch it now |
 | | | | **TOTAL** | **$305.50** | |
 
-**$205.50 of that was already paid.** Only the $100 on 104859 is still catchable.
+**$205.50 of that was already paid — CONFIRMED against the cancelled cheques**, not inferred
+from Don's `pd` filenames. Only the $100 on 104859 is still catchable.
+
+### Payment proof
+
+**104808 → cheque #1529, 10 Jul 2025, $7,885.48.** Memo line: *104810, 104807, 104808, 104802,
+104804, 104803*.
+
+| Invoice | Amount |
+|---|---|
+| 104802 | 1,762.00 |
+| 104803 | 1,396.48 |
+| 104804 | 1,000.00 |
+| 104807 | 1,000.00 |
+| **104808** | **965.00** ← inflated; correct figure 935.00 |
+| 104810 | 1,762.00 |
+| **Sum** | **7,885.48** — matches the cheque exactly |
+
+Had 104808 been correct the cheque would have been $7,855.48. **$30.00 overpaid.**
+
+**104827 → cheque #1538, 12 Jan 2026, $4,881.98.** Memo line: *824, 825, 826, 827, 829*.
+(This is the same cheque Don initially failed to credit during the arrears dispute.)
+
+| Invoice | Amount |
+|---|---|
+| 104824 | 1,000.00 |
+| 104825 | 1,762.00 |
+| 104826 | 98.00 |
+| **104827** | **1,021.98** ← inflated; correct figure 846.48 |
+| 104829 | 1,000.00 |
+| **Sum** | **4,881.98** — matches the cheque exactly |
+
+Had 104827 been correct the cheque would have been $4,706.48. **$175.50 overpaid.**
+
+**Corroborated by absence:** neither invoice appears on Don's own
+`Kretschmann_ArrearsStatement_Mar2026.xls`, so he agrees both were settled.
 
 ### 104808 — $30.00 (2025-07-01, trucks)
 ```
