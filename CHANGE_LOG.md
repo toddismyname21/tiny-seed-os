@@ -6,6 +6,37 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-08-20] Shared-kernel edit lock + timestamp migration convention (FULLSTACK_BUILDER)
+
+Multi-terminal safety work ahead of running dedicated CSA / Wholesale / Grants terminals in git worktrees. Worktrees isolate most files; a few are shared by every domain and previously relied on a human remembering to claim them in `.claude/rules/active-locks.md` (which had never actually been used). Replaced the convention with enforcement.
+
+- **NEW `scripts/hooks/shared-kernel-lock.sh`** — PreToolUse hook on Edit|Write|MultiEdit. Blocks (exit 2) edits to the shared kernel unless the current terminal holds a claim. Shared kernel = `apps/csa-portal/src/lib/database.types.ts`, `apps/csa-portal/src/lib/quickbooks.ts`, `apps/csa-portal/src/components/AdminShell.astro`, and root `supabase/migrations/**` (app-scoped migration dirs are NOT covered). Terminal identity = `$TSF_TERMINAL`, falling back to the worktree's git branch. Non-kernel files exit 0 silently. **Fails OPEN** with a stderr warning if `active-locks.md` is missing or unreadable.
+- **`.claude/settings.local.json`** — registered the hook as a third `PreToolUse` block matching `Edit|Write|MultiEdit` (alongside `phase-gate.sh`). No other part of the file changed.
+- **`.claude/rules/active-locks.md`** — rewritten as a working claim file: shared-kernel table, copy-pasteable `- LOCK: <key> | <terminal> | <date> | <description>` format, Active claims section. Claim key and terminal are matched as exact pipe-delimited fields, so a description containing another terminal's name cannot satisfy that terminal's lock. Kept the "Needs Todd" items and the do-not-modify rule; dropped the completed Phase-2 wave notes (already in git history).
+- **NEW `supabase/migrations/README.md`** — new migrations use `YYYYMMDDHHMMSS_description.sql` (Supabase CLI default) because concurrent terminals both reach for the next integer and collide silently. `0001`-`0092` are historical and FROZEN — **no existing migration was renamed or renumbered.** The hook warns (advisory, non-blocking) when a NEW root migration uses the old `NNNN_` form.
+
+**Found while testing:** `.claude/` is in `.gitignore` and neither `settings.local.json` nor `rules/` is tracked, so a fresh `git worktree add` gets NO hook registration and NO lock file. The hook now resolves the lock file to the MAIN checkout via `git rev-parse --git-common-dir` (verified in a real temporary worktree: a claim made in the main repo correctly blocked a different terminal editing from the worktree). Registration still requires symlinking each worktree's `.claude` to the main repo's — documented in `active-locks.md`. **This is a prerequisite for the worktree plan; without it nothing is enforced in the domain terminals.**
+
+Tested by piping hook JSON: non-kernel file passes silently; kernel file with no claim blocks with the exact claim line to paste; kernel file with a matching claim passes with a release reminder; missing/unreadable lock file fails open. Not committed or deployed — team lead reviews.
+
+## [2026-08-20] Weekly flower bouquet email sent (PM_ARCHITECT, Loren's terminal)
+
+Approved by Loren/Todd before send. Updated `apps/csa-portal/scripts/send_flower_wk.ts` (week `2026-08-17`, new copy, added `DRY_RUN` gate, hardcoded from `Tiny Seed Fleurs <csa@tinyseedfarm.com>` instead of env RESEND_FROM_EMAIL which is the veg-farm address).
+
+- Audience via **resolveCycle** (Aug 17–23): 33 shares → 32 sendable (test accounts filtered). Dry-run verified before live send.
+- **SENT 32/32, 0 failures.** Reply-to tinyseedfleurs@gmail.com, BCC todd@ on each.
+- Content: apology to weekly members for missed email last week; bouquet = sunflowers/marigolds/amaranth/zinnias/cosmos; fulls + dara/lisianthus/first dahlias.
+- Copy archived in `loren/notes/2026-08-17_weekly_bouquet_email_draft.md` (git-ignored).
+
+## [2026-08-19] Loren's dedicated workspace + terminal access (PM_ARCHITECT)
+
+Todd designated one terminal exclusively for Loren Kildoo (Flower Manager). Set up her private workspace:
+
+- **Created `loren/`** with `inbox/`, `notes/`, `flower_planning/`, `documents/` + `loren/README.md` (rules for sessions on her terminal).
+- **`.gitignore`**: added `loren/` — the repo remote is a public GitHub Pages site, so her folder must never be committed. Verified with `git check-ignore`.
+- **Emailed Loren** (tinyseedfleurs@gmail.com) the remote-control link for her terminal, from Todd's Gmail with BCC to Todd, after Todd approved the draft. Gmail message id `1a01a798c7b102e3`.
+- Agent memory updated: `project_loren_workspace.md` (new) + Gmail-API-send method documented.
+
 ## [2026-08-18] Make-ups now print ON THE CSA LABEL (PM_ARCHITECT)
 
 **DEPLOYED to production.** `src/pages/admin/labels/[...slug].astro`.
