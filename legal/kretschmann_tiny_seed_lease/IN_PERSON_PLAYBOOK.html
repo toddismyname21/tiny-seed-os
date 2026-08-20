@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>In-Person Negotiation Playbook — Todd Wilson</title>
+<style>
+  @media print {
+    body { font-size: 9pt; }
+    .no-print { display: none; }
+    .phase { page-break-inside: avoid; }
+    h2 { page-break-before: always; }
+    h2:first-of-type { page-break-before: avoid; }
+  }
+  body {
+    font-family: 'Georgia', serif;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.5in;
+    line-height: 1.5;
+    color: #1a1a1a;
+  }
+  h1 {
+    font-size: 20pt;
+    border-bottom: 3px solid #1a1a1a;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 12pt;
+    color: #555;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 15pt;
+    background: #1a1a1a;
+    color: white;
+    padding: 8px 12px;
+    margin-top: 28px;
+  }
+  h3 {
+    font-size: 12pt;
+    border-bottom: 1px solid #999;
+    padding-bottom: 4px;
+    margin-top: 20px;
+  }
+  h4 {
+    font-size: 11pt;
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+  ol.rules {
+    counter-reset: rule;
+    list-style: none;
+    padding-left: 0;
+  }
+  ol.rules li {
+    counter-increment: rule;
+    margin-bottom: 12px;
+    padding-left: 32px;
+    position: relative;
+  }
+  ol.rules li::before {
+    content: counter(rule) ".";
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+    font-size: 13pt;
+  }
+  blockquote {
+    border-left: 3px solid #2a6e3f;
+    margin: 12px 0;
+    padding: 8px 16px;
+    background: #f4f8f5;
+    font-style: italic;
+  }
+  .warning {
+    border-left: 3px solid #c0392b;
+    background: #fdf2f2;
+  }
+  .checklist {
+    list-style: none;
+    padding-left: 0;
+  }
+  .checklist li {
+    padding: 4px 0 4px 28px;
+    position: relative;
+  }
+  .checklist li::before {
+    content: "\2610";
+    position: absolute;
+    left: 4px;
+    font-size: 14pt;
+  }
+  .response-block {
+    margin: 16px 0;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  .response-block h4 {
+    margin-top: 0;
+    color: #c0392b;
+    font-style: italic;
+  }
+  .phase {
+    margin-bottom: 20px;
+  }
+  .phase-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .time-est {
+    font-size: 10pt;
+    color: #666;
+    font-style: italic;
+  }
+  .save-for-later {
+    background: #fff8e1;
+    border: 1px solid #f0d060;
+    padding: 12px;
+    margin: 12px 0;
+    border-radius: 4px;
+  }
+  .key-line {
+    background: #e8f5e9;
+    border: 1px solid #2a6e3f;
+    padding: 16px;
+    margin: 20px 0;
+    font-size: 11pt;
+    font-weight: bold;
+    text-align: center;
+  }
+  .print-btn {
+    background: #2a6e3f;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 14pt;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .print-btn:hover { background: #1e5630; }
+  strong { color: #1a1a1a; }
+  .dont-bring {
+    background: #fdf2f2;
+    border: 1px solid #c0392b;
+    padding: 12px;
+    margin: 12px 0;
+    border-radius: 4px;
+  }
+  hr { border: none; border-top: 1px solid #ccc; margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+
+<h1>In-Person Negotiation Playbook</h1>
+<div class="subtitle">Todd Wilson &mdash; Lease Discussion with Don Kretschmann<br>Date: ___________</div>
+
+<!-- RULES -->
+<h2>RULES FOR YOURSELF</h2>
+<p><em>Read these before you drive over. Read them again in the truck.</em></p>
+
+<ol class="rules">
+  <li><strong>You are not asking for permission. You are negotiating a business agreement between two parties.</strong> Don is not your boss. He is your landlord. You are his customer.</li>
+  <li><strong>Do not fill silence.</strong> When you make a point, stop talking. Let Don respond. The urge to keep explaining is where you give things away.</li>
+  <li><strong>Do not apologize for having positions.</strong> "I'd like to discuss" is fine. "Sorry, but..." is not. You have nothing to apologize for.</li>
+  <li><strong>Do not explain your financial situation.</strong> Don does not need to know your margins, your debt, your anxiety, or your cash flow. The moment you say "I can't afford," you've told him your ceiling.</li>
+  <li><strong>If he gets emotional or raises his voice, get quieter.</strong> Not silent &mdash; quieter. Slow down. Lower your volume. It forces him to match you.</li>
+  <li><strong>If he says something you don't have an answer for, say: "That's a good point. I'd like to think about that."</strong> You do not need to respond to everything in real time.</li>
+  <li><strong>You are allowed to leave without agreeing to anything.</strong> "I appreciate the conversation, Don. Let me take this home and think it through" is a complete sentence.</li>
+  <li><strong>Do not sign anything today.</strong> No matter how well it goes. Take it home. Sleep on it. Have your attorney review.</li>
+  <li><strong>Bring a notebook. Write down what he says.</strong> It slows the conversation to a productive pace, it shows you take him seriously, and it gives you a record.</li>
+  <li><strong>Your goal is not to win. Your goal is a lease you can build a life on.</strong> Don's goal should be the same &mdash; a tenant who improves his land and stays for decades. Remind him of that shared interest.</li>
+</ol>
+
+<hr>
+
+<!-- WHAT TO BRING -->
+<h2>WHAT TO BRING</h2>
+<ul class="checklist">
+  <li>Printed copy of Don's lease (your marked-up version)</li>
+  <li>Printed copy of the Draft Additions &amp; Replacements (your reference &mdash; don't hand this to Don)</li>
+  <li>Printed Markup Guide (your reference &mdash; don't hand this to Don)</li>
+  <li>Notebook and pen</li>
+  <li>Your reconciliation spreadsheet (arrears)</li>
+  <li>Your acreage projection spreadsheets (the hypothetical)</li>
+  <li>Coffee or something to share &mdash; this is still a relationship</li>
+</ul>
+
+<div class="dont-bring">
+  <strong>Do NOT bring to the table:</strong> The Opinion document. Don's Own Words document. The 5% per-machine breakdown. The regression table. These are YOUR preparation materials. They are ammunition you may never need to fire. If you put them on the table, Don will feel ambushed.
+</div>
+
+<hr>
+
+<!-- THE CONVERSATION -->
+<h2>THE CONVERSATION &mdash; IN ORDER</h2>
+
+<!-- PHASE 1 -->
+<div class="phase">
+  <div class="phase-header">
+    <h3>PHASE 1: OPEN WARM</h3>
+    <span class="time-est">5-10 minutes</span>
+  </div>
+  <p><strong>Purpose:</strong> Remind Don that you are on the same side.</p>
+  <p>Start with something real. Not lease talk. How's the soil looking. What's coming up in the fields. Something you noticed on the property that you appreciated. Genuine &mdash; not a tactic.</p>
+  <p>Then transition:</p>
+  <blockquote>"Don, I've spent a lot of time with the lease draft. I appreciate the work you put into it. I have some thoughts and questions, and I think if we can work through them together, we'll end up with something that works for both of us for a long time."</blockquote>
+  <blockquote class="warning"><strong>Do not say:</strong> "I have concerns." "There are problems." "My lawyer said..." (even if you have one &mdash; save that for later).</blockquote>
+</div>
+
+<!-- PHASE 2 -->
+<div class="phase">
+  <div class="phase-header">
+    <h3>PHASE 2: LEAD WITH WHAT YOU AGREE ON</h3>
+    <span class="time-est">5 minutes</span>
+  </div>
+  <p><strong>Purpose:</strong> Establish common ground. Don needs to hear "yes" before he hears "but."</p>
+  <blockquote>"There's a lot in here I support. The Recitals &mdash; your vision for the land, conservation, stewardship &mdash; I share those values. The organic certification requirement, the cover cropping, the mediation-first approach to disputes, the operating plan structure. I want to build on those."</blockquote>
+  <p>Specific things to affirm:</p>
+  <ul>
+    <li>Recitals 1-3, 5 (values alignment)</li>
+    <li>Article 5.1-5.2 (operating plan structure)</li>
+    <li>Article 6.1 (cover cropping)</li>
+    <li>Article 13.1 (mediation first)</li>
+    <li>Article 4.2 (7-day grace period)</li>
+    <li>Article 4.6 (Beginning Farmer Tax Credit)</li>
+  </ul>
+</div>
+
+<!-- PHASE 3 -->
+<div class="phase">
+  <div class="phase-header">
+    <h3>PHASE 3: THE 2023 LEASE BRIDGE</h3>
+    <span class="time-est">10 minutes</span>
+  </div>
+  <p><strong>Purpose:</strong> Use Don's OWN previous lease as baseline. He can't argue against terms he wrote.</p>
+  <blockquote>"Don, I went back and re-read the 2023 lease &mdash; the one you drafted. There are several provisions in that lease that I think were really well done, and I noticed they're not in this version. I'd like to understand what changed."</blockquote>
+  <p>Frame as <strong>questions</strong>, not accusations:</p>
+
+  <h4>Cure period (Article 10) &mdash; MOST IMPORTANT</h4>
+  <blockquote>"The 2023 lease had a 14-day cure period with written notice. This draft says 'work in good faith.' What was your thinking in changing that? Because from my side, having a defined process protects both of us."</blockquote>
+
+  <h4>Improvement compensation (Article 11)</h4>
+  <blockquote>"In 2023, if I built something removable, I could take it with me. Permanent improvements, you'd buy at depreciated value. This draft only covers greenhouse film. My tunnels alone are a $17,000-$31,000 investment. What happens to those if the lease ends?"</blockquote>
+
+  <h4>Acreage multiplier</h4>
+  <blockquote>"The 2023 lease used a 2x multiplier. This one uses 3x. That's a 50% increase in land cost at scale. Can we talk about that?"</blockquote>
+
+  <h4>Equipment inventory</h4>
+  <blockquote>"In 2023, you required a tagged, inventoried equipment list. This version has three categories for machinery. I'm paying almost $6,000 a year for equipment &mdash; I'd like to know what's on the list, and what condition it's in."</blockquote>
+
+  <p><em>Let Don respond to each one before moving to the next. Write down what he says.</em></p>
+</div>
+
+<!-- PHASE 4 -->
+<div class="phase">
+  <div class="phase-header">
+    <h3>PHASE 4: YOUR KEY ASKS &mdash; PICK THREE</h3>
+    <span class="time-est">15-20 minutes</span>
+  </div>
+  <p><strong>Purpose:</strong> You cannot fight 30 battles at once. Go deep on three. The rest can be addressed in follow-up or through your attorney.</p>
+
+  <h4>ASK 1: Lease Term (Article 1)</h4>
+  <blockquote>"Don, you wrote in the Recitals that security of tenure is key to thriving. I agree. A 1-year term with two renewals gives me three years at most &mdash; and any of those years can be my last. That makes it very hard to invest in the land the way both of us want me to.<br><br>I'm asking for a 3-year initial term. It matches the field rotation cycle. It gives us both stability. And it aligns with what you've said publicly about wanting a long-term farmer here."</blockquote>
+  <p><strong>If he pushes back:</strong> "What would make you comfortable with a longer term? What would I need to demonstrate?"</p>
+  <p><strong>If he says he needs flexibility:</strong> "What if we built in performance milestones &mdash; things I need to meet to trigger the renewal? That gives you an exit if I'm not performing, and gives me security if I am."</p>
+
+  <h4>ASK 2: Cure Period (Article 10)</h4>
+  <blockquote>"This is the one I feel most strongly about. Without a defined cure period, either of us could claim the other isn't meeting their obligations, and there's no process. I'm not asking for anything unusual &mdash; 30 days to fix a non-monetary issue, 14 days for a payment issue, written notice specifying what the problem is, and mediation before termination. You had this in 2023. It protects both of us."</blockquote>
+  <p><strong>If he says "I trust we can work it out":</strong> "I trust that too. But we're putting a lease on paper precisely for the times when trust isn't enough. The process is there for the hard days, not the easy ones."</p>
+
+  <h4>ASK 3: Improvement Rights (Article 11)</h4>
+  <blockquote>"I need to know that what I build here isn't lost if the lease ends. My caterpillar tunnels are portable &mdash; I should be able to take them. For permanent improvements &mdash; soil work, infrastructure &mdash; I need some form of compensation. The 2023 lease had this. I'd like it back.<br><br>The way it's written now, every dollar I invest in this property is a dollar I'm giving away if the lease ends. That doesn't incentivize me to invest. And I think we both want me investing in this land."</blockquote>
+</div>
+
+<!-- PHASE 5 -->
+<div class="phase">
+  <div class="phase-header">
+    <h3>PHASE 5: THE ACREAGE QUESTION</h3>
+    <span class="time-est">10 minutes</span>
+  </div>
+  <p><strong>Purpose:</strong> Don has a rationale. You have math. Use the math.</p>
+  <blockquote>"Don, I want to walk through the acreage formula with you, because I want to make sure I understand it correctly."</blockquote>
+  <p>Pull out your hypothetical spreadsheet. Walk through it together:</p>
+  <blockquote>"If I farm 5 acres of production and those fields go into required rotation, by year 4 I'm being charged for 15 acres while only actively cropping 10. The cover cropping that you require in the Recitals and in Article 6 is being charged at the same rate as production land. I'm paying $500 an acre to improve soil that stays with the property if I leave.<br><br>I think the intent is right &mdash; you want the land stewarded. I want that too. But the pricing structure actually penalizes me for doing what you're asking. Can we look at a different rate for cover/fallow acres?"</blockquote>
+  <blockquote class="warning"><strong>Do not say:</strong> "This incentivizes extraction." In person, frame it as a shared problem to solve.</blockquote>
+  <p><em>Hand him the spreadsheet. Let him look at it. Do not talk while he's reading.</em></p>
+</div>
+
+<!-- PHASE 6 -->
+<div class="phase">
+  <div class="phase-header">
+    <h3>PHASE 6: THE ARREARS</h3>
+    <span class="time-est">10 minutes</span>
+  </div>
+  <p><strong>Purpose:</strong> Agree on the number. Do not sign without it.</p>
+  <blockquote>"Don, I'd like to reconcile the outstanding balance before we finalize anything. I've gone through the bills and I've identified some items I'd like to discuss."</blockquote>
+  <p>Walk through your reconciliation spreadsheet:</p>
+  <ol>
+    <li><strong>The fuel refund</strong> &mdash; he already agreed to this (Section 9.2a). Confirm the dollar amount.</li>
+    <li><strong>The acreage overcharge</strong> &mdash; 12 acres billed, 6 farmed. The $1,000 credit doesn't cover the $3,000 difference.</li>
+    <li><strong>Fields O and F3M</strong> &mdash; "I was not informed these were being billed to me. There was no written agreement."</li>
+    <li><strong>Capital repairs</strong> &mdash; heater fan, cooler thermostat, tree removal. "These are capital repairs on your assets under your own definitions."</li>
+  </ol>
+  <blockquote>"I'm not trying to nickel and dime you. I want a number we both agree on, in writing, before we sign. That's fair for both of us."</blockquote>
+  <p><strong>If he disputes items:</strong> "I understand your perspective. Let's write down both positions and include them in the reconciliation. We can resolve the disputed items through a process rather than holding up the whole lease."</p>
+</div>
+
+<!-- PHASE 7 -->
+<div class="phase">
+  <div class="phase-header">
+    <h3>PHASE 7: THE CLOSE</h3>
+    <span class="time-est">5 minutes</span>
+  </div>
+  <p><strong>Purpose:</strong> End warm. Do not sign. Take it home.</p>
+
+  <h4>If it went well:</h4>
+  <blockquote>"Don, I really appreciate you taking the time to go through this with me. I feel good about the direction. I want to take my notes home, make sure I've captured everything correctly, and I'll have my attorney review the final version before we sign. I'd like to get this done within [timeframe]."</blockquote>
+
+  <h4>If it was tense:</h4>
+  <blockquote>"Don, I know this is a lot to work through, and I appreciate your patience. I think we've made progress on understanding each other's positions. Let me take this home, and let's plan to come back together after we've both had time to think. I'd like to get this right &mdash; not rushed."</blockquote>
+
+  <h4>If he pressures you to sign today:</h4>
+  <blockquote>"I want to sign something we're both happy with. Taking a few days to review is how I make sure I'm fully committed to what I'm agreeing to. That benefits both of us."</blockquote>
+
+  <blockquote class="warning"><strong>Do not say:</strong> "I need to talk to my lawyer" (even though you should). That phrase puts Don on the defensive. "I want to review my notes" is softer and achieves the same result.</blockquote>
+</div>
+
+<hr>
+
+<!-- DON'S RESPONSES -->
+<h2>DON'S LIKELY RESPONSES &mdash; AND YOURS</h2>
+
+<div class="response-block">
+  <h4>"You're overcomplicating this. We've been doing fine without a formal lease."</h4>
+  <blockquote>"We have been doing fine in a lot of ways, and I want to continue that. But we've also had some billing surprises &mdash; the acreage issue, the fuel &mdash; that a clearer lease would have prevented. This protects both of us."</blockquote>
+</div>
+
+<div class="response-block">
+  <h4>"I've been more than fair with you."</h4>
+  <blockquote>"I think you've been generous in many ways, and I've said so. I'm not questioning your fairness. I'm asking for clarity in the agreement so that we both know what fair looks like going forward."</blockquote>
+</div>
+
+<div class="response-block">
+  <h4>"If you don't like the terms, you can go farm somewhere else."</h4>
+  <p><strong>Do not react.</strong> This is a pressure move. Pause. Then:</p>
+  <blockquote>"I don't want to farm somewhere else. I want to be here. That's why I'm investing the time to get this right. If I didn't care about this place, I wouldn't be sitting here."</blockquote>
+  <p><em>Do not bluff. Do not counter-threaten. Do not say "maybe I will." Restate your commitment. It takes the air out of the threat.</em></p>
+</div>
+
+<div class="response-block">
+  <h4>"I need to talk to my accountant/lawyer about this."</h4>
+  <blockquote>"Absolutely. I think that's smart. I'm doing the same. Let's each take the time we need and come back together."</blockquote>
+  <p><em>This is a WIN. If Don involves a professional, that professional will likely tell him the lease needs work too.</em></p>
+</div>
+
+<div class="response-block">
+  <h4>"The tax credit is MY benefit, not yours to negotiate with."</h4>
+  <blockquote>"You're right &mdash; the credit goes to you. I'm not asking for the credit. I'm asking that the spirit of the program &mdash; helping beginning farmers access affordable land &mdash; be reflected in our arrangement during those three years. The legislature created it because they recognized that beginning farmers need a break. I'm asking for that break."</blockquote>
+</div>
+
+<div class="response-block">
+  <h4>"I built this farm. You're just renting."</h4>
+  <blockquote>"You did build it, and I respect that. I'm trying to continue what you built. The question is whether the lease gives me enough stability and investment protection to do that well. I think we both want the same outcome &mdash; this farm thriving for another generation."</blockquote>
+</div>
+
+<div class="response-block">
+  <h4>"The 5% is standard. That's how equipment leasing works."</h4>
+  <blockquote>"I'm not saying it's wrong. I'm saying it's not disclosed in the lease. I'd like the formula included in Exhibit B so we both know how the numbers are calculated. Transparency is good for both of us."</blockquote>
+</div>
+
+<div class="response-block">
+  <h4>(Silence / withdrawal / shuts down)</h4>
+  <blockquote>"Don, I can see this is a lot. We don't have to solve everything today. What if we focus on the two or three things that matter most to each of us, and schedule time to come back for the rest?"</blockquote>
+</div>
+
+<hr>
+
+<!-- SAVE FOR LATER -->
+<h2>TOPICS TO SAVE FOR FOLLOW-UP</h2>
+<p>These are real issues but they will overwhelm the first meeting. Address in writing or in a second sit-down:</p>
+
+<div class="save-for-later">
+  <ul>
+    <li>Exhibit C specifics (Wayne County, chemical storage, non-native species)</li>
+    <li>Assignment/sublease rights (Article 12)</li>
+    <li>Electricity overcharge ($120/year)</li>
+    <li>Article 13 additions (arbitration, lease continues during dispute)</li>
+    <li>Sunday work specifics</li>
+    <li>Deposit math (Article 11.3)</li>
+    <li>Three new Recitals (offer in writing &mdash; complimentary to Don, lands better on paper)</li>
+    <li>Equipment training obligation</li>
+    <li>Custom work log</li>
+    <li>Specific % use disputes (RosemaryHse, PuppyKennel)</li>
+    <li>The 5% per-machine breakdown (only if he disputes the formula exists)</li>
+  </ul>
+</div>
+
+<hr>
+
+<!-- THE ONE THING -->
+<div class="key-line">
+  Don wrote the Recitals. Don wrote the 2023 lease. Don made public promises about long-term tenure.<br>
+  Your entire negotiation is asking Don to honor his own words.<br><br>
+  You are not attacking him. You are not lawyering up.<br>
+  You are holding up a mirror and saying: "This is what you believe. Let's make the lease match."<br><br>
+  That is an unassailable position. Stay there.
+</div>
+
+</body>
+</html>
