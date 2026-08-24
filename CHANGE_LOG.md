@@ -1,3 +1,33 @@
+## 2026-08-24 — PM_ARCHITECT — Order ↔ QuickBooks invoice auto-linking
+
+**Why:** 65 wholesale orders read "uninvoiced" while QuickBooks had already billed
+$25,096 since June — roughly $11,400 billed-but-unlinked. Acting on that data would
+have double-billed the farm's largest accounts. `deliver.ts` linked invoices it
+created, but Todd also invoices by hand in QuickBooks and nothing linked those.
+
+**Files:**
+- `supabase/migrations/0093_wholesale_qbo_customer_map.sql` (new) — `wholesale_accounts.qbo_customer_id`/`qbo_customer_name`, partial-unique so two accounts cannot share one QB customer.
+- `apps/csa-portal/src/lib/invoice-reconcile.ts` (new) — pure tiered matcher: `portal_note` → `memo_dates` → `date_amount`. Ambiguity is never guessed.
+- `apps/csa-portal/src/pages/api/cron/invoice-reconcile.ts` (new) — nightly reconcile, `?dry=1` preview, read-only against QuickBooks.
+- `apps/csa-portal/src/pages/api/admin/wholesale/deliver.ts` — resolve the QB customer by mapped id first. Exact-name lookup returned NULL for most accounts ("Allegro" is "allegrohearthbakery" in QB), so auto-invoicing had been silently failing.
+- `apps/csa-portal/src/lib/database.types.ts` — the two new columns.
+
+**Verified:** `parseCitedDates` 8/8 cases; dry run over 67 invoices × 89 orders → 8 matches, 0 ambiguous; `astro check` clean for the new files (11 pre-existing errors untouched).
+
+**Removed a tier mid-build:** a "same customer + same date, different amount" tier
+matched Black Radish's $299 veg delivery to a $100 Bulk Flower Bucket invoice dated
+the same day. It merged two unrelated sales; reverted in QuickBooks and the tier now
+reports for review instead of linking.
+
+**Data fixes:** 16 accounts mapped to QB customers · 8 historical orders linked ·
+7 order headers rebuilt from line items (Cafe Verde was showing $60 against $174.75
+of lines) · Mediterra seconds tomatoes removed from 8/19 + 8/26 (kept 8/12, the one
+week they got them) · Allegro cherry tomatoes corrected $5.00 → $4.75 catalog price ·
+8 QuickBooks items created so produce lines stop falling back to the generic item.
+
+**Open for Todd:** 19 produce items (#603–#621) post to "Billable Expense Income"
+rather than a sales account, which misstates produce revenue on the P&L.
+
 # CHANGE_LOG.md - Central Change Tracking
 
 ## MANDATORY: All Claude sessions MUST log changes here
@@ -5,6 +35,28 @@
 Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
+
+## [2026-08-21] Farm Flex eligibility: store credit now unlocks ordering (FULLSTACK_BUILDER)
+
+Two existing rules contradicted each other and stranded real money. The order sync (`api/sync/shopify-orders.ts`) **deliberately never creates a member row** for a flex-funds purchase — a `share_type='flex'` row would put that person on pack sheets, stop manifests and route sheets as a recurring weekly recipient whether or not they ever order. But `/account/flex-order` was gated to `members.share_type='flex'`. So a member could buy Farm Flex funds and then be structurally barred from spending them. **5 members hold $178.06 of Shopify store credit with no flex share row.** Creating flex rows for them was considered and REJECTED by Todd; the fix is eligibility, not data. No member row was created or modified.
+
+**New rule (ONE place, `lib/flex-order.ts` `decideFlexEligibility`):** spendable store credit > 0 **OR** a live flex share row.
+
+- **`src/lib/flex-order.ts`** (pure, no DB/Shopify imports, unit-testable) — `flexMemberRank`, `pickFlexMemberRow`, `decideFlexEligibility`, `LIVE_MEMBER_STATUSES`. Row ranking: live flex row → active `summer_veg` → any active → any live → most recent, tiebroken by `created_at` then **`id`**. The id tiebreak is load-bearing: one real member's three rows share an identical `created_at`, and the page and the submit API resolve independently and must agree.
+- **`src/lib/flex.ts`** — `resolveFlexMemberRow` / `resolveFlexMemberId` / `resolveFlexEligibility` (the I/O around those pure rules). **Shopify is consulted ONLY when there is no flex share row**, so an existing flex member is decided with zero Shopify exposure and zero added latency — a Shopify outage can never lock them out. A null balance means "unknown", never "no money", and falls back to exactly the old rule.
+- **`src/pages/account/flex-order.astro`** — gate replaced. Header copy branches so a credit-only member isn't told they're "on our Farm Flex plan". Error copy rewritten: new `no_flex_credit` (honest, actionable) and `balance_unavailable` (transient, not the member's fault); `not_flex` no longer blames the member.
+- **`.../api/account/flex-order/submit.ts`** — re-validates eligibility server-side and requires the posted `member_id` to EQUAL the server-resolved one (stronger than "is this row mine?"). Reuses the balance eligibility already fetched, so still one Shopify round-trip.
+- **`.../api/account/flex-order/cancel.ts` + `skip.ts`** — share_type check REMOVED, ownership only. Requiring current eligibility here would be a trap: a member who spends their balance to $0 would be locked out of cancelling that very order. Neither path can move money or take food.
+- **`dashboard.astro`, `account/index.astro`, `MemberShell.astro`** — the order CTA and the bottom-nav Order tab now render SSR-hidden for non-flex members and are revealed by the FlexWallet island's existing `flex:resolved` event when the balance is positive. Deliberately NOT an SSR balance lookup: that would put a live Shopify call back on every member page render — the exact P0-1 regression removed 2026-05-24.
+- **`src/lib/flex-order.test.ts`** — 30 new assertions covering ranking, stable resolution on the real 3-identical-timestamp row shape, and every eligibility branch including "flex member while Shopify is down".
+
+**BLOCKER — do not deploy this without the DB half.** `place_flex_order` and `cancel_flex_order` still hard-reject `share_type <> 'flex'`. Verified against the LIVE database, not the migration files (`pg_get_functiondef(...) LIKE '%not_flex%'` → true for both). Until that is relaxed, a credit-only member reaches the page, builds a cart and gets `?error=not_flex` on submit — worse than today's silent redirect. Not fixed here because the brief said not to touch `supabase/migrations` and applying DDL to production needs a human yes. Proposed SQL + the design tradeoff is written up for review; submit.ts logs loudly if the DB ever returns `not_flex` for an app-eligible member.
+
+**Found while designing that SQL:** `place_flex_order` has `EXECUTE` granted to PUBLIC/anon/authenticated, so `p_balance_cents` — the over-balance cap input — is client-forgeable today via PostgREST. Pre-existing, not introduced here, but it constrains the DB fix: the minimal "OR p_balance_cents > 0" relaxation would widen that hole from flex members to every member. Needs a decision.
+
+**Known gap (documented in code):** `api/cron/flex-order-reminder.ts` still emails only flex-SHARE members, so credit-only members can order but get no weekly nudge. Closing it needs a cheap way to list credit holders; `flex_transactions` is not a usable proxy (it records the bonus split and debits, not principal — one stranded member has 3 rows, another has 0).
+
+Evidence: `npx astro check` 11 errors, byte-identical to the pre-existing baseline (cycle.ts, pack-sheet, wholesale ×3, market/sign-edit, account-save ×2, box swap ×2, order/[token]). `npm run build` exit 0. `npm run test:unit` all suites pass. `validate-element-refs.sh` clean. No orders placed, no store credit spent. Not committed, not deployed.
 
 ## [2026-08-20] Web search capability + Sunday open-items digest (PM_ARCHITECT)
 

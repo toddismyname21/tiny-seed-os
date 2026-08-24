@@ -290,15 +290,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
-  // Restaurant name = the QuickBooks DisplayName we bill under.
+  // Who we bill in QuickBooks. qbo_customer_id (migration 0093) is the durable
+  // key and WINS: portal names and QuickBooks DisplayNames diverged long ago
+  // ("Allegro" is "allegrohearthbakery" there, "Mediterra Mt. Lebanon" is
+  // "Mediterra Cafe"), so exact-name lookup returned NULL for most accounts and
+  // this endpoint bailed with qb_customer_not_found every time. Name lookup is
+  // kept ONLY as the fallback for an account nobody has mapped yet.
   let restaurantName = '';
+  let mappedCustomerId: string | null = null;
   if (order.account_id) {
     const { data: acct } = await supabaseAdmin
       .from('wholesale_accounts')
-      .select('restaurant_name')
+      .select('restaurant_name, qbo_customer_id')
       .eq('id', order.account_id)
-      .maybeSingle<{ restaurant_name: string }>();
+      .maybeSingle<{ restaurant_name: string; qbo_customer_id: string | null }>();
     restaurantName = (acct?.restaurant_name ?? '').trim();
+    mappedCustomerId = (acct?.qbo_customer_id ?? '').trim() || null;
   }
   if (!restaurantName) {
     return json({
@@ -323,18 +330,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let invoice: { id: string; number: string; total: number };
   const fellBack: string[] = [];
   try {
-    // Exact-name customer only — never auto-created. A near-miss name would
+    // Mapped id first, then exact-name — never auto-created. A near-miss name would
     // open a SECOND QuickBooks customer for the same restaurant and split its
     // ledger, which is far more expensive to unpick than a "fix the name"
     // message. The delivery is already recorded either way.
-    const customerId = await findCustomerByName(restaurantName);
+    const customerId = mappedCustomerId ?? (await findCustomerByName(restaurantName));
     if (!customerId) {
       return json({
         ...base,
         invoiced: false,
         error: 'qb_customer_not_found',
         restaurant: restaurantName,
-        message: `Delivered. No QuickBooks customer named exactly "${restaurantName}" — add or rename it in QuickBooks, then tap Delivered again.`,
+        message: `Delivered. This account is not linked to a QuickBooks customer, and none is named exactly "${restaurantName}". Open the account and set its QuickBooks customer, then tap Delivered again.`,
       });
     }
 

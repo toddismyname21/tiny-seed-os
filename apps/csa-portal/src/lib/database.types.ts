@@ -1005,6 +1005,16 @@ export interface Database {
           delivery_instructions: string | null;
           notes: string | null;
           order_token: string | null;
+          /** QuickBooks Customer.Id billed for this account (migration 0093).
+           *  PREFERRED over restaurant_name when resolving the customer: portal
+           *  names and QuickBooks DisplayNames diverged long ago ("Allegro" is
+           *  "allegrohearthbakery" in QuickBooks), so exact-name lookup returned
+           *  NULL for most accounts and Deliver could not invoice them.
+           *  NULL = fall back to exact-name lookup. */
+          qbo_customer_id: string | null;
+          /** Cached QuickBooks DisplayName, for audit output only. Never
+           *  resolve by this — use qbo_customer_id. */
+          qbo_customer_name: string | null;
           created_at: string | null;
           updated_at: string | null;
         };
