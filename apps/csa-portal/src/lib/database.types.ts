@@ -71,6 +71,36 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['customers']['Row']>;
         Relationships: [];
       };
+      // Many-phones-to-one-customer alias table (migration 0087). Powers
+      // inbound text-message identity resolution: a Messages handle is
+      // normalized to bare 10 digits (normalizeUSPhone in lib/phone.ts) and
+      // looked up here. SUPPLEMENTS customers.phone (still the sign-in gate)
+      // rather than replacing it. `phone` is UNIQUE so attribution is never
+      // ambiguous — a number mapping to two customers would risk filing a
+      // commitment against the wrong member. RLS is admin/staff-only (PII).
+      customer_phones: {
+        Row: {
+          id: string;
+          customer_id: string;
+          /** Canonical bare 10 digits, e.g. "4124073884". */
+          phone: string;
+          label: string;
+          is_primary: boolean;
+          /** customers.phone | linked_from_text | portal | shopify | manual */
+          source: string;
+          /** Set when positively confirmed (they replied from it, or Todd
+           *  explicitly confirmed the link in the unknown-number queue). */
+          verified_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          phone: string;
+        } & Partial<Database['public']['Tables']['customer_phones']['Row']>;
+        Update: Partial<Database['public']['Tables']['customer_phones']['Row']>;
+        Relationships: [];
+      };
       members: {
         Row: {
           id: string;
@@ -999,6 +1029,11 @@ export interface Database {
           name: string | null;
           receives_orders: boolean;
           receives_invoices: boolean;
+          /** Canonical bare 10-digit US number for THIS contact (migration
+           *  0087). Chefs text from personal cells, not the restaurant main
+           *  line in wholesale_accounts.phone — without this an inbound chef
+           *  text can't be attributed. Nullable: legacy rows are email-only. */
+          phone: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -1039,6 +1074,15 @@ export interface Database {
           notes: string | null;
           created_at: string;
           updated_at: string;
+          // Fulfillment lifecycle audit trail (migration 0088). PACK → DELIVER →
+          // INVOICE. invoiced_at IS NOT NULL is the idempotency guard that stops
+          // a retried delivery marking from billing a restaurant twice.
+          packed_at: string | null;
+          packed_by: string | null;
+          delivered_at: string | null;
+          delivered_by: string | null;
+          invoiced_at: string | null;
+          notified_at: string | null;
         };
         Insert: {
           delivery_date: string;
@@ -1058,11 +1102,22 @@ export interface Database {
           qty: number | null;
           unit_price_cents: number | null;
           line_total_cents: number | null;
+          // What was ACTUALLY packed (migration 0088). NULL = not packed yet.
+          // The invoice is built from THIS column, never from qty.
+          qty_packed: number | null;
+          // GENERATED ALWAYS ... STORED (migration 0088) — derived from qty vs
+          // qty_packed. READ-ONLY: Postgres rejects any write to it, so it is
+          // Omit-ted from Insert/Update below to make that a compile error
+          // rather than a runtime 428C9.
+          fulfillment_status: 'pending' | 'packed' | 'short' | 'unavailable';
         };
         Insert: {
           order_id: string;
-        } & Partial<Database['public']['Tables']['wholesale_order_items']['Row']>;
-        Update: Partial<Database['public']['Tables']['wholesale_order_items']['Row']>;
+        } & Omit<Partial<Database['public']['Tables']['wholesale_order_items']['Row']>, 'fulfillment_status'>;
+        Update: Omit<
+          Partial<Database['public']['Tables']['wholesale_order_items']['Row']>,
+          'fulfillment_status'
+        >;
         Relationships: [];
       };
       // Maps a vendor's own product key (Harvie SKU, or normalized Market Wagon
@@ -1439,15 +1494,19 @@ export interface Database {
       // Live per-line Pick & Pack check-off status (migration 0069). One row per
       // (week_date, section, scope_day, market_id, line_key). section='harvest'
       // is the PICK view (todo→harvesting→done); csa/wholesale/market are PACK
-      // views (todo→packed). market_id is a pickup_locations UUID for
-      // section='market', else the all-zero sentinel. Zero member PII — a crop
-      // line + status + the crew display name who last touched it. RLS:
-      // is_ops_caller (admin/staff/crew). In the supabase_realtime publication.
+      // views (todo→packed); 'packhouse' is the by-item distribution sheet
+      // (0083); 'crew_day' is the pack crew's daily responsibility checklist
+      // (0092, Monday v1 — todo→done, line_key = a STABLE task key from
+      // lib/crew-day.ts, always scope_day='mon'). market_id is a
+      // pickup_locations UUID for section='market', else the all-zero sentinel.
+      // Zero member PII — a crop/task line + status + the crew display name who
+      // last touched it. RLS: is_ops_caller (admin/staff/crew). In the
+      // supabase_realtime publication.
       pick_pack_progress: {
         Row: {
           id: string;
           week_date: string;
-          section: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse';
+          section: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse' | 'crew_day';
           scope_day: 'all' | 'mon' | 'thu';
           market_id: string;
           line_key: string;
@@ -1464,7 +1523,7 @@ export interface Database {
         };
         Insert: {
           week_date: string;
-          section: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse';
+          section: 'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse' | 'crew_day';
           line_key: string;
         } & Partial<Database['public']['Tables']['pick_pack_progress']['Row']>;
         Update: Partial<Database['public']['Tables']['pick_pack_progress']['Row']>;

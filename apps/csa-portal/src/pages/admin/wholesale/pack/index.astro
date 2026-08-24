@@ -20,6 +20,34 @@
  *     boxed LARGE quantity — not faint gray small text.
  *   - A per-order "Edit order" link (screen only) jumps straight to the fix if a
  *     sheet is wrong.
+ *
+ * PACK MARKING (migration 0088, 2026-08-16): the sheet is no longer print-only.
+ * Each order carries a big screen-only "✓ Pack as ordered" button that POSTs to
+ * /api/admin/wholesale/pack and copies qty → qty_packed for every line in ONE
+ * tap — the overwhelmingly common case. Per-line "actual" boxes are the
+ * exception path (0 = "Can't fulfil"); a line entered there is sent as an
+ * override and every untouched line is still packed as ordered. Short lines go
+ * amber, unavailable lines red, and a per-order summary states how many the chef
+ * needs telling about. Already-packed orders render packed on load from the
+ * GENERATED fulfillment_status column.
+ *
+ * DELIVERY + AUTO-INVOICE (2026-08-16): once an order is packed, a second big
+ * screen-only button — "🚚 Delivered → invoice" — POSTs to
+ * /api/admin/wholesale/deliver, which marks the order delivered AND creates its
+ * QuickBooks invoice from qty_packed in one tap. It is the driver's control:
+ * used one-handed on a phone in a doorway, so it is full-width and 56px tall on
+ * a small screen. It shows the invoice number + amount on success, and a
+ * NON-BLOCKING amber warning when the delivery was recorded but QuickBooks
+ * refused — the delivery still counts, so the driver is never stuck.
+ *
+ * The order query below now includes status 'delivered'. Before this feature
+ * that status was unreachable (0 of 74 orders had ever been delivered), so
+ * nothing changes retroactively; without it, an order would VANISH from this
+ * page the moment the driver tapped Delivered, taking its invoice number with
+ * it and shrinking the ① pick totals mid-round.
+ *
+ * EVERY control added for this is screen-only (`no-print` / `@media screen`), so
+ * the printed sheet is byte-for-byte what it was before.
  */
 import AdminShell from '../../../../components/AdminShell.astro';
 import Card from '../../../../components/Card.astro';
@@ -35,10 +63,13 @@ const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
 // Orders for the date + their account names. Only REAL orders print a pack
 // sheet (drafts/cancelled must never print or inflate the ①Pick/Harvest totals,
 // which would double-count against pick-pack's filtered wholesale numbers).
+const REAL_STATUSES = ['submitted', 'confirmed', 'packed', 'delivered'] as const;
 const { data: orderRows } = await supabaseAdmin
   .from('wholesale_orders')
-  .select('id, account_id, total_amount, source')
-  .in('status', ['submitted', 'confirmed', 'packed'])
+  .select(
+    'id, account_id, total_amount, source, status, packed_at, packed_by, delivered_at, delivered_by, invoice_number, invoiced_at',
+  )
+  .in('status', REAL_STATUSES)
   .eq('delivery_date', deliveryDate)
   .order('created_at', { ascending: true });
 // This-week strip: every delivery day this cycle week with real orders —
@@ -50,7 +81,7 @@ const _weekMon = _mow(deliveryDate);
 const { data: _wk } = await supabaseAdmin
   .from('wholesale_orders')
   .select('delivery_date')
-  .in('status', ['submitted', 'confirmed', 'packed'])
+  .in('status', REAL_STATUSES)
   .gte('delivery_date', _weekMon)
   .lte('delivery_date', _ady(_weekMon, 6));
 const _stripCounts = new Map<string, number>();
@@ -66,6 +97,13 @@ const orders = (orderRows ?? []) as Array<{
   account_id: string | null;
   total_amount: number | null;
   source: string | null;
+  status: string;
+  packed_at: string | null;
+  packed_by: string | null;
+  delivered_at: string | null;
+  delivered_by: string | null;
+  invoice_number: string | null;
+  invoiced_at: string | null;
 }>;
 
 const acctIds = Array.from(new Set(orders.map((o) => o.account_id).filter(Boolean))) as string[];
@@ -76,12 +114,23 @@ if (acctIds.length) {
 }
 
 const orderIds = orders.map((o) => o.id);
-type Item = { order_id: string; product_name: string | null; qty: number | null; product: { unit: string } | null };
+// qty_packed + the GENERATED fulfillment_status (migration 0088) drive the
+// screen-only pack state. qty stays the PRINTED number — the paper sheet still
+// says what to pull, never what was packed.
+type Item = {
+  id: string;
+  order_id: string;
+  product_name: string | null;
+  qty: number | null;
+  qty_packed: number | null;
+  fulfillment_status: 'pending' | 'packed' | 'short' | 'unavailable';
+  product: { unit: string } | null;
+};
 let items: Item[] = [];
 if (orderIds.length) {
   const { data: itemRows } = await supabaseAdmin
     .from('wholesale_order_items')
-    .select('order_id, product_name, qty, product:wholesale_products ( unit )')
+    .select('id, order_id, product_name, qty, qty_packed, fulfillment_status, product:wholesale_products ( unit )')
     .in('order_id', orderIds)
     .overrideTypes<Item[], { merge: false }>();
   items = itemRows ?? [];
@@ -117,14 +166,66 @@ const sourceMeta = (s: string | null) =>
 
 const money = (d: number | null) => `$${(Number(d) || 0).toFixed(2)}`;
 
+// ── Pack-marking view helpers (screen only) ─────────────────────────────────
+/** Trim trailing zeros so 3.00 prints as "3" but 2.5 stays "2.5". */
+const qtyText = (n: number | null | undefined) =>
+  n == null ? '' : String(Number(n)).replace(/\.0+$/, '');
+
+/** The short per-line status chip. '' for a line nobody has packed yet. */
+function lineChip(it: Item): string {
+  switch (it.fulfillment_status) {
+    case 'unavailable':
+      return "✕ Can't fulfil";
+    case 'short':
+      return `⚠ Short — packed ${qtyText(it.qty_packed)} of ${qtyText(it.qty)}`;
+    case 'packed':
+      return '✓ Packed';
+    default:
+      return '';
+  }
+}
+
+/** Per-order roll-up. tone 'none' until something is packed, then the honest
+ *  count — 'warn' whenever the chef needs telling about a shortfall. */
+function orderSummary(list: Item[]): { text: string; tone: 'none' | 'ok' | 'warn' } {
+  const done = list.filter((i) => i.fulfillment_status !== 'pending');
+  if (done.length === 0) return { text: '', tone: 'none' };
+  const missed = list.filter(
+    (i) => i.fulfillment_status === 'short' || i.fulfillment_status === 'unavailable',
+  ).length;
+  if (missed === 0) return { text: `✓ All ${list.length} items packed as ordered`, tone: 'ok' };
+  return { text: `${missed} of ${list.length} items short — chef needs telling`, tone: 'warn' };
+}
+
 const packCustomers = orders
-  .map((o) => ({
-    id: o.id,
-    name: o.account_id ? (acctName.get(o.account_id) ?? '(unknown account)') : '(no account linked)',
-    total: Number(o.total_amount) || 0,
-    source: o.source,
-    items: itemsByOrder.get(o.id) ?? [],
-  }))
+  .map((o) => {
+    const list = itemsByOrder.get(o.id) ?? [];
+    return {
+      id: o.id,
+      name: o.account_id ? (acctName.get(o.account_id) ?? '(unknown account)') : '(no account linked)',
+      total: Number(o.total_amount) || 0,
+      source: o.source,
+      items: list,
+      // Packed if the order says so OR any line already carries a packed qty —
+      // an already-packed order must never render as fresh/unpacked. A
+      // delivered order is packed by definition.
+      packed:
+        o.status === 'packed' ||
+        o.status === 'delivered' ||
+        o.packed_at != null ||
+        list.some((i) => i.qty_packed != null),
+      packedBy: o.packed_by,
+      // Delivery is only offerable once the order is genuinely packed —
+      // packed_at is what the deliver endpoint itself checks, so the button's
+      // enabled state and the server's 400 can never disagree.
+      deliverable: o.packed_at != null,
+      delivered: o.status === 'delivered' || o.delivered_at != null,
+      deliveredBy: o.delivered_by,
+      invoiceNumber: o.invoice_number,
+      invoiced: o.invoiced_at != null,
+      summary: orderSummary(list),
+    };
+  })
   .filter((c) => c.items.length)
   .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -203,7 +304,16 @@ const pretty = prettyDeliveryDate(deliveryDate);
       <h2 class="section-title pack-section-title">② Pack by customer</h2>
       <div class="pack-orders">
         {packCustomers.map((c, i) => (
-          <article class={`order-block${i < packCustomers.length - 1 ? ' order-break' : ''}`}>
+          <article
+            class={`order-block${i < packCustomers.length - 1 ? ' order-break' : ''}`}
+            data-order-id={c.id}
+            data-packed={c.packed ? '1' : '0'}
+            data-deliverable={c.deliverable ? '1' : '0'}
+            data-delivered={c.delivered ? '1' : '0'}
+            data-invoiced={c.invoiced ? '1' : '0'}
+            data-invoice-number={c.invoiceNumber ?? ''}
+            data-restaurant={c.name}
+          >
             <header class="order-head">
               <div class="order-head-main">
                 <div class="order-name">{c.name}</div>
@@ -211,6 +321,8 @@ const pretty = prettyDeliveryDate(deliveryDate);
                   <span>Delivery {pretty}</span>
                   <span class="order-total">{money(c.total)}</span>
                   <span class={`order-source ${sourceMeta(c.source).cls}`}>{sourceMeta(c.source).label}</span>
+                  <span class="order-packed-badge no-print" data-role="packed-badge">{c.packed ? `✓ Packed${c.packedBy ? ` · ${c.packedBy}` : ''}` : ''}</span>
+                  <span class="order-delivered-badge no-print" data-role="delivered-badge">{c.delivered ? `🚚 Delivered${c.invoiceNumber ? ` · Invoice ${c.invoiceNumber}` : ''}` : ''}</span>
                 </div>
               </div>
               <a
@@ -218,12 +330,73 @@ const pretty = prettyDeliveryDate(deliveryDate);
                 class="order-edit no-print"
               >✏️ Edit order</a>
             </header>
+
+            {/* Screen-only pack controls. One tap is the whole job on a normal
+                day; the per-line boxes below are the exception path. */}
+            <div class="pack-actions no-print">
+              <button
+                type="button"
+                class="pack-cta"
+                data-role="pack-btn"
+                disabled={c.delivered}
+                title={c.delivered ? 'Delivered — packed quantities are locked because they are what was invoiced.' : undefined}
+              >
+                {c.packed ? '✓ Update packed quantities' : '✓ Pack as ordered'}
+              </button>
+              <p class="pack-summary" data-role="summary" data-tone={c.summary.tone} role="status" aria-live="polite">{c.summary.text}</p>
+              <p class="pack-error" data-role="error" role="alert" hidden></p>
+            </div>
+
+            {/* Driver control. Separate row from the pack bar so a thumb can
+                never hit "Delivered → invoice" while aiming for "Pack". */}
+            <div class="deliver-actions no-print">
+              <button
+                type="button"
+                class="deliver-cta"
+                data-role="deliver-btn"
+                disabled={!c.deliverable || c.invoiced}
+                aria-describedby={`deliver-status-${c.id}`}
+              >
+                {c.invoiced
+                  ? `✓ Invoiced${c.invoiceNumber ? ` · ${c.invoiceNumber}` : ''}`
+                  : c.delivered
+                    ? '↻ Retry invoice'
+                    : '🚚 Delivered → invoice'}
+              </button>
+              <p class="deliver-status" id={`deliver-status-${c.id}`} data-role="deliver-status" role="status" aria-live="polite">
+                {c.invoiced
+                  ? `Billed in QuickBooks${c.invoiceNumber ? ` — invoice ${c.invoiceNumber}` : ''}.`
+                  : c.delivered
+                    ? 'Delivered, but not invoiced yet.'
+                    : c.deliverable
+                      ? 'Bills what was packed. Creates the QuickBooks invoice — it does not send it.'
+                      : 'Pack this order first — the invoice bills what was actually packed.'}
+              </p>
+              <p class="deliver-warn" data-role="deliver-warn" role="alert" hidden></p>
+            </div>
+
             <ul class="pack-list">
               {c.items.map((it) => (
-                <li class="pack-item">
+                <li class="pack-item" data-item-id={it.id} data-qty={qtyText(it.qty)} data-fs={it.fulfillment_status}>
                   <span class="pack-check" aria-hidden="true"></span>
                   <span class="pack-item-name">{it.product_name}</span>
                   <span class="pack-qty">{it.qty}<small>{it.product?.unit ? ` ${it.product.unit}` : ' ea'}</small></span>
+                  <span class="pack-line-controls no-print">
+                    <span class="pack-chip" data-role="chip">{lineChip(it)}</span>
+                    <label class="pack-actual-label" for={`actual-${it.id}`}>Actual</label>
+                    <input
+                      id={`actual-${it.id}`}
+                      class="pack-actual"
+                      data-role="actual"
+                      type="number"
+                      inputmode="decimal"
+                      min="0"
+                      step="any"
+                      value={it.qty_packed == null ? '' : qtyText(it.qty_packed)}
+                      placeholder={qtyText(it.qty)}
+                      aria-label={`Actual quantity packed for ${it.product_name ?? 'this item'} — leave blank to pack as ordered, 0 if you cannot fulfil it`}
+                    />
+                  </span>
                 </li>
               ))}
             </ul>
@@ -384,6 +557,286 @@ const pretty = prettyDeliveryDate(deliveryDate);
     color: #6b7280;
   }
 
+  /* ── Pack marking — SCREEN ONLY (migration 0088) ────────────────────────
+     Every rule below is wrapped in @media screen and every element it styles
+     also carries .no-print, so the printed sheet is unchanged. Colours use the
+     global.css design tokens (--color-ts-*); where a chip needs a darker shade
+     than the token, the comment says why (WCAG AA at small bold sizes — same
+     reasoning as the brand-green tuning documented in global.css). */
+  @media screen {
+    /* One-tap action bar, directly under the restaurant name band. */
+    .pack-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--color-ts-bg-surface, #fff);
+      border-bottom: 1px solid var(--color-ts-border, #e2e8f0);
+    }
+    .pack-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 3.5rem; /* 56px — a gloved thumb in a pack house */
+      padding: 0 1.5rem;
+      border: 2px solid transparent;
+      border-radius: 0.75rem;
+      background: var(--color-ts-primary, #166534);
+      color: #fff;
+      font-size: 1.0625rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+      transition:
+        background-color 200ms ease-out,
+        box-shadow 200ms ease-out,
+        transform 100ms ease-out;
+    }
+    .pack-cta:hover {
+      background: var(--color-ts-primary-dark, #14532d);
+      box-shadow: 0 4px 10px rgb(0 0 0 / 0.14);
+    }
+    .pack-cta:active { transform: scale(0.98); }
+    .pack-cta:focus-visible {
+      outline: 2px solid var(--color-ts-primary, #166534);
+      outline-offset: 2px;
+    }
+    .pack-cta[disabled] { opacity: 0.65; cursor: progress; transform: none; }
+    /* Once packed, the button steps back to a secondary role — the work is
+       done, so it must stop shouting, but stays available for a correction. */
+    .order-block[data-packed='1'] .pack-cta {
+      min-height: 3rem;
+      background: var(--color-ts-bg-surface, #fff);
+      border-color: var(--color-ts-primary, #166534);
+      color: var(--color-ts-primary, #166534);
+      font-size: 0.9375rem;
+    }
+    .order-block[data-packed='1'] .pack-cta:hover { background: #f0fdf4; }
+
+    .order-packed-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      background: rgb(22 101 52 / 0.12);
+      color: var(--color-ts-primary, #166534);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .order-block[data-packed='0'] .order-packed-badge { display: none; }
+
+    /* ── Delivery + auto-invoice (driver control) ─────────────────────────
+       A DIFFERENT colour family from the green pack button on purpose: this
+       one bills a restaurant, and it must not read as "another pack button".
+       sky-800 (#075985) is 7.4:1 on white, so the white label clears AA. */
+    .order-delivered-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      background: rgb(7 89 133 / 0.12);
+      color: #075985;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .order-block[data-delivered='0'] .order-delivered-badge { display: none; }
+
+    .deliver-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--color-ts-bg-surface, #fff);
+      border-bottom: 1px solid var(--color-ts-border, #e2e8f0);
+    }
+    .deliver-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 3.5rem; /* 56px — one-handed, gloved, in a doorway */
+      padding: 0 1.5rem;
+      border: 2px solid transparent;
+      border-radius: 0.75rem;
+      background: #075985;
+      color: #fff;
+      font-size: 1.0625rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+      transition:
+        background-color 200ms ease-out,
+        box-shadow 200ms ease-out,
+        transform 100ms ease-out;
+    }
+    .deliver-cta:hover:not([disabled]) {
+      background: #0c4a6e;
+      box-shadow: 0 4px 10px rgb(0 0 0 / 0.14);
+    }
+    .deliver-cta:active:not([disabled]) { transform: scale(0.98); }
+    .deliver-cta:focus-visible {
+      outline: 2px solid #075985;
+      outline-offset: 2px;
+    }
+    /* Not packed yet, or already invoiced — visibly out of play, and the
+       status line underneath says which. not-allowed, not `progress`: this
+       is a state, not a wait. */
+    .deliver-cta[disabled] {
+      background: var(--color-ts-bg-muted, #f1f5f9);
+      border-color: var(--color-ts-border, #e2e8f0);
+      color: var(--color-ts-text-secondary, #475569);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    .deliver-cta[data-busy='1'] { cursor: progress; }
+    /* Already invoiced: the work is done, so it stops shouting. */
+    .order-block[data-invoiced='1'] .deliver-cta {
+      min-height: 3rem;
+      background: rgb(7 89 133 / 0.08);
+      border-color: #075985;
+      color: #075985;
+      font-size: 0.9375rem;
+    }
+    /* Delivered but NOT invoiced is the state that needs finishing — amber
+       outline so it reads as unfinished business, not success. */
+    .order-block[data-delivered='1'][data-invoiced='0'] .deliver-cta {
+      background: var(--color-ts-bg-surface, #fff);
+      border-color: var(--color-ts-warning, #d97706);
+      color: #92400e;
+    }
+
+    .deliver-status {
+      margin: 0;
+      max-width: 34rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--color-ts-text-secondary, #475569);
+    }
+    .order-block[data-invoiced='1'] .deliver-status {
+      font-weight: 700;
+      color: #075985;
+    }
+    .deliver-warn {
+      margin: 0;
+      flex-basis: 100%;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      /* amber-800 — 15px bold is not WCAG "large text", so it needs 4.5:1. */
+      color: #92400e;
+    }
+
+    .pack-summary {
+      margin: 0;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--color-ts-primary, #166534);
+    }
+    /* amber-800 rather than --color-ts-warning (#d97706 = 3.3:1 on white):
+       15px bold is NOT WCAG "large text", so it needs the full 4.5:1. */
+    .pack-summary[data-tone='warn'] { color: #92400e; }
+    .pack-summary[data-tone='none'] { display: none; }
+    .pack-error {
+      margin: 0;
+      font-size: 0.9375rem;
+      font-weight: 700;
+      /* red-700, not --color-ts-danger (#dc2626 = 4.53:1, borderline on a
+         tinted row) — 5.94:1 on white. */
+      color: #b91c1c;
+    }
+
+    /* Per-line exception controls. */
+    .pack-item { flex-wrap: wrap; transition: background-color 200ms ease-out; }
+    .pack-line-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 0.75rem;
+    }
+    .pack-chip {
+      display: inline-block;
+      padding: 0.1875rem 0.5rem;
+      border-radius: 9999px;
+      background: rgb(22 101 52 / 0.1);
+      color: var(--color-ts-primary, #166534);
+      font-size: 0.8125rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pack-item[data-fs='pending'] .pack-chip { display: none; }
+    /* Short = amber, unavailable = red (Todd: the crew must see a problem line
+       without reading it). Both also get an inset left bar so the signal
+       survives for colour-blind eyes. */
+    .pack-item[data-fs='packed'] { background: rgb(22 101 52 / 0.04); }
+    .pack-item[data-fs='packed'] .pack-check {
+      background: var(--color-ts-primary, #166534);
+      border-color: var(--color-ts-primary, #166534);
+    }
+    .pack-item[data-fs='short'] {
+      background: rgb(217 119 6 / 0.07);
+      box-shadow: inset 3px 0 0 var(--color-ts-warning, #d97706);
+    }
+    .pack-item[data-fs='short'] .pack-chip { background: rgb(217 119 6 / 0.14); color: #92400e; }
+    .pack-item[data-fs='unavailable'] {
+      background: rgb(220 38 38 / 0.07);
+      box-shadow: inset 3px 0 0 var(--color-ts-danger, #dc2626);
+    }
+    .pack-item[data-fs='unavailable'] .pack-chip { background: rgb(220 38 38 / 0.12); color: #b91c1c; }
+
+    .pack-actual-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--color-ts-text-secondary, #475569);
+    }
+    .pack-actual {
+      width: 4.75rem;
+      min-height: 2.75rem; /* 44px touch target */
+      padding: 0 0.5rem;
+      border: 1px solid var(--color-ts-border-strong, #cbd5e1);
+      border-radius: 0.5rem;
+      background: var(--color-ts-bg-surface, #fff);
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-ts-text, #0f172a);
+      font-variant-numeric: tabular-nums;
+      transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+    }
+    .pack-actual:hover { border-color: var(--color-ts-primary, #166534); }
+    .pack-actual:focus-visible {
+      border-color: var(--color-ts-primary, #166534);
+      outline: 2px solid var(--color-ts-primary, #166534);
+      outline-offset: 1px;
+    }
+    /* An edited box is an EXCEPTION — make it obvious before it is submitted. */
+    .pack-actual[data-dirty='1'] {
+      border-color: var(--color-ts-warning, #d97706);
+      box-shadow: 0 0 0 2px rgb(217 119 6 / 0.2);
+    }
+  }
+
+  /* Phone in the pack house: full-width button, controls on their own row. */
+  @media screen and (max-width: 768px) {
+    .pack-actions { padding: 0.75rem; }
+    .pack-cta { width: 100%; }
+    /* Driver's phone: the delivered button owns a full row, and the status
+       line sits under it rather than beside it. */
+    .deliver-actions { padding: 0.75rem; gap: 0.5rem; }
+    .deliver-cta { width: 100%; }
+    .deliver-status { flex-basis: 100%; max-width: none; }
+    .order-head { flex-wrap: wrap; }
+    .pack-line-controls {
+      flex-basis: 100%;
+      margin-left: 2.125rem; /* line up under the item name, past the checkbox */
+      margin-top: 0.5rem;
+    }
+  }
+
   /* ── Print ─────────────────────────────────────────────────────── */
   @media print {
     .no-print { display: none !important; }
@@ -406,3 +859,410 @@ const pretty = prettyDeliveryDate(deliveryDate);
     .order-source, .pack-qty { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
+
+<script>
+  /* ══════════════════════════════════════════════════════════════════════════
+   * PACK-MARKING controller (migration 0088).
+   *
+   * Per restaurant order: one big "✓ Pack as ordered" button POSTs to
+   * /api/admin/wholesale/pack. The DEFAULT path sends nothing but the order id —
+   * the server copies qty → qty_packed for every line, which is the whole job on
+   * a normal day. Only lines whose "Actual" box was actually edited are sent as
+   * overrides, and the server still packs every OTHER line as ordered, so a
+   * short line can never leave its neighbours stuck at pending.
+   *
+   * The server's GENERATED fulfillment_status is the ONLY source of the packed /
+   * short / unavailable styling — we never infer it client-side, so the screen
+   * cannot disagree with the database. Money is never touched here.
+   *
+   * All DOM this touches is server-rendered and screen-only; nothing is created
+   * with innerHTML, and the printed sheet is untouched.
+   * ════════════════════════════════════════════════════════════════════════ */
+  interface PackLine {
+    item_id: string;
+    product_name: string | null;
+    qty: number | null;
+    qty_packed: number | null;
+    fulfillment_status: 'pending' | 'packed' | 'short' | 'unavailable';
+  }
+  interface PackResponse {
+    ok?: boolean;
+    error?: string;
+    message?: string;
+    order?: { status?: string; packed_by?: string | null };
+    items?: PackLine[];
+    counts?: { total: number; packed: number; short: number; unavailable: number };
+  }
+
+  /** Match the server's qtyText(): 3.00 → "3", 2.50 → "2.5". */
+  function num(n: number | null | undefined): string {
+    return n == null ? '' : String(Number(n)).replace(/\.0+$/, '');
+  }
+
+  /** Per-order handle that re-syncs the DELIVER button/status from the
+   *  article's data-* state. Registered by setupDeliver, called by the pack
+   *  controller so packing an order immediately unlocks delivering it. */
+  const deliverSync = new Map<HTMLElement, () => void>();
+
+  function chipText(line: PackLine): string {
+    switch (line.fulfillment_status) {
+      case 'unavailable':
+        return "✕ Can't fulfil";
+      case 'short':
+        return `⚠ Short — packed ${num(line.qty_packed)} of ${num(line.qty)}`;
+      case 'packed':
+        return '✓ Packed';
+      default:
+        return '';
+    }
+  }
+
+  function setupOrder(article: HTMLElement): void {
+    const orderId = article.dataset.orderId || '';
+    const btn = article.querySelector<HTMLButtonElement>('[data-role="pack-btn"]');
+    const summary = article.querySelector<HTMLElement>('[data-role="summary"]');
+    const errEl = article.querySelector<HTMLElement>('[data-role="error"]');
+    const rows = Array.from(article.querySelectorAll<HTMLElement>('.pack-item[data-item-id]'));
+    if (!orderId || !btn || !summary || !errEl || rows.length === 0) return;
+
+    const inputOf = (row: HTMLElement) =>
+      row.querySelector<HTMLInputElement>('[data-role="actual"]');
+
+    /** True while a box has been edited since the last successful save. This is
+     *  deliberately NOT the same as "dirty" below: a saved short line stays an
+     *  exception (amber) forever, but it is not unsaved work. */
+    let unsaved = false;
+
+    /** A box is "dirty" when it holds a number that differs from what was
+     *  ordered — i.e. it is an exception, saved or not. */
+    function markDirty(row: HTMLElement): void {
+      const input = inputOf(row);
+      if (!input) return;
+      const raw = input.value.trim();
+      const ordered = row.dataset.qty || '';
+      const dirty = raw !== '' && (ordered === '' || Number(raw) !== Number(ordered));
+      input.dataset.dirty = dirty ? '1' : '0';
+    }
+
+    function syncLabel(): void {
+      if (!btn) return;
+      btn.textContent = unsaved
+        ? '✓ Save packed quantities'
+        : article.dataset.packed === '1'
+          ? '✓ Update packed quantities'
+          : '✓ Pack as ordered';
+    }
+
+    function showError(message: string): void {
+      if (!errEl) return;
+      errEl.textContent = '⚠ ' + message;
+      errEl.hidden = false;
+    }
+
+    function applyResult(data: PackResponse): void {
+      const byId = new Map<string, PackLine>();
+      for (const line of data.items ?? []) byId.set(line.item_id, line);
+
+      for (const row of rows) {
+        const line = byId.get(row.dataset.itemId || '');
+        if (!line) continue;
+        row.dataset.fs = line.fulfillment_status;
+        const chip = row.querySelector<HTMLElement>('[data-role="chip"]');
+        if (chip) chip.textContent = chipText(line);
+        const input = inputOf(row);
+        if (input) {
+          input.value = num(line.qty_packed);
+          markDirty(row);
+        }
+      }
+
+      article.dataset.packed = '1';
+      // Packing is what unlocks delivery — the server gates on packed_at, so
+      // the button must follow the same fact the moment it becomes true.
+      article.dataset.deliverable = '1';
+      deliverSync.get(article)?.();
+      const badge = article.querySelector<HTMLElement>('[data-role="packed-badge"]');
+      if (badge) {
+        const who = data.order?.packed_by;
+        badge.textContent = '✓ Packed' + (who ? ' · ' + who : '');
+      }
+
+      const counts = data.counts;
+      const total = counts?.total ?? rows.length;
+      const missed = (counts?.short ?? 0) + (counts?.unavailable ?? 0);
+      if (summary) {
+        summary.textContent =
+          missed === 0
+            ? `✓ All ${total} items packed as ordered`
+            : `${missed} of ${total} items short — chef needs telling`;
+        summary.dataset.tone = missed === 0 ? 'ok' : 'warn';
+      }
+      unsaved = false;
+    }
+
+    async function submit(): Promise<void> {
+      if (!btn || !errEl) return;
+      errEl.hidden = true;
+      errEl.textContent = '';
+
+      // Collect ONLY the edited lines. An untouched box sends nothing, which is
+      // what makes the common case a genuine one-tap "packed as ordered".
+      const overrides: Array<{ item_id: string; qty_packed: number }> = [];
+      for (const row of rows) {
+        const input = inputOf(row);
+        if (!input) continue;
+        const raw = input.value.trim();
+        if (raw === '') continue;
+        const value = Number(raw);
+        if (!Number.isFinite(value) || value < 0) {
+          const name = row.querySelector<HTMLElement>('.pack-item-name')?.textContent || 'that line';
+          showError(`Check the actual quantity for ${name.trim()} — it must be 0 or more.`);
+          input.focus();
+          return;
+        }
+        // An exception must be RE-SENT on every save, not just when freshly
+        // edited: the server packs every unlisted line as ordered, so omitting a
+        // previously-saved short line would silently un-short it.
+        const ordered = row.dataset.qty || '';
+        if (ordered !== '' && value === Number(ordered)) continue; // same as ordered
+        overrides.push({ item_id: row.dataset.itemId || '', qty_packed: value });
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const res = await fetch('/api/admin/wholesale/pack', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(
+            overrides.length > 0 ? { order_id: orderId, items: overrides } : { order_id: orderId },
+          ),
+        });
+        const data = (await res.json().catch(() => null)) as PackResponse | null;
+        if (!res.ok || !data || !data.ok) {
+          throw new Error(data?.message || `Could not save (HTTP ${res.status}).`);
+        }
+        applyResult(data);
+      } catch (err) {
+        showError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Could not save. Check the connection and try again.',
+        );
+      } finally {
+        btn.disabled = false;
+        syncLabel();
+      }
+    }
+
+    for (const row of rows) {
+      const input = inputOf(row);
+      if (!input) continue;
+      // Reflect the already-saved state on load (a short line stays flagged).
+      markDirty(row);
+      input.addEventListener('input', () => {
+        markDirty(row);
+        unsaved = true;
+        syncLabel();
+      });
+    }
+    btn.addEventListener('click', () => {
+      void submit();
+    });
+    syncLabel();
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+   * DELIVER → AUTO-INVOICE controller.
+   *
+   * One tap POSTs to /api/admin/wholesale/deliver, which marks the order
+   * delivered AND creates its QuickBooks invoice from qty_packed. The server is
+   * the only authority here — this script never decides that something was
+   * invoiced, it only renders what came back.
+   *
+   * Three outcomes, three distinct renderings, because they need three
+   * different reactions from the driver:
+   *   ok + invoiced   → done: invoice number + amount, button retires.
+   *   ok + !invoiced  → DELIVERY STILL COUNTED, billing did not. Amber,
+   *                     non-blocking, button becomes "Retry invoice". The
+   *                     driver walks away; Todd sorts the invoice later.
+   *   !ok             → nothing changed (409 already-invoiced, 400 not packed,
+   *                     403, network). Message shown, state untouched.
+   * ════════════════════════════════════════════════════════════════════════ */
+  interface DeliverResponse {
+    ok?: boolean;
+    error?: string;
+    message?: string;
+    invoiced?: boolean;
+    invoice_number?: string | null;
+    invoice?: { id: string; number: string; total: number; lines?: number; generic_lines?: string[] };
+    not_delivered?: string[];
+    order?: { delivered_by?: string | null };
+  }
+
+  function money(n: number): string {
+    return '$' + (Number(n) || 0).toFixed(2);
+  }
+
+  function setupDeliver(article: HTMLElement): void {
+    const orderId = article.dataset.orderId || '';
+    const btn = article.querySelector<HTMLButtonElement>('[data-role="deliver-btn"]');
+    const statusEl = article.querySelector<HTMLElement>('[data-role="deliver-status"]');
+    const warnEl = article.querySelector<HTMLElement>('[data-role="deliver-warn"]');
+    if (!orderId || !btn || !statusEl || !warnEl) return;
+
+    const restaurant = article.dataset.restaurant || 'this restaurant';
+    let busy = false;
+
+    /** Re-render the control from data-* state. Mirrors the server-rendered
+     *  markup exactly so a reload and an in-place update never disagree. */
+    function sync(): void {
+      if (!btn || !statusEl) return;
+      const deliverable = article.dataset.deliverable === '1';
+      const delivered = article.dataset.delivered === '1';
+      const invoiced = article.dataset.invoiced === '1';
+      const number = article.dataset.invoiceNumber || '';
+
+      btn.disabled = busy || !deliverable || invoiced;
+      btn.dataset.busy = busy ? '1' : '0';
+      if (busy) {
+        btn.textContent = 'Invoicing…';
+        return;
+      }
+      btn.textContent = invoiced
+        ? '✓ Invoiced' + (number ? ' · ' + number : '')
+        : delivered
+          ? '↻ Retry invoice'
+          : '🚚 Delivered → invoice';
+      if (invoiced) {
+        statusEl.textContent =
+          'Billed in QuickBooks' + (number ? ' — invoice ' + number : '') + '.';
+      } else if (delivered) {
+        statusEl.textContent = 'Delivered, but not invoiced yet.';
+      } else if (deliverable) {
+        statusEl.textContent =
+          'Bills what was packed. Creates the QuickBooks invoice — it does not send it.';
+      } else {
+        statusEl.textContent =
+          'Pack this order first — the invoice bills what was actually packed.';
+      }
+    }
+    deliverSync.set(article, sync);
+
+    function warn(message: string): void {
+      if (!warnEl) return;
+      warnEl.textContent = '⚠ ' + message;
+      warnEl.hidden = false;
+    }
+
+    async function submit(): Promise<void> {
+      if (!btn || !statusEl || !warnEl || busy) return;
+      // Creating an invoice in Todd's live accounting is not undoable from
+      // here, so a pocket-tap must not be able to bill a restaurant.
+      if (!window.confirm(`Mark ${restaurant} delivered and create its QuickBooks invoice?`)) {
+        return;
+      }
+      warnEl.hidden = true;
+      warnEl.textContent = '';
+      busy = true;
+      sync();
+      try {
+        const res = await fetch('/api/admin/wholesale/deliver', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId }),
+        });
+        const data = (await res.json().catch(() => null)) as DeliverResponse | null;
+
+        if (!res.ok || !data || !data.ok) {
+          // Nothing changed server-side. Show why and leave the state alone —
+          // except a 409 already-invoiced, which is new information worth
+          // recording so the button stops offering to bill again.
+          if (res.status === 409 && data?.error === 'already_invoiced') {
+            article.dataset.delivered = '1';
+            article.dataset.invoiced = '1';
+            if (data.invoice_number) article.dataset.invoiceNumber = data.invoice_number;
+            updateBadge();
+          }
+          warn(data?.message || `Could not record the delivery (HTTP ${res.status}).`);
+          return;
+        }
+
+        // Delivery is recorded from here on, invoiced or not.
+        article.dataset.delivered = '1';
+        lockPacking();
+
+        if (data.invoiced && data.invoice) {
+          article.dataset.invoiced = '1';
+          article.dataset.invoiceNumber = data.invoice.number;
+          updateBadge();
+          statusEl.textContent = `Invoice ${data.invoice.number} — ${money(data.invoice.total)} created in QuickBooks (not sent).`;
+          const generic = data.invoice.generic_lines ?? [];
+          const skipped = data.not_delivered ?? [];
+          const notes: string[] = [];
+          if (skipped.length > 0) {
+            notes.push(`Not billed (nothing packed): ${skipped.join(', ')}.`);
+          }
+          if (generic.length > 0) {
+            notes.push(
+              `Billed on the generic "Wholesale" item — no exact QuickBooks item for: ${generic.join(', ')}.`,
+            );
+          }
+          if (data.error === 'writeback_failed') {
+            notes.unshift(data.message || 'The portal could not record the invoice number.');
+          }
+          if (notes.length > 0) warn(notes.join(' '));
+        } else {
+          // The important half: the drop-off IS recorded. Say that first.
+          updateBadge();
+          warn(
+            (data.message || 'Delivered, but QuickBooks did not create an invoice.') +
+              ' The delivery is saved — you can move on.',
+          );
+        }
+      } catch (err) {
+        warn(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Could not reach the server. Check the connection and try again.',
+        );
+      } finally {
+        busy = false;
+        sync();
+      }
+    }
+
+    /** Delivered orders are closed to re-packing (the server 409s), so the
+     *  pack button must stop inviting an action that cannot succeed. */
+    function lockPacking(): void {
+      const packBtn = article.querySelector<HTMLButtonElement>('[data-role="pack-btn"]');
+      if (!packBtn) return;
+      packBtn.disabled = true;
+      packBtn.title =
+        'Delivered — packed quantities are locked because they are what was invoiced.';
+    }
+
+    function updateBadge(): void {
+      const badge = article.querySelector<HTMLElement>('[data-role="delivered-badge"]');
+      if (!badge) return;
+      const number = article.dataset.invoiceNumber || '';
+      badge.textContent = '🚚 Delivered' + (number ? ' · Invoice ' + number : '');
+    }
+
+    btn.addEventListener('click', () => {
+      void submit();
+    });
+    sync();
+  }
+
+  for (const article of Array.from(
+    document.querySelectorAll<HTMLElement>('.order-block[data-order-id]'),
+  )) {
+    // Deliver first so its sync handle is registered before the pack
+    // controller can call it.
+    setupDeliver(article);
+    setupOrder(article);
+  }
+</script>

@@ -330,8 +330,151 @@ export async function findOrCreateItem(name: string): Promise<string> {
   return created.Item.Id;
 }
 
+/* ── Item lookup for BILLING (exact-match only) ───────────────────────────
+ * findOrCreateItem above is fine for a caller that owns its own item names,
+ * but it is the WRONG tool for invoicing farm produce: it would silently mint
+ * a new QuickBooks Service item for every product spelling the portal has
+ * ever used, polluting Todd's live chart of accounts.
+ *
+ * Wholesale invoicing therefore resolves items by EXACT normalised name
+ * against the items that already exist, and falls back to one generic
+ * catch-all item (with the real product name in the line Description) when
+ * there is no exact match. Substring/fuzzy matching is deliberately NOT
+ * implemented: it previously mapped "Kale (bunch)" onto "Curly Kale (12 ct)"
+ * and "Cabbage (head)" onto "Cabbage (25# Bulk)", which would bill a chef for
+ * a product they never received. A wrong item is worse than a generic one. */
+
+/** Name of the generic catch-all Service item used for unmatched produce. */
+export const QB_GENERIC_ITEM_NAME = 'Wholesale';
+
+/**
+ * Documented Id of that generic item in Todd's connected realm (verified
+ * 2026-08-16). Only used if the by-name lookup comes back empty — the name
+ * lookup is authoritative so this constant can never point the wrong way in a
+ * different realm without also failing the name match.
+ */
+export const QB_GENERIC_ITEM_ID = '513';
+
+export interface QbItemSummary {
+  id: string;
+  name: string;
+  fullyQualifiedName: string | null;
+  active: boolean;
+}
+
+/**
+ * Normalise an item/product name to a comparison key: lower-case, alphanumeric
+ * only. "Kale (bunch)" → "kalebunch". Punctuation, spacing and case drift
+ * between the portal catalog and QuickBooks are noise; anything else is a
+ * genuinely different product.
+ */
+export function normalizeItemName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Every Item in the connected company, paged through the query API (QuickBooks
+ * caps a page at 1000). Inactive items are returned too so the caller can
+ * decide; buildItemIndex() indexes only active ones.
+ */
+export async function listItems(): Promise<QbItemSummary[]> {
+  const PAGE = 1000;
+  const out: QbItemSummary[] = [];
+  for (let start = 1; ; start += PAGE) {
+    const query = `select Id, Name, FullyQualifiedName, Active from Item startposition ${start} maxresults ${PAGE}`;
+    const res = await qbApi<{
+      QueryResponse: {
+        Item?: Array<{
+          Id: string;
+          Name: string;
+          FullyQualifiedName?: string | null;
+          Active?: boolean;
+        }>;
+      };
+    }>(`/query?query=${encodeURIComponent(query)}&minorversion=${QB_MINOR}`);
+    const page = res.QueryResponse.Item ?? [];
+    for (const i of page) {
+      out.push({
+        id: i.Id,
+        name: i.Name,
+        fullyQualifiedName: i.FullyQualifiedName ?? null,
+        active: i.Active !== false,
+      });
+    }
+    if (page.length < PAGE) break;
+    // Defensive ceiling — a realm with >20k items would mean something is very
+    // wrong, and an unbounded loop against a paid API is not acceptable.
+    if (out.length >= 20_000) break;
+  }
+  return out;
+}
+
+export interface QbItemIndex {
+  /** normalised name (and normalised sub-item leaf) → QuickBooks Item Id. */
+  byName: Map<string, string>;
+  /** Id of the generic catch-all item unmatched lines are billed against. */
+  genericItemId: string;
+}
+
+/**
+ * Build the exact-match index used by wholesale invoicing. A sub-item's
+ * FullyQualifiedName ("Produce:Kale (bunch)") is indexed under BOTH the full
+ * path and its leaf, because the portal only ever knows the leaf. First writer
+ * wins, so a plain top-level item is never shadowed by a deeper sub-item.
+ */
+export async function buildItemIndex(): Promise<QbItemIndex> {
+  const items = (await listItems()).filter((i) => i.active);
+  const byName = new Map<string, string>();
+  const put = (key: string, id: string) => {
+    if (key && !byName.has(key)) byName.set(key, id);
+  };
+  for (const i of items) put(normalizeItemName(i.name), i.id);
+  for (const i of items) {
+    const fq = i.fullyQualifiedName;
+    if (!fq) continue;
+    put(normalizeItemName(fq), i.id);
+    const leaf = fq.split(':').pop() ?? '';
+    put(normalizeItemName(leaf), i.id);
+  }
+  return {
+    byName,
+    genericItemId: byName.get(normalizeItemName(QB_GENERIC_ITEM_NAME)) ?? QB_GENERIC_ITEM_ID,
+  };
+}
+
+/**
+ * Resolve one product name to a QuickBooks Item Id. `matched:false` means the
+ * line fell back to the generic item and the caller MUST carry the real
+ * product name in the line Description.
+ */
+export function resolveItemId(
+  index: QbItemIndex,
+  productName: string
+): { itemId: string; matched: boolean } {
+  const id = index.byName.get(normalizeItemName(productName));
+  return id ? { itemId: id, matched: true } : { itemId: index.genericItemId, matched: false };
+}
+
+/**
+ * Find a customer by EXACT DisplayName. Returns null when there is no such
+ * customer — unlike findOrCreateCustomer this NEVER creates one, because a
+ * near-miss name would split a restaurant's ledger across two QuickBooks
+ * customers and silently corrupt the books. Billing callers use this and
+ * surface an actionable error instead.
+ */
+export async function findCustomerByName(displayName: string): Promise<string | null> {
+  const query = `select Id from Customer where DisplayName = '${qbEscape(displayName.trim())}'`;
+  const found = await qbApi<{ QueryResponse: { Customer?: Array<{ Id: string }> } }>(
+    `/query?query=${encodeURIComponent(query)}&minorversion=${QB_MINOR}`
+  );
+  return found.QueryResponse.Customer?.[0]?.Id ?? null;
+}
+
 export interface InvoiceLineInput {
-  item: string;        // QB Item name (find-or-created)
+  item: string;        // QB Item name (find-or-created when itemId is absent)
+  /** Pre-resolved QuickBooks Item Id. When set, NO find-or-create happens —
+   *  this is how wholesale invoicing avoids minting items for produce names. */
+  itemId?: string;
   description?: string;
   qty: number;
   unitPrice: number;   // dollars per unit
@@ -346,6 +489,12 @@ export interface CreateInvoiceInput {
   docNumber?: string;
   /** Optional email to set on the invoice for later sending. */
   billEmail?: string;
+  /** Pre-resolved QuickBooks Customer Id. When set, NO find-or-create runs. */
+  customerId?: string;
+  /** Invoice date, YYYY-MM-DD. Defaults to today in QuickBooks when omitted. */
+  txnDate?: string;
+  /** INTERNAL note (never shown to the customer) — traceability back to us. */
+  privateNote?: string;
 }
 
 export interface CreatedInvoice {
@@ -355,15 +504,21 @@ export interface CreatedInvoice {
 }
 
 /**
- * Create an invoice in QuickBooks: find-or-create the customer, find-or-create
- * each line Item, then POST the invoice. Amounts are computed qty × unitPrice.
+ * Create an invoice in QuickBooks: resolve the customer (pre-resolved
+ * `customerId` wins, else find-or-create by name), resolve each line Item
+ * (pre-resolved `itemId` wins, else find-or-create by name), then POST the
+ * invoice. Amounts are computed qty × unitPrice.
  * Returns the new invoice's Id, DocNumber, and total.
+ *
+ * This CREATES the invoice only. It never emails or "sends" it — there is no
+ * /invoice/{id}/send call in this module, deliberately: Todd reviews and sends
+ * every invoice from QuickBooks himself.
  */
 export async function createInvoice(input: CreateInvoiceInput): Promise<CreatedInvoice> {
-  const customerId = await findOrCreateCustomer(input.customerName);
+  const customerId = input.customerId ?? (await findOrCreateCustomer(input.customerName));
   const Line = [];
   for (const l of input.lines) {
-    const itemId = await findOrCreateItem(l.item);
+    const itemId = l.itemId ?? (await findOrCreateItem(l.item));
     Line.push({
       DetailType: 'SalesItemLineDetail',
       Amount: Math.round(l.qty * l.unitPrice * 100) / 100,
@@ -379,6 +534,8 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<CreatedI
   if (input.memo) body.CustomerMemo = { value: input.memo };
   if (input.docNumber) body.DocNumber = input.docNumber;
   if (input.billEmail) body.BillEmail = { Address: input.billEmail };
+  if (input.txnDate) body.TxnDate = input.txnDate;
+  if (input.privateNote) body.PrivateNote = input.privateNote;
 
   const res = await qbApi<{ Invoice: { Id: string; DocNumber: string; TotalAmt: number } }>(
     `/invoice?minorversion=${QB_MINOR}`,
