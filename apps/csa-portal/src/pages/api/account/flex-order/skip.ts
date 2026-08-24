@@ -1,5 +1,5 @@
 /**
- * POST /api/account/flex-order/skip   (flex member only)
+ * POST /api/account/flex-order/skip   (owner of the order only)
  *
  * Member-facing "Skip this week" — a one-tap way to sit a week out WITHOUT
  * being forced to fake a one-item order (real member complaint, Amy H.,
@@ -75,11 +75,18 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', 'window_closed'), 303);
   }
 
-  // ── Verify caller owns this flex member (RLS-scoped read). ───────────
-  type MemberRow = { id: string; share_type: string };
+  // ── Verify the caller OWNS this member row (RLS-scoped read). ───────
+  // Deliberately NO eligibility check on this path (2026-08-21). Skipping
+  // only ever tears down the CALLER'S OWN pending order and restocks it — it
+  // can't move money or take food — so ownership is the whole requirement.
+  // Requiring current flex eligibility here would be a trap: a member who
+  // spends their balance down to $0 on an order would then be locked out of
+  // skipping (which cancels that very order). A member row that owns no
+  // pending flex order is a harmless no-op (the RPC returns cancelled=0).
+  type MemberRow = { id: string };
   const { data: member, error: memberErr } = await locals.supabase
     .from('members')
-    .select('id, share_type')
+    .select('id')
     .eq('id', memberId)
     .maybeSingle()
     .overrideTypes<MemberRow, { merge: false }>();
@@ -89,7 +96,6 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', 'invalid_input'), 303);
   }
   if (!member) return redirect(back('error', 'forbidden'), 303);
-  if (member.share_type !== 'flex') return redirect(back('error', 'not_flex'), 303);
 
   // ── Cancel + restock any pending order atomically. The RPC is idempotent:
   //    with no pending rows it returns ok with cancelled=0, which IS the

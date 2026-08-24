@@ -122,6 +122,13 @@ interface NavItem {
   label: string;
   /** Heroicons-style 24px outline path(s), rendered inline. */
   icon: string;
+  /**
+   * Render the tab but keep it `hidden` — used for the Order tab of a member
+   * who may hold Farm Flex CREDIT without a flex share row. A hidden <li> is
+   * `display:none`, so it takes no space in the flex row and the visible tabs
+   * stay evenly distributed exactly as before.
+   */
+  hidden?: boolean;
 }
 
 // Inline SVG paths (Heroicons outline, 24px, 1.5 stroke). Kept inline so
@@ -136,15 +143,29 @@ const ICONS: Record<Tab, string> = {
   help: 'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z',
 };
 
-// Base tabs (Hick's Law: keep it tight). The "Order" tab is inserted
-// directly after Home ONLY for flex-share members (FIX 1, 2026-06-08) — it
-// links to the weekly ordering page, NOT the wallet (/account/flex). Help
-// stays last so the action tabs cluster on the left.
+// Base tabs (Hick's Law: keep it tight). The "Order" tab sits directly after
+// Home for flex members (FIX 1, 2026-06-08) — it links to the weekly ordering
+// page, NOT the wallet (/account/flex). Help stays last so the action tabs
+// cluster on the left.
+//
+// FLEX ELIGIBILITY (2026-08-21): `isFlexMember` (locals, from
+// memberHasFlexShare) only knows about `share_type='flex'` rows. A member who
+// bought Farm Flex funds has CREDIT but no such row — by design, since a flex
+// member row would put them on every pack sheet and route sheet as a recurring
+// weekly recipient. For them we still RENDER the tab, hidden, and reveal it
+// when the FlexWallet island reports a positive balance (see the script at the
+// bottom of this file). We deliberately do NOT resolve the balance in
+// middleware: that is a live Shopify round-trip and would put one on EVERY
+// member page render — the exact regression P0-1 (2026-05-24) removed.
 const navItems: NavItem[] = [
   { key: 'home', href: '/dashboard', label: 'Home', icon: ICONS.home },
-  ...(isFlexMember
-    ? [{ key: 'order' as const, href: '/account/flex-order', label: 'Order', icon: ICONS.order }]
-    : []),
+  {
+    key: 'order' as const,
+    href: '/account/flex-order',
+    label: 'Order',
+    icon: ICONS.order,
+    hidden: !isFlexMember,
+  },
   { key: 'box',     href: '/box',       label: 'Box',     icon: ICONS.box },
   { key: 'account', href: '/account',   label: 'Account', icon: ICONS.account },
   {
@@ -328,7 +349,11 @@ const mainPaddingBottom = actionBarSpace
         {navItems.map((item) => {
           const isActive = item.key === activeTab;
           return (
-            <li class="flex-1">
+            <li
+              class="flex-1"
+              hidden={item.hidden}
+              data-flex-credit-tab={item.key === 'order' && item.hidden ? '' : undefined}
+            >
               <a
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
@@ -359,3 +384,35 @@ const mainPaddingBottom = actionBarSpace
     </nav>
   </div>
 </BaseLayout>
+
+<script>
+  /**
+   * Reveal the bottom-nav "Order" tab for a member who holds Farm Flex CREDIT
+   * but has no `share_type='flex'` member row (2026-08-21).
+   *
+   * `Astro.locals.isFlexMember` is a cheap DB check for a flex share row; it
+   * cannot see store credit, which only Shopify knows. Rather than put a live
+   * Shopify round-trip in middleware — on EVERY member page render, the exact
+   * cost P0-1 (2026-05-24) removed — we ride the FlexWallet island's existing
+   * `flex:resolved` event. That island renders on /dashboard, /account and
+   * /account/flex, so the tab appears on the pages a member lands on and
+   * navigates from.
+   *
+   * Revealing a nav link grants nothing: /account/flex-order and every write
+   * endpoint re-validate eligibility server-side.
+   *
+   * No-op on pages without the hidden tab (i.e. for real flex-share members,
+   * where the tab is already visible).
+   */
+  const creditTab = document.querySelector<HTMLElement>('[data-flex-credit-tab]');
+  if (creditTab) {
+    document.addEventListener(
+      'flex:resolved',
+      (e) => {
+        const total = (e as CustomEvent<{ total: number }>).detail?.total ?? 0;
+        if (total > 0) creditTab.hidden = false;
+      },
+      { once: true }
+    );
+  }
+</script>

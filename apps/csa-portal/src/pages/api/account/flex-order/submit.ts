@@ -1,5 +1,5 @@
 /**
- * POST /api/account/flex-order/submit   (flex member only)
+ * POST /api/account/flex-order/submit   (flex-ELIGIBLE members only)
  *
  * Places (or replaces) the member's flex order for a week. The heavy lifting
  * — ownership re-check, restock-prior-pending, oversell guard, over-balance
@@ -7,7 +7,10 @@
  * RPC `place_flex_order` (migration 0037). This handler:
  *
  *   1. CSRF + auth (isSameOriginPost + a logged-in user).
- *   2. Resolves the caller's flex member for the target week.
+ *   2. RE-RESOLVES the caller's flex eligibility + member row server-side
+ *      (lib/flex.ts `resolveFlexEligibility`) and requires the posted
+ *      member_id to match it. Eligibility is store credit > 0 OR a live flex
+ *      share row — never the page's word for it.
  *   3. Enforces the order WINDOW (server-side, gap research M7/G10):
  *      writable only between OPEN (prior Fri 00:00 ET) and CLOSE (Tue
  *      08:00 ET, every week incl. Week 1 '2026-06-08'). Outside it, the
@@ -28,7 +31,7 @@ import { z } from 'zod';
 import { RESEND_API_KEY, RESEND_FROM_EMAIL } from 'astro:env/server';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { isYMD, isPastCutoff, isBeforeOpen, prettyWeek, closeLabel } from '../../../../lib/flex-order';
-import { getFlexBalance } from '../../../../lib/flex';
+import { getFlexBalance, resolveFlexEligibility } from '../../../../lib/flex';
 import {
   getCustomerGidByEmail,
   getStoreCreditAccount,
@@ -113,30 +116,42 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', 'empty'), 303);
   }
 
-  // ── Verify caller owns this flex member (RLS-scoped read). The RPC
-  //    re-checks too, but failing fast here gives a cleaner error. ──────
-  type MemberRow = { id: string; share_type: string; status: string };
-  const { data: member, error: memberErr } = await locals.supabase
-    .from('members')
-    .select('id, share_type, status')
-    .eq('id', memberId)
-    .maybeSingle()
-    .overrideTypes<MemberRow, { merge: false }>();
-
-  if (memberErr) {
-    console.error('[api/account/flex-order/submit] member read failed:', memberErr.message);
-    return redirect(back('error', 'invalid_input'), 303);
+  // ── RE-VALIDATE ELIGIBILITY SERVER-SIDE. Never trust the page. ──────
+  // The eligibility rule (store credit > 0 OR a live flex share row) and the
+  // member-row resolution both live in lib/flex.ts, so this handler and the
+  // page can never disagree about who may order. `resolveFlexEligibility`
+  // reads through the RLS-scoped client, so the row it returns is BY
+  // CONSTRUCTION one the authenticated customer owns (household-aware).
+  //
+  // We then require the client-supplied member_id to EQUAL the server-resolved
+  // one. That is strictly stronger than "is this row mine?": a caller can't
+  // redirect their order onto a different row of their own account, and a
+  // stale page (resolved before the member's shares changed) is rejected
+  // rather than silently writing to the wrong row.
+  const eligibility = await resolveFlexEligibility(locals.supabase, user.email);
+  if (!eligibility.eligible || !eligibility.memberId) {
+    // Distinguish "you have no Flex to spend" (actionable) from "we couldn't
+    // reach Shopify to check" (transient, and NOT the member's fault).
+    return redirect(
+      back('error', eligibility.reason === 'balance_unavailable' ? 'balance_unavailable' : 'no_flex_credit'),
+      303,
+    );
   }
-  if (!member) return redirect(back('error', 'forbidden'), 303);
-  if (member.share_type !== 'flex') return redirect(back('error', 'not_flex'), 303);
+  if (eligibility.memberId !== memberId) {
+    return redirect(back('error', 'forbidden'), 303);
+  }
 
   // ── Live flex balance → cents (cap input). ─────────────────────────
   // getFlexBalance returns LIVE Shopify store-credit dollars. We DEBIT at order
   // (below), so an EDIT must add back what was already charged for THIS
   // (member, week) — otherwise editing UP would be wrongly capped. `priorNet`
   // = net already debited for this order (debits − refunds), from our ledger.
+  // Reuse the balance the eligibility check already fetched when it has one
+  // (credit-only members) so we make ONE Shopify round-trip, not two; for a
+  // flex-share member eligibility deliberately skips the lookup, so we do it
+  // here.
   const orderRef = `flexorder:${memberId}:${week}`;
-  const balance = await getFlexBalance(user.email);
+  const balance = eligibility.balance ?? (await getFlexBalance(user.email));
   const { data: priorTxns } = await supabaseAdmin
     .from('flex_transactions')
     .select('type, amount')
@@ -172,6 +187,17 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       'invalid_input', 'forbidden', 'not_flex', 'empty',
       'item_unavailable', 'oversold', 'over_balance', 'window_closed',
     ]);
+    if (code === 'not_flex') {
+      // The DB still enforces share_type='flex' inside place_flex_order, so a
+      // credit-only member reaches this branch even though the app layer said
+      // yes. Log loudly — it means the DB-side eligibility rule has not been
+      // relaxed to match, and the member is being turned away at the door.
+      console.error(
+        '[api/account/flex-order/submit] place_flex_order returned not_flex for an ' +
+        `app-eligible member (reason=${eligibility.reason}, member=${memberId}). ` +
+        'The place_flex_order share_type gate needs to match lib/flex.ts eligibility.'
+      );
+    }
     return redirect(back('error', known.has(code) ? code : 'submit_failed'), 303);
   }
 

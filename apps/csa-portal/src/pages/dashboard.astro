@@ -283,7 +283,7 @@ const activeShares = allShares.filter(isLiveShare);
 // FlexWallet balance card (/account/flex). flexCloseLabel mirrors the
 // order-window cadence in lib/flex-order.ts.
 const isFlexMember = activeShares.some((s) => s.share_type === 'flex');
-const flexCloseLabel = isFlexMember ? closeLabel(upcomingMonday()) : '';
+const flexCloseLabel = closeLabel(upcomingMonday());
 
 // ─────────────────────────────────────────────────────────────────────
 // Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). The ~191 migrated CSA
@@ -1200,17 +1200,20 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
       )}
 
       {/* ═════════════════════════════════════════════════════════════
-          THIS WEEK'S ORDER — flex members (FIX 1, 2026-06-08)
+          THIS WEEK'S ORDER — flex-eligible members (FIX 1, 2026-06-08)
           A flex member's #1 weekly action: order their extras. Prominent
           primary CTA → /account/flex-order (the ORDERING page), distinct
-          from the FlexWallet balance card below (→ /account/flex). Hidden
-          for non-flex members.
+          from the FlexWallet balance card below (→ /account/flex).
+          SSR-visible for a flex SHARE member; SSR-hidden and revealed by the
+          script below for a member who holds Farm Flex CREDIT but has no
+          flex share row (2026-08-21). Never shown to anyone with neither.
           ═════════════════════════════════════════════════════════════ */}
-      {isFlexMember && (
-        <section
-          aria-labelledby="dash-order-cta-heading"
-          class="overflow-hidden rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
-        >
+      <section
+        aria-labelledby="dash-order-cta-heading"
+        class="overflow-hidden rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+        hidden={!isFlexMember}
+        data-flex-credit-cta={!isFlexMember ? '' : undefined}
+      >
           <div class="flex items-center gap-3">
             <span
               class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
@@ -1240,7 +1243,34 @@ const title = `Welcome back, ${firstName} — Tiny Seed Farm CSA`;
             Order your items <span aria-hidden="true">→</span>
           </a>
         </section>
-      )}
+
+      {/* Reveal the order CTA for a member who holds Farm Flex CREDIT but has
+          no flex share row (2026-08-21). Buying Flex funds deliberately never
+          creates a member row, so `isFlexMember` is false for them and the CTA
+          above is SSR-hidden — yet they have money to spend and must be able
+          to FIND the ordering page.
+
+          We reuse the FlexWallet island's `flex:resolved` event rather than
+          resolving the balance during SSR on purpose: getFlexBalance is a live
+          Shopify round-trip, and putting one back on this page's critical
+          render path is exactly the regression that P0-1 (2026-05-24) removed.
+          This costs zero server latency and rides a fetch the page already
+          makes. The page gate and the submit API both re-validate eligibility
+          server-side, so revealing a link here grants nothing. */}
+      <script>
+        (() => {
+          const cta = document.querySelector<HTMLElement>('[data-flex-credit-cta]');
+          if (!cta) return;
+          document.addEventListener(
+            'flex:resolved',
+            (e) => {
+              const total = (e as CustomEvent<{ total: number }>).detail?.total ?? 0;
+              if (total > 0) cta.hidden = false;
+            },
+            { once: true }
+          );
+        })();
+      </script>
 
       {/* ═════════════════════════════════════════════════════════════
           PICKUP CARD (2026-06-05)

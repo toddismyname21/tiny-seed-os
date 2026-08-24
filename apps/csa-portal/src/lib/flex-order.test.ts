@@ -11,6 +11,7 @@ import {
   upcomingMondayET, addWeeksYMD, isYMD, categoryEmoji,
   currentOrderWeek, windowLabels, formatWindowInstant,
   isWeekendMarket,
+  flexMemberRank, pickFlexMemberRow, decideFlexEligibility,
 } from './flex-order.ts';
 
 /* ── money ── */
@@ -230,5 +231,145 @@ assert.equal(categoryEmoji('Herbs'), '🌿');
 assert.equal(categoryEmoji('CSA Shares'), '📦');
 assert.equal(categoryEmoji(null), '🧺');
 assert.equal(categoryEmoji('Nonsense'), '🧺');
+
+
+/* ══════════════════════════════════════════════════════════════════
+ * FLEX ELIGIBILITY (2026-08-21) — store credit > 0 OR a live flex row.
+ * ══════════════════════════════════════════════════════════════════ */
+
+/* ── flexMemberRank: lower wins ── */
+assert.equal(flexMemberRank({ share_type: 'flex', status: 'active' }), 0);
+assert.equal(flexMemberRank({ share_type: 'flex', status: 'onboarding' }), 1);
+assert.equal(flexMemberRank({ share_type: 'flex', status: 'paused' }), 2);
+assert.equal(flexMemberRank({ share_type: 'summer_veg', status: 'active' }), 3);
+assert.equal(flexMemberRank({ share_type: 'flower', status: 'active' }), 4);
+assert.equal(flexMemberRank({ share_type: 'flower', status: 'paused' }), 5);
+assert.equal(flexMemberRank({ share_type: 'spring_veg', status: 'inactive' }), 6);
+assert.equal(
+  flexMemberRank({ share_type: 'flex', status: 'cancelled' }), 6,
+  'a CANCELLED flex row is not a live flex identity'
+);
+
+/* ── pickFlexMemberRow ── */
+{
+  const { row, hasFlexShare } = pickFlexMemberRow([]);
+  assert.equal(row, null, 'no rows → null');
+  assert.equal(hasFlexShare, false);
+}
+{
+  // A live flex row always wins, even against a newer active summer share.
+  const rows = [
+    { id: 'b', share_type: 'summer_veg', status: 'active',  created_at: '2026-07-01T00:00:00Z' },
+    { id: 'a', share_type: 'flex',       status: 'paused',  created_at: '2026-01-01T00:00:00Z' },
+  ];
+  const { row, hasFlexShare } = pickFlexMemberRow(rows);
+  assert.equal(row!.id, 'a', 'live flex row wins outright');
+  assert.equal(hasFlexShare, true);
+}
+{
+  // REAL SHAPE (Jan Duckworth): three rows, IDENTICAL created_at. The active
+  // summer_veg row must win, and the result must be STABLE — the page and the
+  // submit API resolve independently and require a match.
+  const ts = '2026-05-09T00:03:16.256186Z';
+  const rows = [
+    { id: '2ee410b2', share_type: 'spring_veg', status: 'inactive', created_at: ts },
+    { id: '93e4d8a0', share_type: 'flower',     status: 'active',   created_at: ts },
+    { id: '7d1b80db', share_type: 'summer_veg', status: 'active',   created_at: ts },
+  ];
+  const first = pickFlexMemberRow(rows);
+  assert.equal(first.row!.id, '7d1b80db', 'active summer_veg is the anchor row');
+  assert.equal(first.hasFlexShare, false, 'no flex row → credit must decide');
+  // Same rows in a different order must give the same answer.
+  assert.equal(pickFlexMemberRow([...rows].reverse()).row!.id, '7d1b80db', 'order-independent');
+}
+{
+  // Identical rank AND identical timestamps → id is the stable tiebreak.
+  const ts = '2026-05-09T00:03:16.256186Z';
+  const rows = [
+    { id: 'zzz', share_type: 'flower', status: 'active', created_at: ts },
+    { id: 'aaa', share_type: 'flower', status: 'active', created_at: ts },
+  ];
+  assert.equal(pickFlexMemberRow(rows).row!.id, 'aaa');
+  assert.equal(pickFlexMemberRow([...rows].reverse()).row!.id, 'aaa', 'stable either way');
+}
+{
+  // Same rank, different timestamps → newest wins.
+  const rows = [
+    { id: 'old', share_type: 'flower', status: 'active', created_at: '2026-01-01T00:00:00Z' },
+    { id: 'new', share_type: 'flower', status: 'active', created_at: '2026-07-01T00:00:00Z' },
+  ];
+  assert.equal(pickFlexMemberRow(rows).row!.id, 'new');
+}
+{
+  // A LIVE row beats an inactive one even when the inactive one is newer —
+  // place_flex_order requires status IN (active,paused,onboarding).
+  const rows = [
+    { id: 'dead', share_type: 'summer_veg', status: 'cancelled', created_at: '2026-07-01T00:00:00Z' },
+    { id: 'live', share_type: 'flower',     status: 'paused',    created_at: '2026-01-01T00:00:00Z' },
+  ];
+  assert.equal(pickFlexMemberRow(rows).row!.id, 'live');
+}
+{
+  // Missing/unparseable created_at must not throw or destabilize the sort.
+  const rows = [
+    { id: 'b', share_type: 'flower', status: 'active', created_at: null },
+    { id: 'a', share_type: 'flower', status: 'active' },
+  ];
+  assert.equal(pickFlexMemberRow(rows).row!.id, 'a', 'falls through to the id tiebreak');
+}
+{
+  // Only non-live rows → still returns one (the caller denies on eligibility,
+  // not on absence), and hasFlexShare stays false.
+  const rows = [{ id: 'x', share_type: 'spring_veg', status: 'inactive', created_at: null }];
+  const { row, hasFlexShare } = pickFlexMemberRow(rows);
+  assert.equal(row!.id, 'x');
+  assert.equal(hasFlexShare, false);
+}
+
+/* ── decideFlexEligibility ── */
+// (a) member with credit and no flex row → eligible on store credit.
+assert.deepEqual(
+  decideFlexEligibility(false, true, 47.5),
+  { eligible: true, reason: 'store_credit' }
+);
+// (b) EXISTING flex member while Shopify is DOWN (balance null) → still in.
+assert.deepEqual(
+  decideFlexEligibility(true, true, null),
+  { eligible: true, reason: 'flex_share' },
+  'a Shopify outage must never lock an existing flex member out'
+);
+// A flex member with a $0 balance is still eligible to SEE/build an order —
+// the balance cap is enforced separately at submit.
+assert.deepEqual(
+  decideFlexEligibility(true, true, 0),
+  { eligible: true, reason: 'flex_share' }
+);
+// (c) zero credit and no flex row → denied, honestly.
+assert.deepEqual(
+  decideFlexEligibility(false, true, 0),
+  { eligible: false, reason: 'no_credit' }
+);
+// A negative balance is treated as no credit, never as eligible.
+assert.deepEqual(
+  decideFlexEligibility(false, true, -5),
+  { eligible: false, reason: 'no_credit' }
+);
+// Shopify unreachable AND no flex row → fall back to the OLD rule (deny),
+// but marked transient so the copy can say "try again", not "you're not a member".
+assert.deepEqual(
+  decideFlexEligibility(false, true, null),
+  { eligible: false, reason: 'balance_unavailable' }
+);
+// Credit but NO member row to attach flex_orders.member_id to → denied,
+// and flagged as OUR data anomaly rather than the member's mistake.
+assert.deepEqual(
+  decideFlexEligibility(false, false, 100),
+  { eligible: false, reason: 'no_member_row' }
+);
+// No rows at all and no credit → the plain no-credit denial.
+assert.deepEqual(
+  decideFlexEligibility(false, false, 0),
+  { eligible: false, reason: 'no_credit' }
+);
 
 console.log('flex-order.test.ts — all assertions passed');

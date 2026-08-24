@@ -16,14 +16,30 @@
  * `astro:env/server` (re-exported through ./shopify) and uses the
  * service-role Supabase client. NEVER import it from a client component.
  *
+ * It also owns the ELIGIBILITY rule for Farm Flex ordering
+ * (`resolveFlexEligibility` / `resolveFlexMemberRow`, below) — the single
+ * place that decides who may order and which member row the order attaches
+ * to. See the section header there for the full rationale.
+ *
  * FAIL-SOFT CONTRACT: every public function swallows its own errors.
- *   - getFlexBalance      → null  on any failure / missing customer.
- *   - getFlexTransactions → []    on any failure.
+ *   - getFlexBalance         → null   on any failure / missing customer.
+ *   - getFlexTransactions    → []     on any failure.
+ *   - resolveFlexMemberRow   → {row:null,hasFlexShare:false} on any failure.
+ *   - resolveFlexEligibility → a DENY with an explanatory `reason`.
  * Callers treat null/[] as "hide the wallet" — a flex outage must never
  * break the dashboard or account pages. Nothing here ever throws.
  */
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { shopifyConfigured, shopifyGraphQL } from './shopify';
 import { supabaseAdmin } from './supabase';
+import type { Database } from './database.types';
+import {
+  pickFlexMemberRow,
+  decideFlexEligibility,
+  type FlexEligibilityReason,
+} from './flex-order';
+
+export type { FlexEligibilityReason };
 
 export interface FlexBalance {
   /** Combined spendable store credit (USD), from Shopify. */
@@ -204,6 +220,165 @@ export async function getFlexTransactions(email: string): Promise<FlexTransactio
     console.error('[flex] getFlexTransactions threw (→ []):', err);
     return [];
   }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * ELIGIBILITY — who may use Farm Flex ordering, and which member row
+ * their order attaches to. THE SINGLE SOURCE OF THIS RULE.
+ *
+ * THE BUG THIS FIXES (2026-08-21): two existing rules contradicted each
+ * other and stranded real money.
+ *   1. The order sync (/api/sync/shopify-orders) DELIBERATELY never creates
+ *      a member row for a flex-funds purchase — the members.share_type
+ *      domain excludes it, and a flex member row would put that person on
+ *      pack sheets / stop manifests / route sheets as a RECURRING weekly
+ *      recipient whether or not they ever order.
+ *   2. /account/flex-order was gated to `members.share_type='flex'`.
+ * So a member could buy Farm Flex funds and then be structurally barred
+ * from spending them. Live at the time of the fix: 5 members holding
+ * $178.06 of Shopify store credit with no flex share row.
+ *
+ * THE RULE: a member may use Farm Flex ordering if they have
+ *     spendable store credit > 0   OR   a live flex share row.
+ * Creating flex member rows was considered and REJECTED (see above) — the
+ * fix is eligibility, not data.
+ *
+ * FAIL-SOFT IS LOAD-BEARING. `getFlexBalance()` returns null for
+ * "Shopify unreachable", NOT for "no money". A Shopify outage must never
+ * lock an EXISTING flex member out of their weekly order, so:
+ *   - a live flex share row is decided WITHOUT consulting Shopify at all
+ *     (no balance round-trip, no outage exposure, no added latency), and
+ *   - a null balance falls back to exactly the OLD rule (flex row present).
+ *
+ * THE RULES THEMSELVES are pure functions in lib/flex-order.ts
+ * (`pickFlexMemberRow`, `decideFlexEligibility`) so they can be unit-tested
+ * without a database or a Shopify token. What follows is only the I/O.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** The member-row fields the flex ordering surfaces need. */
+export interface FlexMemberRow {
+  id: string;
+  share_type: string;
+  status: string;
+  share_size: string | null;
+  delivery_address: string | null;
+  pickup_location: { day_of_week: string | null } | null;
+}
+
+/** Result of resolving WHICH member row a flex order attaches to. */
+export interface FlexMemberResolution {
+  /** The chosen row, or null when the caller has no member rows at all. */
+  row: FlexMemberRow | null;
+  /** True when the caller has a LIVE `share_type='flex'` row. */
+  hasFlexShare: boolean;
+}
+
+/**
+ * Resolve the caller's member rows (RLS-scoped to their own account, and
+ * household-aware via `current_customer_id()`) and pick the ONE row a flex
+ * order should attach to.
+ *
+ * The PICKING RULE itself lives in lib/flex-order.ts `pickFlexMemberRow` —
+ * pure and unit-tested. This function is only the I/O around it.
+ *
+ * FAIL-SOFT: any query error returns `{ row: null, hasFlexShare: false }`
+ * (callers then deny/hide rather than crash). NEVER throws.
+ */
+export async function resolveFlexMemberRow(
+  supabase: SupabaseClient<Database>
+): Promise<FlexMemberResolution> {
+  try {
+    type Row = FlexMemberRow & { created_at: string | null };
+    const { data, error } = await supabase
+      .from('members')
+      .select(
+        'id, share_type, status, share_size, delivery_address, created_at, ' +
+        'pickup_location:pickup_locations ( day_of_week )'
+      )
+      .overrideTypes<Row[], { merge: false }>();
+
+    if (error) {
+      console.error('[flex] resolveFlexMemberRow query failed:', error.message);
+      return { row: null, hasFlexShare: false };
+    }
+
+    return pickFlexMemberRow(data ?? []);
+  } catch (e) {
+    console.error('[flex] resolveFlexMemberRow threw (fail-soft):', e);
+    return { row: null, hasFlexShare: false };
+  }
+}
+
+/**
+ * Thin convenience wrapper over `resolveFlexMemberRow` for callers that
+ * only need the id. Delegates so the ranking rule lives in ONE place.
+ */
+export async function resolveFlexMemberId(
+  supabase: SupabaseClient<Database>
+): Promise<string | null> {
+  const { row } = await resolveFlexMemberRow(supabase);
+  return row?.id ?? null;
+}
+
+export interface FlexEligibility {
+  /** May this caller place/see a Farm Flex order? */
+  eligible: boolean;
+  /** The member row an order attaches to (null when none / not eligible). */
+  member: FlexMemberRow | null;
+  /** Convenience: `member?.id ?? null`. */
+  memberId: string | null;
+  /** True when eligibility came from a live flex share row. */
+  hasFlexShare: boolean;
+  /**
+   * Live balance, ONLY when we actually looked it up (i.e. no flex share
+   * row). Null both when we skipped the lookup and when Shopify failed —
+   * use `balanceUnavailable` to tell those apart.
+   */
+  balance: FlexBalance | null;
+  /** True when we asked Shopify for the balance and could not get it. */
+  balanceUnavailable: boolean;
+  reason: FlexEligibilityReason;
+}
+
+/**
+ * THE eligibility decision. Every Farm Flex ordering surface — the page
+ * gate, the submit API, the /account + dashboard entry points — calls this
+ * and nothing else, so the rule can never drift between them. The rule
+ * itself is `decideFlexEligibility` in lib/flex-order.ts (pure, tested);
+ * this function supplies it with real data.
+ *
+ * Cost: ZERO extra round-trips for an existing flex member (one members
+ * query, NO Shopify call — which is also what makes a Shopify outage
+ * harmless to them). One Shopify call only for a member without a flex row,
+ * the only case where credit decides the answer.
+ *
+ * NEVER throws — every failure path resolves to a deny with a reason.
+ */
+export async function resolveFlexEligibility(
+  supabase: SupabaseClient<Database>,
+  email: string
+): Promise<FlexEligibility> {
+  const { row, hasFlexShare } = await resolveFlexMemberRow(supabase);
+
+  // Only consult Shopify when credit is what decides the answer.
+  const balance = hasFlexShare ? null : await getFlexBalance(email);
+  const balanceUnavailable = !hasFlexShare && balance === null;
+
+  const { eligible, reason } = decideFlexEligibility(
+    hasFlexShare,
+    row !== null,
+    balance?.total ?? null
+  );
+
+  return {
+    eligible,
+    member: row,
+    memberId: row?.id ?? null,
+    hasFlexShare,
+    balance,
+    balanceUnavailable,
+    reason,
+  };
 }
 
 /* ──────────────────────────────────────────────────────────────────

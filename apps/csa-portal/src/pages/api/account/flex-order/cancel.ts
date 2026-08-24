@@ -1,5 +1,5 @@
 /**
- * POST /api/account/flex-order/cancel   (flex member only)
+ * POST /api/account/flex-order/cancel   (owner of the order only)
  *
  * Cancels the member's PENDING flex order for a week. Removing all items
  * from the cart only disables the submit button — it does not undo an
@@ -17,7 +17,9 @@
  *      still OPEN (before that week's cutoff). After cutoff the order is
  *      effectively locked; we refuse with window_closed so a member can't
  *      yank stock the farm is already harvesting.
- *   3. Ownership re-check (fail fast; the RPC re-checks too).
+ *   3. Ownership re-check (fail fast; the RPC re-checks too). Ownership is
+ *      the ONLY requirement — see the note at the check for why cancelling
+ *      must not depend on current flex eligibility.
  *   4. Call the RPC, translate the result into a redirect.
  *
  * Body (multipart/form-data):
@@ -74,12 +76,18 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', 'window_closed'), 303);
   }
 
-  // ── Verify caller owns this flex member (RLS-scoped read). The RPC
-  //    re-checks too, but failing fast here gives a cleaner error. ──────
-  type MemberRow = { id: string; share_type: string };
+  // ── Verify the caller OWNS this member row (RLS-scoped read). ───────
+  // Deliberately NO eligibility check on this path (2026-08-21). Cancelling
+  // only ever tears down the CALLER'S OWN pending order and restocks it — it
+  // can't move money or take food — so ownership is the whole requirement.
+  // Requiring current flex eligibility here would be a trap: a member who
+  // spends their balance down to $0 on an order would then be locked out of
+  // cancelling that very order. A member row that owns no pending flex order
+  // is a harmless no-op (the RPC returns cancelled=0).
+  type MemberRow = { id: string };
   const { data: member, error: memberErr } = await locals.supabase
     .from('members')
-    .select('id, share_type')
+    .select('id')
     .eq('id', memberId)
     .maybeSingle()
     .overrideTypes<MemberRow, { merge: false }>();
@@ -89,7 +97,6 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     return redirect(back('error', 'invalid_input'), 303);
   }
   if (!member) return redirect(back('error', 'forbidden'), 303);
-  if (member.share_type !== 'flex') return redirect(back('error', 'not_flex'), 303);
 
   // ── Cancel + restock atomically. ────────────────────────────────────
   const { data: rpcData, error: rpcErr } = await locals.supabase.rpc('cancel_flex_order', {

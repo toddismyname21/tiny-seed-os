@@ -182,7 +182,9 @@ const isFlexMember = liveMembers.some((m) => m.share_type === 'flex');
 // Flex order-window close label for the entry-point teaser. Every week —
 // including Week 1 ('2026-06-08') — closes Tue 8 AM ET (aligned with the
 // box-swap cutoff). Mirrors lib/flex-order.ts (Todd 2026-06-08/2026-06-16).
-const flexCloseLabel = isFlexMember ? closeLabel(upcomingMonday()) : '';
+// Computed unconditionally: the CTA can also be revealed client-side for a
+// credit-only member, so the label must already be in the SSR markup.
+const flexCloseLabel = closeLabel(upcomingMonday());
 
 // Pickup forcing-nudge (FIX 1, 2026-05-24, gap P0). Same rule as the
 // dashboard / shared memberNeedsPickupChoice helper: an ACTIVE member who
@@ -367,16 +369,20 @@ const showNextBox = nextBoxDateLong !== '';
           the top of the hub until set (data-driven, not dismissible). */}
       {needsPickup && <PickupNudgeBanner />}
 
-      {/* ════ THIS WEEK'S ORDER — flex members, PROMOTED to top (FIX 1, 2026-06-08)
-          Flex members order their weekly extras here. This is the ORDERING
-          entry (/account/flex-order) — distinct from the Farm Flex wallet
-          below, which is the BALANCE (/account/flex). Promoted from a buried
-          low card to a prominent primary CTA so a flex member can't miss it. */}
-      {isFlexMember && (
-        <section
-          aria-labelledby="order-cta-heading"
-          class="overflow-hidden rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
-        >
+      {/* ════ THIS WEEK'S ORDER — flex-eligible members, PROMOTED to top
+          (FIX 1, 2026-06-08). Flex members order their weekly extras here.
+          This is the ORDERING entry (/account/flex-order) — distinct from the
+          Farm Flex wallet below, which is the BALANCE (/account/flex).
+          Promoted from a buried low card to a prominent primary CTA so a flex
+          member can't miss it. SSR-visible for a flex SHARE member; SSR-hidden
+          and revealed by the script below for a member who holds Farm Flex
+          CREDIT but has no flex share row (2026-08-21). */}
+      <section
+        aria-labelledby="order-cta-heading"
+        class="overflow-hidden rounded-ts-xl border border-ts-primary/40 bg-ts-primary/5 p-5 shadow-ts-sm sm:p-6"
+        hidden={!isFlexMember}
+        data-flex-credit-cta={!isFlexMember ? '' : undefined}
+      >
           <div class="flex items-center gap-3">
             <span
               class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl"
@@ -406,7 +412,34 @@ const showNextBox = nextBoxDateLong !== '';
             Order your items <span aria-hidden="true">→</span>
           </a>
         </section>
-      )}
+
+      {/* Reveal the order CTA for a member who holds Farm Flex CREDIT but has
+          no flex share row (2026-08-21). Buying Flex funds deliberately never
+          creates a member row, so `isFlexMember` is false for them and the CTA
+          above is SSR-hidden — yet they have money to spend and must be able
+          to FIND the ordering page.
+
+          We reuse the FlexWallet island's `flex:resolved` event rather than
+          resolving the balance during SSR on purpose: getFlexBalance is a live
+          Shopify round-trip, and putting one back on this page's critical
+          render path is exactly the regression that P0-1 (2026-05-24) removed.
+          This costs zero server latency and rides a fetch the page already
+          makes. The page gate and the submit API both re-validate eligibility
+          server-side, so revealing a link here grants nothing. */}
+      <script>
+        (() => {
+          const cta = document.querySelector<HTMLElement>('[data-flex-credit-cta]');
+          if (!cta) return;
+          document.addEventListener(
+            'flex:resolved',
+            (e) => {
+              const total = (e as CustomEvent<{ total: number }>).detail?.total ?? 0;
+              if (total > 0) cta.hidden = false;
+            },
+            { once: true }
+          );
+        })();
+      </script>
 
       {/* PROFILE — self-service editing via /account/profile */}
       <Card padding="md" elevation="sm" class="text-sm">

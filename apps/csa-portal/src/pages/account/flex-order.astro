@@ -1,9 +1,13 @@
 ---
 /**
- * /account/flex-order — weekly flex (extras) ordering for flex-share members.
+ * /account/flex-order — weekly flex (extras) ordering for flex-eligible members.
  *
- * Gated to members.share_type='flex'. Traditional CSA members are redirected
- * to /account (they see NOTHING — no extras, no swaps in Phase 1).
+ * Gated on FLEX ELIGIBILITY (lib/flex.ts `resolveFlexEligibility`): spendable
+ * Farm Flex store credit > 0, OR a live `share_type='flex'` member row.
+ * Everyone else is redirected to /account (they see NOTHING — no extras, no
+ * swaps in Phase 1). The gate used to be `share_type='flex'` alone, which
+ * stranded members who had bought Flex funds but — by design — have no flex
+ * member row (2026-08-21).
  *
  * Ports the legacy web_app/csa.html interaction contract (pre-filled cart,
  * inline deadline, live balance, "balance carries forward", multi-state
@@ -30,9 +34,9 @@
  * Catalog read uses the SERVICE-ROLE client so we can also surface the
  * coming-soon teasers (is_active=false), which the member RLS path
  * (flex_inventory_member_read: is_active=true) intentionally hides. This is
- * safe: the page is already gated to flex members and renders teasers as
- * non-orderable. The member's identity + order writes still go through the
- * RLS-scoped path (the submit API + the place_flex_order RPC).
+ * safe: the page is already gated to flex-ELIGIBLE members and renders
+ * teasers as non-orderable. The member's identity + order writes still go
+ * through the RLS-scoped path (the submit API + the place_flex_order RPC).
  *
  * The live BALANCE is the <FlexWallet variant="detail"> island (non-blocking,
  * fetches /api/account/flex-balance after paint) — but the ORDERING math
@@ -53,6 +57,7 @@ import {
   currentOrderWeek, windowLabels,
 } from '../../lib/flex-order';
 import { weekRangeLabel } from '../../lib/cycle-ui';
+import { resolveFlexEligibility } from '../../lib/flex';
 
 const user = Astro.locals.user;
 if (!user || !user.email) {
@@ -60,37 +65,37 @@ if (!user || !user.email) {
 }
 const supabase = Astro.locals.supabase;
 
-// ─── Resolve the caller's flex member (RLS-scoped). ──────────────────
-// We also pull the member's pickup weekday (raw pickup_locations.day_of_week)
-// and delivery_address so we can apply the PICKUP-DAY-AWARE cutoff (Todd
-// 2026-06-12): weekend-market members (Sat/Sun pickup) order until Wed
-// 23:59:59 ET; Wed/home members keep the Tue cutoff. Home delivery (an
-// address, no pickup stop) runs Wednesday → Tuesday-cutoff semantics (null).
-type FlexMemberRow = {
-  id: string;
-  share_type: string;
-  status: string;
-  share_size: string | null;
-  delivery_address: string | null;
-  pickup_location: { day_of_week: string | null } | null;
-};
-const { data: memberRows, error: memberErr } = await supabase
-  .from('members')
-  .select('id, share_type, status, share_size, delivery_address, pickup_location:pickup_locations ( day_of_week )')
-  .eq('share_type', 'flex')
-  .in('status', ['active', 'paused', 'onboarding'])
-  .order('status', { ascending: true })
-  .overrideTypes<FlexMemberRow[], { merge: false }>();
+// ─── Resolve the caller's flex ELIGIBILITY + member row (RLS-scoped). ─
+// ELIGIBILITY (2026-08-21): store credit > 0 OR a live flex share row —
+// NOT `share_type='flex'` alone. Buying Farm Flex funds deliberately never
+// creates a member row (it would put that person on pack sheets and route
+// sheets as a recurring weekly recipient), so the old gate structurally
+// barred credit-holding members from spending their own money. The whole
+// rule — including which member row the order attaches to and the
+// Shopify-outage fallback — lives in lib/flex.ts.
+//
+// The resolved row also carries the member's pickup weekday (raw
+// pickup_locations.day_of_week) and delivery_address for the PICKUP-DAY-AWARE
+// cutoff (Todd 2026-06-12): weekend-market members (Sat/Sun pickup) order
+// until Wed 23:59:59 ET; Wed/home members keep the Tue cutoff. Home delivery
+// (an address, no pickup stop) runs Wednesday → Tuesday-cutoff semantics.
+const eligibility = await resolveFlexEligibility(supabase, user.email);
 
-if (memberErr) {
-  console.error('[account/flex-order] member fetch failed:', memberErr.message);
+// Not eligible → bounce. A member who HAS credit but somehow has no member
+// row at all (`flex_orders.member_id` is NOT NULL, so there's nothing to
+// attach an order to) goes to their wallet instead of the hub — that's where
+// their money and the "add funds" path are, and it's a data anomaly on our
+// side, not a wrong turn on theirs.
+if (!eligibility.eligible || !eligibility.member) {
+  return Astro.redirect(
+    eligibility.reason === 'no_member_row' ? '/account/flex' : '/account',
+    303
+  );
 }
-const flexMember = (memberRows ?? [])[0] ?? null;
-
-// Traditional members (no active flex share) see nothing — bounce to /account.
-if (!flexMember) {
-  return Astro.redirect('/account', 303);
-}
+const flexMember = eligibility.member;
+// True when the member is here on STORE CREDIT rather than a flex share row.
+// Only used to keep the header copy honest — everything else is identical.
+const onCreditOnly = !eligibility.hasFlexShare;
 
 // The member's pickup weekday for the cutoff. Home delivery (address set) →
 // null → Tuesday-cutoff semantics, matching the API guards' resolution.
@@ -275,8 +280,13 @@ const okParam = Astro.url.searchParams.get('ok');
 const errorParam = Astro.url.searchParams.get('error');
 const ERROR_COPY: Record<string, string> = {
   invalid_input: "Something looked off with your order — please try again.",
-  forbidden: "We couldn't verify your flex membership.",
-  not_flex: "Flex ordering is only for flex-share members.",
+  forbidden: "We couldn't match that order to your account. Please reload the page and try again.",
+  // Eligibility failures. `no_flex_credit` is the honest one a member can act
+  // on; `not_flex` now only reaches us from the database layer, where it means
+  // something is wrong on OUR side, so it must not blame the member.
+  no_flex_credit: "Your Farm Flex balance is empty, so there's nothing to order with yet. Add Flex on your wallet page and this week's list will open right up.",
+  balance_unavailable: "We couldn't reach our payment system just now, so we can't check your Flex balance. Nothing was charged — please try again in a minute.",
+  not_flex: "We couldn't place this order on your account. Nothing was charged — please email us and we'll sort it out right away.",
   empty: "Add at least one item before submitting.",
   item_unavailable: "One of your items just sold out or was removed — please review your cart.",
   oversold: "Someone grabbed the last of an item while you were ordering — lower the quantity and try again.",
@@ -388,11 +398,15 @@ const emptyStateCloseCopy = closeCopy;
   mainClass="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-10"
   actionBarSpace="11rem"
 >
-  {/* HEADER — this page is gated to FLEX members (non-flex are redirected to
-      /account above), so the framing is unambiguous: for a flex member THIS
-      page IS their box. Member complaint (2026-06-12): "This week's extras"
-      read like an optional add-on, not their actual weekly order. Heading +
-      explainer now make it clear the member builds their box here. */}
+  {/* HEADER — this page is gated to flex-ELIGIBLE members (everyone else is
+      redirected to /account above), so the framing is unambiguous: for a flex
+      member THIS page IS their box. Member complaint (2026-06-12): "This
+      week's extras" read like an optional add-on, not their actual weekly
+      order. Heading + explainer now make it clear the member builds their box
+      here. The opening line is the one thing that differs for a member here on
+      store credit rather than a flex share — telling them they're "on our Farm
+      Flex plan" when they aren't would be a small lie in the warmest spot on
+      the page. */}
   <section aria-labelledby="flex-order-heading">
     <div class="flex items-center gap-3">
       <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ts-primary/15 text-2xl" aria-hidden="true">🧺</span>
@@ -401,8 +415,10 @@ const emptyStateCloseCopy = closeCopy;
       </h1>
     </div>
     <p class="mt-2 text-sm leading-relaxed text-ts-text-secondary">
-      You're on our Farm Flex plan — you choose what's in your box each week.
-      {headerDeadlineLine}
+      {onCreditOnly
+        ? 'You have Farm Flex credit to spend — you choose what goes in your box each week.'
+        : "You're on our Farm Flex plan — you choose what's in your box each week."}
+      {' '}{headerDeadlineLine}
     </p>
     <p class="mt-1 text-sm text-ts-text-muted">{prettyWeek(week)}</p>
   </section>

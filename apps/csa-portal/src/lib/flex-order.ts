@@ -473,3 +473,145 @@ export function windowLabels(
     closesLabel: formatWindowInstant(cutoffEpochMs(weekStarting, pickupDay)),
   };
 }
+
+/* ──────────────────────────────────────────────────────────────────
+ * FLEX ELIGIBILITY — the pure decision half.
+ *
+ * The I/O half (querying members, calling Shopify) lives in lib/flex.ts,
+ * which is server-only. These two functions hold the actual RULES so they
+ * can be unit-tested without a database or a Shopify token, and so the
+ * page, the submit API and the entry-point tiles all decide identically.
+ *
+ * THE RULE (2026-08-21): a member may use Farm Flex ordering if they have
+ * spendable store credit > 0 OR a live `share_type='flex'` member row.
+ *
+ * Background: buying Farm Flex funds DELIBERATELY never creates a member
+ * row — a flex member row would put that person on pack sheets, stop
+ * manifests and route sheets as a recurring weekly recipient whether or not
+ * they ever order. The old `share_type='flex'` gate therefore barred
+ * credit-holding members from spending their own money (5 members holding
+ * $178.06 at the time of the fix). The fix is eligibility, not data.
+ * ────────────────────────────────────────────────────────────────── */
+
+/** Member statuses in which a share row is "live" (matches place_flex_order). */
+export const LIVE_MEMBER_STATUSES: ReadonlySet<string> = new Set([
+  'active', 'paused', 'onboarding',
+]);
+
+/** The minimum shape `pickFlexMemberRow` needs; callers pass richer rows. */
+export interface FlexMemberCandidate {
+  id: string;
+  share_type: string;
+  status: string;
+  created_at?: string | null;
+}
+
+/**
+ * Preference rank for the member row a flex order attaches to — LOWER WINS.
+ *
+ * A live flex share always wins (it is the "real" flex identity). Otherwise
+ * we want the row most likely to be a live, box-bearing share: the
+ * place_flex_order RPC also requires status IN (active,paused,onboarding),
+ * so a live row must outrank an inactive/cancelled one even if newer.
+ */
+export function flexMemberRank(m: { share_type: string; status: string }): number {
+  const live = LIVE_MEMBER_STATUSES.has(m.status);
+  if (m.share_type === 'flex' && live) {
+    // Within flex rows: active, then onboarding, then paused.
+    return m.status === 'active' ? 0 : m.status === 'onboarding' ? 1 : 2;
+  }
+  if (m.share_type === 'summer_veg' && m.status === 'active') return 3;
+  if (m.status === 'active') return 4;
+  if (live) return 5;
+  return 6;
+}
+
+/**
+ * Pick the ONE member row a flex order attaches to, out of all the rows the
+ * caller owns, and report whether any of them is a live flex share.
+ *
+ * `flex_orders.member_id` is NOT NULL, so an order needs a row to hang off.
+ * Attaching a credit-only member's order to their primary live share mirrors
+ * what already exists in production (their prior flex debits are attached to
+ * their summer_veg rows) and adds them to NO pack/route logic, which keys off
+ * `share_type`, not off the presence of a flex order.
+ *
+ * DETERMINISM MATTERS: the ordering page renders a hidden member_id and the
+ * write APIs re-resolve it independently, then require the two to match. Rows
+ * created by the same migration share an identical `created_at` (one real
+ * member has three such rows), so `id` is the final tiebreak — without it the
+ * two resolutions could disagree and reject a legitimate order.
+ *
+ * Pure. Does not mutate `rows`.
+ */
+export function pickFlexMemberRow<T extends FlexMemberCandidate>(
+  rows: readonly T[]
+): { row: T | null; hasFlexShare: boolean } {
+  if (!rows || rows.length === 0) return { row: null, hasFlexShare: false };
+
+  const hasFlexShare = rows.some(
+    (r) => r.share_type === 'flex' && LIVE_MEMBER_STATUSES.has(r.status)
+  );
+
+  const best = [...rows].sort((a, b) => {
+    const byRank = flexMemberRank(a) - flexMemberRank(b);
+    if (byRank !== 0) return byRank;
+    // Newest first, when both timestamps parse.
+    const byDate = Date.parse(b.created_at ?? '') - Date.parse(a.created_at ?? '');
+    if (Number.isFinite(byDate) && byDate !== 0) return byDate;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  })[0];
+
+  return { row: best ?? null, hasFlexShare };
+}
+
+/** Why the caller is (or isn't) allowed to use Farm Flex ordering. */
+export type FlexEligibilityReason =
+  /** Eligible — has a live `share_type='flex'` member row. */
+  | 'flex_share'
+  /** Eligible — has spendable Shopify store credit > 0. */
+  | 'store_credit'
+  /** Denied — no flex row and a $0 balance. Nothing to order with. */
+  | 'no_credit'
+  /** Denied — no flex row and Shopify was unreachable, so credit is UNKNOWN.
+   *  We fall back to the old rule rather than guessing. Transient. */
+  | 'balance_unavailable'
+  /** Denied — has credit, but no member row to attach `flex_orders` to
+   *  (`member_id` is NOT NULL). A data anomaly, not a member mistake. */
+  | 'no_member_row';
+
+/**
+ * The eligibility decision, given what we managed to look up.
+ *
+ * @param hasFlexShare  caller has a live `share_type='flex'` row
+ * @param hasMemberRow  caller has at least one member row to attach an order to
+ * @param balanceTotal  spendable store credit in DOLLARS, or `null` for
+ *                      "we could not find out" (Shopify unreachable, no
+ *                      Shopify customer, or we deliberately skipped the
+ *                      lookup because a flex share already decided it).
+ *
+ * FAIL-SOFT IS LOAD-BEARING: `null` means UNKNOWN, never "no money". An
+ * existing flex member is decided before the balance is ever consulted, so a
+ * Shopify outage can never lock them out of their weekly order.
+ */
+export function decideFlexEligibility(
+  hasFlexShare: boolean,
+  hasMemberRow: boolean,
+  balanceTotal: number | null
+): { eligible: boolean; reason: FlexEligibilityReason } {
+  // A live flex share decides it outright — no balance required, so a Shopify
+  // outage is irrelevant to an existing flex member. (`hasMemberRow` is
+  // implied: a flex share IS a member row.)
+  if (hasFlexShare) return { eligible: true, reason: 'flex_share' };
+
+  // Unknown balance → fall back to the OLD rule (flex row present), which we
+  // just established is false. Deny, but mark it transient.
+  if (balanceTotal === null) return { eligible: false, reason: 'balance_unavailable' };
+
+  if (!(balanceTotal > 0)) return { eligible: false, reason: 'no_credit' };
+
+  // Has credit — but an order still needs a member row to hang off.
+  if (!hasMemberRow) return { eligible: false, reason: 'no_member_row' };
+
+  return { eligible: true, reason: 'store_credit' };
+}
