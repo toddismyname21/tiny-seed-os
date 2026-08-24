@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { resolveCycle } from '../src/lib/cycle';
-const week='2026-07-13';
+const week='2026-08-17';
 const supabase=createClient(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
 const c=await resolveCycle(supabase as any,week);
 const flower=c.members.filter(m=>m.share_type==='flower');
@@ -11,34 +11,29 @@ const emails=new Map<string,string>();
 for(let i=0;i<ids.length;i+=100){const {data}=await supabase.from('customers').select('id,email').in('id',ids.slice(i,i+100));for(const r of (data??[]) as any[]) if(r.email) emails.set(r.id,r.email);}
 const TEST=/(freetodd21|fakeemail|test@test|\.invalid$)/i;
 const recips=[...byCust.entries()].map(([id,n])=>({name:n,email:emails.get(id)||''})).filter(r=>r.email&&!TEST.test(r.email));
-console.log(`Week B flower recipients (${week}): ${flower.length} shares / ${recips.length} sendable`);
+console.log(`Flower recipients (${week}): ${flower.length} shares / ${recips.length} sendable`);
+recips.forEach(r=>console.log(`  - ${r.name} <${r.email}>`));
 if(recips.length>60){console.log('ABORT >60');process.exit(1);}
 if(recips.length===0){console.log('ABORT 0');process.exit(1);}
-const subject="🌸 What's in your Tiny Seed Fleurs bouquet this week";
-const text=`Hi there,
+if(process.env.DRY_RUN){console.log('\nDRY RUN — no emails sent.');process.exit(0);}
+const FROM='Tiny Seed Fleurs <csa@tinyseedfarm.com>';
+const subject="🌻 This week's bouquet — sunflowers, zinnias, and the first dahlias of the season";
+const text=`Hi flower friends,
 
-The field is in high summer, and this week's bouquet is full of it — bright and cheerful, cut fresh just for you. 🌸
+First, an apology to our weekly members — you didn't get a bouquet email from me last week. It's the height of the season and it honestly just slipped past me. Sorry about that!
 
-This week's bouquet includes: sunflowers, snapdragons, statice, and strawflower — and our Large shares get an extra sunflower plus green mist ammi.
+This week's bouquets are peak summer: sunflowers, marigolds, amaranth, zinnias, and cosmos.
 
-A quick note: your flowers went out a little later than usual this week. We're a bit understaffed right now, and this heat makes everything on the farm slower and harder — thank you so much for your patience and for sticking with us. It genuinely means a lot.
+Full shares also get dara, lisianthus, and — drumroll — the first dahlias of the season!
 
-Some good news, though: we now have a refrigerated van, so your flowers ride in air conditioning the whole way and stay cool and fresh right up until they reach you.
+We've had a lot of rain, and the fields are showing it: lots of flowers, lots of veggies... and yes, lots of weeds. We're doing what we can out there. Truthfully, this is what we work all winter for.
 
-A few notes to keep your blooms happy:
-
-• Give them a fresh start: when your bouquet arrives, trim the stems and place them in a clean vase with fresh water. Keep them out of direct sunlight and away from heat.
-
-• Make them last: after a couple of days, give the stems another trim and change the water — it really prolongs the beauty.
-
-• Home deliveries: if you won't be home to receive your flowers, please set out a jar or vase with fresh water in the shade, and we'll tuck your bouquet right in.
-
-Enjoy your blooms, and thank you again for being part of Tiny Seed Fleurs. 💐
-
+Enjoy your flowers,
+Loren
 Tiny Seed Fleurs`;
 let ok=0,fail=0;
 for(const r of recips){
-  const rr=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.RESEND_FROM_EMAIL,to:[r.email],subject,text,reply_to:['tinyseedfleurs@gmail.com'],bcc:['todd@tinyseedfarmpgh.com']})});
+  const rr=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:FROM,to:[r.email],subject,text,reply_to:['tinyseedfleurs@gmail.com'],bcc:['todd@tinyseedfarmpgh.com']})});
   if(rr.ok)ok++;else{fail++;console.log('FAIL',r.email,rr.status);}
 }
-console.log(`\nSENT ✓ ${ok} | FAILED ${fail} | from ${process.env.RESEND_FROM_EMAIL} reply_to tinyseedfleurs@gmail.com`);
+console.log(`\nSENT ✓ ${ok} | FAILED ${fail} | from ${FROM} reply_to tinyseedfleurs@gmail.com`);

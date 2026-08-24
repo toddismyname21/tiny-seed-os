@@ -20,12 +20,22 @@
  * returns { ok:true, skipped:'disabled' } WITHOUT sending — deploy-safe before
  * Todd approves the copy + arms the flag.
  *
- * ⚠ COPY/TIMING NOTE (surfaced to Todd, see CHANGE_LOG): the approved copy says
- * "closes Tuesday 8 AM", but lib/flex-order's live cutoff is Monday 7 AM
- * (Wednesday run) / Thursday 7 AM (weekend run) per the 2026-06-26 unified
- * cutoff. The send is gated by the REAL window (isWindowOpen) so members are
- * only ever nudged while they can still order — but the literal copy text and
- * the exact schedule should be reconciled before the flag is armed.
+ * COPY/TIMING — RESOLVED 2026-08-22 (verified by RUNNING the code, not reading
+ * it). An older note here warned the copy said "closes Tuesday 8 AM" while the
+ * real cutoff was Monday 7 AM. That is NO LONGER TRUE and the warning itself
+ * caused a false alarm, so it is replaced with the verified behaviour:
+ *
+ *   - The copy is not hardcoded. Subject + body both interpolate
+ *     `closeLabel(week, pickupDay)`, which returns "Monday 7 AM" for the
+ *     Wednesday run and "Thursday 7 AM" for weekend-market members. The stated
+ *     deadline therefore cannot drift from lib/flex-order's real cutoff.
+ *   - It never nudges after the window shuts. Simulated Mon 08:00 ET (past the
+ *     07:00 cutoff): `currentOrderWeek` rolls to the FOLLOWING week and
+ *     `isWindowOpen` returns false, so the member is skipped (skippedWindow).
+ *     At Mon 06:00 ET the window is still open and the send proceeds.
+ *
+ * If you change the cutoff, change it in lib/flex-order — both the gate and the
+ * wording read from there, so they stay in step automatically.
  *
  * Auth: Bearer CRON_SECRET. Resend send is fail-soft; a notification_log row
  * records each member's outcome.
@@ -197,6 +207,15 @@ async function handle(request: Request): Promise<Response> {
       customer:customers!inner ( email, contact_name, is_active ),
       pickup_location:pickup_locations ( day_of_week )
     `)
+    // KNOWN GAP (2026-08-21): flex ELIGIBILITY is now "store credit > 0 OR a
+    // live flex share row" (lib/flex-order.ts `decideFlexEligibility`), but
+    // this reminder still only emails members with a flex SHARE row. A member
+    // who holds Farm Flex credit without one CAN order — they just don't get
+    // the weekly nudge. Closing this needs a cheap way to list credit holders:
+    // credit lives in Shopify, and resolving it per member here would mean one
+    // Shopify round-trip per candidate on every cron run. `flex_transactions`
+    // is not a usable proxy — it records the loyalty-bonus split and debits,
+    // not principal, so several real credit holders have no row at all.
     .eq('share_type', 'flex')
     .eq('status', 'active')
     .overrideTypes<MemberRow[], { merge: false }>();

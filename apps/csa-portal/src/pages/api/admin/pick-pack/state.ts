@@ -1,15 +1,17 @@
 /**
- * GET /api/admin/pick-pack/state   (admin/staff/CREW — pack-house ops, 0069)
+ * GET /api/admin/pick-pack/state  (admin/staff/CREW — pack-house ops, 0069/0092)
  *
  * The authoritative per-line status for ONE rendered Pick & Pack sheet. The
  * browser controller on /admin/pick-pack/[week] applies realtime deltas directly
  * for instant cross-device updates, and calls THIS endpoint to reconcile the
  * whole sheet on first realtime (re)connect and as a slow fallback poll when the
- * realtime socket is down (pack-house wifi is spotty). Read-only.
+ * realtime socket is down (pack-house wifi is spotty). The pack crew's Monday
+ * checklist (/admin/checklist, section='crew_day', 0092) reconciles through the
+ * SAME endpoint. Read-only.
  *
  * Query:
  *   week       YYYY-MM-DD Monday of the cycle week
- *   section    'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse'
+ *   section    'harvest' | 'csa' | 'wholesale' | 'market' | 'packhouse' | 'crew_day'
  *   scope_day  'all' | 'mon' | 'thu'
  *   market_id  pickup_locations UUID for section='market'; absent → sentinel
  *
@@ -18,7 +20,7 @@
  *
  * Returns { ok:true, rows:[{ line_key, status, worked_by, actual_qty,
  *          needed_qty, note }] } / { ok:false, error }. needed_qty + note (0083)
- * are only meaningful for section='packhouse' but always returned.
+ * are only meaningful for section='packhouse' and 'crew_day' but always returned.
  */
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
@@ -30,7 +32,7 @@ const SENTINEL_MARKET = '00000000-0000-0000-0000-000000000000';
 
 const Query = z.object({
   week: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  section: z.enum(['harvest', 'csa', 'wholesale', 'market', 'packhouse']),
+  section: z.enum(['harvest', 'csa', 'wholesale', 'market', 'packhouse', 'crew_day']),
   scope_day: z.enum(['all', 'mon', 'thu']),
   market_id: z.string().uuid().nullable().optional(),
 });
