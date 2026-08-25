@@ -448,6 +448,14 @@ export async function gatherDayStops(
       if (!a.address) { skipped.push(`${a.restaurant_name} (wholesale, no address)`); continue; }
       const g = await geocode(a.address, key);
       if (!g) { skipped.push(`${a.restaurant_name} (wholesale, geocode failed)`); continue; }
+      // Warn EARLY about an account that will optimize but not persist. Todd
+      // hit this on 2026-08-25: five accounts with a NULL customer_id showed on
+      // the plan, silently failed to save, and then sorted to the bottom of the
+      // pack sheet. Surfacing it here means it is visible while the route is
+      // still being planned, not after the truck is loaded.
+      if (!a.customer_id) {
+        skipped.push(`${a.restaurant_name} (wholesale, not linked to a customer — will NOT save to the driver route)`);
+      }
       const isBlackRadish = /black radish/i.test(a.restaurant_name);
       stops.push({
         key: a.id,
@@ -460,8 +468,8 @@ export async function gatherDayStops(
         detail: 'wholesale' + (isBlackRadish ? ' · by 3 PM' : ''),
         address: a.address,
         // Driver-route stops reference customers.id (the wholesale account's
-        // linked customer). Skip the FK if unlinked (still routable, just not
-        // saveable to a driver route).
+        // linked customer). Without it the stop CANNOT be saved to a driver
+        // route — save-optimized drops any stop with no `ref`.
         ref: a.customer_id ? { col: 'wholesale_customer_id', id: a.customer_id } : undefined,
       });
     }

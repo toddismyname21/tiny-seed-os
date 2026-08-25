@@ -26,7 +26,7 @@
  * trigger it from the portal).
  *
  * Returns 200 { ok, dry, linked, matches[], ambiguous[], unmatched_orders[],
- *               amount_mismatches[] }.
+ *               needs_review[] }.
  */
 import type { APIRoute } from 'astro';
 import { CRON_SECRET } from 'astro:env/server';
@@ -190,16 +190,17 @@ async function run({ request, locals, url }: Parameters<APIRoute>[0]): Promise<R
     }
   }
 
-  const amountMismatches = result.matches
-    .filter((m) => m.amountMismatchCents)
-    .map((m) => ({
-      account: nameOf(m.orderId),
-      delivery_date: dateOf(m.orderId),
-      invoice_number: m.invoiceNumber,
-      // Positive => QuickBooks billed MORE than the order is worth.
-      // Negative => the chef was UNDER-billed. Both are worth a human look.
-      difference_dollars: (m.amountMismatchCents ?? 0) / 100,
-    }));
+  // Same customer + same delivery date, but the money disagrees — so it may not
+  // be the same sale at all. NOT linked, reported for a person to judge. On
+  // 2026-08-24 this pattern paired Black Radish's $299 veg delivery with a $100
+  // Bulk Flower Bucket invoice dated the same day.
+  const needsReview = result.review.map((r) => ({
+    account: nameOf(r.orderId),
+    delivery_date: r.deliveryDate,
+    invoice_number: r.invoiceNumber,
+    // Positive => QuickBooks billed MORE than the order is worth.
+    difference_dollars: r.differenceCents / 100,
+  }));
 
   return json({
     ok: true,
@@ -212,7 +213,7 @@ async function run({ request, locals, url }: Parameters<APIRoute>[0]): Promise<R
       return a;
     }, {}),
     matches: (dry ? result.matches.map((m) => ({ ...m, account: nameOf(m.orderId), delivery_date: dateOf(m.orderId) })) : linked),
-    amount_mismatches: amountMismatches,
+    needs_review: needsReview,
     ambiguous: result.ambiguous.map((a) => ({
       ...a,
       orders: a.orderIds.map((id) => `${nameOf(id)} ${dateOf(id)}`),

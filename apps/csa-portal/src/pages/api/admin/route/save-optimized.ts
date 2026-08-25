@@ -42,6 +42,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const stops = raw.filter((s: any) => s?.ref && COLS.has(s.ref.col) && typeof s.ref.id === 'string' && s.ref.id);
   if (stops.length === 0) return json({ error: 'no_stops', detail: 'No stops with a valid target (a wholesale stop may be missing its customer link).' }, 400);
 
+  // Stops the optimizer PLANNED but that cannot be persisted, because a driver
+  // stop must point at a real row (pickup_location / member / wholesale customer
+  // / manual stop) and this one has no `ref`. For wholesale that means
+  // wholesale_accounts.customer_id is NULL — see route-optimizer.ts.
+  //
+  // This filter used to drop them silently, which produced exactly the bug Todd
+  // hit on 2026-08-25: a wholesale account appeared on the route plan, vanished
+  // from the saved route, and then sorted to the BOTTOM of the pack sheet
+  // because its `wc:` key could never match a saved-route key. Nothing anywhere
+  // said why. Now the caller is told, by name, so it can be surfaced instead of
+  // discovered on a loading dock.
+  const dropped: string[] = raw
+    .filter((s: any) => !(s?.ref && COLS.has(s.ref.col) && typeof s.ref.id === 'string' && s.ref.id))
+    .map((s: any) => String(s?.name ?? 'unnamed stop'));
+
   const driver_name = (typeof body?.driver_name === 'string' && body.driver_name.trim())
     ? body.driver_name.trim()
     : (locals.user?.email === 'todd@tinyseedfarmpgh.com' ? 'Todd' : 'Driver');
@@ -78,5 +93,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: 'stops_insert_failed', detail: sErr.message }, 500);
   }
 
-  return json({ ok: true, route_id: routeId, url: `/admin/route/${routeId}`, leg, stops: rows.length });
+  // `dropped` is NOT an error — the route saved fine. It is the list of stops
+  // the planner showed but could not persist, so the UI can warn instead of
+  // letting them quietly disappear from the driver route and the pack sheet.
+  return json({
+    ok: true,
+    route_id: routeId,
+    url: `/admin/route/${routeId}`,
+    leg,
+    stops: rows.length,
+    dropped,
+    dropped_count: dropped.length,
+  });
 };

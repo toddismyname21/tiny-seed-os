@@ -1,3 +1,36 @@
+## 2026-08-25 — PM_ARCHITECT — Pack sheet vs route mismatch (wholesale off-route)
+
+**Reported:** "the pack sheet and the route are different — some of the wholesale
+that was to be on route A is not in the proper spot on the pack sheet."
+
+**Root cause — a three-step silent failure.** A driver stop must point at a real
+row, and for wholesale that is `wholesale_accounts.customer_id` (a `customers.id`).
+Five accounts on the 8/26 sheet had it NULL: Pigeon, APTEKA, Gleaner's, John
+Rezzetano, ShuBrew.
+1. `route-optimizer.ts` still PLANS those stops (`ref: undefined`) — Todd sees them.
+2. `save-optimized.ts` filtered out every stop with no `ref` **and said nothing**,
+   so they vanished from the saved route.
+3. `pack-sheet/[...slug].astro` keys wholesale as `wc:<customer_id ?? account_id>`.
+   The fallback can never match a saved-route key, so `orderValue()` returned
+   INFINITY and the stop sorted to the BOTTOM of the sheet, with no explanation.
+
+**Data fix:** created `customers` rows and linked 4 of 5. John Rezzetano is
+`routable=false` — he collects at the farm and must never be placed on a driver
+route. Gleaner's is BLOCKED: `customers.email` is NOT NULL and Linda has no email
+(she is invoiced in person) — needs Todd's decision, no fake address invented.
+
+**Code fix:**
+- `save-optimized.ts` — returns `dropped[]` / `dropped_count` instead of discarding silently.
+- `route-optimizer.ts` — pushes unlinked accounts into `skipped[]` at PLAN time.
+- `pack-sheet/[...slug].astro` — prints why a wholesale stop has no load number
+  ("no customer link" vs "re-save the route to place it").
+
+**Also fixed:** dead `amountMismatchCents` references in `invoice-reconcile.ts`
+left by the 8/24 tier removal — a string replacement had silently not matched.
+`astro check` back to the 11 pre-existing errors.
+
+**Todd must re-save the 8/26 route** for the newly-linked accounts to get load numbers.
+
 ## 2026-08-25 — PM_ARCHITECT — PASS agencies may share one QuickBooks customer
 
 **Why:** migration 0093's partial-UNIQUE index on `wholesale_accounts.qbo_customer_id`

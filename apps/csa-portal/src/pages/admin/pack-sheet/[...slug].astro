@@ -167,6 +167,9 @@ interface WholesaleSection {
   name: string;               // restaurant name
   items: { name: string; qty: number }[];
   note: string | null;
+  /** False when wholesale_accounts.customer_id is NULL — the stop cannot be
+   *  saved to a driver route, so it can never carry a load number. */
+  linked: boolean;
 }
 const wholesaleSections: WholesaleSection[] = [];
 {
@@ -200,6 +203,7 @@ const wholesaleSections: WholesaleSection[] = [];
     const key = `${WHOLESALE_PREFIX}${cid}`;
     const sec = byAccount.get(key) ?? {
       stop_id: key, customer_id: cid, name: acct.restaurant_name ?? 'Wholesale', items: [], note: null,
+      linked: Boolean(acct.customer_id),
     };
     sec.items.push(...(itemsByOrder.get(o.id) ?? []));
     byAccount.set(key, sec);
@@ -645,6 +649,16 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
                 {wsBanner && <span class="ps-load">🚚 {wsBanner.load}</span>}
                 <span class="ps-stop-name">🏬 {ws.name}</span>
                 <span class="ps-stop-sub">WHOLESALE · {ws.items.length} item{ws.items.length === 1 ? '' : 's'}{wsBanner ? ` · ${wsBanner.sub}` : ''}</span>
+                {/* No load number + no customer link = this stop could never be
+                    matched to the saved route, so it sank to the bottom of the
+                    sheet. Todd hit that on 2026-08-25 with no explanation
+                    anywhere. Say it on the sheet. */}
+                {!wsBanner && !ws.linked && (
+                  <span class="ps-offroute">⚠ not on the saved route — no customer link</span>
+                )}
+                {!wsBanner && ws.linked && (
+                  <span class="ps-offroute">⚠ not on the saved route — re-save the route to place it</span>
+                )}
               </div>
               {ws.items.map((it) => (
                 <div class="ps-member">
@@ -731,7 +745,13 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
   }
   /* WHOLESALE sections — amber band so the crew can't miss restaurant crates
    * in the load flow (Todd 2026-08-12). Fixed hex for print fidelity. */
-  .ps-wholesale .ps-stop-head {
+  .ps-offroute {
+  display: block;
+  font-size: 10pt;
+  font-weight: 700;
+  color: #92400e;
+}
+.ps-wholesale .ps-stop-head {
     background: #fef3c7;          /* amber-100 */
     border-bottom-color: #b45309; /* amber-700 */
     -webkit-print-color-adjust: exact;
