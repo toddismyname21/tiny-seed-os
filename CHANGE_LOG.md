@@ -1,3 +1,28 @@
+## 2026-08-25 — PM_ARCHITECT — customers.email nullable; all wholesale stops linked
+
+**Why:** Gleaner's Food Bank (Linda Leary) has no email — she is invoiced on paper,
+handed to her in person. `customers.email` was NOT NULL, so she could not be
+represented, and leaving `wholesale_accounts.customer_id` NULL is what makes a
+wholesale stop drop out of the saved route and sink to the bottom of the pack sheet.
+A placeholder address would have been a stub something eventually mails to.
+
+**Files:** `supabase/migrations/0096_customers_email_nullable.sql`,
+`apps/csa-portal/src/lib/database.types.ts` (`email: string | null`).
+
+**Audited before changing a core table (503 rows):**
+- 0 rows currently NULL/blank → nothing retro-affected.
+- `customers_email_key` stays UNIQUE; Postgres treats NULLs as distinct, so any
+  number of no-email customers coexist.
+- Every reader already guarded (`market-checkout`, `flex-credit` bail on falsy) or
+  null-safe (`cycle`, `reports`, `weekly-email`, `flex-order-reminder` use `?.`/`??`).
+- NULL rows are `customer_type='wholesale'` with NO members row, so they never
+  enter onboarding / referral / weekly email / flex — those reach customers
+  THROUGH members.
+- `astro check` after the type change: **11 errors, unchanged from baseline** — no fallout.
+
+**Result:** all 11 wholesale accounts on the 8/26 sheet are now route-keyable
+(0 unlinked). John Rezzetano is `routable=false` — farm pickup, never a driver stop.
+
 ## 2026-08-25 — PM_ARCHITECT — Pack sheet vs route mismatch (wholesale off-route)
 
 **Reported:** "the pack sheet and the route are different — some of the wholesale

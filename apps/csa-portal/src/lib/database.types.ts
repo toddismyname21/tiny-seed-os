@@ -27,7 +27,11 @@ export interface Database {
           customer_type: 'csa' | 'retail' | 'market' | 'wholesale' | 'chef' | 'employee';
           company_name: string | null;
           contact_name: string;
-          email: string;
+          /** NULL when the customer has no email on file — in-person/phone
+           *  customers such as food-bank pantries invoiced on paper
+           *  (migration 0096). UNIQUE still applies; Postgres treats NULLs as
+           *  distinct. Guard on a falsy value before any send. */
+          email: string | null;
           phone: string | null;
           address: string | null;
           city: string | null;
