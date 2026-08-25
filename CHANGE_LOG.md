@@ -1,3 +1,19 @@
+## 2026-08-25 — PM_ARCHITECT — PASS agencies may share one QuickBooks customer
+
+**Why:** migration 0093's partial-UNIQUE index on `wholesale_accounts.qbo_customer_id`
+assumed one payer per account. Greater Pittsburgh Community Food Bank runs PASS
+through several agencies — Center for Hope (Ambridge) and Gleaner's at St. Ferdinand
+(Cranberry) — all invoiced to the SAME QuickBooks customer, separated by Sales Order
+number. The index rejected Linda Leary's 8/26 Gleaner's order, and without a mapping
+`deliver.ts` cannot invoice at all, so the constraint was blocking revenue.
+
+**File:** `supabase/migrations/0095_qbo_customer_not_unique.sql` — drop the unique
+index, replace with a plain partial index, correct the column comment.
+
+**Safe because** `reconcile()` already refuses to link when a tier yields more than
+one candidate order, so two accounts under one customer surface as a reported
+ambiguity rather than a wrong link.
+
 ## 2026-08-24 — PM_ARCHITECT — Order ↔ QuickBooks invoice auto-linking
 
 **Why:** 65 wholesale orders read "uninvoiced" while QuickBooks had already billed
