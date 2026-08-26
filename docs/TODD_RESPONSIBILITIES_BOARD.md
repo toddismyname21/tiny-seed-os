@@ -1,6 +1,40 @@
 # Todd's Responsibilities Board
 _Started 2026-08-02. PM-maintained — reviewed every Friday Accountability Hour. Nothing falls off this list without Todd's explicit say-so._
 
+## 🌾 FIELD PLAN — week of 2026-08-26 (brain dump captured)
+Full plan: `docs/field/WEEK_PLAN_2026-08-26.md` — 44 tasks across 12 fields, organised by
+field, by sequence, and by equipment pass.
+
+**Critical path — these gate the rest:**
+1. **ORDER COVER CROP SEED.** Six fields (Z3, Z5, Z1, M, Brassica, Lower) are queued to be
+   tilled and sown. Every one of those tillage jobs ends in bare ground if the seed is not
+   on the farm. This one order gates ~2/3 of the week's field work.
+2. **Inventory seedlings + assign ground** — JS1 and Field I lettuce plans depend on it.
+3. **Flax timing research for Z1** — blocked until reputable sources are checked.
+
+**Also captured:** Shorin bag run (6#/8#/12# paper) · greenhouse run of 87 trays into 200s ·
+20 × 6" pp Salanova next week for the high tunnel · Lower field retiring from production ·
+**migrate app.tinyseedfarm to a better back end so organic records are easy to keep.**
+
+## ⏰ TONIGHT — Wed 2026-08-26 — REPLY TO 7 CSA MEMBERS
+**You promised this in writing today.** All 7 were emailed at ~12:40 PM saying you had read
+their message and would reply properly TONIGHT. Talking points PDF sits in your inbox:
+"CSA emails — talking points" (`CSA_Talking_Points_2026-08-26.pdf`).
+
+| # | Member | What they need |
+|---|--------|----------------|
+| 1 | **Maggie Debski** | 🔴 TODAY — TRIPLE mushrooms + DOUBLE bread, notices due 8/24, she asked about THIS Wednesday |
+| 2 | **Anna Phillips** | 2 make-up mushrooms (missed 7/06 + 7/20), overdue since 8/17 — give her a DATE |
+| 3 | **Whitney Sunseri** | Owed 2 cheese: 1 from a make-good closed early + this week's miss |
+| 4 | **Kelly Corrigan** | Close the Edgewood/Swissvale notice (she's staying at Highland Park); NEW cheese miss to log |
+| 5 | **Ashley Lyons** | 💵 Box never arrived 8/19, has photo evidence, asked for a REFUND — nothing ever logged |
+| 6 | **Marissa Norris** | 💵 Paid $12 for 1.07 lb of tomatoes at Bloomfield — suggest flex credit for the difference |
+| 7 | **Jan Duckworth** | Added flex funds, cannot find how to spend them — send the direct link + a screenshot |
+
+**The pattern, not the incidents:** 5 of 7 are add-on failures (cheese/bread/mushrooms), and
+TWO make-good notices were marked FULFILLED while their own text says they were only partly
+filled. Add-on packing and make-up verification are the fix — not seven apologies.
+
 ## ▶️ START HERE — 2026-08-17 morning (picked up from the 8/16 late session)
 0. **SENDING THE WHOLESALE AVAILABILITY LIST + personal notes to Csilla and John (Todd's plan for 8/17).** Audience verified: **54 accounts will receive it, 7 will NOT.**
    - ✅ **John Rezzetano is FIXED and will now receive it** — he was failing for TWO independent reasons: the email typo (`rezzetono`→`rezzetano`) AND **no `order_token`**, and the audience query filters on `order_token IS NOT NULL`. Both fixed 8/16; he also now has `delivery_day=Tue` and an ordering link.
