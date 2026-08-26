@@ -1,3 +1,20 @@
+## 2026-08-26 — PM_ARCHITECT — Weekly flower email (33 members)
+
+Sent via `scripts/send_flower_wk.ts` for the week of 2026-08-24. Audience resolved
+through `resolveCycle` (NOT a raw member query), so it hit exactly this week's flower
+recipients — 9 weekly + 23 biweekly Week B, test accounts filtered, 33 sendable,
+0 failures. From "Tiny Seed Fleurs", reply-to tinyseedfleurs@gmail.com, Todd BCC'd.
+
+Content per Todd: apology to every-other-week members for a missed bouquet email two
+weeks ago (no service impact — the email simply never got written); amaranth 'Coral
+Fountain', celosia 'Shimmer Plume' + 'Crested Rose', marigolds, rudbeckia, dahlias,
+zinnias in every share; cosmos + Ammi 'Green Mist' in full shares only; water-change
+guidance because amaranth and celosia cloud water faster.
+
+Reused the existing purpose-built sender rather than writing a new one — it already
+carried the resolveCycle audience logic, the test-account filter, and the >60/0 abort
+guards.
+
 ## 2026-08-26 — PM_ARCHITECT — Chef order note (day + client name)
 
 **Why:** John Rezzetano caters — one order per client, collected on whichever
