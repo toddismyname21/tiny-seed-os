@@ -22,14 +22,20 @@ if not KEY or not FROM:
     sys.exit("Missing RESEND_API_KEY or RESEND_FROM_EMAIL in .env")
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--to", required=True)
+# Comma-separated so several people land on ONE thread and can see each other
+# (e.g. an outgoing chef and the incoming one during a handoff). Sending
+# separate copies instead would hide the handoff from both of them.
+ap.add_argument("--to", required=True, help="one address, or several comma-separated")
 ap.add_argument("--subject", required=True)
 ap.add_argument("--text", required=True)
 ap.add_argument("--attach", nargs="*", default=[])
 a = ap.parse_args()
 
 TEAM = ["todd@tinyseedfarmpgh.com", "tinyseedfleurs@gmail.com"]
-body = {"from": FROM, "to": [a.to], "subject": a.subject, "text": a.text, "reply_to": TEAM, "bcc": ["todd@tinyseedfarmpgh.com"]}
+TO = [x.strip() for x in a.to.split(",") if x.strip()]
+if not TO:
+    sys.exit("--to had no usable address")
+body = {"from": FROM, "to": TO, "subject": a.subject, "text": a.text, "reply_to": TEAM, "bcc": ["todd@tinyseedfarmpgh.com"]}
 atts = []
 for f in a.attach:
     p = Path(f)

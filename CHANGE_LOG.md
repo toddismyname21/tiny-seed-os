@@ -1,3 +1,31 @@
+## 2026-08-26 — PM_ARCHITECT — Chef order note (day + client name)
+
+**Why:** John Rezzetano caters — one order per client, collected on whichever
+morning suits that job, not the Wed/Fri the portal computes. He asked three times
+for "multiple orders for the week". He CAN already place several
+(`place_wholesale_order` plain-INSERTs; EYV has two orders on 2026-07-22) — but
+once they arrive nothing tells them apart. One free-text note per order covers
+both halves without over-modelling a workflow we have not watched.
+
+**Files:** `supabase/migrations/0097_chef_order_note.sql`,
+`apps/csa-portal/src/pages/order/[token].astro` (textarea bound to the sticky
+cart form via `form=`), `src/pages/api/order/submit.ts`,
+`src/pages/admin/pack-sheet/[...slug].astro` (renders it; concatenates when
+several orders merge into one stop).
+
+**Near miss worth recording:** the first draft of 0097 retyped the function body
+from migration 0050. That would have silently reverted the **0080 cutoff
+enforcement** and the account lookup — neither of which is in 0050. Caught before
+applying. The shipped migration is `pg_get_functiondef()` of the LIVE function
+with three surgical edits, verified by diffing the live definition before/after:
+only the parameter, the local, and the INSERT changed; `cutoff_passed` intact.
+
+**Also:** floral invoices are now excluded from reconciliation
+(`invoice-reconcile.ts`). Loren invoices flowers separately; Black Radish takes a
+$100 Bulk Flower Bucket on the same date as a $100 King Spring Mix standing
+order, so the date_amount tier would link a veg delivery to a flower sale. That
+confusion had already caused a flower invoice to be edited with veg lines twice.
+
 ## 2026-08-25 — PM_ARCHITECT — customers.email nullable; all wholesale stops linked
 
 **Why:** Gleaner's Food Bank (Linda Leary) has no email — she is invoiced on paper,

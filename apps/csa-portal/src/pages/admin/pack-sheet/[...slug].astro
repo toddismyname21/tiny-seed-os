@@ -205,6 +205,12 @@ const wholesaleSections: WholesaleSection[] = [];
       stop_id: key, customer_id: cid, name: acct.restaurant_name ?? 'Wholesale', items: [], note: null,
       linked: Boolean(acct.customer_id),
     };
+    // The chef's own note (migration 0097) — which day they want it, which
+    // client it is for. An account can have SEVERAL orders on one date (John
+    // Rezzetano places one per catering client), and they merge into a single
+    // section here, so keep every note rather than letting the last one win.
+    const oNote = typeof o.notes === 'string' ? o.notes.trim() : '';
+    if (oNote) sec.note = sec.note ? `${sec.note}\n${oNote}` : oNote;
     sec.items.push(...(itemsByOrder.get(o.id) ?? []));
     byAccount.set(key, sec);
   }
@@ -660,6 +666,9 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
                   <span class="ps-offroute">⚠ not on the saved route — re-save the route to place it</span>
                 )}
               </div>
+              {ws.note && (
+                <div class="ps-note">📝 {ws.note}</div>
+              )}
               {ws.items.map((it) => (
                 <div class="ps-member">
                   <span class="ps-check" aria-hidden="true"></span>
@@ -745,7 +754,17 @@ const dayLabels: Record<'Tue'|'Wed'|'Sat'|'Sun'|'all', string> = {
   }
   /* WHOLESALE sections — amber band so the crew can't miss restaurant crates
    * in the load flow (Todd 2026-08-12). Fixed hex for print fidelity. */
-  .ps-offroute {
+  .ps-note {
+  margin: 2pt 0 4pt;
+  padding: 4pt 6pt;
+  border-left: 3pt solid #92400e;
+  background: #fffbeb;
+  font-size: 10pt;
+  font-weight: 600;
+  color: #78350f;
+  white-space: pre-line;
+}
+.ps-offroute {
   display: block;
   font-size: 10pt;
   font-weight: 700;

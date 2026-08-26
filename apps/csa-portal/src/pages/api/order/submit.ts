@@ -101,10 +101,18 @@ export const POST: APIRoute = async ({ request, redirect }) => {
 
   // ── Place the order atomically with a SERVER-SIDE price lookup. The token
   //    is validated INSIDE the RPC (the gate). ──────────────────────────────
+  // The chef's own note: which day they want it, which client it is for. Capped
+  // here AND again in the RPC — the RPC is the gate, this just avoids shipping a
+  // pointlessly large string. Empty becomes null so "has a note" is a null test.
+  const rawNote = form.get('notes');
+  const notes =
+    typeof rawNote === 'string' && rawNote.trim() ? rawNote.trim().slice(0, 500) : null;
+
   const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('place_wholesale_order', {
     p_token: token,
     p_lines: parsedLines,
     p_delivery_date: deliveryDate,
+    p_notes: notes,
   });
 
   if (rpcErr) {

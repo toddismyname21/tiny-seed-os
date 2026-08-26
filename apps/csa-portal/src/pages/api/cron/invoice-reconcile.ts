@@ -57,6 +57,10 @@ function json(body: unknown, status = 200): Response {
 
 interface QbInvoiceRaw {
   Id: string;
+  Line?: Array<{
+    DetailType?: string;
+    SalesItemLineDetail?: { ItemRef?: { name?: string } };
+  }>;
   DocNumber?: string;
   TxnDate: string;
   TotalAmt: number;
@@ -75,8 +79,17 @@ async function fetchInvoices(): Promise<QbInvoiceLite[]> {
     );
     const page = res.QueryResponse.Invoice ?? [];
     for (const i of page) {
+      // Loren invoices flowers separately; those never match a vegetable order.
+      // QuickBooks nests them under the "FLOWER SALES" item parent.
+      const billable = (i.Line ?? []).filter((L) => L.DetailType === 'SalesItemLineDetail');
+      const isFloral =
+        billable.length > 0 &&
+        billable.every((L) =>
+          /flower/i.test(String(L.SalesItemLineDetail?.ItemRef?.name ?? '')),
+        );
       out.push({
         id: i.Id,
+        isFloral,
         docNumber: (i.DocNumber ?? '').trim(),
         txnDate: i.TxnDate,
         totalCents: Math.round(Number(i.TotalAmt) * 100),

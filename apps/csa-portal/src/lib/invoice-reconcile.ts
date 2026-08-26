@@ -48,6 +48,11 @@ export type MatchTier = 'portal_note' | 'memo_dates' | 'date_amount';
 
 export interface QbInvoiceLite {
   id: string;
+  /** True when every billable line sits under the FLOWER SALES item hierarchy.
+   *  Loren invoices the flower side of the business separately and it has
+   *  NOTHING to do with wholesale vegetable orders. Excluded from matching
+   *  entirely — see the note on `reconcile`. */
+  isFloral?: boolean;
   docNumber: string;
   txnDate: string; // YYYY-MM-DD
   totalCents: number;
@@ -196,7 +201,11 @@ export function reconcile(
     return true;
   };
 
-  const ordered = [...invoices].sort((a, b) => a.txnDate.localeCompare(b.txnDate));
+  // Flower invoices belong to Loren's side of the business. They never
+  // correspond to a wholesale vegetable order, so they are not candidates.
+  const ordered = [...invoices]
+    .filter((i) => !i.isFloral)
+    .sort((a, b) => a.txnDate.localeCompare(b.txnDate));
 
   for (const inv of ordered) {
     // Tier 1 — the portal stamped its own order id.

@@ -495,6 +495,32 @@ const minOrderCents = account?.min_order_cents ?? 0;
             ))}
           </>
         )}
+        {/* ════ Order note ════
+            Lives in the page body but belongs to the cart-bar form via the
+            `form` attribute — the bar is a thin sticky strip with no room for a
+            textarea. Added for John Rezzetano, who caters: he places several
+            orders a week, one per client, and collects on whichever morning
+            suits that job rather than the Wed/Fri the portal computes. Without
+            this, two of his orders are indistinguishable once they arrive. */}
+        <section class="mx-auto max-w-2xl px-4 pb-40 pt-2">
+          <label for="order-note" class="block text-sm font-semibold text-ts-text">
+            Anything we should know?
+          </label>
+          <p class="mt-1 text-xs text-ts-text-muted">
+            Which day you'd like it, which client or event it's for, or how you'd
+            like it packed. Placing more than one order this week? Name each one
+            here so we keep them apart.
+          </p>
+          <textarea
+            id="order-note"
+            name="notes"
+            form="order-form"
+            rows="3"
+            maxlength="500"
+            placeholder="e.g. Thursday morning pickup — Alvarez wedding"
+            class="mt-2 w-full rounded-ts-md border border-ts-border bg-ts-bg-base px-3 py-2 text-base text-ts-text placeholder:text-ts-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary"
+          ></textarea>
+        </section>
       </main>
 
       {/* ════ Sticky cart bar ════ */}
