@@ -11,8 +11,7 @@ card from the top, or the ten days already paid will go through twice.
 Full record: `legal/h2a_worker_onboarding/workers_2026/_case_98551_shared/payroll/HOURS_LOG.md`
 (kept local — worker PII, gitignored).
 
-⚠️ Also unconfirmed: **Aug 10 reads 7:30 AM → 8:00 PM = 12.00 hrs**, 1.5 hrs longer than any
-other day. If it was really 6:00 PM, the period just paid was overstated by 2.00 hrs each.
+Hours verified by Todd 2026-08-27 — the 8/1–8/14 period is correct as entered.
 
 ## 🅿️ PARKED — FIELD PLAN, week of 2026-08-26 (Todd parked it 2026-08-27)
 Full plan: `docs/field/WEEK_PLAN_2026-08-26.md` — 44 tasks across 12 fields, organised by
