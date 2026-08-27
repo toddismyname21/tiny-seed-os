@@ -1,3 +1,40 @@
+## 2026-08-27 — PM_ARCHITECT — Outgoing fact gate on every sender
+
+**Why:** a wrong phone number went out in **68 emails** — a 58-recipient wholesale blast,
+7 CSA members, a driver's route instructions. It was John Rezzetano's personal cell, used
+as the farm's number. It was never mistyped; it was never looked up. The correct number
+(717-725-5177) was in an H-2A contract already read that same hour.
+
+Same session, same root cause, three more: `$3.11` told to 65 chefs when the arithmetic
+gives `$3.125`; cabbage quoted while `is_active=false`; a driver emailed "you're on the
+road" when `delivery_routes.status` said she finished the day before.
+
+**Todd's rule:** *"Nothing goes out unless it is verified from a source of truth… If I
+wanted to mess up all of the time, I would just do it and not use the Claude Code at all.
+You are supposed to make us better."*
+
+**Files**
+- `config/verified_facts.json` (new) — the registry. Split deliberately into
+  `farm_contact_phones` (may be presented as ours) and `third_party_phones` (recognised,
+  **blocked**, owner named).
+- `apps/csa-portal/scripts/verify_facts.py` (new) — one shared gate.
+- `send_email.py`, `send_member_campaign.py`, `send_all_member_emails.py`,
+  `send_tracked_email.py`, `send_flower_wk.ts` — all five now enforce.
+- `.claude/rules/verify-before-send.md` (new) — loaded every session.
+
+**A flat allowlist was not enough.** The first version PASSED John's number because it was
+"known". A number belonging to someone else is worse than an unknown one — it looks
+plausible and it reaches a real person. Hence the split.
+
+**Verified by replaying the actual failure**, in Python and in TypeScript:
+`BLOCKED — PHONE '412-720-1821' belongs to John Rezzetano (wholesale customer) — NOT the
+farm.` Todd's real number and genuine portal links pass; unknown numbers and lookalike
+domains are blocked; the override demands a written source and prints it with the send.
+
+**Limits, stated plainly:** this catches phone numbers and link hosts. It cannot catch a
+wrong price, a wrong date, or a wrong claim about someone's day. Those remain on the
+operator — the gate is a floor, not a ceiling.
+
 ## 2026-08-26 — PM_ARCHITECT — Weekly flower email (33 members)
 
 Sent via `scripts/send_flower_wk.ts` for the week of 2026-08-24. Audience resolved

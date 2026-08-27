@@ -6,6 +6,10 @@ DRY-RUN unless --apply."""
 import csv, json, time, sys, urllib.request, urllib.error
 from pathlib import Path
 
+import sys as _sys, pathlib as _pl
+_sys.path.insert(0, str(_pl.Path(__file__).resolve().parent))
+from verify_facts import enforce as _enforce_facts  # 2026-08-27 outgoing fact gate
+
 ROOT = Path(__file__).resolve().parents[1]
 APPLY = "--apply" in sys.argv
 ONLY = [a for a in sys.argv[1:] if a in ("flex","allison","everyone","89")]
@@ -86,6 +90,7 @@ CAMPAIGNS=[
 
 TEAM_REPLY=["todd@tinyseedfarmpgh.com","tinyseedfleurs@gmail.com"]
 def send(to,subj,text):
+    _enforce_facts(text, subj, "")
     p={"from":FROM,"to":[to],"subject":subj,"text":text,"reply_to":TEAM_REPLY}
     r=urllib.request.Request("https://api.resend.com/emails",data=json.dumps(p).encode(),method="POST",
         headers={"Authorization":f"Bearer {RKEY}","Content-Type":"application/json","User-Agent":UA,"Accept":"application/json"})

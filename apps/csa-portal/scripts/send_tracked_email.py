@@ -50,6 +50,10 @@ from typing import Callable, Optional
 
 import requests
 
+import sys as _sys, pathlib as _pl
+_sys.path.insert(0, str(_pl.Path(__file__).resolve().parent))
+from verify_facts import enforce as _enforce_facts  # 2026-08-27 outgoing fact gate
+
 # ─── Paths / constants ──────────────────────────────────────────────────────
 CSA_ROOT = Path(__file__).resolve().parents[1]          # apps/csa-portal
 REPO_ROOT = CSA_ROOT.parents[1]                         # TIny_Seed_OS
@@ -344,6 +348,9 @@ def send_tracked(
         })
 
         text_body = body_text_fn(r)
+        # 2026-08-27 fact gate. Bodies are built PER RECIPIENT here, so each one is
+        # checked — a merge field could put a different number in each copy.
+        _enforce_facts(text_body, subject, "")
         html_body = body_html_fn(r) if body_html_fn else _auto_html_from_text(text_body)
         mime = _build_mime(email, name, subject, text_body, html_body, token)
 

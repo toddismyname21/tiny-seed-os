@@ -1,3 +1,31 @@
+
+// ── 2026-08-27 outgoing fact gate ────────────────────────────────────────────
+// Mirrors scripts/verify_facts.py against the same config/verified_facts.json.
+// A gate on one door is worthless when the building has five: a wrong phone
+// number reached 68 emails because the sender that carried it had no check.
+import { readFileSync } from 'node:fs';
+function verifyFacts(text: string, subject = ''): string[] {
+  const facts = JSON.parse(readFileSync(new URL('../../../config/verified_facts.json', import.meta.url), 'utf8'));
+  const norm = (t: string) => t.replace(/\D/g, '').slice(-10);
+  const farm = new Set(Object.keys(facts.farm_contact_phones ?? {}).map(norm));
+  const third = new Map(Object.entries(facts.third_party_phones ?? {}).map(([k, v]) => [norm(k), v as string]));
+  const domains: string[] = (facts.domains ?? []).map((d: string) => d.toLowerCase());
+  const body = `${subject}\n${text}`;
+  const out: string[] = [];
+  for (const m of body.matchAll(/\b(?:\+?1[-. ])?\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b/g)) {
+    const d = norm(m[0]);
+    if (farm.has(d)) continue;
+    out.push(third.has(d)
+      ? `PHONE '${m[0]}' belongs to ${third.get(d)} — NOT the farm. Todd's number is 717-725-5177.`
+      : `PHONE '${m[0]}' is not in verified_facts.json`);
+  }
+  for (const m of body.matchAll(/https?:\/\/([A-Za-z0-9.-]+)/g)) {
+    const h = m[1].toLowerCase();
+    if (!domains.some((d) => h === d || h.endsWith('.' + d))) out.push(`LINK host '${h}' is not in verified_facts.json`);
+  }
+  return out;
+}
+
 import { createClient } from '@supabase/supabase-js';
 import { resolveCycle } from '../src/lib/cycle';
 const week='2026-08-24';
@@ -49,6 +77,13 @@ Thanks for supporting the flower field!
 Loren
 Tiny Seed Fleurs`;
 
+const _problems=verifyFacts(text,subject);
+if(_problems.length){
+  console.error('\nBLOCKED — unverified fact(s) in this send:');
+  for(const p of _problems) console.error('   • '+p);
+  console.error('\nRead it from a primary source and add it to config/verified_facts.json.\n');
+  process.exit(2);
+}
 let ok=0,fail=0;
 for(const r of recips){
   const rr=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:FROM,to:[r.email],subject,text,reply_to:['tinyseedfleurs@gmail.com'],bcc:['todd@tinyseedfarmpgh.com']})});

@@ -1,0 +1,37 @@
+{
+  "_README": "Facts allowed in outgoing email. Add ONLY after reading from a primary source (contract, invoice, database row, live page). Never from memory.",
+
+  "_farm_contact_phones_NOTE": "Numbers we may present as OURS to a customer.",
+  "farm_contact_phones": {
+    "717-725-5177": "Todd Wilson — the farm number for customers",
+    "412-862-0215": "Ben Finley — morning orders / pack"
+  },
+
+  "_third_party_phones_NOTE": "Recognised, but they belong to OTHER PEOPLE. Presenting one as a farm contact is the 2026-08-27 failure. BLOCKED by default, with the owner named.",
+  "third_party_phones": {
+    "412-720-1821": "John Rezzetano (wholesale customer)",
+    "412-585-5183": "Linda Leary (Gleaner's Food Bank)",
+    "412-779-4004": "David Green (Cafe Verde)",
+    "908-839-9197": "Bryanna Johnson (Pigeon)",
+    "412-298-6091": "Kate Lasky (Apteka)",
+    "585-703-8350": "Anthony Tripi (Mediterra)",
+    "646-319-3804": "Aniceto Sousa (Mediterra)",
+    "412-508-7939": "George Austin (Butter Joint)",
+    "267-342-0200": "Brian Selya (Butter Joint)",
+    "412-818-3122": "Sherri Leiphart (Black Radish)",
+    "724-831-9970": "Rich Burns (Della Terra)",
+    "724-713-7179": "Csilla Thackray (Titusz)",
+    "412-598-6801": "Jen Saffron (Sprezzatura)",
+    "800-772-1213": "Social Security Administration",
+    "717-412-5300": "PA agency line (H-2A paperwork)"
+  },
+
+  "domains": [
+    "csa.tinyseedfarm.com",
+    "tinyseedfarm.com",
+    "tinyseedfarmpgh.com",
+    "app.tinyseedfarm.com",
+    "quickbooks.intuit.com",
+    "harvie.farm"
+  ]
+}

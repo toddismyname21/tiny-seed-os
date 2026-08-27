@@ -24,6 +24,10 @@ import argparse, json, re, sys, time, urllib.request, urllib.error
 from collections import Counter
 from pathlib import Path
 
+import sys as _sys, pathlib as _pl
+_sys.path.insert(0, str(_pl.Path(__file__).resolve().parent))
+from verify_facts import enforce as _enforce_facts  # 2026-08-27 outgoing fact gate
+
 ROOT = Path(__file__).resolve().parents[1]
 TEAM = ["todd@tinyseedfarmpgh.com", "tinyseedfleurs@gmail.com"]
 TEST = {"test@test.com", "fakeemailsofake@gmail.com", "freetodd21@gmail.com"}
@@ -103,6 +107,7 @@ def main():
     ok = fail = 0
     for em, p in people.items():
         text = body_tpl.replace("{{first_name}}", p["first"])
+        _enforce_facts(text, a.subject, getattr(a, "i_verified", ""))
         payload = {"from": FROM, "to": [em], "subject": a.subject, "text": text, "reply_to": TEAM, "bcc": ["todd@tinyseedfarmpgh.com"]}
         r = urllib.request.Request("https://api.resend.com/emails", data=json.dumps(payload).encode(),
             method="POST", headers={"Authorization": f"Bearer {RKEY}", "Content-Type": "application/json",
