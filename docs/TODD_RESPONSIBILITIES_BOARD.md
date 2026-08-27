@@ -1,16 +1,20 @@
 # Todd's Responsibilities Board
 _Started 2026-08-02. PM-maintained — reviewed every Friday Accountability Hour. Nothing falls off this list without Todd's explicit say-so._
 
-## 🌾 FIELD PLAN — week of 2026-08-26 (brain dump captured)
+## 🅿️ PARKED — FIELD PLAN, week of 2026-08-26 (Todd parked it 2026-08-27)
 Full plan: `docs/field/WEEK_PLAN_2026-08-26.md` — 44 tasks across 12 fields, organised by
 field, by sequence, and by equipment pass.
 
-**Critical path — these gate the rest:**
+**Nothing here is lost — pick it up by opening that file. Two things unblock the rest:**
 1. **ORDER COVER CROP SEED.** Six fields (Z3, Z5, Z1, M, Brassica, Lower) are queued to be
    tilled and sown. Every one of those tillage jobs ends in bare ground if the seed is not
    on the farm. This one order gates ~2/3 of the week's field work.
 2. **Inventory seedlings + assign ground** — JS1 and Field I lettuce plans depend on it.
 3. **Flax timing research for Z1** — blocked until reputable sources are checked.
+
+**To resume, answer two questions:** (a) confirm the broadcast seed rates, and (b) map the
+seven fields that have no record in the system — JS5, F3M, J field, Field I, Brassica field,
+Lower field, the two flower fields. Everything else is already sized and sequenced.
 
 **Also captured:** Shorin bag run (6#/8#/12# paper) · greenhouse run of 87 trays into 200s ·
 20 × 6" pp Salanova next week for the high tunnel · Lower field retiring from production ·
