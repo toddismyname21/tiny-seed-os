@@ -1,6 +1,19 @@
 # Todd's Responsibilities Board
 _Started 2026-08-02. PM-maintained — reviewed every Friday Accountability Hour. Nothing falls off this list without Todd's explicit say-so._
 
+## 💵 NEXT PAYROLL — carry Saturday Aug 15 forward
+**10.50 hrs each · $157.50 each · $315.00 both.** Aug 15 fell one day past the 8/1–8/14
+cutoff and is NOT yet paid. It is the last row on the paper card photographed 2026-08-27.
+
+Add it to the 8/15–8/28 period **before** entering anything new — and do not re-read that
+card from the top, or the ten days already paid will go through twice.
+
+Full record: `legal/h2a_worker_onboarding/workers_2026/_case_98551_shared/payroll/HOURS_LOG.md`
+(kept local — worker PII, gitignored).
+
+⚠️ Also unconfirmed: **Aug 10 reads 7:30 AM → 8:00 PM = 12.00 hrs**, 1.5 hrs longer than any
+other day. If it was really 6:00 PM, the period just paid was overstated by 2.00 hrs each.
+
 ## 🅿️ PARKED — FIELD PLAN, week of 2026-08-26 (Todd parked it 2026-08-27)
 Full plan: `docs/field/WEEK_PLAN_2026-08-26.md` — 44 tasks across 12 fields, organised by
 field, by sequence, and by equipment pass.
