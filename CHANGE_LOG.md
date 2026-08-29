@@ -1,3 +1,19 @@
+## 2026-08-29 — PM_ARCHITECT — Certification core: field registry live in Supabase
+
+**Why:** OEFFA inspection 9/18; INPUT_LOG/PEST_LOG had zero rows anywhere and 7
+worked fields had no record to file against. Proposal approved by Todd:
+`docs/specs/CERTIFICATION_CORE_MIGRATION.md`.
+
+**Done:** migration `*_certification_core_fields.sql` — `farm_fields` (22, parity
+22/22), `farm_beds` (212, parity 212/212), `input_log` + `pest_log` born in Postgres
+(never migrated — they were empty). `input_log.field_id` NOT NULL: impossible to log
+against nonexistent ground. `source_evidence` NOT NULL: every compliance row names
+its primary source — the verify-before-send rule made schema.
+
+**Field reconciliation (Todd):** Brassica=HOL · Lower(retiring)=IOL (onions;
+failed arugula seeding) · J=JL · I=IL · flowers=F7M+F11M · "F3M" was a misnomer
+for F3L. JS5 still unresolved. Ledger started: `docs/specs/OS_MIGRATION_LEDGER.md`.
+
 ## 2026-08-27 — PM_ARCHITECT — Outgoing fact gate on every sender
 
 **Why:** a wrong phone number went out in **68 emails** — a 58-recipient wholesale blast,
