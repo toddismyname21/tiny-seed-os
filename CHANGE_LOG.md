@@ -1,3 +1,16 @@
+## 2026-08-29 — PM_ARCHITECT — First field-captured planting records; box evidence tiered
+
+Todd direct-seeded arugula (Uber, Johnny's lot 113353, germ 96%) and French Breakfast
+radish (lot 74511, germ 95%) into JS1 and logged it FROM THE FIELD via remote-control
+photos + one-line statement — the exact capture workflow this build exists for.
+Created crops/crop_aliases/seed_lots/plantings (migration pt2, pulled forward);
+2 lots + 2 plantings written with photo evidence, read back from DB.
+
+Also: CSA box evidence tiered per Todd's rule "just because it was in the plan does
+not mean it happened" — 252 box_contents rows / 14 weeks, 7 weeks delivery-PROVEN
+(completed stops + driver photos), 7 weeks published-only (Tier C, not treated as
+fact). Rule recorded permanently in agent memory with the A/B/C tier system.
+
 ## 2026-08-29 — PM_ARCHITECT — Certification core: field registry live in Supabase
 
 **Why:** OEFFA inspection 9/18; INPUT_LOG/PEST_LOG had zero rows anywhere and 7
