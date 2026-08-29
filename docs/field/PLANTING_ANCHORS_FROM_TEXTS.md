@@ -38,3 +38,20 @@ photographed at 200-cell trays; greenhouse sowing implied, NOT confirmed.
 (memo: invoices 104855–104860 minus credits) — LEASE evidence, feeds the arrears
 reconciliation. Check #1596 7/6/2026 → Bounty Beneath **$155.00** (memo #1763) —
 likely the mushroom add-on supplier; purchase-side evidence.
+**Batch 4 (2026-08-29):**
+- **Seed lot recorded:** Caprice garden bean, Harris Moran lot FL574983 / batch K08153,
+  80k seeds (45.51 lb), germ 85% (10/24), untreated, "may be eligible for organic
+  production" — the production seed behind this season's green-bean sales.
+- **Antique walking planter photo** (wooden hopper, steel wheel) in use on fresh drill
+  rows — person, field, date unnamed.
+- **CHECKS (lease — Kretschmann):** #1737 5/25/2026 **$4,151.48** (memo 104809) and
+  the earlier-staged #1744 8/21/2026 $2,533.82 → **$6,685.30 of documented 2026
+  payments to Don**. Feed BOTH into the arrears reconciliation before responding to
+  Don's $16,775 claim.
+- **CHECK #1738** 5/26/2026 → "The Farmer's Daughter" **$500.00** (no memo — payee
+  purpose unknown, ask Todd).
+- **VEHICLE:** Labas Automotive notary receipt 6/15/26 — ProMaster title/registration:
+  MV fee $1,641.00 (check #1750 → Comm of PA) + $135.00 notary (check #1749 → Linda
+  Labas) = **$1,776.00** total. Business vehicle expense, title work documented.
+- **PAYROLL STUB, unidentified:** Total $1,870.00, taxes $140.55, net **$1,729.45**,
+  YTD = current (a FIRST paycheck for someone). No name in frame — ask Todd whose.
