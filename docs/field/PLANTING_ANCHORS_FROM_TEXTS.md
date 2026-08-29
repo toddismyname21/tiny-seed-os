@@ -21,3 +21,20 @@ for actual sow/transplant dates.
 Also: several of Ben's texts reference **photo attachments of handwritten lists**
 ("This is a list of lettuce/peppers") — those images can be parsed the same way as
 receipts (proven, 1.2¢ each).
+
+## Field-capture photo batches — 2026-08-29 (Todd, via remote control)
+**Batch 1:** Uber arugula 113353 + French Breakfast radish 74511 → PLANTED (recorded,
+Todd's statement). Also: tractor-mowing selfie (field unnamed), tomato variety row map
+on paper (Mountain Merit / Firebird / Akao / Marmalade Skies / Big Beef / Hot Streak /
+Pink Wonder / Wonderful / Blush / Juliet / Green Zebra / Striped German / Cherokee
+Purple / Brandywine / Cuor di Bue — field unnamed), 2 transplanting photos (Juan Pablo
+Sr with tray, lettuce + brassicas on drip, earlier-season sky — field/date unnamed).
+**Batch 2:** Amber F1 carrot 111526 · Pawnie spinach 213178 · Arugula OG 100552 ·
+Panorama parsnip OG 104082 · Bingo endive 111554 — lots recorded; drill rows + loaded
+Jang in frame; PLANTINGS NOT YET CONFIRMED.
+**Batch 3:** Chives Nelly 102658 · Lemon Balm OG 109812 · Greek Oregano OG 103783 —
+photographed at 200-cell trays; greenhouse sowing implied, NOT confirmed.
+**Financial (batch 3):** Check #1744 8/21/2026 → Don Kretschmann **$2,533.82**
+(memo: invoices 104855–104860 minus credits) — LEASE evidence, feeds the arrears
+reconciliation. Check #1596 7/6/2026 → Bounty Beneath **$155.00** (memo #1763) —
+likely the mushroom add-on supplier; purchase-side evidence.
