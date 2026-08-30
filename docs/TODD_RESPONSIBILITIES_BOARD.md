@@ -32,6 +32,18 @@ Lower field, the two flower fields. Everything else is already sized and sequenc
 20 × 6" pp Salanova next week for the high tunnel · Lower field retiring from production ·
 **migrate app.tinyseedfarm to a better back end so organic records are easy to keep.**
 
+## 📚 SCHEDULE F BOOKS PROJECT — sent to Mary (DGPerry) 2026-08-30
+- Scope emailed: chart restructure to Schedule F · FSA-payoff cleanup entries · lender
+  package. Funded by FVPG C940002569 line "Financial Planning & Lender Package" ($3,500,
+  75% reimbursed). **Awaiting Mary's confirmation** — nudge if quiet by ~Wed 9/2.
+- ⚠️ **DEFERRED BY TODD:** the FVPG budget names "Hayseed Collective" (unknown entity) as
+  the financial-planning provider. Todd will correct it to DGPerry **when submitting
+  reimbursement documentation** — Neil Imes, nimes@pa.gov. DO NOT let this reach the
+  Certificate of Completion uncorrected.
+- Also owed to Mary once she confirms: the recovered receipts organized by date
+  (golf cart $2,700 cash 6/24 · Kretschmann #1737/#1744 · ProMaster title $1,776 ·
+  Bounty Beneath $155 · Farmer's Daughter $500 · FSA program payment).
+
 ## ⏰ TONIGHT — Wed 2026-08-26 — REPLY TO 7 CSA MEMBERS
 **You promised this in writing today.** All 7 were emailed at ~12:40 PM saying you had read
 their message and would reply properly TONIGHT. Talking points PDF sits in your inbox:
