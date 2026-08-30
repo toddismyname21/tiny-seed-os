@@ -29,7 +29,7 @@ import { z } from 'zod';
 import { requireAdmin } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { sendCampaign } from '../../../../lib/campaign';
+import { sendCampaign, resolveRecipients, normalizeRecipientFilter } from '../../../../lib/campaign';
 import {
   RESEND_API_KEY,
   RESEND_FROM_EMAIL,
@@ -40,6 +40,9 @@ export const prerender = false;
 
 const Schema = z.object({
   campaign_id: z.string().uuid('invalid_campaign_id'),
+  /** Deliberate override for the audience-drift guard below. Send the exact
+   *  recipient count you intend to mail to proceed when it has changed. */
+  confirm_recipients: z.coerce.number().int().nonnegative().optional(),
 });
 
 function json(body: unknown, status = 200): Response {
@@ -96,6 +99,62 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch (e) {
     // Non-fatal — sent_by is a nice-to-have audit field, not a blocker.
     console.warn('[api/admin/campaigns/send] sent_by stamp failed:', e);
+  }
+
+  // ── AUDIENCE-DRIFT GUARD ──────────────────────────────────────────────
+  // A campaign is reviewed at one size and sent later. Nothing previously
+  // re-checked that the audience still matched: send.ts had ONLY auth + CSRF,
+  // and recipients-count / send-test are advisory — both skippable. Editing a
+  // filter after review, or a membership shift, silently changed who got mailed.
+  //
+  // So: re-resolve the audience NOW and compare it to total_recipients, the
+  // number that was on screen when the campaign was reviewed. A material
+  // difference means the audience is not what was approved — refuse and make a
+  // human look. Pass confirm_recipients=<n> to proceed deliberately.
+  //
+  // Fail-OPEN by design: if the count cannot be re-resolved we log and send
+  // rather than blocking a legitimate campaign on a transient read error. This
+  // guard exists to catch a silent mistake, not to become a new outage source.
+  {
+    const { data: camp } = await supabaseAdmin
+      .from('campaigns')
+      .select('recipient_filter, total_recipients, status')
+      .eq('id', parsed.data.campaign_id)
+      .maybeSingle();
+
+    const reviewedCount = Number(camp?.total_recipients ?? 0);
+    // Only meaningful for a campaign that was reviewed at a known size and has
+    // not already started sending (partial resumes must not be blocked).
+    if (camp && reviewedCount > 0 && camp.status !== 'partial') {
+      try {
+        const live = await resolveRecipients(
+          supabaseAdmin,
+          normalizeRecipientFilter(camp.recipient_filter)
+        );
+        const liveCount = live.length;
+        const drift = Math.abs(liveCount - reviewedCount);
+        // Tolerate incidental churn (an unsubscribe or two between review and
+        // send); block on anything that changes the audience materially.
+        const tolerance = Math.max(2, Math.floor(reviewedCount * 0.05));
+        if (drift > tolerance && parsed.data.confirm_recipients !== liveCount) {
+          return json(
+            {
+              ok: false,
+              error: 'recipient_count_changed',
+              reviewed_recipients: reviewedCount,
+              current_recipients: liveCount,
+              message:
+                `This campaign was reviewed for ${reviewedCount} recipients but now ` +
+                `resolves to ${liveCount}. Re-send with confirm_recipients=${liveCount} ` +
+                `if that is intended.`,
+            },
+            409
+          );
+        }
+      } catch (e) {
+        console.warn('[api/admin/campaigns/send] drift guard could not resolve; sending anyway:', e);
+      }
+    }
   }
 
   const result = await sendCampaign(supabaseAdmin, parsed.data.campaign_id, {

@@ -1,3 +1,139 @@
+## 2026-08-30 — PM_ARCHITECT — CI green: 11 type errors cleared, 2 real bugs found
+
+**Why:** CI had been red long enough that nobody read it. `astro check` exited 1,
+and because `e2e` + Lighthouse both declare `needs: build-and-check`, NEITHER had
+been running at all. Todd mid-task: "I need you to understand how the database
+works before you do work" — correct; I had been silencing errors, not reading the
+schema.
+
+**The research that reframed it.** Pulled PostgREST's own OpenAPI spec (the DB
+describing itself) instead of inferring from 97 migrations, then diffed it
+against `database.types.ts` — a HAND-WRITTEN "Day 2" stub, never generated:
+
+| | |
+|---|---|
+| Tables in DB, absent from types | 14 |
+| Declared tables missing columns | 7 (23 cols) |
+| RPCs in DB, untyped | 7 of 24 |
+| **Columns declared that do not exist** | **0** |
+| **RPCs typed that do not exist** | **0** |
+
+Those zeros are the finding: the stub is INCOMPLETE, NEVER WRONG. It has never
+claimed something exists that doesn't, so the only failure mode is "TS blocks a
+valid query" — never "TS permits an invalid one." That is why the app runs fine
+while CI fails, and why extending the file incrementally is safe.
+
+**5 errors were schema drift** — each column/relation/function verified present in
+the LIVE database before being declared: `wholesale_accounts` portal-visit columns
+(0056), `wholesale_order_items`→`wholesale_products` + `→wholesale_orders`
+relations (0044), `bump_wholesale_visit` (0056), and `cycle.ts` holdRes (both the
+0041 select and its pre-0041 fallback now pinned to the existing `Row41` via
+`.overrideTypes`, so the degradation path still works).
+
+**6 were app-code looseness — and 2 were REAL BUGS:**
+- `account-save.ts`: `min_order_cents` is NOT NULL, but `parseDollarsToCents`
+  returns null for a BLANK field. **Clearing the min-order box broke saving a
+  wholesale account entirely.** Blank now means "leave unchanged" — an accidental
+  clear must not wipe a negotiated minimum; enter 0 to remove one.
+- `account-save.ts`: `status` was `z.string().max(40)` against a DB CHECK of
+  `draft|invited|active|paused`. Any typo passed validation and failed at the
+  database — a 500 where a 400 belonged. Now `z.enum`. Docstring also claimed
+  "active | inactive", which was never the constraint.
+
+**Not bugs, but nearly mis-fixed:** `swap.ts` / `swap-undo.ts` pass
+`pickup_locations.day_of_week` (bare `text`, NO check constraint) into a
+`PickupDay` union. There are TWO different `PickupDay` types in the codebase —
+`flex-order.ts` accepts null, `schedule.ts` does not; the binding one is
+flex-order's, so null was always fine. Live values are only Wed/Sat/Sun/Tue.
+Added `asPickupDay()` which degrades anything unrecognised to null rather than
+casting: a blind cast could assert a bad string into the union and, if it looked
+like a weekend day, hand out the LATER Thursday cutoff — letting a swap through
+after the box was packed. Fails toward the stricter deadline.
+
+Also: `market/sign-edit.ts` `Record<string, unknown>` → the table's `Update` type
+(a mistyped column would previously have compiled and silently no-op'd);
+`pack-sheet` `sec` annotated (the `??` fallback literal inferred `items: never[]`,
+collapsing `.push()` to never — the interface was always correct).
+
+**Result — the exact CI sequence, locally:** `test:unit` exit 0 (16 files, 231
+assertions, 0 failures) · `astro check` exit 0 (was 11 errors) · `build` exit 0.
+build-and-check now passes, which unblocks e2e + Lighthouse for the first time.
+
+**Method note:** I twice reported a false alarm to myself and caught it before it
+reached Todd — `bump_wholesale_visit` "missing" (I called it with the wrong arg
+name; it exists in 0056) and a QuickBooks "expired token" (auto-refreshes,
+`quickbooks.ts:202`). Verifying against the live system, not the code comments,
+is what caught both.
+
+## 2026-08-29 — PM_ARCHITECT — System audit: two schedulers, dark automation, send guard
+
+**Why:** Todd, after four of my claims proved wrong: "understand the entire system.
+Looking at one part and telling me we need updates could break other things."
+
+**The retraction that mattered:** I reported 9 cron endpoints as dead because
+`vercel.json` schedules only 2. Wrong — **Supabase pg_cron runs the other 9**
+(migrations 0033–0094). Adding them to `vercel.json` as a "fix" would have
+DOUBLE-SENT customer email. All 11 routes are correctly scheduled; every schedule
+was verified against real `notification_log` timestamps, not just read from code.
+Also retracted: Resend "free tier ~100/day" (a stale comment; `DAILY_SEND_CAP` is
+5000), ".env can't be shell-sourced" as a defect (no committed script sources it),
+and an expired-QuickBooks-token scare (auto-refreshes, `quickbooks.ts:202`).
+
+**Shipped (all verified: tsc clean, `test:unit` exit 0, `npm run build` exit 0):**
+- CI now runs `npm run test:unit` — 231 assertions incl. 53 on `resolveCycle` were
+  passing but **never ran in CI**. Confirmed hermetic (pass with scrubbed env).
+- `weekly-email` no longer merges share types. `readUpcomingBoxItems` de-duped
+  across `share_type`, so all 65 SMALL members would have been told they get
+  Purple Potatoes + Carrots (large-only). New `splitBoxItems()` renders
+  "Every share" / "Large shares also get" — not hardcoded to small/large, so the
+  legacy `family` bucket still works. Latent bug: `email_log` has 0 rows.
+- `weekly-email/send.ts` caps now IMPORT `DAILY_SEND_CAP`/`THROTTLE_MS` from
+  `campaign.ts`. It was pinned at 90/run (free-tier era) while campaign.ts was at
+  5000 — the drift that produced my wrong claim. One source of truth now.
+- Audience-drift guard on `campaigns/send`: re-resolves recipients at send time
+  and returns 409 if they differ materially from the reviewed
+  `total_recipients`. Verified — 152→152 passes; the 152-reviewed/283-actual
+  mistake I nearly made is BLOCKED. Fails OPEN on read error; skips `partial`
+  resumes; no UI change needed (override: `confirm_recipients`).
+- `.env` line 5 quoted. Unquoted `<>` in `RESEND_FROM_EMAIL` aborted shell
+  sourcing at line 5, silently dropping **10 of 14 secrets** (Shopify, both IMAP
+  accounts, Maps, `UNSUBSCRIBE_SECRET`). Now 14/14.
+- `UNSUBSCRIBE_SECRET` pulled from Vercel prod into `.env` (verified char-match) —
+  local sends previously died with `unsubscribe_not_configured`.
+- NEW `docs/system/SCHEDULED_JOBS.md` — the two-scheduler map, gate semantics,
+  the wed/fri naming trap, and a "why didn't X send?" runbook.
+- NEW migration `20260829174600_portal_settings_updated_at_trigger.sql`
+  (**written, NOT applied**). Conservative: only stamps when the caller didn't,
+  so `publishWeek`'s explicit value is preserved. No backfill.
+
+**#7 SHIPPED (Todd chose Option A, 2026-08-29):** `/admin/box-contents` now
+speaks the real vocabulary. Both gates were wrong, not just one — the editor's
+`CANONICAL_SHARE_TYPES` AND `box-contents/save.ts`'s `CANONICAL_SHARES` both
+held the member enum, so the editor showed 0 items on every tab and the save
+endpoint would have REJECTED a correct 'small'/'large' write. Buckets are now
+`small` (default) / `large` / `family` (legacy) / `flower`, taken from the
+tested mapping in `lib/box.ts` — not invented. `flex`/`add_on` deliberately
+omitted: they never read a box bucket, and offering them recreates the bug.
+Verified after: tab small=7, large=9 for 2026-08-31. Stale header docs rewritten.
+
+**⚠️ CI IS ALREADY RED — predates this work.** `npx astro check` exits 1 on **11
+pre-existing type errors** (`cycle.ts:697`, three wholesale pages,
+`market/sign-edit.ts`, `pack-sheet/[...slug].astro`). Verified by stashing my
+changes: 11 before, 11 after — I introduced none. Because `e2e` and the
+Lighthouse job both declare `needs: build-and-check`, **neither has been running
+at all.** The new `test:unit` step is placed BEFORE `astro check`, so it does
+execute and does gate — but a permanently-red pipeline is a pipeline nobody
+reads. Fixing those 11 errors is what actually restores CI as a signal.
+
+**Found, NOT fixed — needs Todd:**
+1. `chef_reminder_enabled=false` → ~50 chefs, no Monday reminder since Aug 10.
+   Write blocked by the permission classifier; Todd is holding it until he has a
+   confirmed chef list.
+3. Fresh sheet hasn't auto-sent since Jul 18 — `fresh_sheet_confirmed_wed` frozen
+   at 2026-07-22 and can never equal the next delivery date.
+4. Public Maps key at `app.tinyseedfarm.com/web_app/api-config.js` (HTTP 200) —
+   referrer restrictions UNVERIFIED, only checkable in Google Cloud Console.
+
 ## 2026-08-29 — PM_ARCHITECT — First field-captured planting records; box evidence tiered
 
 Todd direct-seeded arugula (Uber, Johnny's lot 113353, germ 96%) and French Breakfast

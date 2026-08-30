@@ -137,6 +137,34 @@ const WEEK_EXTENDED_TUE = '2026-08-17';
 /** Raw pickup-location weekday code, or null (home delivery / unresolved). */
 export type PickupDay = 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | null | undefined;
 
+/** Every valid weekday code, for narrowing raw DB text. */
+const PICKUP_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+/**
+ * Narrow arbitrary DB text to a PickupDay, or null.
+ *
+ * `pickup_locations.day_of_week` is plain `text` in Postgres with NO CHECK
+ * constraint (verified against the live schema 2026-08-29 — the live values are
+ * only Wed/Sat/Sun/Tue, but nothing enforces that). Callers therefore hold
+ * `string | null`, which is wider than PickupDay.
+ *
+ * A blind cast would be the easy fix and the wrong one: an unexpected value
+ * would be asserted into the union and, if it happened to look like a weekend
+ * day, could hand a member the LATER Thursday cutoff — letting a swap through
+ * after the box was packed. Anything unrecognised degrades to null instead,
+ * which routes to the earlier Monday cutoff. That matches the documented
+ * intent of isCutoffPassed: "a missing pickup never grants the later weekend
+ * window by accident."
+ *
+ * Fail toward the stricter deadline, never the looser one.
+ */
+export function asPickupDay(value: string | null | undefined): PickupDay {
+  if (!value) return null;
+  return (PICKUP_DAYS as readonly string[]).includes(value)
+    ? (value as PickupDay)
+    : null;
+}
+
 /**
  * Does this pickup day mean a WEEKEND-MARKET member (Sat/Sun pickup)?
  * Weekend-market members get the later Wednesday-midnight cutoff. Wednesday

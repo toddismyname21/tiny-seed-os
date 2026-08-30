@@ -3,8 +3,9 @@
  *
  * Form body:
  *   - week_date    YYYY-MM-DD
- *   - share_type   canonical enum value (spring_veg, summer_veg, fall_veg,
- *                  flower, flex, add_on, wholesale_csa)
+ *   - share_type   box_contents SIZE BUCKET: 'small' | 'large' | 'family'
+ *                  | 'flower'. NOT the member share_type enum — see
+ *                  CANONICAL_SHARES below and lib/box.ts.
  *   - items[i][product_name] / [variety] / [quantity] / [unit]
  *     / [is_swappable] (boolean) / [swap_options] (comma-separated string)
  *     / [library_id] (optional UUID → product_library.id)
@@ -33,11 +34,10 @@
  * re-pasting from CSV / previous week). Acceptable for Day 10.
  *
  * Day 7 finding context: this endpoint is THE channel for canonical
- * share_type rows going forward. Old 'Veggie-CSA' rows from the Sheets
- * import remain in the table but are filtered out by the new admin UI
- * (which only offers canonical values in its tabs). We don't migrate
- * the legacy rows in this endpoint — Todd will publish fresh contents
- * for upcoming weeks via this UI.
+ * share_type rows going forward. Old 'Veggie-CSA' / 'Flower-Share' rows from
+ * the Jan 2026 Sheets import remain in the table but are filtered out by the
+ * admin UI (which only offers the live size buckets in its tabs). We don't
+ * migrate the legacy rows here.
  *
  * On success: 303 → /admin/box-contents?week=<>&share_type=<>&ok=saved
  * On failure: 303 → /admin/box-contents?...&error=<code>
@@ -49,8 +49,12 @@ import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 
 export const prerender = false;
 
+// box_contents SIZE BUCKETS — must stay in lockstep with the tab list in
+// src/pages/admin/box-contents.astro and with lib/box.ts / lib/cycle.ts.
+// Previously the member share_type enum, which no reader ever looks up; see
+// the note in box-contents.astro for the 2026-08-29 measurement.
 const CANONICAL_SHARES = new Set([
-  'spring_veg', 'summer_veg', 'fall_veg', 'flower', 'flex', 'add_on', 'wholesale_csa',
+  'small', 'large', 'family', 'flower',
 ]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

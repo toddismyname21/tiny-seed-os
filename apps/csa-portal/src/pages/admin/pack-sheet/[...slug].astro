@@ -201,7 +201,10 @@ const wholesaleSections: WholesaleSection[] = [];
     if (!acct) continue;
     const cid = acct.customer_id ?? o.account_id; // customers.id preferred (wc: key)
     const key = `${WHOLESALE_PREFIX}${cid}`;
-    const sec = byAccount.get(key) ?? {
+    // Annotated: without it the `??` fallback literal infers items: never[]
+    // independently, the union's items becomes ({name,qty}[] | never[]), and
+    // .push() collapses to never. The interface was always right.
+    const sec: WholesaleSection = byAccount.get(key) ?? {
       stop_id: key, customer_id: cid, name: acct.restaurant_name ?? 'Wholesale', items: [], note: null,
       linked: Boolean(acct.customer_id),
     };

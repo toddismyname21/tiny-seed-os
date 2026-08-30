@@ -57,6 +57,7 @@ import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../lib/onboarding';
 import { isCutoffPassed, OWNER_EMAIL, boxContentsShareTypesFor } from '../../../lib/box';
+import { asPickupDay } from '../../../lib/flex-order';
 
 export const prerender = false;
 
@@ -146,7 +147,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   const overrideCutoff =
     url.searchParams.get('override_cutoff') === 'true' &&
     user.email === OWNER_EMAIL;
-  if (!overrideCutoff && isCutoffPassed(week_date, new Date(), memberData.pickup_location?.day_of_week ?? null)) {
+  if (!overrideCutoff && isCutoffPassed(week_date, new Date(), asPickupDay(memberData.pickup_location?.day_of_week))) {
     return jsonResponse(403, { ok: false, error: 'cutoff_passed' });
   }
 

@@ -15,7 +15,8 @@
  *   - address            optional
  *   - delivery_day       optional (Mon/Tue/Wed/Thu/Fri/Sat/Sun or blank)
  *   - min_order_dollars  optional dollars >= 0 -> min_order_cents
- *   - status             active | inactive
+ *   - status             draft | invited | active | paused
+ *                        (the wholesale_accounts CHECK constraint, 0044)
  *   - delivery_hours     optional
  *   - delivery_instructions optional
  *   - notes              optional
@@ -54,7 +55,10 @@ const Body = z.object({
   delivery_day: z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']).nullable(),
   // Lenient on purpose: accounts can be 'draft' (all are at launch), 'active',
   // 'inactive', etc. A strict enum here rejected every save (Todd 2026-06-24).
-  status: z.string().trim().min(1).max(40),
+  // Must match the wholesale_accounts_status_check CHECK (migration 0044).
+  // Was z.string().max(40): any string passed validation and only failed at
+  // the DB, turning a typo into a 500 instead of a clean 400.
+  status: z.enum(['draft', 'invited', 'active', 'paused']),
   delivery_hours: z.string().trim().max(200).nullable(),
   delivery_instructions: z.string().trim().max(500).nullable(),
   notes: z.string().trim().max(1000).nullable(),
@@ -107,7 +111,12 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       phone: d.phone,
       address: d.address,
       delivery_day: d.delivery_day,
-      min_order_cents: minCents,
+      // min_order_cents is NOT NULL DEFAULT 0. parseDollarsToCents returns null
+      // for a BLANK field, and writing that null made the whole update fail —
+      // clearing the min-order box silently broke saving the account. Blank now
+      // means "leave unchanged" so an accidental clear cannot wipe a negotiated
+      // minimum; enter 0 explicitly to remove one.
+      ...(minCents === null ? {} : { min_order_cents: minCents }),
       status: d.status,
       delivery_hours: d.delivery_hours,
       delivery_instructions: d.delivery_instructions,

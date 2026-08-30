@@ -1019,6 +1019,13 @@ export interface Database {
           /** Cached QuickBooks DisplayName, for audit output only. Never
            *  resolve by this — use qbo_customer_id. */
           qbo_customer_name: string | null;
+          /** Chef-portal engagement (migration 0056). Powers the admin Orders
+           *  view's "Emailed → Visited → Ordered" column. Incremented ONLY by
+           *  the bump_wholesale_visit() RPC, never written directly. */
+          first_portal_visit_at: string | null;
+          last_portal_visit_at: string | null;
+          /** NOT NULL DEFAULT 0 in Postgres — never null on a read. */
+          portal_visit_count: number;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -1132,7 +1139,22 @@ export interface Database {
           Partial<Database['public']['Tables']['wholesale_order_items']['Row']>,
           'fulfillment_status'
         >;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'wholesale_order_items_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'wholesale_products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'wholesale_order_items_order_id_fkey';
+            columns: ['order_id'];
+            isOneToOne: false;
+            referencedRelation: 'wholesale_orders';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       // Maps a vendor's own product key (Harvie SKU, or normalized Market Wagon
       // product name) onto our wholesale_products catalog, so the PDF importer
@@ -1557,6 +1579,12 @@ export interface Database {
       };
     };
     Functions: {
+      /** Atomic chef-portal visit counter (migration 0056). Called
+       *  best-effort from /order/[token]; returns void. */
+      bump_wholesale_visit: {
+        Args: { p_account: string };
+        Returns: undefined;
+      };
       swap_box_item: {
         Args: {
           p_member_id: string;

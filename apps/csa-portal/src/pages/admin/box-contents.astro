@@ -3,15 +3,12 @@
  * /admin/box-contents — weekly box content editor.
  *
  * The most important admin page on Day 10. Day 7 surfaced that legacy
- * box_contents.share_type values use 'Veggie-CSA' / 'Flower-Share' etc.,
- * which don't match the enum the rest of the system uses. This editor
- * uses ONLY the canonical share_type enum (spring_veg, summer_veg,
- * fall_veg, flower, flex, add_on, wholesale_csa) so every NEW box
- * content row Todd publishes lines up with the rest of the schema.
+ * box_contents.share_type holds a SIZE BUCKET — 'small' | 'large' |
+ * 'family' | 'flower' — NOT the member share_type enum. Legacy Jan-2026
+ * Sheets rows ('Veggie-CSA', 'Flower-Share', …) remain in the table but
+ * are not offered as tabs.
  *
- * URL params:
- *   - week       YYYY-MM-DD (defaults to the upcoming Wednesday)
- *   - share_type one of the canonical enum (defaults to 'summer_veg')
+ *   - share_type one of the live size buckets (defaults to 'small')
  *
  * Layout:
  *   1. Week selector at the top: dropdown of "this Wednesday" + next 4
@@ -43,15 +40,32 @@ import { FLEX_CATEGORIES } from '../../lib/flex-order';
 const supabase = Astro.locals.supabase;
 const url = Astro.url;
 
-// ─── Canonical share_type list ──────────────────────────────────────
+// ─── box_contents.share_type buckets ────────────────────────────────
+//
+// These are SIZE BUCKETS, not the member share_type enum.
+//
+// This list previously held the member enum (spring_veg / summer_veg / …).
+// Nothing ever wrote those values, so every tab of this editor showed an
+// EMPTY box while the real data sat under 'small' / 'large' — and anything
+// saved here landed on a share_type no reader looks at, making it invisible
+// to labels, pack sheets, harvest and the member /box page.
+// Measured 2026-08-29, week 2026-08-31: all 7 old tabs = 0 items, while
+// box_contents held 7 'small' + 9 'large'.
+//
+// The authoritative buckets are documented and unit-tested in lib/box.ts
+// (boxContentsBucketsFor) and read by lib/cycle.ts:
+//   • small                      — small veg share
+//   • family / large             — larger veg share (member page prefers
+//                                  'family' then falls back to 'large')
+//   • flower                     — flower box; supported by both readers,
+//                                  no live rows yet
+// flex / add_on members never read a box_contents bucket, so they are
+// deliberately absent — offering them would recreate the original bug.
 const CANONICAL_SHARE_TYPES = [
-  { value: 'spring_veg',    label: 'Spring Veg' },
-  { value: 'summer_veg',    label: 'Summer Veg' },
-  { value: 'fall_veg',      label: 'Fall Veg' },
-  { value: 'flower',        label: 'Flower' },
-  { value: 'flex',          label: 'Flex' },
-  { value: 'add_on',        label: 'Add-on' },
-  { value: 'wholesale_csa', label: 'Wholesale' },
+  { value: 'small',  label: 'Small' },
+  { value: 'large',  label: 'Large' },
+  { value: 'family', label: 'Family (legacy)' },
+  { value: 'flower', label: 'Flower' },
 ] as const;
 
 const CANONICAL_VALUES: Set<string> = new Set(CANONICAL_SHARE_TYPES.map((s) => s.value));
@@ -93,8 +107,8 @@ function addWeeks(date: string, weeks: number): string {
 
 const nextWed = upcomingWednesday();
 const week = url.searchParams.get('week') ?? nextWed;
-const shareTypeRaw = url.searchParams.get('share_type') ?? 'summer_veg';
-const shareType = CANONICAL_VALUES.has(shareTypeRaw) ? shareTypeRaw : 'summer_veg';
+const shareTypeRaw = url.searchParams.get('share_type') ?? 'small';
+const shareType = CANONICAL_VALUES.has(shareTypeRaw) ? shareTypeRaw : 'small';
 
 // Week dropdown options: this week + next 4
 const weekOptions = [

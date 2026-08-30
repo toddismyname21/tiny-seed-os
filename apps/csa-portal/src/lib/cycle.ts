@@ -680,12 +680,18 @@ export async function resolveCycle(
   };
 
   // (1) Try the full OVERLAP fetch with the 0041 columns.
+  // Both this and the fallback are pinned to Row41 so the two selects share ONE
+  // type. Without it the fallback (which omits disposition/move_to_week) is not
+  // assignable to the wider inferred shape and the file fails `astro check` —
+  // which is what kept CI red. Runtime is unchanged; Row41 already models the
+  // 0041 columns as optional precisely for this degradation path.
   let holdRes = await supabase
     .from('vacation_holds')
     .select('id, member_id, start_date, end_date, status, disposition, move_to_week')
     .in('status', ['active', 'scheduled'])
     .lte('start_date', week_end)
-    .gte('end_date', week_starting);
+    .gte('end_date', week_starting)
+    .overrideTypes<Row41[], { merge: false }>();
 
   // True once we've confirmed the 0041 columns are queryable. Drives whether
   // the separate move-in fetch runs (it filters on disposition/move_to_week,
@@ -699,7 +705,8 @@ export async function resolveCycle(
       .select('id, member_id, start_date, end_date, status')
       .in('status', ['active', 'scheduled'])
       .lte('start_date', week_end)
-      .gte('end_date', week_starting);
+      .gte('end_date', week_starting)
+      .overrideTypes<Row41[], { merge: false }>();
   }
 
   // Move-in holds: target THIS week, regardless of their own date range.

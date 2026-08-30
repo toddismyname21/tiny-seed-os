@@ -42,6 +42,10 @@ export interface BoxItem {
   variety: string | null;
   quantity: number;
   unit: string;
+  /** Every box_contents share_type this crop appears in (e.g. ['small','large']).
+   *  Used to tell "everyone gets this" apart from "only the bigger share adds
+   *  this" — see splitBoxItems(). */
+  share_types: string[];
 }
 
 export interface ComposedEmail {
@@ -100,14 +104,24 @@ export async function readUpcomingBoxItems(
     variety: string | null;
     quantity: number;
     unit: string;
+    share_type: string;
   }>) {
     const key = row.product_name.trim().toLowerCase();
-    if (!key || seen.has(key)) continue;
+    if (!key) continue;
+    const existing = seen.get(key);
+    if (existing) {
+      // Same crop in another share type — record it rather than dropping it.
+      if (row.share_type && !existing.share_types.includes(row.share_type)) {
+        existing.share_types.push(row.share_type);
+      }
+      continue;
+    }
     seen.set(key, {
       product_name: row.product_name,
       variety: row.variety,
       quantity: row.quantity,
       unit: row.unit,
+      share_types: row.share_type ? [row.share_type] : [],
     });
   }
   return Array.from(seen.values()).sort((a, b) =>
@@ -279,6 +293,39 @@ export function escapeHtml(s: string): string {
 }
 
 /** Quantity display: "1 bunch", "2 lb", or just the name if qty is 0/blank. */
+/**
+ * Split box items into what EVERY share gets vs what only a larger share adds.
+ *
+ * WHY: composeWeeklyEmail runs ONCE for the whole send — there is no
+ * per-recipient body — so the email cannot be filtered to each member's own
+ * share. Before this, readUpcomingBoxItems de-duped across share_type and the
+ * renderers printed one flat list, which told SMALL-share members they were
+ * getting large-only crops. (Week of 2026-08-31: 65 small members would have
+ * been promised Purple Potatoes and Carrots that only the 27 large boxes get.)
+ *
+ * Labelling the two groups is the honest fix for a single shared body.
+ *
+ * Deliberately NOT hardcoded to 'small'/'large': an item counts as an "add"
+ * when it is missing from at least one share type present that week. That
+ * still works for the legacy 'family' bucket, or any future third size,
+ * without another edit here.
+ */
+export function splitBoxItems(items: BoxItem[]): { shared: BoxItem[]; largeOnly: BoxItem[] } {
+  const allShareTypes = new Set<string>();
+  for (const it of items) for (const st of it.share_types) allShareTypes.add(st);
+
+  // Only one share type this week (or none recorded) → nothing is an "add".
+  if (allShareTypes.size <= 1) return { shared: items, largeOnly: [] };
+
+  const shared: BoxItem[] = [];
+  const largeOnly: BoxItem[] = [];
+  for (const it of items) {
+    if (it.share_types.length < allShareTypes.size) largeOnly.push(it);
+    else shared.push(it);
+  }
+  return { shared, largeOnly };
+}
+
 function itemLine(item: BoxItem): string {
   const name = escapeHtml(item.product_name);
   const variety = item.variety ? ` <span style="color:#64748b">(${escapeHtml(item.variety)})</span>` : '';
@@ -353,11 +400,20 @@ export interface RenderOptions {
  * a working unsubscribe link.
  */
 export function renderWeeklyEmailHtml(email: ComposedEmail, opts: RenderOptions): string {
+  const { shared: sharedItems, largeOnly: largeOnlyItems } = splitBoxItems(email.items);
+  const ul = (list: BoxItem[]): string =>
+    `<ul style="margin:0;padding:0 0 0 18px;font-size:15px;line-height:1.7;color:#0f172a">` +
+    list.map((it) => `<li style="margin:0 0 2px">${itemLine(it)}</li>`).join('') +
+    `</ul>`;
+  const subhead = (text: string): string =>
+    `<p style="margin:10px 0 4px;font-size:13px;font-weight:600;letter-spacing:.02em;color:#475569">${escapeHtml(text)}</p>`;
+
   const itemsHtml =
     email.items.length > 0
-      ? `<ul style="margin:0;padding:0 0 0 18px;font-size:15px;line-height:1.7;color:#0f172a">` +
-        email.items.map((it) => `<li style="margin:0 0 2px">${itemLine(it)}</li>`).join('') +
-        `</ul>`
+      ? largeOnlyItems.length > 0
+        ? subhead('Every share') + ul(sharedItems) +
+          subhead('Large shares also get') + ul(largeOnlyItems)
+        : ul(sharedItems)
       : `<p style="margin:0;font-size:15px;color:#475569">Box contents for this week are being finalized — check the portal for the latest.</p>`;
 
   const recipesHtml =
@@ -423,10 +479,20 @@ export function renderWeeklyEmailText(email: ComposedEmail, opts: RenderOptions)
   lines.push('');
   lines.push('IN YOUR BOX');
   if (email.items.length > 0) {
-    for (const it of email.items) {
+    const { shared, largeOnly } = splitBoxItems(email.items);
+    const push = (it: BoxItem): void => {
       const variety = it.variety ? ` (${it.variety})` : '';
       const qty = it.quantity && it.quantity > 0 ? ` - ${it.quantity} ${it.unit}` : '';
       lines.push(`  • ${it.product_name}${variety}${qty}`);
+    };
+    if (largeOnly.length > 0) {
+      lines.push('  Every share:');
+      for (const it of shared) push(it);
+      lines.push('');
+      lines.push('  Large shares also get:');
+      for (const it of largeOnly) push(it);
+    } else {
+      for (const it of shared) push(it);
     }
   } else {
     lines.push('  Box contents are being finalized — check the portal.');

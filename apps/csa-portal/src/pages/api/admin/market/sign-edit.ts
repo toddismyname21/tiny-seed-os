@@ -20,6 +20,7 @@ import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../lib/onboarding';
 import { dollarsToCents, isYMD } from '../../../../lib/flex-order';
+import type { Database } from '../../../../lib/database.types';
 
 export const prerender = false;
 
@@ -50,7 +51,11 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
 
   // Price: blank → 0 (the sign renders a blank, hand-write box); else dollars→cents.
   const rawPrice = String(form.get('price_dollars') ?? '').trim();
-  const update: Record<string, unknown> = { name, updated_at: new Date().toISOString() };
+  // Typed to the table's Update shape rather than Record<string, unknown>:
+  // the loose record was rejected by the typed .update() builder, and it also
+  // meant a mistyped column name would have compiled and silently no-op'd.
+  const update: Database['public']['Tables']['market_offerings']['Update'] =
+    { name, updated_at: new Date().toISOString() };
   if (rawPrice.length) {
     const cents = dollarsToCents(rawPrice);
     if (cents === null || cents < 0) return redirect(`${back}?error=bad_price`, 303);

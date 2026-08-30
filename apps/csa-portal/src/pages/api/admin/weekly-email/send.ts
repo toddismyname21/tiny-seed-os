@@ -52,6 +52,7 @@ import {
   WEEKLY_EMAIL_TYPE,
   PORTAL_BASE_URL,
 } from '../../../../lib/weekly-email';
+import { DAILY_SEND_CAP, THROTTLE_MS } from '../../../../lib/campaign';
 import { makeFeedbackUrl } from '../../../../lib/feedback';
 import { mondayOfWeek, resolveCycle } from '../../../../lib/cycle';
 import {
@@ -63,10 +64,17 @@ import {
 
 export const prerender = false;
 
-// Resend free tier: ~100 emails/day, ~2 requests/sec. Conservative caps.
-const BATCH_SIZE = 10;          // emails per batch
-const DELAY_BETWEEN_MS = 600;   // pause between individual sends (~1.6/sec)
-const MAX_PER_RUN = 90;         // hard cap per invocation (under the 100/day)
+// Send caps come from lib/campaign.ts so the two send paths CANNOT DRIFT.
+//
+// They already had. This file was pinned to the Resend FREE tier (~100/day)
+// while campaign.ts was raised to Resend Pro limits — leaving a 90/run cap here
+// that would have silently throttled a 152-member send to two days. The stale
+// numbers were also mistaken for the account's real limit on 2026-08-29.
+// Importing the shared constants means raising the plan is a one-line change in
+// one file, not a hunt through every sender.
+const BATCH_SIZE = 10;                     // emails per batch (pacing only)
+const DELAY_BETWEEN_MS = THROTTLE_MS;      // shared inter-send throttle
+const MAX_PER_RUN = DAILY_SEND_CAP;        // shared per-run cap
 
 const ModeSchema = z.enum(['test', 'all']);
 
