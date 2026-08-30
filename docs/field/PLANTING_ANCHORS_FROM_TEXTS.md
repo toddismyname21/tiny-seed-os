@@ -69,3 +69,10 @@ likely the mushroom add-on supplier; purchase-side evidence.
    PyGanic ¼ fl oz/gal, DiPel 1 oz/gal, NFP 1 tsp/gal, Regalia 2 tbs/gal, Entrust
    .013 fl oz/gal). File as the rate reference for input_log entries + OSP pest section.
 5. **"Farmer Todd's Tabasco" = a joke label.** Excluded from business records.
+
+## FSA debt-payoff email located (2026-08-30)
+Todd → Julie Metzler (FSA), 7/06/2026: full debt schedule paid to $0 (PNC ×2, PayPal
+Credit, Amex, Chase, Shopify Credit + Capital, DGPerry, Ryan Utz, **Kretschmann lease
+arrears — landlord's tally confirms all prior invoices paid**). $42,000 FSA
+disbursement → Seed Spider $19,569.28 + FORIGO stone burier $21,895.00 (= $41,464.28,
+the PA AIG reimbursement figure). Payoff attachments live on that email thread.
