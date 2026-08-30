@@ -1,3 +1,55 @@
+## 2026-08-30 — PM_ARCHITECT — Automation heartbeat: silent failure now shouts
+
+**Why:** three pieces of customer-facing automation went dark in one week and
+NOTHING reported it. Chef order reminders last sent 2026-08-10 (~50 chefs, three
+Mondays). Wednesday fresh sheet last sent 2026-07-18 (six weeks). Friday fresh
+sheet **NEVER sent, not once**. Every one returned **HTTP 200** — a gated cron
+answers `{ok:true, skipped:'disabled'}` and a stale confirm marker answers
+`{ok:true, skipped:'unconfirmed'}`. Uptime green, logs clean, work not happening.
+
+Todd's goal is "my week runs on autopilot with manual approvals." Autopilot you
+cannot verify is not autopilot, it is hope.
+
+**NEW `lib/automation-heartbeat.ts`** — asks the only honest question: is there
+evidence in `notification_log` that this actually reached someone, recently
+enough? Not "did the endpoint return 200", which it always does.
+
+- A DISABLED gate reports `off` — visible, never alarming. Turning something off
+  on purpose must not page anyone; it also must not become invisible, which is
+  precisely how `chef_reminder_enabled` sat false for three weeks.
+- Weekly jobs get 7d + 2d slack. Missing one cycle is fine; missing two is not.
+- Fails toward the alarm: an unparseable timestamp reads `never`, not `ok`.
+- Fails OPEN on read errors — a heartbeat that cannot read must not invent an
+  outage, and must never take down the nightly run hosting it.
+
+Every `notification_type` was read from the sender that writes it
+(`lib/fresh-sheet.ts:102,121`) and cross-checked against live rows — a typo'd
+type silently reports "NEVER" forever, which is worse than no check because it
+trains you to ignore the alert.
+
+**Caught a real trap while building it:** PostgREST caps result sets at 1000 rows
+regardless of `.limit()`. A "select all, take the max" scan silently truncated and
+reported `flex_order_reminder` as 13 days stale when it was 6. Every probe is now
+`ORDER BY sent_at DESC LIMIT 1` per type, immune to the cap.
+
+**Wired into `/api/cron/nightly-health`** (daily 06:00 ET): heartbeat table in the
+email, and `isAllClear()` now returns false when any ENABLED automation is stale
+or never-ran — so the subject flips to ⚠ instead of ✓. Also exposed on the JSON
+response as `heartbeat` + `heartbeat_problems`.
+
+**Live output on first run:**
+```
+OFF   Chef order reminders (Mon) — gate is off — nothing is being sent
+OK    Flex order reminders (Sun) — last sent 6d ago
+STALE Wednesday fresh sheet — last sent 42d ago
+NEVER Friday fresh sheet — has NEVER sent
+OK    Flex draft staged (Thu) — last sent 3d ago
+OK    Harvie import (Mon) — last sent 5d ago
+```
+
+17 new unit tests (suite: 231 → **248 assertions**, 17 files, 0 failures).
+`astro check` 0 errors, `build` 0.
+
 ## 2026-08-30 — PM_ARCHITECT — CI green: 11 type errors cleared, 2 real bugs found
 
 **Why:** CI had been red long enough that nobody read it. `astro check` exited 1,

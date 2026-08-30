@@ -41,6 +41,10 @@ import {
   RESEND_FROM_EMAIL,
 } from 'astro:env/server';
 import { supabaseAdmin } from '../../../lib/supabase';
+import {
+  runHeartbeat, heartbeatProblems, formatHeartbeatText,
+  type HeartbeatResult,
+} from '../../../lib/automation-heartbeat';
 import type { Database } from '../../../lib/database.types';
 import {
   shopifyConfigured,
@@ -651,6 +655,10 @@ interface HealthSummary {
   unmatchedVariants: string[];
   weeksRemainingChecked: number;
   weeksRemainingUpdated: number;
+  /** Did each ENABLED automation actually deliver recently? See
+   *  lib/automation-heartbeat.ts — a gated cron returns HTTP 200 while doing
+   *  nothing, so uptime cannot answer this. */
+  heartbeat: HeartbeatResult[];
 }
 
 function isAllClear(s: HealthSummary): boolean {
@@ -659,7 +667,11 @@ function isAllClear(s: HealthSummary): boolean {
     s.tagsAdded === 0 &&
     s.syncLagMinutes >= 0 &&
     s.syncLagMinutes <= SYNC_LAG_THRESHOLD_MIN &&
-    s.unmatchedVariants.length === 0
+    s.unmatchedVariants.length === 0 &&
+    // An enabled automation that has gone stale (or never ran) is the single
+    // most expensive thing this email can tell you — it is why chef reminders
+    // sat dark for three weeks. It MUST flip the subject to ⚠.
+    heartbeatProblems(s.heartbeat).length === 0
   );
 }
 
@@ -685,6 +697,26 @@ async function sendHealthEmail(summary: HealthSummary): Promise<{ ok: boolean; d
         ? 'unknown (state read failed)'
         : `${summary.syncLagMinutes} min`;
 
+    const hbProblems = heartbeatProblems(summary.heartbeat);
+    const hbColor: Record<string, string> = {
+      ok: '#15803d', stale: '#b45309', never: '#b91c1c', off: '#6b7280',
+    };
+    const heartbeatBlock =
+      `<p style="margin:18px 0 6px;font-weight:600">Automation heartbeat` +
+      (hbProblems.length > 0 ? ` — ${hbProblems.length} need${hbProblems.length === 1 ? 's' : ''} attention` : '') +
+      `</p>` +
+      `<table style="border-collapse:collapse;font-size:13px;margin:0 0 8px">` +
+      summary.heartbeat.map((h) => {
+        const detail =
+          h.state === 'off' ? 'gate is OFF — nothing is being sent'
+          : h.state === 'never' ? 'has NEVER sent'
+          : `last sent ${h.ageDays}d ago`;
+        return `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">${escapeHtml(h.label)}</td>` +
+               `<td style="padding:2px 0;font-weight:600;color:${hbColor[h.state]}">` +
+               `${h.state.toUpperCase()} <span style="color:#9ca3af;font-weight:400">${escapeHtml(detail)}</span></td></tr>`;
+      }).join('') +
+      `</table>`;
+
     const unmatchedBlock =
       summary.unmatchedVariants.length === 0
         ? ''
@@ -708,6 +740,9 @@ async function sendHealthEmail(summary: HealthSummary): Promise<{ ok: boolean; d
         ? ['', 'Unmatched variants:', ...summary.unmatchedVariants.map((v) => `  • ${v}`)]
         : []),
       '',
+      'AUTOMATION HEARTBEAT (did it actually send?)',
+      formatHeartbeatText(summary.heartbeat),
+      '',
       'Sync health dashboard: https://csa.tinyseedfarm.com/admin/sync',
       '— Tiny Seed CSA nightly health',
     ].join('\n');
@@ -726,6 +761,7 @@ async function sendHealthEmail(summary: HealthSummary): Promise<{ ok: boolean; d
       `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Weeks-remaining synced</td><td style="padding:2px 0;font-weight:600">${summary.weeksRemainingUpdated} <span style="color:#9ca3af;font-weight:400">updated / ${summary.weeksRemainingChecked} checked</span></td></tr>` +
       `<tr><td style="padding:2px 16px 2px 0;color:#6b7280">Sync lag</td><td style="padding:2px 0;font-weight:600">${escapeHtml(lagDisplay)}</td></tr>` +
       `</table>` +
+      heartbeatBlock +
       unmatchedBlock +
       `<p style="margin:20px 0 0">` +
       `<a href="https://csa.tinyseedfarm.com/admin/sync" style="display:inline-block;background:#15803d;color:#fff;` +
@@ -817,8 +853,19 @@ async function handle(request: Request): Promise<Response> {
   const { lagMinutes, lastSyncedAt } = await checkSyncLag();
 
   const ranAt = new Date().toISOString();
+  // 4. AUTOMATION HEARTBEAT — assert every ENABLED job actually delivered
+  //    recently. Fail-soft: a heartbeat problem must never take down the run
+  //    that reports it.
+  let heartbeat: HeartbeatResult[] = [];
+  try {
+    heartbeat = await runHeartbeat(supabaseAdmin);
+  } catch (e) {
+    console.error('[nightly-health] heartbeat threw (swallowed):', e);
+  }
+
   const summary: HealthSummary = {
     ranAt,
+    heartbeat,
     pickupsFixed: backfill.fixed,
     pickupsRemaining: backfill.remaining,
     tagsAdded: tagSync.added,
@@ -865,6 +912,10 @@ async function handle(request: Request): Promise<Response> {
     sync_last_synced_at: summary.syncLastSyncedAt,
     sync_lag_ok: summary.syncLagMinutes >= 0 && summary.syncLagMinutes <= SYNC_LAG_THRESHOLD_MIN,
     unmatched_variants: summary.unmatchedVariants,
+    heartbeat: summary.heartbeat,
+    heartbeat_problems: heartbeatProblems(summary.heartbeat).map((h) => ({
+      label: h.label, state: h.state, last_sent_at: h.lastSentAt, age_days: h.ageDays,
+    })),
     email_outcome: emailOutcome,
     ran_at: ranAt,
   });
