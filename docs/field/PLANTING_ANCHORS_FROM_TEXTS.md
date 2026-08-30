@@ -55,3 +55,17 @@ likely the mushroom add-on supplier; purchase-side evidence.
   Labas) = **$1,776.00** total. Business vehicle expense, title work documented.
 - **PAYROLL STUB, unidentified:** Total $1,870.00, taxes $140.55, net **$1,729.45**,
   YTD = current (a FIRST paycheck for someone). No name in frame — ask Todd whose.
+
+## Photo review round 1 — Todd's answers (2026-08-30)
+1. **JS5→JS6:** week-plan "JS5" teardown is actually **JS6**. JS5 exists on the Jan-12
+   hand-drawn Kretschmann map but isn't in use. Map also shows JS7/8/9/13 + Don/Todd split.
+   **The map itself = the field-map evidence for Emily** (shared-property inspection).
+2. **Mar-11 shelf photos = deliberate input-inventory documentation** (Todd). Ten
+   products photographed w/ EPA numbers + OMRI marks — dated possession evidence.
+3. **$2,700 cash receipt (6/24) = GOLF CART**, farm transportation. ⚠️ Cash equipment
+   purchase — check QuickBooks; earlier expense audit showed no such entry. Needs
+   booking as an asset/expense for taxes + loan file.
+4. **Jan-13 dosage texts = the farm's CURRENT STANDARD RATES** (Botaniguard 1 tbsp/gal,
+   PyGanic ¼ fl oz/gal, DiPel 1 oz/gal, NFP 1 tsp/gal, Regalia 2 tbs/gal, Entrust
+   .013 fl oz/gal). File as the rate reference for input_log entries + OSP pest section.
+5. **"Farmer Todd's Tabasco" = a joke label.** Excluded from business records.
