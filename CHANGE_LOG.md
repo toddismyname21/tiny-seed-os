@@ -1,3 +1,63 @@
+## 2026-08-31 — PM_ARCHITECT — Orders page could only show ONE order per account
+
+**Todd:** "The mediterra order is still not in the portal." It was — the page
+could not render it.
+
+`/admin/wholesale/orders` built its account→order map with
+`Map.set(account_id, order)`. **Map.set OVERWRITES.** Any account with two
+orders for one delivery date showed only the last one written. Mediterra's
+hand-entered $660.50 email order was silently replaced by an auto-generated
+standing order. Nothing errored, nothing logged, the row sat in the database
+perfectly intact and invisible — the page just showed a number that was not what
+the chef asked for.
+
+**Fixed:** live orders now COMBINE per account (Todd: "customers should be able
+to do more than one order; for standing order folks their additional orders
+should be combined with their standing orders"). Line items merge by product, so
+110 standing + 60 added reads as 170 lb to whoever packs it. Cancelled orders are
+excluded from the pick but stay for audit. A merged row shows "N orders combined"
+and a 🧾 Combined label. Single-order accounts behave exactly as before.
+
+**Also cancelled the duplicate that exposed it.** The standing-order cron
+regenerated Mediterra's 110 lb standing tomatoes at 10:00, but Aniceto had
+written 2026-08-28: "Instead of the 110 pounds let's do 160 pounds for this
+week." Both live would have picked 270 lb and delivered 110 lb he never ordered.
+Wholesale tomato demand for 9/2 went 310 lb → **200 lb**.
+
+**UNITS — the page was stating a wrong one, not a missing one.** It printed
+`{qty}×` and a hardcoded "ea", so 15 POUNDS of Asian eggplant rendered as
+"15× Asian Eggplant $4.25 ea". A packer reads that and pulls fifteen eggplants.
+
+Root cause: `wholesale_order_items` had NO unit column — the unit lived only on
+the mutable catalog. Migration `20260831083400_wholesale_order_items_unit.sql`
+adds `unit`, backfills (351/527 = 67%), and stamps it via a BEFORE trigger.
+
+Built as a TRIGGER, not application code, because order lines are written from
+at least five places and **three are PL/pgSQL** — `place_wholesale_order`,
+`place_wholesale_order_admin`, `generate_standing_orders`. Patching TypeScript
+would have covered the minority of inserts and left the RPCs blank: a column
+populated just often enough to trust and not often enough to be right. An
+explicitly-set unit always wins. Unresolvable rows stay NULL and render blank —
+inventing "ea" is what caused this. Verified by round-trip: inserted with no
+unit against a cancelled order, came back stamped `lb`, cleaned up.
+
+**NEW `/admin/text-chef`** — some chefs answer texts and never email (Todd).
+Mobile-first twin of `/admin/text-stop`: pick a template, tap a chef, Messages
+opens pre-filled from Todd's own number. `sms:` deep links, no Twilio (which has
+never worked here). Group-compose included — on 2026-08-24 Todd sent the same
+tomato text **ten times individually**. Accounts with no phone are listed, not
+hidden. NOTE: reads only `wholesale_accounts.phone` (13); 12 more phones sit on
+`wholesale_account_contacts` — widening it is in the backlog.
+
+**Confirmed AppleScript→Messages can SEND** (two real deliveries, `sent=1
+delivered=1`). Recorded in agent memory with the chat.db read/decode traps.
+
+**docs/CSA_BACKLOG_VERIFIED.md** — added the inbound-text→draft-order build with
+the constraint that made it necessary: `"1105 lb potato / 60 lb pepper / 70lb
+tomato / 60 lb bean"` looked like a perfect order and was **Ben Finley, the farm
+manager, reporting harvest counts.** Classify the sender before parsing content;
+crew are not chefs. Draft and confirm, never auto-enter.
+
 ## 2026-08-30 — PM_ARCHITECT — Automation heartbeat: silent failure now shouts
 
 **Why:** three pieces of customer-facing automation went dark in one week and

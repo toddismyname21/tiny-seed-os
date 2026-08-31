@@ -79,7 +79,11 @@ const orders = (ordersData ?? []) as OrderRow[];
 // ─── Line items for those orders ────────────────────────────────────
 type ItemRow = {
   order_id: string;
+  product_id: string | null;
   product_name: string | null;
+  /** Unit frozen at write time (migration 20260831083400). Prefer this over
+   *  anything derived from the mutable catalog. */
+  unit: string | null;
   qty: number | null;
   unit_price_cents: number | null;
   line_total_cents: number | null;
@@ -89,7 +93,7 @@ let items: ItemRow[] = [];
 if (orderIds.length) {
   const { data: itemsData } = await supabaseAdmin
     .from('wholesale_order_items')
-    .select('order_id, product_name, qty, unit_price_cents, line_total_cents')
+    .select('order_id, product_id, product_name, unit, qty, unit_price_cents, line_total_cents')
     .in('order_id', orderIds);
   items = (itemsData ?? []) as ItemRow[];
 }
@@ -132,14 +136,111 @@ const deliveryDates = Array.from(
   new Set([deliveryDate, ...((dateRows ?? []).map((r: any) => r.delivery_date as string))]),
 ).filter(Boolean).sort().reverse();
 
-// ─── Stitch accounts ↔ orders ───────────────────────────────────────
-const orderByAccount = new Map<string, OrderRow>();
-for (const o of orders) if (o.account_id) orderByAccount.set(o.account_id, o);
+// ─── Units ──────────────────────────────────────────────────────────
+// wholesale_order_items has NO unit column — the unit lives only on
+// wholesale_products. This page used to print "{qty}× {name}" and a hardcoded
+// "ea", so 15 lb of eggplant read as "15× Asian Eggplant  $4.25 ea", which is
+// not what was sold. A chef or a packer reading that reasonably thinks fifteen
+// eggplants (Todd 2026-08-31).
+//
+// We resolve by product_id where present and fall back to matching the product
+// NAME, because 260 of 527 line items carry a NULL product_id (hand-keyed and
+// imported orders). Where neither resolves we print no unit at all rather than
+// guess — a blank is honest, "ea" is a claim.
+const { data: unitRows } = await supabaseAdmin
+  .from('wholesale_products')
+  .select('id, name, unit');
+const unitById = new Map<string, string>();
+const unitByName = new Map<string, string>();
+for (const p of (unitRows ?? []) as Array<{ id: string; name: string; unit: string | null }>) {
+  if (p.unit) {
+    unitById.set(p.id, p.unit);
+    unitByName.set(p.name.trim().toLowerCase(), p.unit);
+  }
+}
+/** Unit for a line item, or '' when we genuinely cannot tell.
+ *  The STORED unit wins — it records what was actually sold. The catalog
+ *  lookups below only cover historical rows written before the column existed. */
+function unitFor(it: ItemRow): string {
+  if (it.unit && it.unit.trim()) return it.unit.trim();
+  if (it.product_id && unitById.has(it.product_id)) return unitById.get(it.product_id)!;
+  const n = (it.product_name ?? '').trim().toLowerCase();
+  if (unitByName.has(n)) return unitByName.get(n)!;
+  // Hand-keyed names often read "Slicing Tomatoes — first 50 lb @ $3.75";
+  // match on the part before the em dash.
+  const base = n.split('—')[0].trim();
+  return unitByName.get(base) ?? '';
+}
 
-type Stitched = AccountRow & { order: OrderRow | null; lineItems: ItemRow[] };
+// ─── Stitch accounts ↔ orders ───────────────────────────────────────
+// An account can have SEVERAL orders for one delivery date — a standing order
+// the cron generates plus anything they add through the portal or we key in
+// from email. This used to be `Map.set(account_id, order)`, which silently kept
+// only the LAST one: on 2026-08-31 Mediterra's hand-entered $660.50 email order
+// vanished behind an auto-generated standing order, and the page showed a total
+// that was not what the chef asked for. Nothing was lost in the database — it
+// simply could not be seen, which is worse than an error.
+//
+// We now COMBINE every live order for the account into one view (Todd
+// 2026-08-31: "customers should be able to do more than one order; for standing
+// order folks their additional orders should be combined with their standing
+// orders"). Line items merge by product so 40 lb standing + 60 lb added reads
+// as 100 lb to whoever packs it, and the money is the sum of the real rows.
+//
+// Cancelled orders are excluded — a cancelled duplicate must not inflate the
+// pick. They stay in the table for the audit trail.
+const liveOrders = orders.filter((o) => o.status !== 'cancelled');
+const ordersByAccount = new Map<string, OrderRow[]>();
+for (const o of liveOrders) {
+  if (!o.account_id) continue;
+  const arr = ordersByAccount.get(o.account_id);
+  if (arr) arr.push(o);
+  else ordersByAccount.set(o.account_id, [o]);
+}
+
+/** Merge line items across orders, summing quantity and money per product. */
+function combineItems(list: OrderRow[]): ItemRow[] {
+  const byProduct = new Map<string, ItemRow>();
+  for (const o of list) {
+    for (const it of itemsByOrder.get(o.id) ?? []) {
+      const key = (it.product_name ?? '').trim().toLowerCase();
+      const prev = byProduct.get(key);
+      if (prev) {
+        prev.qty = (prev.qty ?? 0) + (it.qty ?? 0);
+        prev.line_total_cents = (prev.line_total_cents ?? 0) + (it.line_total_cents ?? 0);
+      } else {
+        byProduct.set(key, { ...it });
+      }
+    }
+  }
+  return Array.from(byProduct.values());
+}
+
+type Stitched = AccountRow & {
+  order: OrderRow | null;
+  lineItems: ItemRow[];
+  /** Every live order behind the combined view — 1 in the normal case. */
+  orders: OrderRow[];
+};
 const stitched: Stitched[] = accounts.map((a) => {
-  const order = orderByAccount.get(a.id) ?? null;
-  return { ...a, order, lineItems: order ? (itemsByOrder.get(order.id) ?? []) : [] };
+  const list = (ordersByAccount.get(a.id) ?? []).slice()
+    .sort((x, y) => x.created_at.localeCompare(y.created_at));
+  if (list.length === 0) return { ...a, order: null, lineItems: [], orders: [] };
+  // Single order → pass it straight through, unchanged behaviour.
+  if (list.length === 1) {
+    return { ...a, order: list[0], lineItems: itemsByOrder.get(list[0].id) ?? [], orders: list };
+  }
+  // Several → one combined view. Keep the OLDEST order's id so the edit link
+  // still targets a real row, and label the source so it is obvious this is a
+  // merge rather than a single submission.
+  const combined: OrderRow = {
+    ...list[0],
+    total_amount: list.reduce((sum, o) => sum + (o.total_amount ?? 0), 0),
+    total_lbs: list.reduce((sum, o) => sum + (o.total_lbs ?? 0), 0),
+    notes: list.map((o) => o.notes).filter(Boolean).join(' · ') || null,
+    source: 'combined',
+  };
+  return { ...a, order: combined, lineItems: combineItems(list), orders: list };
 });
 
 // Orphan orders (an order whose account isn't in the accounts list — shouldn't
@@ -162,6 +263,7 @@ const money = (dollars: number | null | undefined) => `$${(Number(dollars) || 0)
 
 // Human label for an order's provenance (shown in the per-order footer).
 const SOURCE_LABELS: Record<string, string> = {
+  combined: '🧾 Combined',
   manual: '✍️ Manually entered',
   chef_portal: '🧑‍🍳 Chef portal',
   market_wagon: '📦 Market Wagon import',
@@ -273,6 +375,11 @@ const deliveryPretty = prettyDeliveryDate(deliveryDate);
             </div>
             <div class="text-right">
               <div class="text-lg font-bold text-emerald-600">{money(s.order!.total_amount)}</div>
+              {s.orders.length > 1 && (
+                <div class="text-[11px] font-semibold text-amber-700">
+                  {s.orders.length} orders combined
+                </div>
+              )}
               <div class="text-xs text-gray-500">
                 <Badge variant={s.order!.status === 'submitted' ? 'green' : 'gray'} size="xs" uppercase>
                   {s.order!.status ?? 'order'}
@@ -286,10 +393,10 @@ const deliveryPretty = prettyDeliveryDate(deliveryDate);
               {s.lineItems.map((it) => (
                 <li class="flex items-center justify-between py-1.5">
                   <span class="text-gray-800">
-                    <span class="font-medium">{it.qty}×</span> {it.product_name}
+                    <span class="font-medium">{it.qty}{unitFor(it) ? ` ${unitFor(it)}` : '×'}</span> {it.product_name}
                   </span>
                   <span class="text-gray-500">
-                    {formatCents(it.unit_price_cents ?? 0)} ea ·{' '}
+                    {formatCents(it.unit_price_cents ?? 0)}{unitFor(it) ? ` / ${unitFor(it)}` : ''} ·{' '}
                     <span class="font-medium text-gray-700">{formatCents(it.line_total_cents ?? 0)}</span>
                   </span>
                 </li>

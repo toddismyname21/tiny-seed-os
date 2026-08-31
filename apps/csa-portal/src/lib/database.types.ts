@@ -1120,6 +1120,14 @@ export interface Database {
           order_id: string | null;
           product_id: string | null;
           product_name: string | null;
+          /** Unit this line was SOLD in — 'lb', 'half bushel', '12 ct'…
+           *  Migration 20260831083400. Stamped at write time by
+           *  trg_wholesale_order_items_unit when the caller doesn't supply one,
+           *  so it survives later catalog edits. NEVER re-derive the unit for an
+           *  existing order from wholesale_products: the catalog is mutable, the
+           *  invoice is not. NULL only on historical rows that predate the
+           *  column and could not be resolved by id or name. */
+          unit: string | null;
           qty: number | null;
           unit_price_cents: number | null;
           line_total_cents: number | null;

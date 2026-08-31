@@ -1,0 +1,193 @@
+---
+/**
+ * /admin/text-chef — text a wholesale chef from YOUR OWN phone.
+ *
+ * Mobile-FIRST. Some chefs answer a text and never an email (Todd 2026-08-31:
+ * "some chefs respond better to texts"). This is the wholesale twin of
+ * /admin/text-stop: pick a message, tap a chef, Messages opens pre-filled,
+ * you hit Send.
+ *
+ * WHY `sms:` deep links and NOT Twilio: server-side SMS has never worked in
+ * this environment. A deep link opens the operator's own Messages app with the
+ * number and body already filled in — no SMS API, no per-message cost, no A2P
+ * registration, and the chef sees a text from a human they already know rather
+ * than a shortcode. Same reasoning documented in /admin/text-stop.
+ *
+ * sms: link format (works iOS + Android):
+ *   one chef:    sms:+1XXXXXXXXXX?&body=<URL-encoded body>
+ *   group (iOS): sms:/open?addresses=+1NUM,+1NUM&body=<URL-encoded body>
+ * The leading `?&` before body is the well-known iOS quirk fix; Android
+ * tolerates it.
+ *
+ * Message bodies are built CLIENT-side from the picker so switching templates
+ * doesn't need a round trip — every chef's link updates in place.
+ *
+ * Accounts with no usable phone are listed separately rather than hidden, so
+ * the gap is visible and fixable instead of silently shrinking the audience.
+ * As of 2026-08-31 only 13 of 61 accounts have a number on file.
+ *
+ * Admin-guarded by middleware (covers /admin/*).
+ */
+import AdminShell from '../../components/AdminShell.astro';
+import { supabaseAdmin } from '../../lib/supabase';
+import { normalizeUSPhone, formatUSPhone } from '../../lib/phone';
+
+type Acct = {
+  id: string;
+  restaurant_name: string;
+  contact_name: string | null;
+  phone: string | null;
+  status: string | null;
+  order_token: string | null;
+};
+
+const { data: acctData } = await supabaseAdmin
+  .from('wholesale_accounts')
+  .select('id, restaurant_name, contact_name, phone, status, order_token')
+  .order('restaurant_name', { ascending: true });
+const accounts = (acctData ?? []) as Acct[];
+
+/** Stored phone → +1XXXXXXXXXX, or null when it isn't a usable US number. */
+function e164(stored: string | null | undefined): string | null {
+  const digits = normalizeUSPhone(stored);
+  return digits ? `+1${digits}` : null;
+}
+
+const withPhone = accounts
+  .map((a) => ({ ...a, e164: e164(a.phone) }))
+  .filter((a) => a.e164);
+const noPhone = accounts.filter((a) => !e164(a.phone));
+
+const ORDER_BASE = 'https://csa.tinyseedfarm.com/order/';
+---
+
+<AdminShell title="📱 Text a chef" subtitle={`${withPhone.length} with a number on file`}>
+  <div class="mx-auto max-w-2xl px-3 pb-24">
+
+    <!-- Message picker -->
+    <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+      <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Message</label>
+      <select id="tpl" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-base">
+        <option value="tomatoes">Tomatoes — heavy volume</option>
+        <option value="list">This week's list is up</option>
+        <option value="confirm">Confirming your order</option>
+        <option value="delivery">On the way / delivering today</option>
+        <option value="custom">Write my own…</option>
+      </select>
+
+      <textarea
+        id="body"
+        rows="4"
+        class="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-base"
+      ></textarea>
+
+      <p class="mt-1 text-xs text-gray-500">
+        Edit freely — every Text button below uses whatever is in this box.
+      </p>
+
+      {withPhone.length > 1 && (
+        <a
+          id="groupLink"
+          href="#"
+          class="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-base font-semibold text-white"
+        >
+          Text all {withPhone.length} at once
+        </a>
+      )}
+    </div>
+
+    <!-- Chefs -->
+    <ul class="mt-4 space-y-2">
+      {withPhone.map((a) => (
+        <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+          <div class="min-w-0">
+            <div class="truncate font-semibold text-gray-900">{a.restaurant_name}</div>
+            <div class="text-sm text-gray-500">
+              {a.contact_name ? `${a.contact_name} · ` : ''}{formatUSPhone(a.phone)}
+            </div>
+          </div>
+          <a
+            class="chef-sms shrink-0 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white"
+            data-phone={a.e164}
+            data-token={a.order_token ?? ''}
+            href="#"
+          >Text</a>
+        </li>
+      ))}
+    </ul>
+
+    {noPhone.length > 0 && (
+      <details class="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <summary class="cursor-pointer text-sm font-semibold text-amber-900">
+          {noPhone.length} accounts have no phone on file
+        </summary>
+        <ul class="mt-2 space-y-1 text-sm text-amber-900">
+          {noPhone.map((a) => <li>{a.restaurant_name}</li>)}
+        </ul>
+        <p class="mt-2 text-xs text-amber-800">
+          Add a number on the account and it appears here automatically.
+        </p>
+      </details>
+    )}
+  </div>
+</AdminShell>
+
+<script is:inline define:vars={{ ORDER_BASE }}>
+  (() => {
+    const TEMPLATES = {
+      tomatoes:
+        "Hey! It's Todd at Tiny Seed. We're picking heavy on slicing tomatoes right now " +
+        "and the price drops with volume — first 50 lb $3.75, next 50 lb $2.50, everything " +
+        "over 100 lb $2.00. Best slicers we've had all season. Want any?",
+      list:
+        "Hey! It's Todd at Tiny Seed. This week's availability is up — tomatoes, peppers, " +
+        "eggplant, green beans and new potatoes. Order here: ",
+      confirm:
+        "Hey, it's Todd at Tiny Seed — just confirming your order for this week. " +
+        "Anything you want to add or change, let me know.",
+      delivery:
+        "Hey, it's Todd at Tiny Seed — your order is on the truck and headed your way today.",
+      custom: '',
+    };
+
+    const sel = document.getElementById('tpl');
+    const body = document.getElementById('body');
+    const group = document.getElementById('groupLink');
+
+    // Per-chef link. The list template appends that chef's own order URL.
+    function bodyFor(token) {
+      const text = body.value || '';
+      if (sel.value === 'list' && token) return text + ORDER_BASE + token;
+      return text;
+    }
+
+    function refresh() {
+      document.querySelectorAll('.chef-sms').forEach((a) => {
+        const phone = a.getAttribute('data-phone');
+        const token = a.getAttribute('data-token');
+        a.setAttribute('href', `sms:${phone}?&body=${encodeURIComponent(bodyFor(token))}`);
+      });
+      if (group) {
+        const nums = Array.from(document.querySelectorAll('.chef-sms'))
+          .map((a) => a.getAttribute('data-phone'))
+          .filter(Boolean)
+          .join(',');
+        // Group compose gets the generic body — a per-chef order link cannot
+        // be personalised in one thread, so we deliberately omit it.
+        group.setAttribute(
+          'href',
+          `sms:/open?addresses=${nums}&body=${encodeURIComponent(body.value || '')}`,
+        );
+      }
+    }
+
+    sel.addEventListener('change', () => {
+      body.value = TEMPLATES[sel.value] ?? '';
+      refresh();
+    });
+    body.addEventListener('input', refresh);
+
+    body.value = TEMPLATES.tomatoes;
+    refresh();
+  })();
+</script>

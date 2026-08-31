@@ -79,3 +79,59 @@ mechanism that survives, not a markdown checkbox.
 4. Collaborative Inbox — create the Google group + pick the address.
 5. Correction note to the 66 mis-emailed members — approved, never sent.
 6. 43 "no card order under their email" members — `scripts/out/members_to_verify.csv`.
+
+---
+
+## 🔨 TO BUILD — inbound text → draft order (Todd 2026-08-31)
+
+**Ask:** "Is there a way you can know when I get a text? If it is an order it can get entered?"
+Part of the autopilot-with-approval goal — handle orders conversationally while
+doing something else.
+
+### What already works (proven 2026-08-31)
+| | |
+|---|---|
+| **Send** | AppleScript → Messages. Two real sends, `sent=1 delivered=1`. Goes from Todd's own number, into the existing thread. No Twilio, no cost. |
+| **Read** | `~/Library/Messages/chat.db`, incl. decoding `attributedBody` (only ~3 of 638 recent messages carry readable `.text`; the rest are blobs) |
+| **Identify** | `config/verified_facts.json` names 24 numbers; `wholesale_account_contacts.phone` has 12 more |
+
+### What's missing
+A `launchd` agent with `WatchPaths` on `chat.db` + `chat.db-wal` — fires on
+filesystem change, no polling.
+
+### ⚠️ The design constraint, learned the hard way
+**Classify the SENDER before parsing any content.** On 2026-08-31 the message
+`"1105 lb potato / 60 lb pepper / 70lb tomato / 60 lb bean"` looked like a
+textbook order. It was **Ben Finley (412-862-0215), the farm manager, reporting
+harvest counts.** Auto-entry would have created a 1,105 lb potato order for the
+farm's own crew chief.
+
+Crew are not chefs. Ben sends numbers all day and none of them are orders.
+
+**Second constraint:** even real chef texts are often unparseable intent. Kate
+Lasky, 2026-08-24: *"I can take 100-150# easy, and lemme know if you are trying
+to move more."* A range plus a negotiation — she ended at 300 lb, not 150.
+
+### Agreed shape
+1. launchd agent wakes on chat.db change
+2. Sender must match a KNOWN CHEF number (never crew, never unknown)
+3. If it reads like an order → write a **draft** order + notify Todd
+4. **Todd confirms. Never auto-enter.**
+
+Same pattern as the flex Thursday draft, which already works.
+
+### Do NOT revive `sms_intelligence/` wholesale
+It exists and once did this, but: plist points at `/Users/samanthapollack/...`
+(old machine), `launchctl` shows it unloaded, `/usr/local/bin/python3` missing,
+`anthropic`/`redis`/`chromadb` all uninstalled, no log — **it has never run on
+this Mac.** It also targets the retired Google Sheets backend and needs Redis +
+ChromaDB. `config.py` uses `Path.home()` so the code is portable; the useful
+parts are the chat.db reader and the attributedBody decoder. Rebuild small
+against Supabase rather than standing up three services for a dead backend.
+
+### Also worth doing while in here
+`/admin/text-chef` currently reads only `wholesale_accounts.phone` (13 accounts).
+**12 more contacts have phones on `wholesale_account_contacts`** — including
+Sherri (Black Radish), Brian + George (Butter Joint), Anthony + Aniceto
+(Mediterra), David (Cafe Verde). Widening it reaches ~17 people by name instead
+of 13 accounts.
