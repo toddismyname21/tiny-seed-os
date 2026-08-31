@@ -1,3 +1,24 @@
+## 2026-08-31 (later) — PM_ARCHITECT — Rule: never guess, act from a source of truth
+
+Todd: "Make it a rule that you don't guess. You act from a source of truth always."
+
+`.claude/rules/no-guessing.md` (auto-loaded every session) + tracked mirror at
+`docs/system/RULE_NO_GUESSING.md`.
+
+Names the sources of truth per question, three tests before asserting, and what
+to do when there is no source: **return nothing**. A blank is honest and a human
+fills it; a confident wrong answer gets acted on.
+
+Documented with the day's five actual failures — the em-dash unit guess that
+stamped "120 lb basil", the Resend limit read off a stale comment, the $2,345
+"never invoiced" read off a 37%-populated column, the "9 dead crons" read off
+vercel.json alone, and offering Center for Hope produce the farm did not have.
+Two of the five were caught by Todd, not by me.
+
+NOTE: `.claude/` is gitignored, so rules there do NOT survive a machine move —
+the same failure that left sms_intelligence pointing at /Users/samanthapollack/.
+Hence the tracked mirror.
+
 ## 2026-08-31 (later) — PM_ARCHITECT — Unit resolver was guessing; stopped it
 
 **The fix I shipped this morning produced wrong data by lunchtime.**
