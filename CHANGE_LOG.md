@@ -1,3 +1,50 @@
+## 2026-08-31 (later) — PM_ARCHITECT — Unit resolver was guessing; stopped it
+
+**The fix I shipped this morning produced wrong data by lunchtime.**
+
+`20260831083400` added `wholesale_order_items.unit` so a packer would never read
+a wrong unit. Its resolver had three steps: product_id, exact name, then "the
+text before the em dash." That third step IS the bug it was meant to prevent.
+
+Institutional pack sizes are NOT catalog pack sizes. Center for Hope buys basil
+BY THE BUNCH; the catalog sells basil BY THE POUND. Entering tomorrow's order it
+stamped, on real rows:
+
+    Basil — bunch                        -> 'lb'      WRONG
+    Cherry Tomatoes — 12-count bagged    -> 'lb'      WRONG
+    Pepper Mix — half bushel (~20 lb)    -> (nothing)
+    Summer Squash — half bushel (~20 lb) -> 'lb'      WRONG
+    Cucumbers — half bushel (~20 lb)     -> 'lb'      WRONG
+    Salad Mix — case of 24 bags          -> '1.75#'   WRONG
+    Fennel — 1 count                     -> '12 ct'   WRONG
+
+"120 lb basil" instead of "120 bunches basil" is exactly the pick error the
+column exists to stop. The em-dash suffix is where the operator wrote the REAL
+pack size — discarding it and matching the prefix inverts the line's meaning.
+
+`20260831111500` removes the guess. Resolve ONLY from product_id or an EXACT
+full-name match; anything else returns NULL and renders blank. A blank is
+honest. Hand-keyed lines carry an explicit unit — the trigger already respects
+one when supplied. Verified with assertions that would have thrown:
+resolve('Basil — bunch') and resolve('Summer Squash — half bushel') both NULL,
+resolve('Slicing Tomatoes') still 'lb'.
+
+Cleanup scoped to `delivery_date < CURRENT_DATE`, so live/future orders keep
+hand-set units. 15 past rows cleared.
+
+**Orders entered / sent today**
+- Center for Hope Tue 9/1, **SO90029, $960** — Sue ordered cherry tomatoes,
+  peppers, green beans, basil (2026-08-31 14:05); Todd set quantities. Peppers
+  confirmed as 6 HALF bushels. Cherry tomatoes and basil are FIRSTS for this
+  account. Units set by hand: 12-count bag / half bushel / half bushel / bunch.
+- Signed 8/18 paperwork (INV 9000021, SO89803, G. Kellinger) emailed to Marc —
+  unblocks $852.60. 8/25 copy is at the farm.
+- Amelia Farm (+1 507-244-1677) texted tomorrow's pick. THREE Amelias exist in
+  Contacts; number confirmed against her own 8/26 delivery text.
+- Butter Joint (Brian + George) emailed: short on greens again, full list,
+  tomatoes emphasised. 11 of their orders are King Spring Mix — greens ARE their
+  standing order — and they bought 75 lb of tomatoes on 8/28.
+
 ## 2026-08-31 — PM_ARCHITECT — Orders page could only show ONE order per account
 
 **Todd:** "The mediterra order is still not in the portal." It was — the page
