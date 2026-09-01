@@ -22800,3 +22800,9 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
   - Sick Time & Vacation Balances tab now populates from real employee data
 
 ---
+
+## 2026-09-01 — PM (CSA terminal)
+- **supabase/migrations/20260901112500_flex_order_credit_members.sql** — `place_flex_order` no longer rejects live non-flex member rows (`not_flex`). App layer (resolveFlexEligibility: flex row OR Shopify credit > 0) is the eligibility authority; the DB guard wrongly blocked store-credit members (Anna Phillips 2026-08-30). Built from `pg_get_functiondef()` of the live function, one surgical edit. Applied to prod + verified empirically (freetodd21 add_on row → ok:true; test order deleted, inventory restocked).
+- Anna Phillips: Tomato Box 10 lb placed by farm for week 2026-08-31 (flex_orders 4feb2efe, Shopify store credit debited $30: $52.50→$22.50, ledger row e241d263). She is OFF-WEEK Wed 9/2 — pack-sheet visibility carried by member_notices c6c9952e (tomato box + 2 make-up mushrooms, Squirrel Hill Wed).
+- member_notices: Heidi Weaver 8/30 make-good → done (box delivered 9/1); Kelly Corrigan Edgewood/Swissvale → done (staying Highland Park per 8/20 email); NEW Kelly extra cheese due wk 9/07; NEW Whitney Sunseri 2 extra cheese due wk 8/31 (timing pending Todd — she's Week A, no box 9/2).
+- Center for Hope: QB invoice 9000028 $840 (SO90029), green beans short-packed 6/10 (deer), portal order linked + delivered.
