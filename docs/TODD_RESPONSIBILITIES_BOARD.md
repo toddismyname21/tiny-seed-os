@@ -201,3 +201,19 @@ filled. Add-on packing and make-up verification are the fix — not seven apolog
 - 2026-07-28: AIG Round 2 AWARDED (amount TBD) · Mediterra: Kathy added as invoice contact · Harvie invoicing PDF (3 POs, $1,354.25)
 - 2026-07-26: Dan Simon counter-email sent + removal schedule delivered · Dosatron/traps returned
 - 2026-07-24: Invoicing packet Jul 4–24 ($6,508.73)
+
+## ✅ CLOSED 2026-09-01 (CSA batch — all verified, Resend ids in member_comms)
+- Heidi Weaver missed-market make-good: box delivered 9/1, notice done
+- Anna Phillips: tomato box placed+paid, 2 make-up mushrooms Wed 9/2 (Squirrel Hill), emailed
+- Whitney Sunseri: 2 extra cheese notice for Wed 9/9 box, emailed
+- Ashley Lyons: $35 goodwill store credit (bal $207.50), apology emailed (was never charged for 8/19)
+- Jan Duckworth: flex walkthrough emailed AFTER not_flex DB bug fixed+verified
+- Kelly Corrigan: stop notice closed (staying Highland Park); cheese make-up notice due wk 9/07
+- Christi Ptacek 8/26 + Chris Murikami 8/27: both resolved by Todd same-day (no action)
+
+## 👀 WATCH (from 2026-09-01 CSA sweep)
+- Wed 9/2 pack: Anna's bag (tomato box + 2 mushrooms) rides ONLY via member_notices — confirm it printed on the Squirrel Hill sheet
+- Wed 9/9 pack: Whitney 2 cheese + Kelly 1 cheese (both Highland Park, notices due wk 9/07)
+- Jan Duckworth: check within a week that she signed in + ordered (auth user should appear)
+- Ashley's recurring "flex list looks empty" complaints: watch her next order window
+- Marigrace: brown paper bags (8/12/20#) needed before Saturday market
