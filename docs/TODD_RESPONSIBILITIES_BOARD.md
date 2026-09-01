@@ -32,6 +32,10 @@ Lower field, the two flower fields. Everything else is already sized and sequenc
 20 × 6" pp Salanova next week for the high tunnel · Lower field retiring from production ·
 **migrate app.tinyseedfarm to a better back end so organic records are easy to keep.**
 
+## 🌱 GOOD ROOTS — call booked Wed 9/9 3:00 PM (invite sent 8/31)
+- Talking-points PDF in Todd's inbox. If Jackie hasn't ACCEPTED the invite by **Fri 9/4** → nudge.
+- Goal framing: 200 members today → **400 weekly veg shares**.
+
 ## 📚 SCHEDULE F BOOKS PROJECT — sent to Mary (DGPerry) 2026-08-30
 - Scope emailed: chart restructure to Schedule F · FSA-payoff cleanup entries · lender
   package. Funded by FVPG C940002569 line "Financial Planning & Lender Package" ($3,500,
