@@ -72,4 +72,38 @@ Shopify-vs-journal reconciler (B3), roster-vs-sheet assertion (B6).
 3. Next week: B3 (money canon + reconcilers), B5 (run-based cutoffs), B7, B10
 4. Backlog: B8-B9, B11, B13-B14, D1 (renewal flow), D2 (SMS decision)
 
-— PM_Architect, 2026-09-02. Comms-track report to be appended when the agent completes.
+## G. COMMS TRACK (appended — full report: audit-comms.md)
+
+**Measured truth of the 8/29 campaign** (agent diffed campaign_recipients vs a real resolveCycle run):
+152 sent → 91 matched their actual Wednesday; 23 receive on other days (Sat/Tue/Sun); **38 received
+nothing that week** (35 biweekly-off B, 3 vacation holds); 26 flex-only members got box copy for a box
+that doesn't exist for them; **26 members who WERE receiving got no email** (17 outside the share-type
+filter, 9 with no member_preferences row). PM correction: the earlier "209 receiving / 126 reached"
+figures came from the broken RPC and are retracted.
+
+| # | Finding | Severity |
+|---|---------|----------|
+| G1 | **Two weekly-box senders exist**: the cycle-aware one (`api/admin/weekly-email/send.ts`, uses resolveCycle) has NEVER been used (email_log = 0 rows); the one actually used (`campaign.ts`) has no cycle awareness at all | ROOT CAUSE of 8/29 |
+| G2 | **CAN-SPAM exposure**: campaigns with opt-in unchecked apply NO opt-out filter — mails members who explicitly unsubscribed (`campaign.ts:306-320`, also renewal segment) | HIGH/legal — one-line fix |
+| G3 | **44 of 281 active members have no member_preferences row** → invisible to every opt-in send AND unsubscribe silently no-ops for them (RPC only UPDATEs). Fix send-side + upsert-unsubscribe TOGETHER | HIGH |
+| G4 | Existing send guard compares COUNTS not MEMBERSHIP — passed cleanly on 8/29. Build `campaign-reconcile.ts` roster-diff gate (fail closed) + `receiving_this_week` segment kind backed by resolveCycle | HIGH |
+| G5 | Five member-facing send paths never log to member_comms (weekly email, flex confirmations, flex reminder, household invites, ALL arrival texts) — arrival texts leave no record at all (sms: deep links) | MED-HIGH |
+| G6 | Resumed multi-day campaigns don't re-check opt-out | LOW-MED |
+| G7 | Orphaned live endpoint friday-list-reminder.ts (unscheduled by 0082) — delete; invoice-reconcile + vendor-bills have no heartbeat (can't prove they run); wholesale cron names inverted vs schedules | MED |
+| G8 | chef_reminder_enabled=false since 8/10 — deliberate? Needs Todd confirmation | ASK TODD |
+
+**Cross-track correction to B4:** comms is right that the cutoff is enforced at request time and
+`pending` is packable — nothing is operationally frozen by a lock. So B4 becomes a DECISION:
+(a) add a real lock cron for freeze semantics + DB-level Tue/Wed closure, or (b) formally retire
+`locked` and its dead branches. Either — not the current half-state. **Laura's Tuesday pack miss is
+therefore STILL UNDIAGNOSED** (she was on-roster with a pre-cutoff order): ask whoever packed
+Lawrenceville Tuesday whether the pack sheet was consulted.
+
+## H. FINAL EXECUTION ORDER (supersedes F)
+1. **Batch 1 — before Thursday flex open:** A1 (revoke flex_orders member RLS), A2 (refund on cancel/skip), A3-minimal (window check in RPC), A4, B12, **G2 (opt-out exclusion)**
+2. This week: A5, A6, B1, B2, B6, G3 (preferences backfill + unsubscribe upsert, together), G4 (receiving_this_week segment first, gate second)
+3. Next week: B3, B5, B4-decision, B7, G5 (comms logging, arrival texts first)
+4. Backlog: B8-B11, B13-B14, G6-G7, D-list (renewal flow #1)
+5. Ask Todd: G8 (chef reminder off?), Laura Tuesday-pack question, B4 lock-vs-retire
+
+— PM_Architect, 2026-09-02. All five tracks complete. Key claims spot-verified.
