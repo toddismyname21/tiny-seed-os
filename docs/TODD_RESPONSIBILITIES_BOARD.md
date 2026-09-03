@@ -217,3 +217,7 @@ filled. Add-on packing and make-up verification are the fix — not seven apolog
 - Jan Duckworth: check within a week that she signed in + ordered (auth user should appear)
 - Ashley's recurring "flex list looks empty" complaints: watch her next order window
 - Marigrace: brown paper bags (8/12/20#) needed before Saturday market
+
+## 👀 WATCH (added 2026-09-03)
+- FMNP replacement stamp: emailed PDA (ra-agfmnp@pa.gov + Tierney Belanger, 717-783-5309) 9/3 — Farmer ID 69185, lost stamp, interim-deposit + address-update questions. NUDGE if no reply by Tue 9/8 (deposit deadline Dec 14; checks pile until stamp arrives). Resend 01a0681a.
+- Vehicle titles: Ram MV-426B packet → PO Box 69007 (mail by 9/4! temp plate VCW2738 dies ~9/13); NV1500 MV-38O + $72 → PO Box 68593. Salvor call for dead NV1500: PennDOT 717-412-5300 (MV-4RP pickup, pull plate MSR6128).
