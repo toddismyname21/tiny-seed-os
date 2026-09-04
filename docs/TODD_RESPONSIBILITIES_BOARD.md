@@ -225,3 +225,10 @@ filled. Add-on packing and make-up verification are the fix — not seven apolog
 ## 🎣 TOMATO FISHING CAMPAIGN (sent 2026-09-03 ~11pm)
 9 individually-crafted pitches: Fet Fisk (nik@), Brothmonger, Vivo, Bar Marco, Dish Osteria, Duo Taqueria (marcella@), Eleven (ewahl@bigburrito — group angle), Lilith (jamilka@), Morcilla (nathan@). Plus 9 existing-customer pitches earlier tonight (BJ, ShuBrew, Allegro, Sprezzatura, Black Radish, Della Terra→CONVERTED $122.50, Mediterra, Pigeon, Titusz).
 - WATCH replies Fri-Mon; log any orders in portal BEFORE delivery; tomato capacity check with Ben before promising >500 lb/week combined.
+
+## ☀️ MORNING TRIAGE Fri 9/4 (full detail: emailed PDF 9/3 ~midnight)
+RED: 1) Batch/Brianna — Sat 9/5 dinner, confirm Thu delivery or TODAY's truck + reply (asked 2x)
+2) Green-bean trio shorted Wed: Tony Rozic (+leek), Matusiaks (double beans, sticker mischeck photo), Noreen Adams (got shishitos) — pick remedy, process all three
+3) Marc Rattay: signed 8/25 paperwork = unblocks payment; ENTER C4H Tue 9/8 order SO91070 (cherry toms/peppers/GREEN BEANS?/basil — beans feasibility!)
+4) Jason Smith North Park delivery-time complaint  5) Lisa Blanchette seconds-flat sale (easy)  6) Victoria Kleber personal note (schedule verified OK)
+YELLOW: Pip Mostern farm-hand app · Welter COVER CROP order awaiting OK since 8/28 (fall clock!) · SSM sales report (SNAP) + IG giveaway · Manchester Bidwell speaker ask · Gillian Valore email-subscription fix (audit G3) · East End contact update
