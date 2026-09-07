@@ -64,6 +64,16 @@ const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
 // sheet (drafts/cancelled must never print or inflate the ①Pick/Harvest totals,
 // which would double-count against pick-pack's filtered wholesale numbers).
 const REAL_STATUSES = ['submitted', 'confirmed', 'packed', 'delivered'] as const;
+
+// Active products for the crew's ADD-ITEM control (Phase 1/2, Todd 2026-09-07:
+// "They have the option to … add items manually"). Server-priced — the picker
+// shows the price for confidence, but pack.ts re-reads it from the table.
+const { data: addableRows } = await supabaseAdmin
+  .from('wholesale_products')
+  .select('id, name, unit, price_cents')
+  .eq('is_active', true)
+  .order('name');
+const addableProducts = (addableRows ?? []) as Array<{ id: string; name: string; unit: string | null; price_cents: number | null }>;
 const { data: orderRows } = await supabaseAdmin
   .from('wholesale_orders')
   .select(
@@ -341,10 +351,28 @@ const pretty = prettyDeliveryDate(deliveryDate);
                 disabled={c.delivered}
                 title={c.delivered ? 'Delivered — packed quantities are locked because they are what was invoiced.' : undefined}
               >
-                {c.packed ? '✓ Update packed quantities' : '✓ Pack as ordered'}
+                {c.packed ? '✓ Update packed quantities' : '✓ FULLY PACKED — as ordered'}
               </button>
               <p class="pack-summary" data-role="summary" data-tone={c.summary.tone} role="status" aria-live="polite">{c.summary.text}</p>
               <p class="pack-error" data-role="error" role="alert" hidden></p>
+              {/* Crew add-item: only for still-open orders. Server prices it. */}
+              {!c.delivered && (
+                <details class="add-item no-print" data-role="add-item">
+                  <summary>➕ Add an item to this order</summary>
+                  <div class="add-item-row">
+                    <select data-role="add-product" aria-label="Product to add">
+                      <option value="">— pick a product —</option>
+                      {addableProducts.map((pr) => (
+                        <option value={pr.id}>
+                          {pr.name}{pr.unit ? ` (${pr.unit})` : ''} — ${((pr.price_cents ?? 0) / 100).toFixed(2)}
+                        </option>
+                      ))}
+                    </select>
+                    <input data-role="add-qty" type="number" min="0.1" step="any" inputmode="decimal" placeholder="qty" aria-label="Quantity" />
+                    <button type="button" data-role="add-btn">Add</button>
+                  </div>
+                </details>
+              )}
             </div>
 
             {/* Driver control. Separate row from the pack bar so a thumb can
@@ -369,7 +397,7 @@ const pretty = prettyDeliveryDate(deliveryDate);
                   : c.delivered
                     ? 'Delivered, but not invoiced yet.'
                     : c.deliverable
-                      ? 'Bills what was packed. Creates the QuickBooks invoice — it does not send it.'
+                      ? 'Bills what was packed. Creates the QuickBooks invoice and emails it to the account (auto-send accounts only).'
                       : 'Pack this order first — the invoice bills what was actually packed.'}
               </p>
               <p class="deliver-warn" data-role="deliver-warn" role="alert" hidden></p>
@@ -739,6 +767,12 @@ const pretty = prettyDeliveryDate(deliveryDate);
        15px bold is NOT WCAG "large text", so it needs the full 4.5:1. */
     .pack-summary[data-tone='warn'] { color: #92400e; }
     .pack-summary[data-tone='none'] { display: none; }
+    .add-item { margin-top: 0.5rem; font-size: 0.95rem; }
+    .add-item summary { cursor: pointer; color: #166534; font-weight: 600; }
+    .add-item-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+    .add-item-row select { flex: 1 1 14rem; min-height: 2.6rem; }
+    .add-item-row input { width: 6rem; min-height: 2.6rem; }
+    .add-item-row button { min-height: 2.6rem; padding: 0 1.2rem; font-weight: 700; }
     .pack-error {
       margin: 0;
       font-size: 0.9375rem;
@@ -892,6 +926,9 @@ const pretty = prettyDeliveryDate(deliveryDate);
     order?: { status?: string; packed_by?: string | null };
     items?: PackLine[];
     counts?: { total: number; packed: number; short: number; unavailable: number };
+    /** Server-computed Σ qty_packed × unit_price — EXACTLY what the delivery
+     *  tap will bill. The crew's "draft invoice" (Todd, 2026-09-07). */
+    invoice_preview?: { total_cents: number; unpriced_lines: number };
   }
 
   /** Match the server's qtyText(): 3.00 → "3", 2.50 → "2.5". */
@@ -947,10 +984,10 @@ const pretty = prettyDeliveryDate(deliveryDate);
     function syncLabel(): void {
       if (!btn) return;
       btn.textContent = unsaved
-        ? '✓ Save packed quantities'
+        ? '✓ FULLY PACKED — save quantities'
         : article.dataset.packed === '1'
           ? '✓ Update packed quantities'
-          : '✓ Pack as ordered';
+          : '✓ FULLY PACKED — as ordered';
     }
 
     function showError(message: string): void {
@@ -991,10 +1028,17 @@ const pretty = prettyDeliveryDate(deliveryDate);
       const total = counts?.total ?? rows.length;
       const missed = (counts?.short ?? 0) + (counts?.unavailable ?? 0);
       if (summary) {
+        // The invoice preview IS the draft invoice: the exact number the
+        // Delivered tap will bill, computed server-side from qty_packed.
+        const pv = data.invoice_preview;
+        const pvText = pv
+          ? ` · Invoice will be $${(pv.total_cents / 100).toFixed(2)}` +
+            (pv.unpriced_lines > 0 ? ` (⚠ ${pv.unpriced_lines} unpriced line(s) excluded)` : '')
+          : '';
         summary.textContent =
-          missed === 0
+          (missed === 0
             ? `✓ All ${total} items packed as ordered`
-            : `${missed} of ${total} items short — chef needs telling`;
+            : `${missed} of ${total} items short — chef needs telling`) + pvText;
         summary.dataset.tone = missed === 0 ? 'ok' : 'warn';
       }
       unsaved = false;
@@ -1099,6 +1143,10 @@ const pretty = prettyDeliveryDate(deliveryDate);
     invoice?: { id: string; number: string; total: number; lines?: number; generic_lines?: string[] };
     not_delivered?: string[];
     order?: { delivered_by?: string | null };
+    sent?: boolean;
+    sent_to?: string | null;
+    send_skipped?: string | null;
+    send_error?: string | null;
   }
 
   function money(n: number): string {
@@ -1142,7 +1190,7 @@ const pretty = prettyDeliveryDate(deliveryDate);
         statusEl.textContent = 'Delivered, but not invoiced yet.';
       } else if (deliverable) {
         statusEl.textContent =
-          'Bills what was packed. Creates the QuickBooks invoice — it does not send it.';
+          'Bills what was packed. Creates the QuickBooks invoice and emails it to the account (auto-send accounts only).';
       } else {
         statusEl.textContent =
           'Pack this order first — the invoice bills what was actually packed.';
@@ -1198,7 +1246,17 @@ const pretty = prettyDeliveryDate(deliveryDate);
           article.dataset.invoiced = '1';
           article.dataset.invoiceNumber = data.invoice.number;
           updateBadge();
-          statusEl.textContent = `Invoice ${data.invoice.number} — ${money(data.invoice.total)} created in QuickBooks (not sent).`;
+          statusEl.textContent =
+            `Invoice ${data.invoice.number} — ${money(data.invoice.total)} created in QuickBooks` +
+            (data.sent
+              ? ` and EMAILED to ${data.sent_to}.`
+              : data.send_skipped === 'auto_send_off'
+                ? ' (auto-send is OFF for this account — send it from QuickBooks).'
+                : data.send_error === 'no_billing_email'
+                  ? ' — NOT emailed: the account has no billing email. Add one and send from QuickBooks.'
+                  : data.send_error
+                    ? ` — email FAILED (${data.send_error}). Send it from QuickBooks.`
+                    : ' (not sent).');
           const generic = data.invoice.generic_lines ?? [];
           const skipped = data.not_delivered ?? [];
           const notes: string[] = [];
@@ -1257,6 +1315,51 @@ const pretty = prettyDeliveryDate(deliveryDate);
     sync();
   }
 
+  /** Crew add-item (Todd 2026-09-07): POST the product+qty; the server prices
+   *  it and creates the line already-packed. On success we RELOAD — the page is
+   *  server-rendered per line, and a reload is the one path where the new row,
+   *  totals, preview and print sheet all agree by construction. */
+  function setupAddItem(article: HTMLElement): void {
+    const orderId = article.dataset.orderId || '';
+    const box = article.querySelector<HTMLElement>('[data-role="add-item"]');
+    if (!orderId || !box) return;
+    const sel = box.querySelector<HTMLSelectElement>('[data-role="add-product"]');
+    const qtyEl = box.querySelector<HTMLInputElement>('[data-role="add-qty"]');
+    const btn = box.querySelector<HTMLButtonElement>('[data-role="add-btn"]');
+    const errEl = article.querySelector<HTMLElement>('[data-role="error"]');
+    if (!sel || !qtyEl || !btn) return;
+    btn.addEventListener('click', async () => {
+      const productId = sel.value;
+      const qty = Number(qtyEl.value);
+      if (!productId || !(qty > 0)) {
+        if (errEl) { errEl.textContent = '⚠ Pick a product and a quantity above zero.'; errEl.hidden = false; }
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Adding…';
+      try {
+        const res = await fetch('/api/admin/wholesale/pack', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId, add_items: [{ product_id: productId, qty }] }),
+        });
+        const data = (await res.json().catch(() => null)) as PackResponse | null;
+        if (!res.ok || !data || !data.ok) {
+          if (errEl) { errEl.textContent = '⚠ ' + (data?.message || `Could not add the item (HTTP ${res.status}).`); errEl.hidden = false; }
+          btn.disabled = false;
+          btn.textContent = 'Add';
+          return;
+        }
+        location.reload();
+      } catch {
+        if (errEl) { errEl.textContent = '⚠ Could not reach the server — the item was NOT added.'; errEl.hidden = false; }
+        btn.disabled = false;
+        btn.textContent = 'Add';
+      }
+    });
+  }
+
   for (const article of Array.from(
     document.querySelectorAll<HTMLElement>('.order-block[data-order-id]'),
   )) {
@@ -1264,5 +1367,6 @@ const pretty = prettyDeliveryDate(deliveryDate);
     // controller can call it.
     setupDeliver(article);
     setupOrder(article);
+    setupAddItem(article);
   }
 </script>

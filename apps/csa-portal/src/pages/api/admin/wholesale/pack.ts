@@ -57,10 +57,23 @@ const ItemOverride = z.object({
   qty_packed: z.number().finite().nonnegative().max(100_000),
 });
 
+const AddItem = z.object({
+  // The crew picks a product; the SERVER prices it. A client-supplied price
+  // never touches this route (same server-side-price rule as everything else).
+  product_id: uuid,
+  qty: z.number().finite().positive().max(100_000),
+});
+
 const Body = z.object({
   order_id: uuid,
   // Absent / empty === "packed exactly as ordered" (the one-tap default path).
   items: z.array(ItemOverride).max(200).optional(),
+  // Items the crew ADDED at pack time ("threw in 2 bunches of basil") — Phase 1
+  // of the Todd-approved 2026-09-07 build. Before this, improvised additions
+  // were invisible to billing and went out unbilled. Lines are created with
+  // qty_packed = qty (they exist BECAUSE they were packed) and priced from
+  // wholesale_products server-side.
+  add_items: z.array(AddItem).max(50).optional(),
 });
 
 /** Statuses that are terminal for packing — never regressed by this route. */
@@ -121,6 +134,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
   const { order_id } = parsed.data;
   const overrides = parsed.data.items ?? [];
+  const addItems = parsed.data.add_items ?? [];
 
   // Duplicate item_ids would make the result order-dependent — reject instead of
   // silently letting the last one win.
@@ -195,6 +209,79 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
   }
 
+  // ── 2b) Crew-added lines (Phase 1, Todd-approved 2026-09-07). ──────────────
+  // Server-priced from wholesale_products; created already-packed (qty_packed =
+  // qty) because they exist only because the crew physically packed them.
+  if (addItems.length > 0) {
+    const productIds = [...new Set(addItems.map((a) => a.product_id))];
+    const { data: prodRows, error: prodErr } = await supabaseAdmin
+      .from('wholesale_products')
+      .select('id, name, price_cents, is_active')
+      .in('id', productIds);
+    if (prodErr) {
+      console.error('[wholesale/pack] product fetch failed:', prodErr.message);
+      return json({ ok: false, error: 'fetch_failed', detail: prodErr.message }, 500);
+    }
+    const prodById = new Map((prodRows ?? []).map((p) => [p.id, p]));
+    for (const a of addItems) {
+      const p = prodById.get(a.product_id);
+      if (!p) {
+        return json(
+          { ok: false, error: 'unknown_product', product_id: a.product_id, message: 'That product does not exist.' },
+          400,
+        );
+      }
+      if (!p.is_active) {
+        // An inactive product has no sellable price (kale/beans/salad are OFF
+        // for reasons) — adding it silently would bill a chef for something the
+        // farm withdrew. Loud refusal instead.
+        return json(
+          { ok: false, error: 'product_inactive', product: p.name, message: `${p.name} is not on the active list — reactivate it (or ask Todd) before adding it to an order.` },
+          400,
+        );
+      }
+      if (!Number.isFinite(Number(p.price_cents)) || Number(p.price_cents) <= 0) {
+        return json(
+          { ok: false, error: 'product_unpriced', product: p.name, message: `${p.name} has no price set — set one before adding it.` },
+          400,
+        );
+      }
+    }
+    const newRows = addItems.map((a) => {
+      const p = prodById.get(a.product_id)!;
+      const cents = Math.round(Number(p.price_cents) * a.qty);
+      return {
+        order_id,
+        product_name: p.name,
+        qty: a.qty,
+        qty_packed: a.qty,
+        unit_price_cents: Number(p.price_cents),
+        line_total_cents: cents,
+      };
+    });
+    const { error: insErr } = await supabaseAdmin.from('wholesale_order_items').insert(newRows);
+    if (insErr) {
+      console.error('[wholesale/pack] add-item insert failed:', insErr.message);
+      return json({ ok: false, error: 'save_failed', message: 'Could not add the extra items.', detail: insErr.message }, 500);
+    }
+    // Keep the order's display total honest: recompute from ALL lines.
+    const { data: allLines } = await supabaseAdmin
+      .from('wholesale_order_items')
+      .select('qty, unit_price_cents, line_total_cents')
+      .eq('order_id', order_id);
+    const totalCents = (allLines ?? []).reduce((s, l) => {
+      const lt = Number(l.line_total_cents);
+      if (Number.isFinite(lt)) return s + lt;
+      const q = Number(l.qty) || 0;
+      const u = Number(l.unit_price_cents) || 0;
+      return s + Math.round(q * u);
+    }, 0);
+    await supabaseAdmin
+      .from('wholesale_orders')
+      .update({ total_amount: totalCents / 100 })
+      .eq('id', order_id);
+  }
+
   // ── 3) Resolve the target qty_packed for EVERY line. ───────────────────────
   // Overridden lines take the supplied number; every other line is packed as
   // ordered. That second half is what keeps a partial submission complete.
@@ -255,9 +342,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // ── 5) Read back the generated fulfillment_status + the order's new state. ─
   const { data: afterRows, error: afterErr } = await supabaseAdmin
     .from('wholesale_order_items')
-    .select('id, order_id, product_name, qty, qty_packed, fulfillment_status')
+    .select('id, order_id, product_name, qty, qty_packed, fulfillment_status, unit_price_cents')
     .eq('order_id', order_id)
-    .overrideTypes<ItemRow[], { merge: false }>();
+    .overrideTypes<Array<ItemRow & { unit_price_cents: number | null }>, { merge: false }>();
 
   if (afterErr) {
     console.error('[wholesale/pack] read-back failed:', afterErr.message);
@@ -281,8 +368,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     (r) => r.fulfillment_status === 'short' || r.fulfillment_status === 'unavailable',
   );
 
+  // INVOICE PREVIEW (Phase 2, Todd-approved 2026-09-07): the number the
+  // delivery tap will bill — Σ qty_packed × unit_price over billable lines.
+  // Computed server-side from the same rows deliver.ts will read, so the
+  // preview and the eventual invoice cannot disagree.
+  let previewCents = 0;
+  let previewUnpriced = 0;
+  for (const r of afterRows ?? []) {
+    const qp = Number(r.qty_packed);
+    if (!(qp > 0)) continue;
+    const u = Number(r.unit_price_cents);
+    if (Number.isFinite(u)) previewCents += Math.round(qp * u);
+    else previewUnpriced += 1;
+  }
+
   return json({
     ok: true,
+    invoice_preview: { total_cents: previewCents, unpriced_lines: previewUnpriced },
     order: {
       id: order_id,
       status: afterOrder?.status ?? 'packed',

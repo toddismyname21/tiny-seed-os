@@ -263,7 +263,7 @@ export interface Database {
           notification_type: string;
           recipient: string;
           status: 'queued' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'failed' | 'undelivered';
-          provider: 'resend' | 'twilio_verify' | 'twilio_sms' | 'gmail_legacy';
+          provider: 'resend' | 'twilio_verify' | 'twilio_sms' | 'gmail_legacy' | 'quickbooks';
           provider_message_id: string | null;
           subject: string | null;
           template: string | null;
@@ -851,6 +851,10 @@ export interface Database {
            *  whole week; after publish, toggles write is_active directly. */
           draft_on: boolean;
           restock_alert_threshold: number;
+          /** Each unit ships as its OWN physical container (e.g. a 10 lb tomato
+           *  flat) and prints a per-container "Name — 1 of N" label cell on the
+           *  Avery 6-up run (migration 20260907142000). */
+          separate_container: boolean;
           /** FK → product_library.id — the shared archive product this week's
            *  item was loaded from (photo + description source; migration 0045). */
           library_id: string | null;
@@ -1026,6 +1030,10 @@ export interface Database {
           last_portal_visit_at: string | null;
           /** NOT NULL DEFAULT 0 in Postgres — never null on a read. */
           portal_visit_count: number;
+          /** Auto-email the QuickBooks invoice at the delivery tap (migration
+           *  20260907142000). NOT NULL DEFAULT true; false = create-only
+           *  (Harvie/PO-flow accounts). Todd-approved auto-send 2026-09-07. */
+          auto_send_invoice: boolean;
           created_at: string | null;
           updated_at: string | null;
         };

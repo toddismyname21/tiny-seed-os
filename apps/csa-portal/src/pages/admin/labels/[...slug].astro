@@ -325,7 +325,7 @@ interface LabelData {
   /** Color-coded add-on chips for THIS customer at THIS stop (req 2 + 4). */
   addonChips: AddonChip[];
   /** Flex checklist lines for THIS customer (all their member rows), req 3. */
-  flexLines: Array<{ name: string | null; qty: number }>;
+  flexLines: Array<{ name: string | null; qty: number; separate?: boolean }>;
   owes: boolean;
   /** 'box' = the veg/flex/spring label; 'flower' = a SEPARATE Flower CSA label
    *  (Todd 2026-06-23: flowers always print their own label). */
@@ -338,6 +338,12 @@ interface LabelData {
   /** Box labels only: true when this customer ALSO has a flower share — we note
    *  "🌸 Flower CSA" on the box label and print a separate flower label. */
   hasFlower: boolean;
+  /** PER-CONTAINER label (Todd 2026-09-07): this cell is one physical unit of a
+   *  separate_container special (e.g. one 10 lb tomato flat) — "ITEM — seq of
+   *  of". Prints immediately after the member's box label so the stack stays
+   *  together. The item ALSO stays on the box label's flex checklist, so the
+   *  packer confirms the flats exist and the driver grabs them. */
+  container?: { item: string; seq: number; of: number };
 }
 
 function getComposition(member: CycleMember) {
@@ -501,9 +507,9 @@ function distDateForStop(stop: StopTotals): string {
 type FlexLineRow = {
   member_id: string;
   qty: number;
-  flex_item: { name: string | null } | null;
+  flex_item: { name: string | null; separate_container: boolean } | null;
 };
-const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>>();
+const flexByMember = new Map<string, Array<{ name: string | null; qty: number; separate: boolean }>>();
 {
   const memberIds = Array.from(new Set(cycle.members.map((m) => m.id)));
   if (memberIds.length > 0) {
@@ -514,7 +520,7 @@ const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>
     // refunded are excluded (you don't pack those).
     const { data, error } = await supabase
       .from('flex_orders')
-      .select('member_id, qty, flex_item:flex_inventory ( name )')
+      .select('member_id, qty, flex_item:flex_inventory ( name, separate_container )')
       .eq('cycle_code', 'WEEKLY')
       .eq('week_starting', week_starting)
       .in('status', ['pending', 'locked', 'fulfilled'])
@@ -523,7 +529,13 @@ const flexByMember = new Map<string, Array<{ name: string | null; qty: number }>
     if (!error) {
       for (const r of (data ?? []) as FlexLineRow[]) {
         const arr = flexByMember.get(r.member_id) ?? [];
-        arr.push({ name: r.flex_item?.name ?? null, qty: r.qty });
+        arr.push({
+          name: r.flex_item?.name ?? null,
+          qty: r.qty,
+          // separate_container (migration 20260907142000): each unit is its own
+          // physical box/flat and prints its own "1 of N" label cell below.
+          separate: r.flex_item?.separate_container === true,
+        });
         flexByMember.set(r.member_id, arr);
       }
     }
@@ -697,7 +709,7 @@ for (const stop of stopsOrdered) {
 
     // Flex lines: union across the box primary + add-on rows (flex sits on a
     // member row). Flower labels never carry flex.
-    const flexLinesAll: Array<{ name: string | null; qty: number }> = [];
+    const flexLinesAll: Array<{ name: string | null; qty: number; separate: boolean }> = [];
     if (boxPrimary) {
       for (const m of [boxPrimary, ...addons]) {
         const lines = flexByMember.get(m.id);
@@ -725,6 +737,27 @@ for (const stop of stopsOrdered) {
         kind: 'box',
         hasFlower: flowerRows.length > 0,
       });
+
+      // 1b) PER-CONTAINER cells (Todd 2026-09-07): one extra label per physical
+      // unit of a separate_container flex item, right behind the box label.
+      for (const line of flexLines) {
+        if (!line.separate) continue;
+        const units = Math.max(0, Math.round(line.qty));
+        for (let seq = 1; seq <= units; seq++) {
+          labels.push({
+            member: boxPrimary,
+            stop,
+            distDate: distDateForStop(stop),
+            composition: null,
+            addonChips: [],
+            flexLines: [],
+            owes: false, // the payment flag lives on the box label, once
+            kind: 'box',
+            hasFlower: false,
+            container: { item: line.name ?? 'Special', seq, of: units },
+          });
+        }
+      }
     }
 
     // 2) A SEPARATE flower label for EACH flower share (Todd 2026-06-23). When
@@ -1131,13 +1164,19 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                         ) : null;
                       })()}
                     </div>
+                    {label.container && (
+                      <div class="label-container-line">
+                        <span class="label-container-item">{label.container.item}</span>
+                        <span class="label-container-seq">{label.container.seq} of {label.container.of}</span>
+                      </div>
+                    )}
                     {label.flexBouquetQty && label.flexBouquetQty > 0 && (
                       <div class="label-flower-note">💐 FLEX BOUQUET{label.flexBouquetQty > 1 ? ` ×${label.flexBouquetQty}` : ''} — Tiny Seed Fleurs (made to order)</div>
                     )}
                     {label.kind === 'box' && label.hasFlower && (
                       <div class="label-flower-note">{t.alsoFlower}</div>
                     )}
-                    {label.kind !== 'flower' && (makeupsByCustomer.get(label.member.customer_id)?.length ?? 0) > 0 && (
+                    {label.kind !== 'flower' && !label.container && (makeupsByCustomer.get(label.member.customer_id)?.length ?? 0) > 0 && (
                       <div class="label-makeup">
                         <div class="label-makeup-hdr">{t.makeupHdr}</div>
                         {makeupsByCustomer.get(label.member.customer_id)!.map((m) => (
@@ -1302,6 +1341,13 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
   /* "Also gets Flower CSA" note on a veg/flex box label — the flowers print on
      their OWN separate label; this tells the packer/host the customer also has
      a flower share so it isn't forgotten (Todd 2026-06-23). */
+  .label-container-line {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 6px; margin-top: 4px; padding: 6px 8px; border: 2px solid #166534;
+    border-radius: 6px; background: #f0fdf4;
+  }
+  .label-container-item { font-size: 15px; font-weight: 800; color: #14532d; }
+  .label-container-seq { font-size: 20px; font-weight: 900; color: #14532d; white-space: nowrap; }
   .label-flower-note {
     font-size: 9.5pt;
     font-weight: 700;

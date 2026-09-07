@@ -250,7 +250,7 @@ export async function disconnect(): Promise<void> {
  */
 export async function qbApi<T = unknown>(
   path: string,
-  init: { method?: string; body?: unknown } = {}
+  init: { method?: string; body?: unknown; contentType?: string } = {}
 ): Promise<T> {
   const token = await getAccessToken();
   const realmId = await readSetting(KEYS.realm);
@@ -260,7 +260,15 @@ export async function qbApi<T = unknown>(
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      // `contentType` covers the odd Intuit endpoints that demand a
+      // Content-Type on a BODYLESS POST — /invoice/{id}/send wants
+      // application/octet-stream (verified against production 2026-09-05,
+      // 10+ sends; without it the call can 400).
+      ...(init.body
+        ? { 'Content-Type': 'application/json' }
+        : init.contentType
+          ? { 'Content-Type': init.contentType }
+          : {}),
     },
     body: init.body ? JSON.stringify(init.body) : undefined,
   });
@@ -510,9 +518,13 @@ export interface CreatedInvoice {
  * invoice. Amounts are computed qty × unitPrice.
  * Returns the new invoice's Id, DocNumber, and total.
  *
- * This CREATES the invoice only. It never emails or "sends" it — there is no
- * /invoice/{id}/send call in this module, deliberately: Todd reviews and sends
- * every invoice from QuickBooks himself.
+ * This CREATES the invoice only — sending is a SEPARATE, deliberate call to
+ * sendInvoice() below. (History: until 2026-09-07 this module deliberately had
+ * no send capability at all — Todd emailed every invoice from QuickBooks by
+ * hand. Todd's 9/7 directive: "when the delivery is made, I want the invoice
+ * to automatically send out via QuickBooks." The deliver endpoint now calls
+ * sendInvoice() right after createInvoice(), gated on the account's
+ * auto_send_invoice flag.)
  */
 export async function createInvoice(input: CreateInvoiceInput): Promise<CreatedInvoice> {
   const customerId = input.customerId ?? (await findOrCreateCustomer(input.customerName));
@@ -542,6 +554,26 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<CreatedI
     { method: 'POST', body }
   );
   return { id: res.Invoice.Id, docNumber: res.Invoice.DocNumber, total: res.Invoice.TotalAmt };
+}
+
+/**
+ * Email an existing invoice via QuickBooks' own delivery (their template, with
+ * the online pay button). `sendTo` may be a single address or comma-separated
+ * list. Returns the resulting EmailStatus ('EmailSent' on success).
+ *
+ * Fire this IMMEDIATELY after createInvoice — never from a later background
+ * job. QuickBooks-side automation can mutate an invoice after creation (the
+ * 2026-09-04 late-fee incident drifted 51 totals overnight), and the number a
+ * customer receives must be the number the pack crew confirmed.
+ * (Todd-approved auto-send, 2026-09-07. Research: even Local Line keeps send
+ * as one deliberate, visible action — ours is the driver's Delivered tap.)
+ */
+export async function sendInvoice(invoiceId: string, sendTo: string): Promise<string> {
+  const res = await qbApi<{ Invoice?: { EmailStatus?: string } }>(
+    `/invoice/${encodeURIComponent(invoiceId)}/send?sendTo=${encodeURIComponent(sendTo)}&minorversion=${QB_MINOR}`,
+    { method: 'POST', contentType: 'application/octet-stream' }
+  );
+  return res.Invoice?.EmailStatus ?? 'Unknown';
 }
 
 /* ── Accounting: vendors, bills, purchases ────────────────────────────────

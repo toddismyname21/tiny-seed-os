@@ -55,6 +55,7 @@ import {
   findCustomerByName,
   getConnection,
   resolveItemId,
+  sendInvoice,
   type InvoiceLineInput,
 } from '../../../../lib/quickbooks';
 import { supabaseAdmin } from '../../../../lib/supabase';
@@ -298,14 +299,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // kept ONLY as the fallback for an account nobody has mapped yet.
   let restaurantName = '';
   let mappedCustomerId: string | null = null;
+  let autoSend = false;
+  let accountEmail = '';
   if (order.account_id) {
     const { data: acct } = await supabaseAdmin
       .from('wholesale_accounts')
-      .select('restaurant_name, qbo_customer_id')
+      .select('restaurant_name, qbo_customer_id, auto_send_invoice, email')
       .eq('id', order.account_id)
-      .maybeSingle<{ restaurant_name: string; qbo_customer_id: string | null }>();
+      .maybeSingle<{
+        restaurant_name: string;
+        qbo_customer_id: string | null;
+        auto_send_invoice: boolean | null;
+        email: string | null;
+      }>();
     restaurantName = (acct?.restaurant_name ?? '').trim();
     mappedCustomerId = (acct?.qbo_customer_id ?? '').trim() || null;
+    autoSend = acct?.auto_send_invoice === true;
+    accountEmail = (acct?.email ?? '').trim();
   }
   if (!restaurantName) {
     return json({
@@ -416,6 +426,62 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
+  // ── 5) AUTO-SEND (Todd-approved 2026-09-07): email the invoice NOW, in the
+  // same action, via QuickBooks' own template + pay button. Gated per account
+  // (auto_send_invoice) — Harvie/PO-flow accounts stay manual. Send happens
+  // immediately after creation so nothing (late-fee automation, edits) can
+  // change the total between what the crew confirmed and what the chef sees.
+  // FAIL-SOFT: a send failure never un-delivers or un-invoices anything.
+  let sent = false;
+  let sentTo = '';
+  let sendError: string | null = null;
+  if (autoSend) {
+    // Billing recipients: contacts flagged receives_invoices, else the
+    // account's own email. No recipient = create-only, surfaced in response.
+    const recipients: string[] = [];
+    if (order.account_id) {
+      const { data: contactRows } = await supabaseAdmin
+        .from('wholesale_account_contacts')
+        .select('email, receives_invoices')
+        .eq('account_id', order.account_id);
+      for (const c of contactRows ?? []) {
+        const e = (c.email ?? '').trim();
+        if (c.receives_invoices && e && !recipients.includes(e)) recipients.push(e);
+      }
+    }
+    if (recipients.length === 0 && accountEmail) recipients.push(accountEmail);
+
+    if (recipients.length === 0) {
+      sendError = 'no_billing_email';
+    } else {
+      sentTo = recipients.join(',');
+      try {
+        const status = await sendInvoice(invoice.id, sentTo);
+        sent = status === 'EmailSent';
+        if (!sent) sendError = `email_status_${status}`;
+      } catch (e) {
+        sendError = (e instanceof Error ? e.message : String(e)).slice(0, 200);
+        console.error(`[wholesale/deliver] invoice ${invoice.number} created but auto-send failed:`, sendError);
+      }
+      // Audit row either way — auto-sent money mail must be traceable.
+      const { error: logErr } = await supabaseAdmin.from('notification_log').insert({
+        channel: 'email',
+        notification_type: 'wholesale_invoice_autosent',
+        recipient: sentTo || '(none)',
+        status: sent ? 'sent' : 'failed',
+        provider: 'quickbooks',
+        subject: `Invoice ${invoice.number} — ${restaurantName}`,
+        metadata: {
+          order_id,
+          invoice_number: invoice.number,
+          total: invoice.total,
+          error: sendError,
+        },
+      });
+      if (logErr) console.error('[wholesale/deliver] notification_log insert failed:', logErr.message);
+    }
+  }
+
   return json({
     ...base,
     invoiced: true,
@@ -431,5 +497,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     },
     invoiced_at: invoicedAt,
     not_delivered: notDelivered,
+    // Send outcome — the pack/deliver UI shows this so nobody wonders whether
+    // the chef got billed (Local Line pattern: send status always visible).
+    sent,
+    sent_to: sent ? sentTo : null,
+    send_skipped: !autoSend ? 'auto_send_off' : null,
+    send_error: sendError,
   });
 };
