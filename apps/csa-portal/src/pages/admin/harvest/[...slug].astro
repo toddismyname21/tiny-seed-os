@@ -266,6 +266,17 @@ for (const o of wholesaleOrderRows ?? []) {
 const wholesaleRows = Array.from(wholesaleMap.values())
   .filter((r) => r.qty > 0)
   .sort((a, b) => b.qty - a.qty || a.product.localeCompare(b.product));
+
+/** "Bok Choy (12-count case)" × 5 → 60 individual pieces. Detects an N-count
+ * pack size in the product name or unit ("12-count", "12 ct", "24ct") and
+ * returns N so case rows can ALSO show the exploded each-count — the crew
+ * picks heads, not cases. (Todd, 2026-09-07: "break down 12ct x 5 to an
+ * additional 60".) Returns null when there is no count in the name/unit. */
+function packCountOf(product: string, unit: string): number | null {
+  const m = /(\d+)\s*[- ]?(?:count|ct)\b/i.exec(`${product} ${unit}`);
+  const n = m ? Number(m[1]) : NaN;
+  return Number.isFinite(n) && n > 1 ? n : null;
+}
 // Which delivery day this tab represents for wholesale (note copy).
 const wholesaleDayLabel = dayTab === 'mon' ? 'Wed' : 'Fri/Sat';
 
@@ -359,7 +370,13 @@ function bumpCombined(name: string, chan: Chan, qty: number, unit: string, photo
 }
 for (const r of rows) bumpCombined(r.crop, 'box', r.box_qty, r.unit, boxCropPhoto(r.crop));
 for (const r of flexRows) bumpCombined(r.name, 'flex', r.qty, 'ea', r.photo);
-for (const r of wholesaleRows) bumpCombined(r.product, 'wholesale', r.qty, r.unit, r.photo);
+for (const r of wholesaleRows) {
+  // Case packs fold into the combined pick as EACHES (5×12-ct = 60 ea), so a
+  // crop's demand line agrees with what the crew actually cuts. Without this,
+  // bok choy demand read "85" (80 box ea + 5 cases) instead of 140 heads.
+  const packN = packCountOf(r.product, r.unit);
+  bumpCombined(r.product, 'wholesale', packN ? r.qty * packN : r.qty, packN ? 'ea' : r.unit, r.photo);
+}
 for (const g of marketGroups) for (const it of g.items) bumpCombined(it.name, 'market', Number(it.planned_qty) || 0, it.unit, it.photo);
 const combinedRows = Array.from(combinedMap.values()).sort((a, b) => b.demand - a.demand || a.crop.localeCompare(b.crop));
 const combinedChannelCount = (r: CombinedRow) => [r.box, r.flex, r.wholesale, r.market].filter(Boolean).length;
@@ -707,7 +724,14 @@ function makeupTag(n: NoticeWithMember): { text: string; overdue: boolean } {
                     <span>{row.product}</span>
                   </span>
                 </td>
-                <td class="px-5 py-3 text-right text-base font-bold tabular-nums text-ts-text">{row.qty.toLocaleString()}</td>
+                <td class="px-5 py-3 text-right text-base font-bold tabular-nums text-ts-text">
+                  {row.qty.toLocaleString()}
+                  {packCountOf(row.product, row.unit) !== null && (
+                    <span class="block text-xs font-bold text-ts-primary">
+                      = {(row.qty * packCountOf(row.product, row.unit)!).toLocaleString()} ea
+                    </span>
+                  )}
+                </td>
                 <td class="px-5 py-3 text-sm text-ts-text-secondary">{row.unit}</td>
               </tr>
             ))}
