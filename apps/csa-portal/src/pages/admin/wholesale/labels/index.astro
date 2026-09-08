@@ -94,12 +94,12 @@ function truckTagForAccount(accountId: string | null): string | null {
 }
 
 const orderIds = orders.map((o) => o.id);
-type Item = { order_id: string; product_name: string | null; qty: number | null; product: { unit: string | null } | null };
+type Item = { order_id: string; product_name: string | null; qty: number | null; unit: string | null; product: { unit: string | null } | null };
 let items: Item[] = [];
 if (orderIds.length) {
   const { data: r } = await supabaseAdmin
     .from('wholesale_order_items')
-    .select('order_id, product_name, qty, product:wholesale_products ( unit )')
+    .select('order_id, product_name, qty, unit, product:wholesale_products ( unit )')
     .in('order_id', orderIds);
   items = (r ?? []) as Item[];
 }
@@ -118,7 +118,7 @@ const labels: WLabel[] = orders
       name: acct?.restaurant_name ?? '(no account)',
       phone: acct?.phone ?? null,
       truckTag: truckTagForAccount(o.account_id),
-      items: (itemsByOrder.get(o.id) ?? []).map((it) => ({ qty: it.qty, name: it.product_name, unit: it.product?.unit ?? null })),
+      items: (itemsByOrder.get(o.id) ?? []).map((it) => ({ qty: it.qty, name: it.product_name, unit: it.unit ?? it.product?.unit ?? null })),
     };
   })
   .filter((l) => l.items.length)
@@ -146,7 +146,9 @@ const itemLabels: ILabel[] = orders
       truckTag,
       qty: it.qty,
       product: it.product_name,
-      unit: it.product?.unit ?? null,
+      // Line's own unit first (import/script-entered lines have no product
+      // link); product-join unit as fallback (2026-09-08 unitless-label fix).
+      unit: it.unit ?? it.product?.unit ?? null,
     }));
   })
   .sort((a, b) => {

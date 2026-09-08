@@ -216,7 +216,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const productIds = [...new Set(addItems.map((a) => a.product_id))];
     const { data: prodRows, error: prodErr } = await supabaseAdmin
       .from('wholesale_products')
-      .select('id, name, price_cents, is_active')
+      .select('id, name, price_cents, is_active, unit')
       .in('id', productIds);
     if (prodErr) {
       console.error('[wholesale/pack] product fetch failed:', prodErr.message);
@@ -252,9 +252,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const cents = Math.round(Number(p.price_cents) * a.qty);
       return {
         order_id,
+        product_id: p.id,
         product_name: p.name,
         qty: a.qty,
         qty_packed: a.qty,
+        unit: (p as { unit?: string | null }).unit ?? null,
         unit_price_cents: Number(p.price_cents),
         line_total_cents: cents,
       };
