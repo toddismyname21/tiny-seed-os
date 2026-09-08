@@ -507,6 +507,7 @@ function distDateForStop(stop: StopTotals): string {
 type FlexLineRow = {
   member_id: string;
   qty: number;
+  fulfilled_at: string | null;
   flex_item: { name: string | null; separate_container: boolean } | null;
 };
 const flexByMember = new Map<string, Array<{ name: string | null; qty: number; separate: boolean }>>();
@@ -520,14 +521,20 @@ const flexByMember = new Map<string, Array<{ name: string | null; qty: number; s
     // refunded are excluded (you don't pack those).
     const { data, error } = await supabase
       .from('flex_orders')
-      .select('member_id, qty, flex_item:flex_inventory ( name, separate_container )')
+      .select('member_id, qty, fulfilled_at, flex_item:flex_inventory ( name, separate_container )')
       .eq('cycle_code', 'WEEKLY')
       .eq('week_starting', week_starting)
       .in('status', ['pending', 'locked', 'fulfilled'])
       .in('member_id', memberIds)
       .overrideTypes<FlexLineRow[], { merge: false }>();
     if (!error) {
+      // PRE-DELIVERED orders drop off the print run: an order fulfilled on a
+      // PREVIOUS calendar day already left the farm (Jeanie's farm-pickup cash
+      // flats, 2026-09-08 — printing them again would pack them twice).
+      // Same-day fulfillments still print so mid-pack labels stay consistent.
+      const todayYMD = new Date().toISOString().slice(0, 10);
       for (const r of (data ?? []) as FlexLineRow[]) {
+        if (r.fulfilled_at && r.fulfilled_at.slice(0, 10) < todayYMD) continue;
         const arr = flexByMember.get(r.member_id) ?? [];
         arr.push({
           name: r.flex_item?.name ?? null,

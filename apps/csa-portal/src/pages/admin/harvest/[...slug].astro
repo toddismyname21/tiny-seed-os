@@ -128,6 +128,7 @@ for (const m of allReceiving) memberHarvestDay.set(m.id, harvestTabFor(m));
 interface FlexOrderRow {
   member_id: string;
   qty: number;
+  fulfilled_at: string | null;
   flex_inventory: {
     name: string | null;
     photo_url: string | null;
@@ -138,7 +139,7 @@ interface FlexOrderRow {
 const { data: flexOrderRows, error: flexOrderErr } = await supabase
   .from('flex_orders')
   .select(
-    'member_id, qty, ' +
+    'member_id, qty, fulfilled_at, ' +
     'flex_inventory:flex_inventory ( name, photo_url, category, library:product_library ( photo_url ) )',
   )
   .eq('cycle_code', 'WEEKLY')
@@ -154,7 +155,11 @@ if (flexOrderErr) {
 // not a crop to pick.
 interface FlexAggRow { qty: number; photo: string | null; category: string | null; }
 const flexMap = new Map<string, FlexAggRow>();
+const _todayYMD = new Date().toISOString().slice(0, 10);
 for (const fo of flexOrderRows ?? []) {
+  // Pre-delivered (fulfilled on an earlier day) = already left the farm;
+  // don't harvest it again (mirror of the labels-page rule, 2026-09-08).
+  if (fo.fulfilled_at && fo.fulfilled_at.slice(0, 10) < _todayYMD) continue;
   if (memberHarvestDay.get(fo.member_id) !== dayTab) continue;
   const name = fo.flex_inventory?.name?.trim();
   if (!name) continue;
