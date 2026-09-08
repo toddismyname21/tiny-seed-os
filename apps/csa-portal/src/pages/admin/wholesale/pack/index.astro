@@ -1033,7 +1033,7 @@ const pretty = prettyDeliveryDate(deliveryDate);
         const pv = data.invoice_preview;
         const pvText = pv
           ? ` · Invoice will be $${(pv.total_cents / 100).toFixed(2)}` +
-            (pv.unpriced_lines > 0 ? ` (⚠ ${pv.unpriced_lines} unpriced line(s) excluded)` : '')
+            (pv.unpriced_lines > 0 ? ` (⚠ ${pv.unpriced_lines} unpriced line(s) — Delivered will REFUSE to invoice until priced)` : '')
           : '';
         summary.textContent =
           (missed === 0

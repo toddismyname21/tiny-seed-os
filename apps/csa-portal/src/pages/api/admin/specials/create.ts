@@ -223,6 +223,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
         reason: `Special: ${name} ×${m.qty} — week of ${week_starting}`,
         order_id: `special:${itemId}:${m.member_id}`,
       });
+      // Paid orders move to 'locked' — still packable (labels/pack read
+      // pending|locked|fulfilled) but OUT of the pending pool the flex-debit
+      // backfill sweeps, so a later backfill run can never double-charge.
+      await supabaseAdmin
+        .from('flex_orders')
+        .update({ status: 'locked' })
+        .eq('member_id', m.member_id)
+        .eq('flex_item_id', itemId);
       if (jErr) {
         // Money moved but the ledger write failed — LOUD, this is the one
         // outcome that must never pass silently (money canon).
