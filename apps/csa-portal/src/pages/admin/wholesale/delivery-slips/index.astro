@@ -1,0 +1,186 @@
+---
+/**
+ * /admin/wholesale/delivery-slips?date=YYYY-MM-DD — chef-facing DELIVERY SLIPS.
+ *
+ * One printable slip per restaurant for a delivery date, riding in the box so
+ * the chef sees EXACTLY what we brought (requested by a chef via Todd,
+ * 2026-09-08). Research note: Local Food Marketplace ships pick list → pack
+ * list → delivery sheet from one order record; this is our delivery sheet.
+ *
+ * TRUTH RULES:
+ *  - Quantities are qty_packed when set (what actually went in the box),
+ *    else qty (pre-pack print). A 0/NULL-packed line prints in a "not
+ *    available today" section — chefs told us surprises cost trust; naming
+ *    the short beats hiding it.
+ *  - Prices and totals mirror deliver.ts's invoice math EXACTLY (billable =
+ *    qty_packed × unit_price) so the slip never disagrees with the invoice.
+ *  - Print AFTER packing (FULLY PACKED) for final slips; printing before pack
+ *    marks the slip "PRELIMINARY — quantities may change at pack".
+ *
+ * Print: one slip per page (page-break-after), Letter portrait.
+ */
+import AdminShell from '../../../../components/AdminShell.astro';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import { currentDeliveryWednesday, prettyDeliveryDate, isYMD } from '../../../../lib/wholesale-order';
+
+const url = Astro.url;
+const dateParam = url.searchParams.get('date') ?? '';
+const deliveryDate = isYMD(dateParam) ? dateParam : currentDeliveryWednesday();
+
+const REAL_STATUSES = ['submitted', 'confirmed', 'packed', 'delivered'] as const;
+type OrderRow = {
+  id: string;
+  account_id: string | null;
+  status: string;
+  packed_at: string | null;
+  account: { restaurant_name: string; contact_name: string | null } | null;
+  items: Array<{
+    id: string;
+    product_name: string | null;
+    qty: number | null;
+    qty_packed: number | null;
+    unit_price_cents: number | null;
+    product: { unit: string | null } | null;
+  }> | null;
+};
+const { data: orderRows } = await supabaseAdmin
+  .from('wholesale_orders')
+  .select(
+    'id, account_id, status, packed_at, account:wholesale_accounts ( restaurant_name, contact_name ), ' +
+      'items:wholesale_order_items ( id, product_name, qty, qty_packed, unit_price_cents, product:wholesale_products ( unit ) )',
+  )
+  .eq('delivery_date', deliveryDate)
+  .in('status', [...REAL_STATUSES])
+  .overrideTypes<OrderRow[], { merge: false }>();
+
+interface SlipLine {
+  name: string;
+  qty: number;
+  unit: string;
+  unitPrice: number | null;
+  lineTotal: number;
+}
+interface Slip {
+  restaurant: string;
+  packed: boolean;
+  lines: SlipLine[];
+  shorts: Array<{ name: string; ordered: number }>;
+  total: number;
+}
+const slips: Slip[] = [];
+for (const o of orderRows ?? []) {
+  const restaurant = o.account?.restaurant_name?.trim() || '(no account)';
+  const packed = !!o.packed_at;
+  const lines: SlipLine[] = [];
+  const shorts: Slip['shorts'] = [];
+  let total = 0;
+  for (const it of o.items ?? []) {
+    const name = (it.product_name ?? 'Item').trim();
+    const ordered = Number(it.qty) || 0;
+    // Same rule as the invoice: packed wins when the order is packed; a
+    // pre-pack slip shows ordered quantities and says PRELIMINARY.
+    const eff = packed ? Number(it.qty_packed) || 0 : ordered;
+    if (packed && eff <= 0) {
+      if (ordered > 0) shorts.push({ name, ordered });
+      continue;
+    }
+    if (eff <= 0) continue;
+    const up = Number.isFinite(Number(it.unit_price_cents)) ? Number(it.unit_price_cents) / 100 : null;
+    const lt = up != null ? Math.round(eff * up * 100) / 100 : 0;
+    total += lt;
+    lines.push({ name, qty: eff, unit: it.product?.unit?.trim() || '', unitPrice: up, lineTotal: lt });
+  }
+  if (lines.length === 0 && shorts.length === 0) continue;
+  lines.sort((a, b) => b.lineTotal - a.lineTotal || a.name.localeCompare(b.name));
+  slips.push({ restaurant, packed, lines, shorts, total: Math.round(total * 100) / 100 });
+}
+slips.sort((a, b) => a.restaurant.localeCompare(b.restaurant));
+
+const money = (n: number) => '$' + n.toFixed(2);
+const qtyText = (n: number) => String(Number(n)).replace(/\.0+$/, '');
+const pretty = prettyDeliveryDate(deliveryDate);
+---
+
+<AdminShell title="Delivery slips" subtitle={`${pretty} · ${slips.length} restaurant(s) · one slip per page — print after FULLY PACKED`}>
+  <div class="no-print" style="margin-bottom:1rem">
+    <form method="get">
+      <label>Delivery date <input type="date" name="date" value={deliveryDate} /></label>
+      <button type="submit">Load</button>
+      <button type="button" onclick="window.print()" style="font-weight:700">🖨 Print all slips</button>
+    </form>
+    <p style="color:#6b7280;font-size:0.9rem">
+      Slips show what was PACKED (the same numbers the invoice bills). Orders not
+      yet packed print as PRELIMINARY.
+    </p>
+  </div>
+
+  {slips.length === 0 && <p>No orders for {pretty}.</p>}
+
+  {slips.map((s) => (
+    <section class="slip">
+      <header class="slip-head">
+        <div>
+          <div class="slip-farm">TINY SEED FARM</div>
+          <div class="slip-sub">Certified Organic · Rochester, PA · 717-725-5177</div>
+        </div>
+        <div class="slip-title">
+          <div class="slip-kind">DELIVERY SLIP{s.packed ? '' : ' — PRELIMINARY'}</div>
+          <div class="slip-date">{pretty}</div>
+        </div>
+      </header>
+      <h2 class="slip-restaurant">{s.restaurant}</h2>
+      <table class="slip-table">
+        <thead>
+          <tr><th>Item</th><th class="num">Qty</th><th>Unit</th><th class="num">Price</th><th class="num">Total</th></tr>
+        </thead>
+        <tbody>
+          {s.lines.map((l) => (
+            <tr>
+              <td>{l.name}</td>
+              <td class="num">{qtyText(l.qty)}</td>
+              <td>{l.unit}</td>
+              <td class="num">{l.unitPrice != null ? money(l.unitPrice) : '—'}</td>
+              <td class="num">{money(l.lineTotal)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="4" class="num total-label">TOTAL</td><td class="num total">{money(s.total)}</td></tr>
+        </tfoot>
+      </table>
+      {s.shorts.length > 0 && (
+        <div class="slip-shorts">
+          <strong>Not available today (not billed):</strong>{' '}
+          {s.shorts.map((sh) => `${sh.name} (ordered ${qtyText(sh.ordered)})`).join(' · ')}
+        </div>
+      )}
+      <footer class="slip-foot">
+        Please check this against your delivery — anything off, text Todd at 717-725-5177 and we'll make it right.
+        Invoice arrives by email from QuickBooks. Thank you for supporting the farm!
+      </footer>
+    </section>
+  ))}
+</AdminShell>
+
+<style>
+  .slip { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; max-width: 46rem; }
+  .slip-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #166534; padding-bottom: 0.6rem; }
+  .slip-farm { font-size: 1.3rem; font-weight: 900; letter-spacing: 0.03em; color: #166534; }
+  .slip-sub { font-size: 0.8rem; color: #6b7280; }
+  .slip-title { text-align: right; }
+  .slip-kind { font-weight: 800; font-size: 0.95rem; }
+  .slip-date { color: #374151; }
+  .slip-restaurant { font-size: 1.5rem; font-weight: 800; margin: 0.75rem 0 0.5rem; }
+  .slip-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .slip-table th { text-align: left; border-bottom: 2px solid #d1d5db; padding: 0.3rem 0.4rem; font-size: 0.8rem; text-transform: uppercase; color: #6b7280; }
+  .slip-table td { border-bottom: 1px solid #f1f5f9; padding: 0.35rem 0.4rem; }
+  .slip-table .num { text-align: right; }
+  .total-label { font-weight: 700; }
+  .total { font-weight: 900; font-size: 1.1rem; }
+  .slip-shorts { margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: #fef3c7; border-radius: 8px; font-size: 0.9rem; }
+  .slip-foot { margin-top: 1rem; font-size: 0.85rem; color: #4b5563; border-top: 1px solid #e5e7eb; padding-top: 0.6rem; }
+  @media print {
+    .no-print { display: none !important; }
+    .slip { border: 0; border-radius: 0; page-break-after: always; margin: 0; max-width: none; }
+  }
+</style>
