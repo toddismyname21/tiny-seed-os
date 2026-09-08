@@ -707,14 +707,16 @@ for (const stop of stopsOrdered) {
       (m) => !!(m.payment_status && m.payment_status.trim().toLowerCase() !== 'paid'),
     );
 
-    // Flex lines: union across the box primary + add-on rows (flex sits on a
-    // member row). Flower labels never carry flex.
+    // Flex lines: union across ALL the customer's rows — box, add-ons, AND
+    // flower (flex sits on a member row; a flower subscriber can buy flex items
+    // too — Len Northrop's bok choy, 2026-09-08, was invisible under the old
+    // box-only union). Displayed on the box label when one exists, else on the
+    // customer's (first) flower label — mirroring how add-ons already ride the
+    // flower label for flower-only customers.
     const flexLinesAll: Array<{ name: string | null; qty: number; separate: boolean }> = [];
-    if (boxPrimary) {
-      for (const m of [boxPrimary, ...addons]) {
-        const lines = flexByMember.get(m.id);
-        if (lines) flexLinesAll.push(...lines);
-      }
+    for (const m of [...(boxPrimary ? [boxPrimary] : []), ...addons, ...flowerRows]) {
+      const lines = flexByMember.get(m.id);
+      if (lines) flexLinesAll.push(...lines);
     }
     // 💐 Flex-market bouquets are MADE by the flower crew and get their own
     // label below — but they STAY on the box label's flex checklist too, so
@@ -764,18 +766,44 @@ for (const stop of stopsOrdered) {
     //    the customer has NO box (flower-only), their add-ons ride the flower
     //    label so an add-on never drops; otherwise the flower label is JUST
     //    flowers (clean — no box contents, no flex).
-    for (const fr of flowerRows) {
+    for (const [fi, fr] of flowerRows.entries()) {
+      // Flower-ONLY customers: their flex items ride the FIRST flower label
+      // (there is no box label to carry them — Len Northrop's bok choy case,
+      // 2026-09-08: "make sure it gets a sticker for a box" — Todd). Bouquets
+      // are excluded (they get their own label below, as always).
+      const carriesFlex = !boxPrimary && fi === 0;
+      const flowerFlex = carriesFlex ? flexLines.filter((l) => !isBouquetLine(l)) : [];
       labels.push({
         member: fr,
         stop,
         distDate: distDateForStop(stop),
         composition: null,
         addonChips: boxPrimary ? [] : buildAddonChips(addons),
-        flexLines: [],
+        flexLines: flowerFlex,
         owes,
         kind: 'flower',
         hasFlower: false,
       });
+      // Per-container cells for flower-only customers' separate-container
+      // specials — same rule as behind a box label.
+      for (const line of flowerFlex) {
+        if (!line.separate) continue;
+        const units = Math.max(0, Math.round(line.qty));
+        for (let seq = 1; seq <= units; seq++) {
+          labels.push({
+            member: fr,
+            stop,
+            distDate: distDateForStop(stop),
+            composition: null,
+            addonChips: [],
+            flexLines: [],
+            owes: false,
+            kind: 'flower',
+            hasFlower: false,
+            container: { item: line.name ?? 'Special', seq, of: units },
+          });
+        }
+      }
     }
 
     // 3) 💐 A separate label for a FLEX-MARKET bouquet (made to order by the
