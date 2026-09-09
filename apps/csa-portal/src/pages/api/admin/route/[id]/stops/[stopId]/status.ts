@@ -30,6 +30,7 @@
 import type { APIRoute } from 'astro';
 import { requireAdmin } from '../../../../../../../lib/admin';
 import { isSameOriginPost, PORTAL_ORIGIN } from '../../../../../../../lib/onboarding';
+import { deliverWholesaleStop } from '../../../../../../../lib/wholesale-deliver';
 import type { Database } from '../../../../../../../lib/database.types';
 
 export const prerender = false;
@@ -119,10 +120,11 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     status: 'pending' | 'out_for_delivery' | 'arrived' | 'completed' | 'exception';
     arrived_at: string | null;
     completed_at: string | null;
+    wholesale_customer_id: string | null;
   };
   const { data: stop, error: sErr } = await supabase
     .from('delivery_stops')
-    .select('id, route_id, status, arrived_at, completed_at')
+    .select('id, route_id, status, arrived_at, completed_at, wholesale_customer_id')
     .eq('id', stopId)
     .maybeSingle()
     .overrideTypes<StopRow, { merge: false }>();
@@ -177,5 +179,44 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     );
   }
 
-  return jsonResponse({ ok: true, stop_id: stopId, status });
+  // ── WHOLESALE STOPS: the driver's Delivered tap IS the invoice trigger ────
+  // (Todd 2026-09-09: one tap, same screen as the CSA stops — no second page.)
+  // Deliver+invoice every packed, uninvoiced order for this restaurant on the
+  // route's date. FAIL-SOFT: the stop is already completed above; billing
+  // problems are reported, never block the driver.
+  let invoiceResults: Awaited<ReturnType<typeof deliverWholesaleStop>> = [];
+  if (status === 'completed' && stop.wholesale_customer_id) {
+    try {
+      const { data: routeRow } = await supabase
+        .from('delivery_routes')
+        .select('route_date')
+        .eq('id', routeId)
+        .maybeSingle<{ route_date: string }>();
+      if (routeRow?.route_date) {
+        invoiceResults = await deliverWholesaleStop(
+          stop.wholesale_customer_id,
+          routeRow.route_date,
+          auth.ctx.user.email ?? null,
+        );
+      }
+    } catch (e) {
+      console.error('[api/admin/route/.../status] wholesale deliver hook failed:', e instanceof Error ? e.message : e);
+    }
+  }
+
+  return jsonResponse({
+    ok: true,
+    stop_id: stopId,
+    status,
+    // Surfaced so the route UI can toast "Invoice 90001xx emailed to …".
+    wholesale_invoices: invoiceResults.map((r) => ({
+      restaurant: r.restaurant,
+      invoiced: r.result.invoiced === true,
+      invoice_number: r.result.invoice?.number ?? null,
+      sent: r.result.sent === true,
+      sent_to: r.result.sent_to ?? null,
+      error: r.result.error ?? null,
+      message: r.result.message ?? null,
+    })),
+  });
 };
