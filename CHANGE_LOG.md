@@ -6,6 +6,12 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-09-10] DECISION: migrate backend off Apps Script to Supabase — plan doc (PM_ARCHITECT)
+
+- WHY: Todd's decision — Apps Script too slow (10–15 s cold starts, Sheets-as-DB full-scans + LockService, 148k-line single-file deploys).
+- `docs/SUPABASE_MIGRATION_PLAN.md` — NEW: honest assessment (what's wrong vs. what must be preserved), strangler strategy via an action-compatible Supabase Edge Function gateway (frontends flip via one `api-config.js` line; unported actions proxy to Apps Script), phases 0–3, risks, metrics. Builds on the production Supabase already running the CSA portal (~28 tables, `apps/csa-portal`).
+- Apps Script feature work should FREEZE (critical fixes only) per plan Phase 0.
+
 ## [2026-09-10] Erosion response: rain history chart + farm journal + action plan (PM_ARCHITECT)
 
 - WHY: Sep 3 storm (~2–2.5″/hr, flash-flood warnings incl. Beaver Co.) after record-wet August (PIT 7.62″) caused rill/gully erosion on freshly tilled sloped fields. Todd needs same-day recourse, a rainfall chart, and an event journal.

@@ -7,6 +7,15 @@
 
 ---
 
+## ⚠️ MIGRATION IN PLANNING (2026-09-10)
+
+**Owner decision: the Apps Script backend is being migrated to Supabase** (extends the
+production Supabase already running `apps/csa-portal`). Apps Script feature work is
+FROZEN except critical fixes. See `docs/SUPABASE_MIGRATION_PLAN.md` before building
+anything against `MERGED TOTAL.js`.
+
+---
+
 ## AGENT COORDINATION ARCHITECTURE
 
 **Active System (2026-03-01):** Claude Code Native Agent Teams
