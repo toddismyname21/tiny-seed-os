@@ -495,6 +495,10 @@ export interface CreateInvoiceInput {
   memo?: string;
   /** Optional invoice number override (else QuickBooks auto-numbers). */
   docNumber?: string;
+  /** Optional payment-terms Term.Id (e.g. '2' = Net 15). Sets the due date so
+   *  QB's late-fee automation only fires when the invoice is ACTUALLY late —
+   *  Todd 2026-09-10: "late fees on but send the invoices out NET 15". */
+  salesTermId?: string;
   /** Optional email to set on the invoice for later sending. */
   billEmail?: string;
   /** Pre-resolved QuickBooks Customer Id. When set, NO find-or-create runs. */
@@ -548,6 +552,7 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<CreatedI
   if (input.billEmail) body.BillEmail = { Address: input.billEmail };
   if (input.txnDate) body.TxnDate = input.txnDate;
   if (input.privateNote) body.PrivateNote = input.privateNote;
+  if (input.salesTermId) body.SalesTermRef = { value: input.salesTermId };
 
   const res = await qbApi<{ Invoice: { Id: string; DocNumber: string; TotalAmt: number } }>(
     `/invoice?minorversion=${QB_MINOR}`,

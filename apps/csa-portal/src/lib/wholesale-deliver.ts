@@ -271,6 +271,9 @@ export async function deliverAndInvoice(
       customerId,
       lines,
       txnDate: order.delivery_date,
+      // Net 15 (QB Term Id 2): late fees stay armed but only fire when
+      // genuinely overdue (Todd 2026-09-10).
+      salesTermId: '2',
       ...(docNumber ? { docNumber } : {}),
       privateNote: `Tiny Seed OS — delivery ${order.delivery_date} (portal order ${orderId.slice(0, 8)})`,
     });
