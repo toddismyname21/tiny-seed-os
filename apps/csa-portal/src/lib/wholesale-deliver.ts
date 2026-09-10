@@ -29,11 +29,35 @@ import {
   createInvoice,
   findCustomerByName,
   getConnection,
+  qbApi,
   resolveItemId,
   sendInvoice,
   type InvoiceLineInput,
 } from './quickbooks';
 import { supabaseAdmin } from './supabase';
+
+/** Next DocNumber in the farm's 90000xx series (Todd 2026-09-10: "MAKE SURE
+ * THEY HAVE THE CORRECT INVOICE NUMBERS"). The company has QB custom
+ * transaction numbers OFF, so unnumbered invoices got blank DocNumbers on day
+ * one. Queries the current max of the series and returns +1. Farm-scale
+ * (single-writer) — a race would need two simultaneous deliveries and QB
+ * would still keep both invoices distinct by Id. Falls back to null (QB Id
+ * becomes the recorded number) if the lookup fails — an invoice must never
+ * be blocked by numbering. */
+async function nextDocNumber(): Promise<string | null> {
+  try {
+    const res = await qbApi<{ QueryResponse: { Invoice?: Array<{ DocNumber?: string }> } }>(
+      `/query?query=${encodeURIComponent("SELECT DocNumber FROM Invoice WHERE DocNumber LIKE '9000%' ORDERBY DocNumber DESC MAXRESULTS 1")}&minorversion=73`,
+    );
+    const top = res.QueryResponse.Invoice?.[0]?.DocNumber;
+    const n = Number(top);
+    if (Number.isFinite(n) && n >= 9000000) return String(n + 1);
+    return '9000102';
+  } catch (e) {
+    console.error('[wholesale-deliver] nextDocNumber failed:', e instanceof Error ? e.message : e);
+    return null;
+  }
+}
 
 export interface DeliverResult {
   ok: boolean;
@@ -241,11 +265,13 @@ export async function deliverAndInvoice(
         });
       }
     }
+    const docNumber = await nextDocNumber();
     const created = await createInvoice({
       customerName: restaurantName,
       customerId,
       lines,
       txnDate: order.delivery_date,
+      ...(docNumber ? { docNumber } : {}),
       privateNote: `Tiny Seed OS — delivery ${order.delivery_date} (portal order ${orderId.slice(0, 8)})`,
     });
     invoice = {
