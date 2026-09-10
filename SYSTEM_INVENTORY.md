@@ -123,6 +123,7 @@ This inventory reflects what I KNOW as of Feb 28, 2026. Items marked ✅ were ve
 | `web_app/delivery-zone-checker.html` | ~900 | Delivery zones |
 | `web_app/neighbor.html` | ~800 | Public landing page |
 | `web_app/log-commitment.html` | ~700 | SMS commitment logging |
+| `web_app/rain-history.html` | ~430 | ✅ Daily rainfall chart (Open-Meteo, FARM_LOCATION) + farm-event annotations (added 2026-09-10) |
 | `smart_learning_DTM.html` | ~600 | Days-to-maturity learning |
 | `track.html` | ~500 | GPS tracking |
 | `login.html` | ~400 | PIN authentication |
@@ -268,6 +269,7 @@ These have complete backend APIs but no dedicated UI page:
 - **P2:** 0/31 CDN scripts have SRI hashes
 - **P2:** 0/75 HTML files have CSP meta tags
 - **P3:** 5 duplicate morning brief generators
+- **P2:** `LOG_Weather` daily auto-logger stopped 2026-04-05 (verified 2026-09-10 against live sheet — last "Auto-Logged" row is 4/5/2026). No local weather data for record-wet Aug 2026. Fix: re-enable the Apps Script time-driven trigger for the weather logging function (Apps Script editor → Triggers). See FARM_JOURNAL.md.
 
 ---
 

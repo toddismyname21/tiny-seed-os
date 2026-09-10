@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rainfall History — Tiny Seed Farm</title>
+<link rel="stylesheet" href="tiny-seed-design-system.css">
+<script src="api-config.js"></script>
+<style>
+  /* Theme tokens (chart-specific, layered on the design system).
+     Bar colors are palette-validated per mode: light #2563eb/#b8863a, dark #3b82f6/#b8863a. */
+  :root, html[data-theme="dark"] {
+    --rh-surface: var(--ts-slate-900, #0f172a);
+    --rh-card: var(--ts-slate-800, #1e293b);
+    --rh-border: var(--ts-slate-700, #334155);
+    --rh-ink: var(--ts-slate-100, #f1f5f9);
+    --rh-ink-2: var(--ts-slate-400, #94a3b8);
+    --rh-grid: rgba(148,163,184,.18);
+    --rh-bar: #3b82f6;
+    --rh-bar-forecast: #b8863a;
+    --rh-event: var(--ts-red-400, #f87171);
+  }
+  html[data-theme="light"] {
+    --rh-surface: var(--ts-stone-50, #fafaf9);
+    --rh-card: #ffffff;
+    --rh-border: var(--ts-stone-200, #e7e5e4);
+    --rh-ink: var(--ts-stone-800, #292524);
+    --rh-ink-2: var(--ts-stone-500, #78716c);
+    --rh-grid: rgba(120,113,108,.18);
+    --rh-bar: #2563eb;
+    --rh-bar-forecast: #b8863a;
+    --rh-event: var(--ts-red-500, #ef4444);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--rh-surface); color: var(--rh-ink);
+    font-family: var(--ts-font-sans, -apple-system, 'Segoe UI', Roboto, sans-serif);
+    padding: 16px; padding-block: 20px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header.rh { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  h1 { font-size: 1.25rem; margin: 0; }
+  .sub { color: var(--rh-ink-2); font-size: .85rem; margin: 2px 0 16px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  .controls .grow { flex: 1; }
+  button.rh-btn {
+    background: var(--rh-card); color: var(--rh-ink); border: 1px solid var(--rh-border);
+    border-radius: 8px; padding: 6px 12px; font-size: .8rem; cursor: pointer;
+  }
+  button.rh-btn[aria-pressed="true"] { border-color: var(--rh-bar); color: var(--rh-bar); font-weight: 600; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
+  .tile { background: var(--rh-card); border: 1px solid var(--rh-border); border-radius: 12px; padding: 12px 14px; }
+  .tile .v { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tile .l { font-size: .72rem; color: var(--rh-ink-2); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+  .card { background: var(--rh-card); border: 1px solid var(--rh-border); border-radius: 12px; padding: 14px; }
+  .legend { display: flex; gap: 16px; font-size: .78rem; color: var(--rh-ink-2); margin: 0 0 8px; flex-wrap: wrap; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  #chart { width: 100%; }
+  #chartSvg { display: block; width: 100%; height: auto; }
+  #tooltip {
+    position: fixed; pointer-events: none; z-index: 50; display: none;
+    background: var(--rh-card); border: 1px solid var(--rh-border); border-radius: 8px;
+    padding: 8px 10px; font-size: .78rem; box-shadow: 0 4px 16px rgba(0,0,0,.35); max-width: 240px;
+  }
+  #tooltip .d { color: var(--rh-ink-2); }
+  #tooltip .n { font-weight: 700; font-variant-numeric: tabular-nums; }
+  #tooltip .e { color: var(--rh-event); margin-top: 3px; }
+  #status { color: var(--rh-ink-2); font-size: .85rem; padding: 24px 8px; text-align: center; }
+  #status.error { color: var(--rh-event); }
+  table.rh-table { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: 10px; }
+  .rh-table th, .rh-table td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--rh-border); font-variant-numeric: tabular-nums; }
+  .rh-table th:first-child, .rh-table td:first-child { text-align: left; }
+  .rh-table th { color: var(--rh-ink-2); font-weight: 600; }
+  .note { font-size: .72rem; color: var(--rh-ink-2); margin-top: 12px; line-height: 1.5; }
+  .tbl-wrap { overflow-x: auto; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rh">
+    <h1>🌧️ Rainfall History</h1>
+    <div class="controls">
+      <button class="rh-btn" id="themeBtn" type="button">Light mode</button>
+    </div>
+  </header>
+  <div class="sub" id="locLine">257 Zeigler Rd, Rochester, PA 15074</div>
+
+  <div class="tiles" id="tiles" hidden>
+    <div class="tile"><div class="v" id="t30"></div><div class="l">Last 30 days (in)</div></div>
+    <div class="tile"><div class="v" id="tAug"></div><div class="l">August total (in)</div></div>
+    <div class="tile"><div class="v" id="tMax"></div><div class="l" id="tMaxL">Wettest day</div></div>
+    <div class="tile"><div class="v" id="tBig"></div><div class="l">Days &ge; 1&Prime;</div></div>
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <span style="font-size:.8rem;color:var(--rh-ink-2)">Range:</span>
+      <button class="rh-btn range" data-days="31" aria-pressed="false" type="button">31 days</button>
+      <button class="rh-btn range" data-days="62" aria-pressed="true" type="button">62 days</button>
+      <button class="rh-btn range" data-days="92" aria-pressed="false" type="button">92 days</button>
+      <span class="grow"></span>
+      <button class="rh-btn" id="tableBtn" aria-pressed="false" type="button">Table view</button>
+    </div>
+    <div class="legend" id="legend" hidden>
+      <span><span class="sw" style="background:var(--rh-bar)"></span>Daily rain (inches)</span>
+      <span><span class="sw" style="background:var(--rh-bar-forecast)"></span>Forecast (next 7 days)</span>
+      <span><span class="sw" style="background:var(--rh-event)"></span>Farm event</span>
+    </div>
+    <div id="status">Loading rainfall data from Open-Meteo…</div>
+    <div id="chart" hidden></div>
+    <div id="tableView" class="tbl-wrap" hidden></div>
+  </div>
+
+  <p class="note">
+    Source: Open-Meteo (same weather service used by the Tiny Seed OS backend), for the farm
+    coordinates in <code>api-config.js</code>. Precipitation is the model-analysis value for this
+    grid cell (~7&nbsp;mi), not a farm rain gauge — local thunderstorm totals can be higher.
+    Farm events are annotated from the constant list in this page; log new events in
+    <code>FARM_JOURNAL.md</code>.
+  </p>
+</div>
+<div id="tooltip" role="tooltip"></div>
+
+<script>
+(function () {
+  'use strict';
+  // Farm events shown as annotations on the chart (date → label).
+  // Keep in sync with FARM_JOURNAL.md.
+  var FARM_EVENTS = {
+    '2026-09-03': 'Erosion event — 2″+/hr storm on freshly tilled slopes; rills & gullies formed'
+  };
+
+  var LOC = (window.TINY_SEED_API && TINY_SEED_API.FARM_LOCATION) || { lat: 40.7456, lng: -80.1610 };
+  var state = { days: 62, data: null, table: false };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function fetchRain(days) {
+    var url = 'https://api.open-meteo.com/v1/forecast'
+      + '?latitude=' + LOC.lat + '&longitude=' + LOC.lng
+      + '&daily=precipitation_sum,precipitation_hours'
+      + '&past_days=' + days + '&forecast_days=7'
+      + '&timezone=America%2FNew_York&precipitation_unit=inch';
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('Open-Meteo HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function fmtDay(iso) {
+    var p = iso.split('-');
+    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1] - 1] + ' ' + (+p[2]);
+  }
+
+  function buildRows(json) {
+    var t = json.daily.time, p = json.daily.precipitation_sum, h = json.daily.precipitation_hours;
+    var today = todayISO(), rows = [];
+    for (var i = 0; i < t.length; i++) {
+      rows.push({
+        date: t[i],
+        inches: p[i] == null ? null : Math.round(p[i] * 100) / 100,
+        hours: h && h[i] != null ? h[i] : null,
+        forecast: t[i] > today,
+        event: FARM_EVENTS[t[i]] || null
+      });
+    }
+    return rows;
+  }
+
+  function renderTiles(rows) {
+    var today = todayISO();
+    var past = rows.filter(function (r) { return !r.forecast && r.inches != null; });
+    var last30 = past.slice(-30);
+    var sum = function (a) { return a.reduce(function (s, r) { return s + r.inches; }, 0); };
+    var aug = past.filter(function (r) { return r.date.slice(0, 7) === '2026-08'; });
+    var max = past.reduce(function (m, r) { return r.inches > m.inches ? r : m; }, { inches: -1 });
+    $('t30').textContent = sum(last30).toFixed(2);
+    $('tAug').textContent = aug.length >= 28 ? sum(aug).toFixed(2) : '—';
+    $('tMax').textContent = max.inches >= 0 ? max.inches.toFixed(2) + '″' : '—';
+    $('tMaxL').textContent = max.inches >= 0 ? 'Wettest day (' + fmtDay(max.date) + ')' : 'Wettest day';
+    $('tBig').textContent = String(past.filter(function (r) { return r.inches >= 1; }).length);
+    $('tiles').hidden = false;
+  }
+
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  function renderChart(rows) {
+    var W = 920, H = 320, m = { t: 18, r: 10, b: 40, l: 40 };
+    var iw = W - m.l - m.r, ih = H - m.t - m.b;
+    var chart = $('chart');
+    chart.textContent = '';
+    var svg = el('svg', { id: 'chartSvg', viewBox: '0 0 ' + W + ' ' + H, role: 'img',
+      'aria-label': 'Daily rainfall in inches, bar chart' }, chart);
+
+    var maxV = Math.max(0.5, Math.max.apply(null, rows.map(function (r) { return r.inches || 0; })));
+    maxV = Math.ceil(maxV * 2) / 2; // round up to 0.5"
+    var y = function (v) { return m.t + ih - (v / maxV) * ih; };
+    var n = rows.length;
+    var step = iw / n;
+    var bw = Math.max(2, step - 2); // 2px gap between bars
+
+    // y grid + labels
+    for (var g = 0; g <= 4; g++) {
+      var gv = maxV * g / 4;
+      el('line', { x1: m.l, x2: W - m.r, y1: y(gv), y2: y(gv), stroke: 'var(--rh-grid)', 'stroke-width': 1 }, svg);
+      var lab = el('text', { x: m.l - 6, y: y(gv) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--rh-ink-2)' }, svg);
+      lab.textContent = gv.toFixed(1);
+    }
+    // x labels roughly weekly
+    var every = Math.ceil(n / 10);
+    rows.forEach(function (r, i) {
+      if (i % every === 0) {
+        var t = el('text', { x: m.l + i * step + step / 2, y: H - m.b + 16, 'text-anchor': 'middle',
+          'font-size': 10, fill: 'var(--rh-ink-2)' }, svg);
+        t.textContent = fmtDay(r.date);
+      }
+    });
+
+    // bars
+    rows.forEach(function (r, i) {
+      if (r.inches == null) return;
+      var bx = m.l + i * step + (step - bw) / 2;
+      var by = y(r.inches), bh = m.t + ih - by;
+      if (r.inches > 0 && bh < 2) { bh = 2; by = m.t + ih - 2; }
+      el('rect', {
+        x: bx, y: by, width: bw, height: Math.max(bh, 0), rx: Math.min(2, bw / 2),
+        fill: r.forecast ? 'var(--rh-bar-forecast)' : 'var(--rh-bar)',
+        opacity: r.forecast ? 0.85 : 1,
+        'data-i': i
+      }, svg);
+      if (r.event) {
+        var mk = el('text', { x: bx + bw / 2, y: Math.min(by, y(0)) - 6, 'text-anchor': 'middle',
+          'font-size': 12, fill: 'var(--rh-event)', 'data-i': i }, svg);
+        mk.textContent = '⚠';
+      }
+      // invisible full-height hit target for hover
+      el('rect', { x: m.l + i * step, y: m.t, width: step, height: ih, fill: 'transparent', 'data-i': i, 'class': 'hit' }, svg);
+    });
+
+    // hover tooltip
+    var tip = $('tooltip');
+    svg.addEventListener('mousemove', function (ev) {
+      var tgt = ev.target.closest ? ev.target.closest('[data-i]') : null;
+      if (!tgt) { tip.style.display = 'none'; return; }
+      var r = rows[+tgt.getAttribute('data-i')];
+      if (!r) { tip.style.display = 'none'; return; }
+      tip.textContent = '';
+      var d = document.createElement('div'); d.className = 'd';
+      d.textContent = fmtDay(r.date) + (r.forecast ? ' (forecast)' : '');
+      var v = document.createElement('div'); v.className = 'n';
+      v.textContent = (r.inches == null ? '—' : r.inches.toFixed(2) + '″')
+        + (r.hours ? ' over ' + r.hours + ' h' : '');
+      tip.appendChild(d); tip.appendChild(v);
+      if (r.event) {
+        var e = document.createElement('div'); e.className = 'e'; e.textContent = '⚠ ' + r.event;
+        tip.appendChild(e);
+      }
+      tip.style.display = 'block';
+      var tx = Math.min(ev.clientX + 14, window.innerWidth - 260);
+      tip.style.left = tx + 'px';
+      tip.style.top = (ev.clientY + 14) + 'px';
+    });
+    svg.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+    chart.hidden = false;
+    $('legend').hidden = false;
+  }
+
+  function renderTable(rows) {
+    var wrap = $('tableView');
+    wrap.textContent = '';
+    var tbl = document.createElement('table'); tbl.className = 'rh-table';
+    var thead = tbl.createTHead(); var hr = thead.insertRow();
+    ['Date', 'Rain (in)', 'Hours', 'Notes'].forEach(function (h) {
+      var th = document.createElement('th'); th.textContent = h; hr.appendChild(th);
+    });
+    var tb = tbl.createTBody();
+    rows.slice().reverse().forEach(function (r) {
+      var tr = tb.insertRow();
+      tr.insertCell().textContent = r.date + (r.forecast ? ' (fcst)' : '');
+      tr.insertCell().textContent = r.inches == null ? '—' : r.inches.toFixed(2);
+      tr.insertCell().textContent = r.hours == null ? '—' : String(r.hours);
+      tr.insertCell().textContent = r.event || '';
+    });
+    wrap.appendChild(tbl);
+  }
+
+  function load() {
+    var st = $('status');
+    st.className = ''; st.textContent = 'Loading rainfall data from Open-Meteo…';
+    st.hidden = false; $('chart').hidden = true; $('tableView').hidden = true;
+    fetchRain(state.days).then(function (json) {
+      var rows = buildRows(json);
+      state.data = rows;
+      st.hidden = true;
+      renderTiles(rows);
+      renderChart(rows);
+      renderTable(rows);
+      $('tableView').hidden = !state.table;
+      $('chart').hidden = state.table;
+    }).catch(function (err) {
+      st.className = 'error';
+      st.textContent = 'Could not load rainfall data: ' + err.message +
+        '. Check your connection and reload — this page shows real data only.';
+    });
+  }
+
+  document.querySelectorAll('.range').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.range').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+      b.setAttribute('aria-pressed', 'true');
+      state.days = +b.getAttribute('data-days');
+      load();
+    });
+  });
+
+  $('tableBtn').addEventListener('click', function () {
+    state.table = !state.table;
+    this.setAttribute('aria-pressed', String(state.table));
+    if (state.data) { $('tableView').hidden = !state.table; $('chart').hidden = state.table; }
+  });
+
+  $('themeBtn').addEventListener('click', function () {
+    var root = document.documentElement;
+    var dark = root.getAttribute('data-theme') !== 'light';
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    this.textContent = dark ? 'Dark mode' : 'Light mode';
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

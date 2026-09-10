@@ -6,6 +6,15 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-09-10] Erosion response: rain history chart + farm journal + action plan (PM_ARCHITECT)
+
+- WHY: Sep 3 storm (~2–2.5″/hr, flash-flood warnings incl. Beaver Co.) after record-wet August (PIT 7.62″) caused rill/gully erosion on freshly tilled sloped fields. Todd needs same-day recourse, a rainfall chart, and an event journal.
+- `web_app/rain-history.html` — NEW page: daily rainfall bar chart (31/62/92-day ranges + 7-day forecast) for the farm coordinates from `api-config.js` (FARM_LOCATION), fetched client-side from Open-Meteo (same source as backend + index.html/employee.html precedent). Stat tiles (30-day total, August total, wettest day, days ≥1″), farm-event annotations (Sep 3 erosion event), hover tooltips, table view, dark/light themes on design-system tokens. Duplicate check: no existing *weather*/*rain* page (Glob verified). Palette validated (dataviz validator, light+dark). No demo-data fallback — errors shown.
+- `FARM_JOURNAL.md` — NEW: farm event journal (template + categories/severity) with first entries: Sep 3 erosion event, Sep 10 response, and the LOG_Weather auto-logger outage.
+- `docs/EROSION_ACTION_PLAN_2026-09.md` — NEW: researched action plan (do-today/this-week/fall/2027 redesign incl. contour strip-till + bed-by-bed cover crops, NRCS/BCCD contacts, EQIP/REAP cost-share, PA Ch. 102 Ag E&S compliance) with sources.
+- `SYSTEM_INVENTORY.md` — added rain-history.html to page list; KNOWN ISSUES: LOG_Weather daily auto-logger dead since 2026-04-05 (verified against live sheet — last Auto-Logged row 4/5/2026; needs Apps Script trigger re-enabled).
+- VERIFY: node syntax check on page JS pass; palette validator pass (light #2563eb/#b8863a, dark #3b82f6/#b8863a vs their surfaces); rainfall chart fetches live in browser (cannot execute in CI sandbox — network egress blocked; verified API URL shape matches backend's Open-Meteo calls).
+
 ## [2026-08-02] Grant Management: track all 3 active grants + list/switcher + Next Action (FULLSTACK_BUILDER)
 
 Upgraded the Grant Management dashboard from a single hardcoded grant (AIG-R1) to a full 3-grant portfolio with a list/switcher landing view.
