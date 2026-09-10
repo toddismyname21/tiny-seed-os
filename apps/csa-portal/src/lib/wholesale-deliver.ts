@@ -71,6 +71,7 @@ type ItemRow = {
   qty: number | null;
   qty_packed: number | null;
   unit_price_cents: number | null;
+  line_total_cents: number | null;
 };
 
 const ORDER_COLS =
@@ -155,7 +156,7 @@ export async function deliverAndInvoice(
   // ── 3) Build the invoice from what was PACKED. ─────────────────────────────
   const { data: itemRows, error: itemsErr } = await supabaseAdmin
     .from('wholesale_order_items')
-    .select('id, product_name, qty, qty_packed, unit_price_cents')
+    .select('id, product_name, qty, qty_packed, unit_price_cents, line_total_cents')
     .eq('order_id', orderId)
     .overrideTypes<ItemRow[], { merge: false }>();
   if (itemsErr) {
@@ -210,13 +211,35 @@ export async function deliverAndInvoice(
       const productName = (it.product_name ?? '').trim() || 'Wholesale produce';
       const { itemId, matched } = resolveItemId(index, productName);
       if (!matched) fellBack.push(productName);
-      lines.push({
-        item: productName,
-        itemId,
-        description: productName,
-        qty: Number(it.qty_packed),
-        unitPrice: Number(it.unit_price_cents) / 100,
-      });
+      // TIER-BLEND / NEGOTIATED-LUMP lines (2026-09-09, Mediterra $828-vs-
+      // $660.50 incident): when the line carries a line_total_cents that
+      // differs from qty × unit_price AND the full ordered qty was packed,
+      // the lump IS the negotiated price (e.g. 160 lb tiered
+      // 50@3.75+50@2.50+60@2.00 = $432.50) — bill the lump as qty 1.
+      // A SHORT pack can't honor a lump for a partial, so it falls back to
+      // qty_packed × unit_price (the conservative, defensible number).
+      const packed = Number(it.qty_packed);
+      const unit = Number(it.unit_price_cents) / 100;
+      const lump = Number(it.line_total_cents);
+      const fullPack = packed === Number(it.qty);
+      const lumpDiffers = Number.isFinite(lump) && Math.abs(lump - Math.round(packed * unit * 100)) > 1;
+      if (fullPack && lumpDiffers) {
+        lines.push({
+          item: productName,
+          itemId,
+          description: `${productName} — ${packed} × $${unit.toFixed(2)} base, billed at agreed total`,
+          qty: 1,
+          unitPrice: lump / 100,
+        });
+      } else {
+        lines.push({
+          item: productName,
+          itemId,
+          description: productName,
+          qty: packed,
+          unitPrice: unit,
+        });
+      }
     }
     const created = await createInvoice({
       customerName: restaurantName,
