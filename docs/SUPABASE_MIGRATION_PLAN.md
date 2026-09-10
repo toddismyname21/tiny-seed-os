@@ -91,6 +91,22 @@ Port the actions where slowness hurts daily, with their tables:
 - [ ] Inventory systems (consolidate the 11 inventory sheets into a sane schema).
 - [ ] Planning/succession (`PLANNING_2026` → `plantings` with real relations).
 
+### Phase 2.5 — Field Notebook integration (owner request 2026-09-10)
+The farm journal now lives as the "Tiny Seed Field Notebook" Claude artifact
+(`artifacts/field-notebook.html` is the archived source; entries in its artifact db,
+collection `entries`: date/title/category/severity/what/response/lesson). Scheduled
+Claude Routines already write weekly (Sun eve), monthly (1st), and yearly (Jan 2)
+SUMMARY entries and email the owner. When migrating:
+- [ ] `journal_entries` table in Supabase; one-time import from the artifact db
+      (Artifact `read_db` exports it cleanly).
+- [ ] Notebook UI moves into Tiny Seed OS (or the artifact writes through the gateway)
+      so crew log entries without claude.ai accounts.
+- [ ] Morning brief reads the last 7 days of journal entries (events inform priorities).
+- [ ] `rain-history.html` event annotations read from `journal_entries` instead of the
+      in-page constant.
+- [ ] Summary generation moves to a scheduled job over Postgres (keep the same
+      weekly/monthly/yearly cadence and email delivery).
+
 ### Phase 3 — long tail + integrations
 - [ ] Marketing, finance, satellite, IPM modules as prioritized by Phase-0 usage data.
 - [ ] Each external integration (Twilio, Shopify [sync already exists in Supabase],

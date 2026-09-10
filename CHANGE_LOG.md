@@ -6,6 +6,13 @@ Every Claude session MUST add an entry after making ANY changes to the codebase.
 
 ---
 
+## [2026-09-10] Field Notebook artifact + scheduled weekly/monthly/yearly summaries (PM_ARCHITECT)
+
+- WHY: Todd wants events journaled from the field and periodic summaries; migration is back-burnered so this runs on Claude artifacts + Routines, not Apps Script.
+- Published "Tiny Seed Field Notebook" (Claude artifact, shared db, seeded with the Sep 3 erosion event + response + weather-logger outage). Source archived at `artifacts/field-notebook.html` (NOT a served web_app page).
+- Created 3 Claude Routines (owner account): weekly (Sun ~7pm ET), monthly (1st), year-in-review (Jan 2) — each reads the notebook db, writes a SUMMARY entry back, and emails/pushes the digest to the owner.
+- `docs/SUPABASE_MIGRATION_PLAN.md` — added Phase 2.5: journal_entries table, notebook import, morning-brief hook, rain-history annotations from journal, summaries move to Postgres job.
+
 ## [2026-09-10] DECISION: migrate backend off Apps Script to Supabase — plan doc (PM_ARCHITECT)
 
 - WHY: Todd's decision — Apps Script too slow (10–15 s cold starts, Sheets-as-DB full-scans + LockService, 148k-line single-file deploys).

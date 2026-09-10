@@ -1,0 +1,393 @@
+<title>Tiny Seed Field Notebook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+  :root {
+    --ground: #faf9f5;
+    --card: #ffffff;
+    --ink: #2a2720;
+    --muted: #7c7768;
+    --line: #e6e2d8;
+    --green: #3f7a4d;
+    --green-ink: #ffffff;
+    --gold: #b8863a;
+    --sev-low: #8a8474;
+    --sev-med: #b8863a;
+    --sev-high: #b04434;
+    --chip-bg: #f0ede4;
+    --shadow: 0 1px 3px rgba(42,39,32,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #1c1917;
+      --card: #262320;
+      --ink: #ece9e2;
+      --muted: #a8a396;
+      --line: #3a362f;
+      --green: #5a9c68;
+      --green-ink: #14120f;
+      --gold: #d0a45c;
+      --sev-low: #8a8474;
+      --sev-med: #d0a45c;
+      --sev-high: #d06a58;
+      --chip-bg: #322e28;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #1c1917;
+    --card: #262320;
+    --ink: #ece9e2;
+    --muted: #a8a396;
+    --line: #3a362f;
+    --green: #5a9c68;
+    --green-ink: #14120f;
+    --gold: #d0a45c;
+    --sev-low: #8a8474;
+    --sev-med: #d0a45c;
+    --sev-high: #d06a58;
+    --chip-bg: #322e28;
+    --shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 15px; line-height: 1.55;
+    padding: 0 16px; padding-block: 0 48px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  header.mast { padding-block: 28px 18px; border-bottom: 2px solid var(--ink); }
+  .mast h1 {
+    font-family: 'Bitter', Georgia, serif; font-weight: 700;
+    font-size: 1.7rem; margin: 0; letter-spacing: -.01em; text-wrap: balance;
+  }
+  .mast .tag { color: var(--muted); font-size: .8rem; margin-top: 4px; }
+  .mast .tag b { color: var(--green); font-weight: 600; }
+
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-block: 14px 4px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .chip {
+    border: 1px solid var(--line); background: var(--chip-bg); color: var(--ink);
+    border-radius: 999px; padding: 4px 12px; font-size: .74rem; cursor: pointer;
+    letter-spacing: .02em;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+
+  button.primary {
+    background: var(--green); color: var(--green-ink); border: none; border-radius: 8px;
+    padding: 10px 16px; font-size: .9rem; font-weight: 600; cursor: pointer;
+  }
+  button.quiet {
+    background: none; border: none; color: var(--muted); font-size: .78rem;
+    cursor: pointer; padding: 4px 6px; text-decoration: underline;
+  }
+  button:focus-visible, .chip:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--gold); outline-offset: 2px;
+  }
+
+  /* Entry form */
+  #entryForm {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 16px; margin-top: 14px;
+    display: grid; gap: 10px;
+  }
+  #entryForm h2 { font-family: 'Bitter', Georgia, serif; font-size: 1.05rem; margin: 0; }
+  .frow { display: flex; gap: 10px; flex-wrap: wrap; }
+  .frow > label { flex: 1; min-width: 140px; }
+  label { display: grid; gap: 4px; font-size: .72rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em; }
+  input, select, textarea {
+    font: inherit; color: var(--ink); background: var(--ground);
+    border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%;
+  }
+  textarea { min-height: 64px; resize: vertical; }
+  .factions { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+  #formErr { color: var(--sev-high); font-size: .8rem; margin-right: auto; }
+
+  /* Notices */
+  .notice {
+    margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: .85rem;
+    background: var(--chip-bg); border: 1px solid var(--line); color: var(--muted);
+  }
+  .notice.err { color: var(--sev-high); }
+
+  /* Entries */
+  #entries { display: grid; gap: 14px; margin-top: 18px; }
+  .entry {
+    background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--sev-low);
+    border-radius: 8px; box-shadow: var(--shadow); padding: 14px 16px;
+  }
+  .entry.sev-MED { border-left-color: var(--sev-med); }
+  .entry.sev-HIGH { border-left-color: var(--sev-high); }
+  .entry.cat-SUMMARY { border-left-color: var(--green); background: var(--chip-bg); }
+  .ehead { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .edate { font-variant-numeric: tabular-nums; font-size: .78rem; color: var(--muted); }
+  .ecat {
+    font-size: .68rem; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px;
+    background: var(--chip-bg); color: var(--ink); border: 1px solid var(--line);
+  }
+  .esev { font-size: .68rem; letter-spacing: .06em; color: var(--muted); }
+  .entry.sev-HIGH .esev { color: var(--sev-high); font-weight: 700; }
+  .entry.sev-MED .esev { color: var(--sev-med); font-weight: 600; }
+  .entry h3 {
+    font-family: 'Bitter', Georgia, serif; font-size: 1.08rem; font-weight: 600;
+    margin: 6px 0 8px; text-wrap: balance;
+  }
+  .esec { margin-top: 8px; }
+  .esec .k {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--gold); font-weight: 700;
+  }
+  .esec p { margin: 2px 0 0; white-space: pre-wrap; }
+  .etools { display: flex; gap: 4px; justify-content: flex-end; margin-top: 8px; }
+
+  footer { margin-top: 32px; font-size: .72rem; color: var(--muted); line-height: 1.6; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: no-preference) {
+    .entry { transition: border-color .2s; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <h1>Tiny Seed Field Notebook</h1>
+    <div class="tag">257 Zeigler Rd · Rochester, PA · <b>every event captured is a repeat avoided</b></div>
+  </header>
+
+  <div class="bar">
+    <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+    <button class="primary" id="newBtn" type="button">+ Log an event</button>
+  </div>
+
+  <form id="entryForm" hidden>
+    <h2 id="formTitle">New entry</h2>
+    <div class="frow">
+      <label>Date <input type="date" id="fDate" required></label>
+      <label>Category
+        <select id="fCat">
+          <option>WEATHER</option><option>EROSION</option><option>PEST</option>
+          <option>DISEASE</option><option>EQUIPMENT</option><option>IRRIGATION</option>
+          <option>CROP-LOSS</option><option>SAFETY</option><option>DECISION</option>
+          <option>OBSERVATION</option><option>OTHER</option>
+        </select>
+      </label>
+      <label>Severity
+        <select id="fSev">
+          <option value="LOW">Low — for the record</option>
+          <option value="MED">Med — cost time or money</option>
+          <option value="HIGH">High — damage or major loss</option>
+        </select>
+      </label>
+    </div>
+    <label>Title <input type="text" id="fTitle" maxlength="120" placeholder="Rills on the west slope after last night's storm"></label>
+    <label>What happened <textarea id="fWhat" placeholder="Conditions, what was in the field, what you saw…"></textarea></label>
+    <label>Response <textarea id="fResp" placeholder="What we did or will do about it…"></textarea></label>
+    <label>Lesson / change <textarea id="fLesson" placeholder="What we learned; the rule or change going forward (fill in later if unknown)"></textarea></label>
+    <div class="factions">
+      <span id="formErr" role="alert"></span>
+      <button class="quiet" id="cancelBtn" type="button">Cancel</button>
+      <button class="primary" id="saveBtn" type="submit">Save entry</button>
+    </div>
+  </form>
+
+  <div class="notice" id="notice">Opening the notebook…</div>
+  <div id="entries"></div>
+
+  <footer>
+    Shared notebook for Tiny Seed Farm — anyone with access to this page reads and writes
+    the same entries, live. Severity stripes: gray = for the record, gold = cost time or
+    money, red = damage or major loss. Rainfall for any entry date: see the Rain History
+    page in Tiny Seed OS.
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { db: null, entries: [], filter: 'ALL', editing: null };
+  var CATS = ['WEATHER','EROSION','PEST','DISEASE','EQUIPMENT','IRRIGATION',
+              'CROP-LOSS','SAFETY','DECISION','OBSERVATION','OTHER','SUMMARY'];
+
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+      '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function fmtDate(iso) {
+    var p = (iso || '').split('-');
+    if (p.length !== 3) return iso || '';
+    var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return m[+p[1] - 1] + ' ' + (+p[2]) + ', ' + p[0];
+  }
+
+  // ---- rendering (DOM building only; entry text is never parsed as HTML) ----
+  function renderChips() {
+    var box = $('chips');
+    box.textContent = '';
+    var present = {};
+    state.entries.forEach(function (e) { present[e.category] = true; });
+    var cats = ['ALL'].concat(CATS.filter(function (c) { return present[c]; }));
+    cats.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = c === 'ALL' ? 'All' : c;
+      b.setAttribute('aria-pressed', String(state.filter === c));
+      b.addEventListener('click', function () { state.filter = c; renderChips(); renderEntries(); });
+      box.appendChild(b);
+    });
+  }
+
+  function section(k, text) {
+    if (!text) return null;
+    var d = document.createElement('div'); d.className = 'esec';
+    var kk = document.createElement('div'); kk.className = 'k'; kk.textContent = k;
+    var p = document.createElement('p'); p.textContent = text;
+    d.appendChild(kk); d.appendChild(p);
+    return d;
+  }
+
+  function renderEntries() {
+    var box = $('entries');
+    box.textContent = '';
+    var list = state.entries.filter(function (e) {
+      return state.filter === 'ALL' || e.category === state.filter;
+    });
+    var note = $('notice');
+    if (!state.db) return; // notice already explains
+    if (!list.length) {
+      note.hidden = false;
+      note.className = 'notice';
+      note.textContent = state.entries.length
+        ? 'No entries in this category yet.'
+        : 'The notebook is empty. Log the first event with “+ Log an event”.';
+    } else {
+      note.hidden = true;
+    }
+    list.forEach(function (e) {
+      var card = document.createElement('article');
+      card.className = 'entry sev-' + (e.severity || 'LOW') +
+        (e.category === 'SUMMARY' ? ' cat-SUMMARY' : '');
+      var head = document.createElement('div'); head.className = 'ehead';
+      var dt = document.createElement('span'); dt.className = 'edate'; dt.textContent = fmtDate(e.date);
+      var cat = document.createElement('span'); cat.className = 'ecat'; cat.textContent = e.category || 'OTHER';
+      var sev = document.createElement('span'); sev.className = 'esev';
+      sev.textContent = e.severity === 'HIGH' ? 'HIGH' : e.severity === 'MED' ? 'MED' : 'LOW';
+      head.appendChild(dt); head.appendChild(cat); head.appendChild(sev);
+      card.appendChild(head);
+      var h = document.createElement('h3'); h.textContent = e.title || '(untitled)';
+      card.appendChild(h);
+      [section('What happened', e.what), section('Response', e.response),
+       section('Lesson', e.lesson)].forEach(function (s) { if (s) card.appendChild(s); });
+      var tools = document.createElement('div'); tools.className = 'etools';
+      var edit = document.createElement('button'); edit.className = 'quiet'; edit.type = 'button';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', function () { openForm(e); });
+      var del = document.createElement('button'); del.className = 'quiet'; del.type = 'button';
+      del.textContent = 'Delete';
+      del.addEventListener('click', function () {
+        if (!confirm('Delete this entry for everyone? “' + (e.title || 'untitled') + '”')) return;
+        state.db.doc('entries/' + e.id).delete().catch(function (err) {
+          alert('Could not delete: ' + err.message);
+        });
+      });
+      tools.appendChild(edit); tools.appendChild(del);
+      card.appendChild(tools);
+      box.appendChild(card);
+    });
+  }
+
+  // ---- form ----
+  function openForm(entry) {
+    state.editing = entry ? entry.id : null;
+    $('formTitle').textContent = entry ? 'Edit entry' : 'New entry';
+    $('fDate').value = entry ? entry.date : todayISO();
+    $('fCat').value = entry ? (entry.category || 'OTHER') : 'EROSION';
+    $('fSev').value = entry ? (entry.severity || 'LOW') : 'MED';
+    $('fTitle').value = entry ? (entry.title || '') : '';
+    $('fWhat').value = entry ? (entry.what || '') : '';
+    $('fResp').value = entry ? (entry.response || '') : '';
+    $('fLesson').value = entry ? (entry.lesson || '') : '';
+    $('formErr').textContent = '';
+    $('entryForm').hidden = false;
+    $('newBtn').hidden = true;
+    $('fTitle').focus();
+  }
+  function closeForm() {
+    $('entryForm').hidden = true;
+    $('newBtn').hidden = false;
+    state.editing = null;
+  }
+
+  $('newBtn').addEventListener('click', function () {
+    if (!state.db) return;
+    openForm(null);
+  });
+  $('cancelBtn').addEventListener('click', closeForm);
+
+  $('entryForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (!state.db) return;
+    var date = $('fDate').value, title = $('fTitle').value.trim();
+    if (!date) { $('formErr').textContent = 'A date is required.'; return; }
+    if (!title && !$('fWhat').value.trim()) {
+      $('formErr').textContent = 'Give the entry a title or describe what happened.'; return;
+    }
+    var body = {
+      date: date,
+      title: title,
+      category: $('fCat').value,
+      severity: $('fSev').value,
+      what: $('fWhat').value.trim(),
+      response: $('fResp').value.trim(),
+      lesson: $('fLesson').value.trim(),
+      updatedAt: new Date().toISOString()
+    };
+    var save;
+    if (state.editing) {
+      save = state.db.doc('entries/' + state.editing).update(body);
+    } else {
+      body.createdAt = body.updatedAt;
+      var id = date.replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 7);
+      save = state.db.doc('entries/' + id).set(body);
+    }
+    $('saveBtn').disabled = true;
+    save.then(function () {
+      $('saveBtn').disabled = false;
+      closeForm();
+    }).catch(function (err) {
+      $('saveBtn').disabled = false;
+      $('formErr').textContent = 'Could not save (' + err.code + '). ' +
+        (err.code === 'quota_exceeded' ? 'The notebook is full — delete old entries.' : 'Try again.');
+    });
+  });
+
+  // ---- storage ----
+  function start() {
+    claude.use('db').then(function (db) {
+      var note = $('notice');
+      if (!db) {
+        note.className = 'notice err';
+        note.textContent = 'This view can’t reach the notebook’s storage, so entries can’t load or save here. Open the notebook from its claude.ai link while signed in.';
+        return;
+      }
+      state.db = db;
+      db.collection('entries').orderBy('date', 'desc').limit(500).onSnapshot(function (snap) {
+        state.entries = snap.docs.filter(function (d) { return d.exists; }).map(function (d) {
+          var b = d.data() || {};
+          return { id: d.id, date: String(b.date || ''), title: String(b.title || ''),
+            category: String(b.category || 'OTHER'), severity: String(b.severity || 'LOW'),
+            what: String(b.what || ''), response: String(b.response || ''),
+            lesson: String(b.lesson || '') };
+        });
+        renderChips(); renderEntries();
+      }, function (e) {
+        note.hidden = false; note.className = 'notice err';
+        note.textContent = 'The notebook lost its connection (' + e.code + '). Reload the page.';
+      });
+    });
+  }
+  start();
+})();
+</script>
