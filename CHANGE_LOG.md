@@ -22811,3 +22811,32 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
 - 2026-09-01 (cont. 3): closed all 18 stale 8/12-mushroom make-good notices — Maggie's two on her WRITTEN 8/26 confirmation ("I got them all"), the other 16 per Todd's rule (no record of non-receipt since 8/17 → assume fulfilled). 5 open notices remain, all pinned to exact stops.
 - 2026-09-02 INCIDENT: 23 members got a WRONG "no box this week" email (9/2 morning). Root cause: PM verified against SQL RPC members_receiving_on_date (0021) which computes A/B parity from each member's OWN start_date and ignores cadence — diverges from the real authority cycle.ts weekParity (global anchor 2026-06-08). App code never calls the RPC; campaign/pack/routes were CORRECT all along. Fixed: 23 urgent corrections sent (Wed/Sat/home variants), notices corrected (Anna full box + paid tomato box + mushrooms; Whitney/Kelly cheese due TODAY), driver Amelia texted for Highland Park cheese. RPC to be dropped/rebuilt in audit.
 - 2026-09-02 FULL SYSTEM AUDIT: 5 parallel audit tracks completed (roster, flex/money, security, gaps; comms pending). Consolidated: docs/audits/2026-09-02/FULL_SYSTEM_AUDIT.md. 6 fix-immediately bugs (2 live money-loss: flex_orders RLS free-food hole, cancel/skip keeps member money), 14 structural items, gap top-5. Key claims spot-verified against code by PM before inclusion.
+
+## 2026-09-05 — PM_Architect — Wholesale 100% invoicing catch-up (final)
+- EYV: fixed reconciler mislink (9/4 order was linked to JULY invoice 7849628); linked 7/1→7849628 (true coverage); created 9000073 (8/19 $68.39), 9000074 (8/28 $31.00), 9000075 (9/4 $60.00)
+- Cleared two more reconciler mislinks: Pigeon 9/4→7849642 (7/28 $25 PAID inv), Della Terra 9/4→7849645 (7/28 $433.35 inv)
+- Created: 9000076 John Rezzetano 9/2 $22.00; 9000077 Della Terra 9/4 $122.50; 9000078 Batch 9/4 $142.00 (new QB customer 1113, portal qbo_customer_id set)
+- Final sweep: 0 uninvoiced except Pigeon 9/4 $157.50 (Todd handling personally)
+- BUG FLAGGED: nightly invoice-reconcile cron mislinks new orders to old same-customer invoices — 3 cases found/corrected; needs fix before it strikes again
+
+## 2026-09-07 (eve) — PM_Architect — Phases 1-3 SHIPPED + bug pass + tomato cutoff
+- Phase 1: deliver.ts auto-sends QB invoice at delivery tap (per-account auto_send_invoice, billing-contact resolution, notification_log audit w/ provider 'quickbooks', fail-soft); quickbooks.ts sendInvoice(); pack.ts crew add-items (server-priced, created packed)
+- Phase 2: pack page FULLY PACKED language + server-computed invoice preview + send-outcome display + add-item control
+- Phase 3: /admin/specials quick-add (item+orders+per-member payment incl. live Shopify flex debit + journal); labels print per-container '1 of N' cells for separate_container items
+- Bug pass fixes: flex-paid specials orders → status 'locked' (backfill double-debit guard); preview copy matches deliver's unpriced-line refusal; notification_log provider constraint extended (caught pre-runtime by astro check)
+- Tomato cutoff 8 PM: 3 last orders (Sonja 9000089, Maggie 9000090, Brenda 9000091 — Brenda's Sewickley day fixed Wed→Sat), Butter Joint passed this week, offer items DEACTIVATED, final 6-up labels PDF (35 flats/16 buyers/350 lb/$775) emailed
+- Locks released. Deployed to csa.tinyseedfarm.com (commits 0f9e47f, fa2d525)
+
+## 2026-09-09 — PM_Architect — Homepage redesign proposal (PARKED, awaiting Todd)
+- UX audit of live tinyseedfarm.com (desktop+mobile, Playwright screenshots): no hero CTA, stale spring copy, brand-name split, hamburger-on-desktop, key products footer-only
+- Mockup built from Todd's own photos → docs/design/homepage_redesign_2026/ (index.html + assets + full PNG)
+- Todd 9/9: "I like where it is going. We will work on it soon!" — NOTHING LIVE without his explicit permission (EXTERNAL_SITE_RULES)
+- Next step when resumed: section-by-section Shopify theme-editor implementation kit
+
+## 2026-09-10 — PM_Architect — Good Roots call transcripts analyzed & archived
+- Archived both Zoom transcripts (5/14 intro, 9/9 scoping) to legal/pa_farm_vitality_grant/good_roots/
+- NEW: legal/pa_farm_vitality_grant/good_roots/MEETING_RECORD.md — full summary of both calls, PM analysis (scope shrink, QB deflection, enforcement calendar: proposal due wk of 9/21, Nov kickoff, funds expire ~June 2027)
+
+## 2026-09-11 — PM_Architect — ShuBrew order import + capability self-audit
+- Imported ShuBrew order (email from Zach 9/10): 2×12-ct carrot bunches $70, delivery 9/11, order 860f2bd8. Parsley "2 lbs" HELD pending Todd (no lb pricing exists).
+- Self-audit of all tools/creds/MCP (results in chat). FIXED: all 14 hook scripts silently failed when a session starts in apps/csa-portal ($CLAUDE_PROJECT_DIR mispath) — added symlink apps/csa-portal/scripts/hooks → root scripts/hooks, verified exec.
