@@ -58,6 +58,15 @@ export interface ComposedEmail {
   /** Recipes matched to the box (0–3). */
   recipes: Recipe[];
   subject: string;
+  /**
+   * Optional per-week announcement block (trusted admin HTML), rendered
+   * between the box items and the recipes. Stored in portal_settings under
+   * `weekly_email_announcement_<cycle Monday>` — set it for a week and BOTH
+   * the /admin preview and the send pick it up with no code change (Todd
+   * 2026-09-11: "Both one email plus re-announce the tomato bonanza").
+   * Absent/empty → the email renders exactly as before.
+   */
+  announcementHtml: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -196,12 +205,28 @@ export async function composeWeeklyEmail(
 
   const weekPretty = prettyDateET(weekDate);
 
+  // Optional per-week announcement (admin-authored HTML in portal_settings).
+  // Keyed by the cycle MONDAY — the same key box_contents uses — so the
+  // /admin/box-contents week and the announcement week can never disagree.
+  let announcementHtml: string | null = null;
+  const { data: annRow, error: annErr } = await supabase
+    .from('portal_settings')
+    .select('value')
+    .eq('key', `weekly_email_announcement_${mondayOfWeek(weekDate)}`)
+    .maybeSingle();
+  if (annErr) {
+    console.error('[weekly-email] announcement read failed:', annErr.message);
+  } else if (annRow?.value && annRow.value.trim().length > 0) {
+    announcementHtml = annRow.value;
+  }
+
   return {
     weekPretty,
     weekDate,
     items,
     recipes,
     subject: `This week's Tiny Seed box — ${weekPretty}`,
+    announcementHtml,
   };
 }
 
@@ -436,13 +461,27 @@ export function renderWeeklyEmailHtml(email: ComposedEmail, opts: RenderOptions)
     `<p style="margin:0 0 14px;font-weight:700;font-size:18px;color:#0f172a">In your box</p>` +
     itemsHtml +
 
-    // Recipes
-    `<p style="margin:28px 0 14px;font-weight:700;font-size:18px;color:#0f172a">Recipes for your box</p>` +
-    recipesHtml +
+    // Per-week announcement (trusted admin HTML from portal_settings) —
+    // between the box list and the recipes. Empty/absent → renders nothing.
+    (email.announcementHtml
+      ? `<div style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0">` +
+        email.announcementHtml +
+        `</div>`
+      : '') +
+
+    // Recipes — SUPPRESSED (Todd 2026-09-11: "Leave the recipe part out. No
+    // recipes. We need to work on building the recipes over the winter!").
+    // The compose/matching pipeline is intact; restore by re-adding
+    // `recipesHtml` here (and the text renderer's block) after the winter
+    // recipe buildout.
+    '' +
 
     // Farm note
     `<div style="margin-top:24px;padding-top:20px;border-top:1px solid #e2e8f0">` +
-    `<p style="margin:0;font-size:14px;line-height:1.6;color:#475569">Thanks for growing with us this season. Every box is picked fresh the morning of your delivery — we hope it brings something good to your table.</p>` +
+    // "picked fresh the morning of your delivery" removed 2026-09-11 — Todd:
+    // "The orders are not picked the same day they are delivered." Never state
+    // harvest timing we can't stand behind.
+    `<p style="margin:0;font-size:14px;line-height:1.6;color:#475569">Thanks for growing with us this season — we hope this box brings something good to your table.</p>` +
     `<p style="margin:10px 0 0;font-size:14px;color:#475569">— Todd &amp; the Tiny Seed crew</p>` +
     `</div>` +
     `</div>` +
@@ -497,23 +536,26 @@ export function renderWeeklyEmailText(email: ComposedEmail, opts: RenderOptions)
   } else {
     lines.push('  Box contents are being finalized — check the portal.');
   }
-  lines.push('');
-  lines.push('RECIPES FOR YOUR BOX');
-  if (email.recipes.length > 0) {
-    for (const r of email.recipes) {
-      if (r.source === 'link' && r.url) {
-        lines.push(`  • ${r.title}: ${r.url}`);
-      } else {
-        lines.push(`  • ${r.title} (from the farm)`);
-        const body = (r.body ?? '').trim();
-        if (body) {
-          for (const bl of body.split('\n')) lines.push(`    ${bl}`);
-        }
-      }
+  if (email.announcementHtml) {
+    // Crude but safe HTML→text for the announcement block: strip tags,
+    // decode the entities we emit, collapse whitespace.
+    const txt = email.announcementHtml
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|h[1-6]|li)>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n')
+      .trim();
+    if (txt) {
+      lines.push('');
+      lines.push('FROM THE FARM');
+      for (const l of txt.split('\n')) lines.push(`  ${l}`.trimEnd());
     }
-  } else {
-    lines.push('  No recipes matched this week\'s box yet.');
   }
+  // Recipes suppressed (Todd 2026-09-11: "No recipes. We need to work on
+  // building the recipes over the winter!"). The matching pipeline is intact;
+  // restore alongside the HTML renderer's block after the winter buildout.
   lines.push('');
   lines.push('Thanks for growing with us this season.');
   lines.push('— Todd & the Tiny Seed crew');

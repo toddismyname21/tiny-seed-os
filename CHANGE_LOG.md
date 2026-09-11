@@ -22840,3 +22840,10 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
 ## 2026-09-11 — PM_Architect — ShuBrew order import + capability self-audit
 - Imported ShuBrew order (email from Zach 9/10): 2×12-ct carrot bunches $70, delivery 9/11, order 860f2bd8. Parsley "2 lbs" HELD pending Todd (no lb pricing exists).
 - Self-audit of all tools/creds/MCP (results in chat). FIXED: all 14 hook scripts silently failed when a session starts in apps/csa-portal ($CLAUDE_PROJECT_DIR mispath) — added symlink apps/csa-portal/scripts/hooks → root scripts/hooks, verified exec.
+
+## 2026-09-11 — PM_Architect — Weekly box email: sent to 128 + template upgrades
+- Staged box_contents wk 9/14 (small 7 / large 9 items, Todd dictated).
+- weekly-email.ts: per-week announcement block from portal_settings (weekly_email_announcement_<monday>); recipes section SUPPRESSED until winter buildout; removed false "picked fresh morning of delivery" claim.
+- weekly-email/send.ts: reply_to → todd@ + fleurs@ (bonanza orders arrive by reply).
+- Sent mode=all: 128 sent / 0 failed (email_log verified). Bonanza copy: $25 10-lb flat, $100 50 lb, order by emailing Todd, ships with share.
+- NEW scripts/send_flex_announcement.py (repo-resident; NOT used — Todd sent flex email himself; my 32 attempts all failed 403, zero delivered).

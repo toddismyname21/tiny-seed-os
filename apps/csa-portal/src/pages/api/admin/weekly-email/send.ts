@@ -103,7 +103,18 @@ async function sendOne(to: string, subject: string, html: string, text: string):
         Authorization: `Bearer ${RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from: RESEND_FROM_EMAIL, to: [to], subject, html, text }),
+      // reply_to → Todd's real inbox (2026-09-11: the box email now carries
+      // "reply to order a tomato flat" — a reply MUST reach a monitored
+      // mailbox, not the hello@ send-domain). Same convention as
+      // scripts/send_email.py's TEAM reply-to.
+      body: JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+        to: [to],
+        reply_to: ['todd@tinyseedfarmpgh.com', 'tinyseedfleurs@gmail.com'],
+        subject,
+        html,
+        text,
+      }),
     });
     if (resp.ok) {
       const data = (await resp.json().catch(() => null)) as { id?: string } | null;
