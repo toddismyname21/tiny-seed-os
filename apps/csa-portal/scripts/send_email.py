@@ -94,6 +94,18 @@ if _external:
     _non_release = re.search(
         r"forgo|instead of|rather than|just email|email is fine|let'?s (just )?email|get the ball rolling",
         _q, re.I) and not re.search(r"\bsend\b|\bapprove", _q, re.I)
+    # DEADLINE ≠ RELEASE (Todd, 2026-09-15, after the OEFFA email incident):
+    # "Let's make sure we send X by the end of the day" was quoted as approval
+    # and the email went out while Todd still wanted a language pass. A quote
+    # that schedules a send ("by end of day", "tomorrow", "later", "make sure
+    # we send") is a DEADLINE, not a release — the correct action is to remind
+    # Todd at the deadline, never to send. This check is unconditional: even
+    # though such quotes contain the word "send", they do not authorize one.
+    _deadline_quote = re.search(
+        r"by (the )?end of (the )?day|by eod|\beod\b|by tonight|by tomorrow|"
+        r"later today|this afternoon|this evening|in the morning|"
+        r"make sure (we|to|you) send|don'?t forget to send|remind me",
+        _q, re.I)
     if not _q:
         sys.exit("BLOCKED — external recipient(s) %s with NO approval.\n"
                  "Show Todd the draft, wait for his release, then pass his exact words:\n"
@@ -103,6 +115,12 @@ if _external:
         sys.exit("BLOCKED — the quoted words are a channel/strategy decision, not a release:\n"
                  "  \"%s\"\n"
                  "Go back and ask Todd: 'Ready for me to send?' Only an explicit release sends." % _q)
+    if _deadline_quote:
+        sys.exit("BLOCKED — the quoted words are a DEADLINE, not a release:\n"
+                 "  \"%s\"\n"
+                 "A deadline means: remind Todd to review before the deadline. It never\n"
+                 "authorizes a send. Ask Todd: 'Review now, or say send-as-drafted?'\n"
+                 "Only his explicit release AFTER seeing the final draft sends." % _q)
     print(f"APPROVED by Todd: \"{_q}\"  → external: {', '.join(_external)}")
 body = {"from": FROM, "to": TO, "subject": a.subject, "text": a.text, "reply_to": TEAM, "bcc": ["todd@tinyseedfarmpgh.com"]}
 atts = []
