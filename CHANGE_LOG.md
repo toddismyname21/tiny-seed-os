@@ -22847,3 +22847,13 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
 - weekly-email/send.ts: reply_to → todd@ + fleurs@ (bonanza orders arrive by reply).
 - Sent mode=all: 128 sent / 0 failed (email_log verified). Bonanza copy: $25 10-lb flat, $100 50 lb, order by emailing Todd, ships with share.
 - NEW scripts/send_flex_announcement.py (repo-resident; NOT used — Todd sent flex email himself; my 32 attempts all failed 403, zero delivered).
+
+## 2026-09-13 — PM_Architect — Organic inspection prep (day 2)
+- Field-by-field walkthrough COMPLETE w/ Todd (20+ fields, varieties, dates, bed maps, honest crop-loss notes)
+- Generated: FIELD_TABLE_2026_FINAL.md · FIELD_ACTIVITY_2026.html (33 rows) · LABEL_PROOF_SHEET.html (lot format TSF-MMDD-field, Todd-approved) · RENEWAL_2026_COMPLETED_RESPONSES.html · OEFFA_SEED_LIST_2026.html · SEED_PURCHASES_2026_JOHNNYS.csv ($8,781.89)
+- Records recovered: Johnny's account (14 orders), Nature's Circle inv #3536 (organic seed potatoes w/ lots), Ohio Earth Food inv #17048 ($4,769.51 — 7 inputs NOT on OEFFA list, all applied → disclosure email drafted, held for Todd Mon AM), Caprice bean bag, Welter clover labels
+- Pending: Todd boundary tracing, shelf photos, 7-input application details, CL, Don paragraph; Loren lists; OEFFA email send Mon AM
+
+## 2026-09-15 — PM_Architect — Organic lot labels LIVE in portal
+- NEW /admin/labels/organic — nonretail container labels per OEFFA-approved proof (Action Item 00052432): CERTIFIED ORGANIC + OEFFA #3839 + LOT TSF-[MMDD]-[field], Avery 8163 10-up (geometry mirrored from wholesale item-label mode). Field picker = real OSP field list (harvest-source attribution). Linked from /admin/labels hub. Verified live: page 200, week catch-all intact.
+- Also: OEFFA disclosure+label-proof email SENT (Todd release issue — see send-gate hardening f5c8c26); toolkit gap research delivered.

@@ -1,0 +1,209 @@
+---
+/**
+ * /admin/labels/organic — ORGANIC LOT LABELS for nonretail containers
+ * (harvest totes, cooler pallets, bulk/wholesale cases).
+ *
+ * WHY (Todd, 2026-09-15; OEFFA inspection 9/18): the container-label proof
+ * submitted to OEFFA (Action Item 00052432, §205.300/§205.307) promises every
+ * nonretail container an "organic" identification + a lot number linking it
+ * to the audit trail. "We can't say we do something and not do it." This page
+ * prints the exact label from that approved proof sheet.
+ *
+ * LOT FORMAT (Todd-approved): TSF-[MMDD harvest date]-[field code]
+ *   e.g. TSF-0916-M → ties the container to the field activity log, harvest
+ *   records, and sales records for that date + field. "We also need to know
+ *   where the product is harvested from" — the printer picks the FIELD per
+ *   line from the farm's real field list (the person printing is the person
+ *   who harvested; the winter Field-Records build will auto-attribute).
+ *
+ * PRINT GEOMETRY — Avery 8163 (10-up), copied EXACTLY from the proven
+ * item-label mode of /admin/wholesale/labels (same stock): US Letter
+ * portrait, labels 4" × 2", 2 cols × 5 rows, top margin 0.5", side margins
+ * 0.156", column gap 0.1875", row gap 0.
+ *
+ * Integration notes (read before changing):
+ *   - Static route beats the sibling catch-all [...slug].astro (Astro route
+ *     priority), so /admin/labels/organic renders THIS page; week URLs like
+ *     /admin/labels/2026-09-14 still hit the catch-all.
+ *   - AdminShell chrome self-hides at print via its print:hidden utilities;
+ *     this page only needs .no-print on its own form card (sibling pattern).
+ *   - Entirely client-side rendering; no DB writes. Product names are a
+ *     datalist convenience read from the two live catalogs.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+export const prerender = false;
+
+// Product-name suggestions from both live catalogs (names only, active only).
+const names = new Set<string>();
+const { data: wp } = await supabaseAdmin
+  .from('wholesale_products').select('name').eq('is_active', true);
+for (const r of wp ?? []) if (r.name) names.add(r.name);
+const { data: fi } = await supabaseAdmin
+  .from('flex_inventory').select('name').eq('is_active', true);
+for (const r of fi ?? []) if (r.name) names.add(r.name);
+const productNames = Array.from(names).sort();
+
+// The farm's field codes — matches legal/organic_certification_2026/
+// FIELD_TABLE_2026_FINAL.md (OEFFA op #3839). Update alongside the OSP list.
+const FIELDS = [
+  'B', 'CL', 'F03M', 'F3L', 'F7M', 'F11M', 'GH', 'HT', 'HOL', 'IL', 'IOL',
+  'JL', 'JS01', 'JS03', 'JS06', 'JS10', 'K', 'M', 'RH', 'SOH', 'Z1', 'Z03', 'Z5',
+];
+
+const todayET = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date());
+---
+
+<AdminShell
+  title="Organic lot labels"
+  subtitle="Nonretail containers · Avery 8163 (10-up) · LOT TSF-[MMDD]-[field]"
+  pageTitle="Organic lot labels — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <button type="button" onclick="window.print()" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">🖨 Print labels</button>
+    <a href="/admin/labels" class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">← Labels hub</a>
+  </Fragment>
+
+  <Card padding="md" elevation="sm" class="mb-4 no-print">
+    <p class="text-sm text-ts-text-muted">
+      Prints the OEFFA-submitted container label (op #3839). One row per product;
+      “labels” = copies of that label. The lot number is built from the harvest
+      date + field, linking the container to the harvest &amp; sales audit trail.
+    </p>
+    <div class="mt-3 flex flex-wrap items-center gap-3">
+      <label class="text-sm font-semibold text-ts-text">Harvest date
+        <input id="harvest-date" type="date" value={todayET} class="ml-2 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 py-1 text-sm" />
+      </label>
+      <button id="add-row" type="button" class="inline-flex items-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-3 py-1.5 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">+ Add product</button>
+      <span id="count-note" class="text-sm text-ts-text-muted"></span>
+    </div>
+    <div id="rows" class="mt-3 space-y-2"></div>
+    <template id="row-tpl">
+      <div class="row flex flex-wrap items-center gap-2">
+        <input class="p-name w-64 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 py-1 text-sm" list="product-names" placeholder="Product (e.g. Napoli Carrots)" />
+        <select class="p-field rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 py-1 text-sm">
+          <option value="">Field…</option>
+          {FIELDS.map((f) => <option value={f}>{f}</option>)}
+        </select>
+        <input class="p-count w-20 rounded-ts-md border border-ts-border bg-ts-bg-surface px-2 py-1 text-sm" type="number" min="1" max="200" value="10" />
+        <span class="text-xs text-ts-text-muted">labels</span>
+        <button type="button" class="p-del text-sm font-semibold text-red-600">✕</button>
+      </div>
+    </template>
+    <datalist id="product-names">
+      {productNames.map((n) => <option value={n} />)}
+    </datalist>
+  </Card>
+
+  <div id="sheets"></div>
+</AdminShell>
+
+<script>
+  const rowsEl = document.getElementById('rows')!;
+  const tpl = document.getElementById('row-tpl') as HTMLTemplateElement;
+  const sheets = document.getElementById('sheets')!;
+  const dateEl = document.getElementById('harvest-date') as HTMLInputElement;
+  const note = document.getElementById('count-note')!;
+
+  function addRow() {
+    const frag = tpl.content.cloneNode(true) as DocumentFragment;
+    frag.querySelector('.p-del')!.addEventListener('click', (e) => {
+      (e.target as HTMLElement).closest('.row')!.remove(); render();
+    });
+    for (const inp of frag.querySelectorAll('input,select')) inp.addEventListener('input', render);
+    rowsEl.appendChild(frag);
+  }
+
+  function lotFor(dateStr: string, field: string): string {
+    const [, m, d] = dateStr.split('-');
+    return `TSF-${m}${d}-${field}`;
+  }
+  function prettyDate(dateStr: string): string {
+    const [y, m, d] = dateStr.split('-');
+    return `${Number(m)}/${Number(d)}/${y}`;
+  }
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  function render() {
+    const dateStr = dateEl.value;
+    const labels: string[] = [];
+    for (const row of rowsEl.querySelectorAll('.row')) {
+      const name = (row.querySelector('.p-name') as HTMLInputElement).value.trim();
+      const field = (row.querySelector('.p-field') as HTMLSelectElement).value;
+      const count = Math.max(0, Math.min(200, Number((row.querySelector('.p-count') as HTMLInputElement).value) || 0));
+      if (!name || !field || !count || !dateStr) continue;
+      const html = `
+        <div class="olabel">
+          <div class="ol-org">CERTIFIED ORGANIC</div>
+          <div class="ol-farm">Tiny Seed Farm · Rochester, PA · OEFFA Operation #3839</div>
+          <div class="ol-product">${esc(name)}</div>
+          <div class="ol-lot">LOT ${lotFor(dateStr, field)}</div>
+          <div class="ol-meta">Harvest: ${prettyDate(dateStr)} &nbsp;·&nbsp; Field: ${esc(field)}</div>
+        </div>`;
+      for (let i = 0; i < count; i++) labels.push(html);
+    }
+    const padded = [...labels];
+    while (padded.length % 10 !== 0) padded.push('<div class="olabel olabel-blank"></div>');
+    let out = '';
+    for (let i = 0; i < padded.length; i += 10) {
+      out += `<div class="olabel-sheet">${padded.slice(i, i + 10).join('')}</div>`;
+    }
+    sheets.innerHTML = out;
+    note.textContent = labels.length
+      ? `${labels.length} labels → ${padded.length / 10} sheet${padded.length > 10 ? 's' : ''}`
+      : '';
+  }
+
+  document.getElementById('add-row')!.addEventListener('click', () => { addRow(); render(); });
+  dateEl.addEventListener('input', render);
+  addRow();
+</script>
+
+<style is:global>
+  /* Avery 8163 geometry — mirrors item-label mode of /admin/wholesale/labels. */
+  :root {
+    --sheet-w: 8.5in; --sheet-h: 11in;
+    --item-label-w: 4in; --item-label-h: 2in;
+    --item-margin-top: 0.5in; --item-margin-side: 0.156in; --item-col-gap: 0.1875in;
+  }
+  .olabel-sheet {
+    box-sizing: border-box;
+    width: var(--sheet-w);
+    height: var(--sheet-h);
+    margin: 0 auto 0.25in;
+    padding: var(--item-margin-top) var(--item-margin-side) 0;
+    display: grid;
+    grid-template-columns: var(--item-label-w) var(--item-label-w);
+    grid-template-rows: repeat(5, var(--item-label-h));
+    column-gap: var(--item-col-gap);
+    row-gap: 0;
+    background: #fff;
+  }
+  .olabel {
+    box-sizing: border-box;
+    width: var(--item-label-w); height: var(--item-label-h);
+    padding: 0.12in 0.16in; overflow: hidden;
+    border: 1px dashed #ccc;
+    display: flex; flex-direction: column; justify-content: center;
+    color: #000; background: #fff;
+  }
+  .olabel-blank { border-color: #eee; }
+  .ol-org { font-weight: 900; font-size: 13pt; letter-spacing: 0.04em; }
+  .ol-farm { font-size: 7.5pt; margin-top: 1px; }
+  .ol-product { font-size: 13pt; font-weight: 700; margin-top: 0.06in;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ol-lot { font-size: 14pt; font-weight: 900; letter-spacing: 0.03em; margin-top: 0.02in; }
+  .ol-meta { font-size: 9pt; margin-top: 0.02in; }
+  @media print {
+    @page { size: Letter portrait; margin: 0; }
+    body, html { background: #fff !important; }
+    .no-print, .screen-only { display: none !important; }
+    .olabel-sheet { margin: 0 auto; page-break-after: always; }
+    .olabel-sheet:last-child { page-break-after: auto; }
+    .olabel, .olabel-blank { border: none; }
+  }
+</style>
