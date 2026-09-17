@@ -99,11 +99,24 @@ const REWRITES: ReadonlyMap<string, string> = new Map([
   ['bloomfield',     'Bloomfield Market'],
   ['mt. lebanon',    'Mt. Lebanon'],
   ['mt lebanon',     'Mt. Lebanon'],
-  ['simon',          "Simon's"],
-  ["simon's",        "Simon's"],
-  ['st paul',        "St. Paul's"],
-  ["st. paul's",     "St. Paul's"],
-  ["st. paul",       "St. Paul's"],
+  // Allison Park sites. Targets are the CANONICAL pickup_locations.name
+  // values (verified against the live table 2026-09-17) — the previous
+  // "Simon's" / "St. Paul's" targets matched no row, so these rewrites
+  // silently returned no_loc_record_for and the member got no stop.
+  ['simon',          'Allison Park - Simons'],
+  ["simon's",        'Allison Park - Simons'],
+  ['allison park',   'Allison Park - Simons'],
+  ['st paul',        "Allison Park - St. Paul's UMC"],
+  ["st. paul's",     "Allison Park - St. Paul's UMC"],
+  ["st. paul",       "Allison Park - St. Paul's UMC"],
+  // Shopify variant text vs. canonical name (Todd 2026-09-17). These four
+  // stops have NEVER auto-assigned: the variant strips to a head that has
+  // no matching pickup_locations row, so every order for them landed with
+  // pickup_location_id NULL and had to be fixed by hand or by the
+  // nightly-health backfill.
+  ['rochester',      'Rochester (Farm Pickup)'],
+  ['sewickley',      'Sewickley Market'],
+  ['oakmont',        'Oakmont - Pittsburgh Taco Boys'],
 ]);
 
 /**
@@ -140,10 +153,18 @@ export function matchVariantToPickup(
     return { locationId: null, reason: 'home_delivery' };
   }
 
-  // 3. Allison Park (TBD) — these orders intentionally don't have a pickup
-  //    location yet. The member is funnelled through PickupNudgeBanner to
-  //    pick Simon's or St. Paul's. NEVER auto-assign one of them here.
-  if (lower.includes('allison park')) {
+  // 3. Allison Park (TBD) — the legacy variant spelling, where the site was
+  //    genuinely undecided. Those orders intentionally have no pickup
+  //    location; the member is funnelled through PickupNudgeBanner to pick
+  //    Simon's or St. Paul's. NEVER auto-assign one of them here.
+  //
+  //    NARROWED 2026-09-17 (Todd): this used to fire on ANY variant
+  //    containing "allison park", which blocked a correctly-named variant
+  //    such as "Allison Park (Simon's Farm Market)" from ever resolving.
+  //    St. Paul's is now inactive and Simon's is the only live Allison Park
+  //    stop, so a NAMED variant is unambiguous and falls through to the
+  //    REWRITES table below. Only the literal "(TBD)" spelling still blocks.
+  if (lower.includes('allison park') && lower.includes('tbd')) {
     return { locationId: null, reason: 'allison_park_tbd' };
   }
 
@@ -177,8 +198,20 @@ export function matchVariantToPickup(
     if (match) {
       return { locationId: match.id, reason: `prefix_match:${head}→${match.name}` };
     }
-    // The rewrite told us where to go, but the destination row doesn't exist
-    // (data drift). Surface for review rather than silently failing.
+    // The rewrite target doesn't exist in this location set. Before giving up,
+    // try the LITERAL head — a deployment may legitimately name the row exactly
+    // what the variant says (e.g. a plain "Oakmont" row where the rewrite points
+    // at "Oakmont - Pittsburgh Taco Boys"). Added 2026-09-17: without this,
+    // adding a rewrite for a stop could BREAK a site whose row already matched
+    // by name, because rewrites are consulted before the exact-match fallback.
+    const literal = pickupLocations.find(
+      (loc) => (loc.name ?? '').toLowerCase() === head
+    );
+    if (literal) {
+      return { locationId: literal.id, reason: `exact_match:${literal.name}` };
+    }
+    // Neither the rewrite target nor the literal head exists (real data drift).
+    // Surface for review rather than silently failing.
     return { locationId: null, reason: `no_loc_record_for:${targetName}` };
   }
 

@@ -75,6 +75,16 @@ const REFERRAL_MINIMUM_TOTAL = 300;
  *  an operational alert, not a member-facing send. */
 const SYNC_ALERT_TO = 'todd@tinyseedfarmpgh.com';
 
+/** Member-facing portal root, used in the welcome email. */
+const PORTAL_URL = 'https://csa.tinyseedfarm.com';
+
+/** email_log.email_type for the new-member welcome. The table has a UNIQUE
+ *  (email_type, week_date, member_email); we CLAIM that row before sending,
+ *  so the claim itself is the at-most-once lock. This matters more than usual
+ *  here: the sync re-reads the same Shopify orders on every run, so a
+ *  check-then-send would re-welcome the same person every 15 minutes. */
+const WELCOME_EMAIL_TYPE = 'welcome';
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, 2), {
     status,
@@ -224,6 +234,112 @@ async function sendSyncErrorAlert(summary: SyncRunSummary): Promise<void> {
   } catch (e) {
     // Alerting must never break the sync — log + swallow.
     console.error('[sync] error alert send threw (swallowed):', e);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * NEW-MEMBER WELCOME EMAIL
+ *
+ * Fires ONCE, the first time the sync CREATES a member row for a customer
+ * (existingMember == null). Not on updates, and not on the re-reads that
+ * happen every run — the claim row below is the lock.
+ *
+ * SEAMLESS BY DESIGN: there is no account to activate. The portal's login
+ * uses signInWithOtp({ shouldCreateUser: true }), so the moment this member
+ * exists in `customers` they can enter their email at /login and be in. The
+ * email's job is only to TELL them that, plus where and when to pick up.
+ *
+ * AT MOST ONCE: we INSERT the email_log row first. email_log has a UNIQUE on
+ * (email_type, week_date, member_email); a duplicate insert fails, and we
+ * treat that failure as "already welcomed" and return without sending. On a
+ * send failure we mark the claim 'failed' so it is visible on the sync-health
+ * page and can be retried by hand — we deliberately do NOT auto-retry, since
+ * the failure mode we care about (welcoming someone twice) is worse than the
+ * one we accept (missing one and catching it manually).
+ *
+ * FAIL-SOFT: every path is wrapped. A missing Resend key, a Resend outage, or
+ * a malformed row must never fail an order or the run.
+ * ────────────────────────────────────────────────────────────────── */
+async function sendWelcomeEmail(opts: {
+  email: string;
+  firstName: string;
+  shareLabel: string;
+  pickupName: string | null;
+  deliveryAddress: string | null;
+  firstDelivery: string | null;
+  weekKey: string;
+}): Promise<'sent' | 'skipped' | 'failed'> {
+  try {
+    if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) return 'skipped';
+    const to = (opts.email || '').trim().toLowerCase();
+    if (!to || !to.includes('@')) return 'skipped';
+
+    // 1. CLAIM. A unique-violation here means someone already welcomed them.
+    const { error: claimErr } = await supabaseAdmin.from('email_log').insert({
+      member_email: to,
+      email_type: WELCOME_EMAIL_TYPE,
+      week_date: opts.weekKey,
+      status: 'sent',
+    });
+    if (claimErr) {
+      // 23505 = unique_violation → already welcomed. Anything else: be safe
+      // and do NOT send (an unwritable ledger means we cannot guarantee once).
+      console.log(`[sync] welcome skipped for ${to}: ${claimErr.message.slice(0, 120)}`);
+      return 'skipped';
+    }
+
+    const where = opts.pickupName
+      ? `Your pickup location is ${opts.pickupName}.`
+      : opts.deliveryAddress
+        ? `We'll deliver to ${opts.deliveryAddress}.`
+        : `We'll confirm your pickup location with you shortly.`;
+    const when = opts.firstDelivery
+      ? `Your first ${opts.shareLabel} is ${opts.firstDelivery}.`
+      : `We'll be in touch with your first delivery date.`;
+
+    const text =
+      `Hi ${opts.firstName},\n\n` +
+      `Welcome to Tiny Seed Farm — we're glad you're here.\n\n` +
+      `${when}\n${where}\n\n` +
+      `Your member portal is ready now. You can see each week's box contents, ` +
+      `put your share on hold if you're away, and update your pickup spot:\n\n` +
+      `${PORTAL_URL}\n\n` +
+      `There's no password. Enter this email address and we'll send you a link.\n\n` +
+      `Any questions, just reply to this email.\n\n` +
+      `Todd\nTiny Seed Farm · 717-725-5177\n`;
+
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from: RESEND_FROM_EMAIL, to: [to],
+        subject: `Welcome to Tiny Seed Farm, ${opts.firstName}`, text }),
+    });
+
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      console.error(`[sync] welcome send failed for ${to} (HTTP ${resp.status}): ${detail.slice(0, 200)}`);
+      await supabaseAdmin.from('email_log')
+        .update({ status: 'failed', error_message: `HTTP ${resp.status}` })
+        .eq('member_email', to)
+        .eq('email_type', WELCOME_EMAIL_TYPE)
+        .eq('week_date', opts.weekKey);
+      return 'failed';
+    }
+    const body = (await resp.json().catch(() => null)) as { id?: string } | null;
+    if (body?.id) {
+      await supabaseAdmin.from('email_log').update({ resend_id: body.id })
+        .eq('member_email', to)
+        .eq('email_type', WELCOME_EMAIL_TYPE)
+        .eq('week_date', opts.weekKey);
+    }
+    console.log(`[sync] welcome sent to ${to}`);
+    return 'sent';
+  } catch (e) {
+    console.error('[sync] welcome send threw (swallowed):', e);
+    return 'failed';
   }
 }
 
@@ -843,6 +959,9 @@ async function handle(request: Request, url: URL): Promise<Response> {
        *  share fallback below. We need .id (not legacy_id) because the
        *  fallback queries the customer's full member set by customer_id. */
       const touchedMemberIds: string[] = [];
+      // Share types whose member row this run CREATED (not updated).
+      // Drives the one-time welcome email at the end of the order.
+      const createdShareTypes: string[] = [];
       for (const m of plan.members) {
         // Resolve the pickup match up-front (pure, no IO).
         const match = matchVariantToPickup(m.variantTitle, pickupLocations);
@@ -916,6 +1035,9 @@ async function handle(request: Request, url: URL): Promise<Response> {
           .select('id')
           .maybeSingle();
         if (memErr) throw new Error(`member upsert (${m.legacy_id}): ${memErr.message}`);
+        // existingMember was read BEFORE the upsert — null means this run
+        // created the row, i.e. a genuinely new member (not a re-read).
+        if (existingMember == null) createdShareTypes.push(m.share_type);
         upsertedThisOrder += 1;
         if (wouldFillPickup) pickupsAutoAssigned += 1;
         if (upserted?.id) touchedMemberIds.push(upserted.id);
@@ -1065,6 +1187,53 @@ async function handle(request: Request, url: URL): Promise<Response> {
             throw new Error(`flex bonus row insert: ${bonusErr.message}`);
           }
           flexBonusThisOrder = creditPlan.bonus;
+        }
+      }
+
+      // ── LIVE: NEW-MEMBER WELCOME (once per customer, never on re-read) ──
+      //
+      // Runs AFTER the sibling-share fallback so the pickup location is fully
+      // resolved before we tell the member where to go. One email per ORDER
+      // even when the order created several share rows (veg + flower + add-on)
+      // — a new customer gets one welcome, not three.
+      if (createdShareTypes.length > 0 && email) {
+        try {
+          const primary =
+            createdShareTypes.find((t) => t === 'summer_veg' || t === 'fall_veg' || t === 'spring_veg') ??
+            createdShareTypes.find((t) => t === 'flex') ??
+            createdShareTypes[0]!;
+          const { data: welcomeRow } = await supabaseAdmin
+            .from('members')
+            .select('start_date, delivery_address, pickup_location:pickup_locations ( name )')
+            .eq('customer_id', customerId)
+            .eq('share_type', primary)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const sched = getSchedule(primary);
+          const firstDelivery = sched
+            ? new Intl.DateTimeFormat('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
+              }).format(new Date(`${sched.firstDelivery}T12:00:00Z`))
+            : null;
+          const pickupName =
+            (welcomeRow as { pickup_location?: { name?: string } | null } | null)
+              ?.pickup_location?.name ?? null;
+          await sendWelcomeEmail({
+            email,
+            firstName: (bestName(order, email).split(' ')[0] || 'there').trim(),
+            shareLabel: primary === 'flower' ? 'bouquet' : 'share',
+            pickupName,
+            deliveryAddress: (welcomeRow as { delivery_address?: string | null } | null)?.delivery_address ?? null,
+            firstDelivery,
+            // Stable per member+season, so the UNIQUE claim is per season —
+            // a member who renews next year gets welcomed again, correctly.
+            weekKey: (welcomeRow as { start_date?: string | null } | null)?.start_date
+              ?? sched?.firstDelivery ?? new Date().toISOString().slice(0, 10),
+          });
+        } catch (e) {
+          // Welcoming must never fail an order.
+          console.error('[sync] welcome block threw (swallowed):', e);
         }
       }
 

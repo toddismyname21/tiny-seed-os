@@ -259,7 +259,25 @@ test('isShareInSeasonForWeek: flex/add_on/unconfigured have NO window → always
   assertTrue(isShareInSeasonForWeek('flex', '2026-06-08'), 'flex always in-season');
   assertTrue(isShareInSeasonForWeek('flex', '2027-01-01'), 'flex in-season even off-calendar');
   assertTrue(isShareInSeasonForWeek('add_on', '2026-06-08'), 'add_on always in-season');
-  assertTrue(isShareInSeasonForWeek('fall_veg', '2026-06-08'), 'unconfigured share always in-season');
+  assertTrue(isShareInSeasonForWeek('not_a_real_share', '2026-06-08'),
+             'unconfigured share always in-season');
+});
+
+test('isShareInSeasonForWeek: fall_veg is gated to its Oct 14 – Nov 18 window', () => {
+  // fall_veg WAS unconfigured (and therefore always in-season) until
+  // 2026-09-17. Now it has a real window, so a fall member must NOT appear on
+  // a pack sheet or label run before Oct 14 — that was the whole point of
+  // configuring it. Season weeks are keyed by the cycle MONDAY.
+  assertTrue(!isShareInSeasonForWeek('fall_veg', '2026-09-14'),
+             'fall NOT in-season a month before it starts');
+  assertTrue(!isShareInSeasonForWeek('fall_veg', '2026-10-05'),
+             'fall NOT in-season the week before the first delivery');
+  assertTrue(isShareInSeasonForWeek('fall_veg', '2026-10-12'),
+             'fall in-season on its first delivery week (Wed Oct 14)');
+  assertTrue(isShareInSeasonForWeek('fall_veg', '2026-11-16'),
+             'fall in-season on its final delivery week (Wed Nov 18)');
+  assertTrue(!isShareInSeasonForWeek('fall_veg', '2026-11-23'),
+             'fall out-of-season the week after its last delivery');
 });
 
 // ═══ deriveAddon: parses Shopify product titles in members.notes ═════

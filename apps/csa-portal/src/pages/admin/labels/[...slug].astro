@@ -732,6 +732,12 @@ for (const stop of stopsOrdered) {
     const isBouquetLine = (l: { name: string | null }) => (l.name ?? '').toLowerCase().includes('bouquet');
     const flexLines = flexLinesAll;
     const flexBouquetQty = flexLinesAll.filter(isBouquetLine).reduce((n, l) => n + l.qty, 0);
+    /** Did this member buy a standard CSA share off the flex list this week?
+     *  (e.g. "Small CSA Share" / "Family CSA Share"). If so they ARE getting a
+     *  packed box and the crop list must print — see `composition` below. */
+    const flexLinesIncludeCsaShare = flexLinesAll.some((l) =>
+      /csa\s+share/i.test(l.name ?? '')
+    );
 
     // 1) The veg/flex/spring BOX label. Add-ons ride here; note flowers if any.
     if (boxPrimary) {
@@ -739,7 +745,20 @@ for (const stop of stopsOrdered) {
         member: boxPrimary,
         stop,
         distDate: distDateForStop(stop),
-        composition: getComposition(boxPrimary),
+        // A FLEX primary has no CSA box — their flex checklist IS the box
+        // (see the header contract: "A flex member → their flex checklist is
+        // the box"). The resolver still hands back a size-bucket composition
+        // for them, which printed this week's CSA crop list under "This box:"
+        // at the foot of every flex label and told the packer to pack a share
+        // that member never bought (Todd 2026-09-15).
+        //
+        // EXCEPTION: a flex member who BUYS a "CSA Share" line off the flex
+        // list that week really is getting a standard box, and the packer
+        // needs its crop list. So suppress only when they did NOT buy one.
+        composition:
+          boxPrimary.share_type === 'flex' && !flexLinesIncludeCsaShare
+            ? null
+            : getComposition(boxPrimary),
         addonChips: buildAddonChips(addons),
         flexLines,
         owes,

@@ -50,12 +50,17 @@ const LOCATIONS: PickupLocation[] = [
   { id: 'loc-fc',    name: 'Fox Chapel' },
   { id: 'loc-law',   name: 'Lawrenceville' },
   { id: 'loc-cran',  name: 'Cranberry' },
-  { id: 'loc-oak',   name: 'Oakmont' },
+  // NOTE (2026-09-17): these four use the REAL pickup_locations.name values
+  // from production. They previously used shortened stand-ins ('Oakmont',
+  // 'Rochester', "Simon's", "St. Paul's") that exist in NO deployment — which
+  // is why four stops silently failed to auto-assign all season while this
+  // suite stayed green. Keep this fixture in sync with the live table.
+  { id: 'loc-oak',   name: 'Oakmont - Pittsburgh Taco Boys' },
   { id: 'loc-shady', name: 'Shadyside' },
   { id: 'loc-zel',   name: 'Zelienople' },
-  { id: 'loc-sim',   name: "Simon's" },
-  { id: 'loc-stp',   name: "St. Paul's" },
-  { id: 'loc-roch',  name: 'Rochester' },
+  { id: 'loc-sim',   name: 'Allison Park - Simons' },
+  { id: 'loc-stp',   name: "Allison Park - St. Paul's UMC" },
+  { id: 'loc-roch',  name: 'Rochester (Farm Pickup)' },
   { id: 'loc-merc',  name: 'Mercer' },
   { id: 'loc-ss',    name: 'South Side' },
 ];
@@ -155,7 +160,7 @@ test('$400 / Squirrel Hill (CSA CUSTOMER PORCH) → Squirrel Hill', () => {
 test("Simon (no apostrophe) → Simon's via rewrite", () => {
   const r = matchVariantToPickup('Simon (CSA CUSTOMER PORCH)', LOCATIONS);
   assertEqual(r.locationId, 'loc-sim');
-  assertEqual(r.reason, "prefix_match:simon→Simon's");
+  assertEqual(r.reason, "prefix_match:simon→Allison Park - Simons");
 });
 
 test("Simon's (with apostrophe) → Simon's via rewrite (canonical name is in the rewrite map)", () => {
@@ -164,13 +169,13 @@ test("Simon's (with apostrophe) → Simon's via rewrite (canonical name is in th
   // match, only the reason differs.
   const r = matchVariantToPickup("Simon's (CSA CUSTOMER PORCH)", LOCATIONS);
   assertEqual(r.locationId, 'loc-sim');
-  assertEqual(r.reason, "prefix_match:simon's→Simon's");
+  assertEqual(r.reason, "prefix_match:simon's→Allison Park - Simons");
 });
 
 test("St Paul (no period/apostrophe) → St. Paul's via rewrite", () => {
   const r = matchVariantToPickup('St Paul (CSA CUSTOMER PORCH)', LOCATIONS);
   assertEqual(r.locationId, 'loc-stp');
-  assertEqual(r.reason, "prefix_match:st paul→St. Paul's");
+  assertEqual(r.reason, "prefix_match:st paul→Allison Park - St. Paul's UMC");
 });
 
 test("St. Paul's (canonical) → St. Paul's via rewrite (canonical name is in the rewrite map)", () => {
@@ -179,7 +184,7 @@ test("St. Paul's (canonical) → St. Paul's via rewrite (canonical name is in th
   // would-be exact match, only the reason differs.
   const r = matchVariantToPickup("St. Paul's (CSA CUSTOMER PORCH)", LOCATIONS);
   assertEqual(r.locationId, 'loc-stp');
-  assertEqual(r.reason, "prefix_match:st. paul's→St. Paul's");
+  assertEqual(r.reason, "prefix_match:st. paul's→Allison Park - St. Paul's UMC");
 });
 
 // ── Every other 2026 location via exact match ─────────────────────────
@@ -211,7 +216,7 @@ test('Cranberry variant → Cranberry', () => {
 test('Oakmont variant → Oakmont', () => {
   const r = matchVariantToPickup('Oakmont (CSA CUSTOMER PORCH)', LOCATIONS);
   assertEqual(r.locationId, 'loc-oak');
-  assertEqual(r.reason, 'exact_match:Oakmont');
+  assertEqual(r.reason, 'prefix_match:oakmont→Oakmont - Pittsburgh Taco Boys');
 });
 
 test('Shadyside variant → Shadyside', () => {
@@ -229,7 +234,7 @@ test('Zelienople variant → Zelienople', () => {
 test('Rochester variant → Rochester', () => {
   const r = matchVariantToPickup('Rochester (CSA CUSTOMER PORCH)', LOCATIONS);
   assertEqual(r.locationId, 'loc-roch');
-  assertEqual(r.reason, 'exact_match:Rochester');
+  assertEqual(r.reason, 'prefix_match:rochester→Rochester (Farm Pickup)');
 });
 
 test('Mercer variant → Mercer', () => {

@@ -43,7 +43,15 @@ export const SEASON_SCHEDULE: Record<string, SeasonSchedule> = {
   // 2026 Flower: starts 2 weeks after summer veg → Week 1 = Wed June 24,
   // 16 weeks → last delivery Oct 7. (Biweekly flower members get 8 of these.)
   flower: { firstDelivery: '2026-06-24', totalWeeks: 16 },
-  // flex / fall_veg: TBD — owner will provide.
+  // 2026 Fall: Week 1 = Wed Oct 14, 6 weeks → last delivery Nov 18.
+  // Dates set by Todd 2026-09-17: Oct 14, 21, 28 and Nov 4, 11, 18.
+  // WHY THIS MATTERS: without an entry here, isShareInSeasonForWeek() has no
+  // window to test and returns TRUE for EVERY week — so a fall member who
+  // ordered in September would have been pulled onto the very next pack sheet
+  // and label run, weeks before their season starts. Same class of bug the
+  // season gate was built for (spring_veg/flower, 2026-06-09).
+  fall_veg: { firstDelivery: '2026-10-14', totalWeeks: 6 },
+  // flex: TBD — owner will provide.
 };
 
 /** Season lifecycle phase relative to `now`. */

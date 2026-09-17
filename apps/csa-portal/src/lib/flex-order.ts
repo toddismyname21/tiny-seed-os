@@ -8,9 +8,16 @@
  * and the low-stock thresholds.
  *
  * Source of truth for:
- *   - The order WINDOW (opens prior Thursday 00:00 ET, closes Tuesday
- *     08:00 ET that delivery week — aligned with the box-swap cutoff,
- *     EVERY week including the Week-1 launch) — gap research M1/M7.
+ *   - The order WINDOW. Opens the prior Thursday 00:00 ET. CLOSES on the
+ *     member's harvest-aligned day (Todd 2026-06-26, unchanged since):
+ *       • Wednesday run (Tue market / Wed CSA / home delivery / no pickup)
+ *         → MONDAY 7:00 AM ET, i.e. week_starting + 0 days.
+ *       • Weekend run (Sat/Sun markets) → THURSDAY 7:00 AM ET, +3 days.
+ *     `cutoffEpochMs` is the only place this is computed; `closeLabel`
+ *     renders it. Do not restate the deadline anywhere else — read it from
+ *     these functions. (Prose here previously said "Tuesday 08:00 ET",
+ *     stale since the 2026-06-26 unification; it misled an outbound email
+ *     on 2026-09-11.) — gap research M1/M7.
  *   - Low-stock tiers from remaining_qty — gap research M2.
  *   - Dollars ↔ price_cents conversion — admin enters dollars, DB stores cents.
  *   - The category-emoji fallback for items with no photo — gap research M3.
@@ -82,21 +89,25 @@ export function formatCents(cents: number): string {
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Order window (opens prior Thursday 00:00 ET, closes Tuesday 08:00 ET) — M1 / M7
+ * Order window (opens prior Thursday 00:00 ET; closes Monday 7 AM ET for the
+ * Wednesday run, Thursday 7 AM ET for the weekend run) — M1 / M7
  *
- * Cadence (America/New_York, DST-aware), set by Todd 2026-06-08, corrected
- * 2026-06-16 to align the flex window with the box-swap cutoff, and the OPEN
- * day moved Friday → Thursday on 2026-06-17:
+ * Cadence (America/New_York, DST-aware). History: set 2026-06-08; open day
+ * moved Friday → Thursday 2026-06-17; cutoffs UNIFIED with box swaps and
+ * pinned to each member's harvest day on 2026-06-26 (Todd) — that is the
+ * rule still in force.
  *
- *   • Week 1 (week_starting === '2026-06-08'): treated as ALREADY OPEN (the
- *     season just launched). Its CLOSE now matches every other week —
- *     Tuesday 08:00 ET (Todd 2026-06-16; previously a one-time 18:00 ET
- *     override, retired so Week 1 has the same deadline as the rest).
- *   • All weeks (Week 1 + standing): the window CLOSES that week's Tuesday
- *     at 08:00 ET — i.e. (week_starting + 1 day) 08:00 ET, matching the
- *     box-swap cutoff so members have one deadline to remember. Standing
- *     weeks additionally OPEN the prior Thursday at 00:00 ET — i.e.
- *     (week_starting − 4 days); Week 1 is already open.
+ *   • OPEN: standing weeks open the prior Thursday 00:00 ET — i.e.
+ *     (week_starting − 4 days). Week 1 ('2026-06-08') is already open.
+ *   • CLOSE — Wednesday run (Tue market / Wed CSA / home delivery / none):
+ *     MONDAY 7:00 AM ET, i.e. (week_starting + 0 days). Monday harvest.
+ *   • CLOSE — weekend run (Sat/Sun markets): THURSDAY 7:00 AM ET, i.e.
+ *     (week_starting + 3 days). Thursday harvest.
+ *
+ * ⚠ Do NOT restate these deadlines in member-facing copy from memory. Call
+ *   `closeLabel(week, pickupDay)` or `cutoffEpochMs`. Stale prose in this
+ *   very header (it read "Tuesday 08:00 ET" for months after the June 26
+ *   change) put the wrong deadline into a member email on 2026-09-11.
  *
  * `week_starting` is the MONDAY of the delivery week. ET is UTC−4 in June
  * (EDT) and UTC−5 in winter (EST); we never hardcode the offset — we
@@ -121,11 +132,11 @@ const WEEK_EXTENDED_TUE = '2026-08-17';
  *
  * Members who pick up at a WEEKEND MARKET (their pickup_location's
  * day_of_week is 'Sat' or 'Sun') get a LATER cutoff: they may place /
- * edit / cancel / skip their flex order until WEDNESDAY 23:59:59 ET of
- * the cycle week — because their box is packed for the weekend run, not
- * the Wednesday run. Members who pick up on Wednesday (or take home
- * delivery, which runs Wednesday) keep the Tuesday 08:00 ET cutoff
- * (every week, including the Week-1 launch).
+ * edit / cancel / skip their flex order until THURSDAY 07:00 ET of the
+ * cycle week — because their box is filled by the Thursday harvest for
+ * the weekend run, not the Monday harvest. Members who pick up on
+ * Wednesday (or take home delivery, which runs Wednesday) close at
+ * MONDAY 07:00 ET, every week including the Week-1 launch.
  *
  * `PickupDay` is the raw `pickup_locations.day_of_week` short code (or
  * null for home delivery / unresolved). `isWeekendMarket()` is the single
@@ -210,16 +221,16 @@ function etWallClockEpochMs(
  * The cutoff depends on the member's PICKUP DAY (Todd 2026-06-12):
  *
  *   • WEEKEND-MARKET members (pickupDay 'Sat'/'Sun', `isWeekendMarket` true):
- *     that week's WEDNESDAY (week_starting + 2 days) 23:59:59 ET. Their box
- *     is packed for the weekend run, so they get until Wednesday midnight.
+ *     that week's THURSDAY (week_starting + 3 days) 07:00 ET — their box is
+ *     filled by the Thursday harvest for the weekend run.
  *   • Wednesday / home-delivery members (pickupDay null/'Wed'/anything else):
- *     that week's Tuesday (week_starting + 1 day) 08:00 ET — EVERY week,
- *     including the Week-1 launch (aligned with the box-swap cutoff).
+ *     that week's MONDAY (week_starting + 0 days) 07:00 ET — filled by the
+ *     Monday harvest. Applies every week, including the Week-1 launch.
  *
  * @param weekStarting 'YYYY-MM-DD' Monday of the delivery week.
  * @param pickupDay    raw pickup_locations.day_of_week ('Sat'/'Sun' → Thursday
- *                     cutoff); anything else (Tue market, Wed CSA, home
- *                     delivery, no-pickup) → Monday cutoff.
+ *                     7 AM cutoff); anything else (Tue market, Wed CSA, home
+ *                     delivery, no-pickup) → Monday 7 AM cutoff.
  *
  * UNIFIED CUTOFF (Todd 2026-06-26): box swaps AND flex à-la-carte share THIS
  * one pickup-day-aware deadline so they can never drift apart. Each member's
@@ -276,7 +287,7 @@ function etOffsetMinutes(at: Date): number {
 
 /**
  * Is the cutoff (close) for this week in the past relative to `now`?
- * `pickupDay` selects the member's cutoff (weekend-market → Wed 23:59:59 ET).
+ * `pickupDay` selects the member's cutoff (weekend-market → Thu 07:00 ET).
  */
 export function isPastCutoff(weekStarting: string, now: number = Date.now(), pickupDay: PickupDay = null): boolean {
   return now >= cutoffEpochMs(weekStarting, pickupDay);
@@ -290,7 +301,7 @@ export function isBeforeOpen(weekStarting: string, now: number = Date.now()): bo
 }
 
 /** Is the order window currently OPEN (opened and not yet closed)?
- *  `pickupDay` selects the member's cutoff (weekend-market → Wed 23:59:59 ET). */
+ *  `pickupDay` selects the member's cutoff (weekend-market → Thu 07:00 ET). */
 export function isWindowOpen(weekStarting: string, now: number = Date.now(), pickupDay: PickupDay = null): boolean {
   return now >= opensEpochMs(weekStarting) && now < cutoffEpochMs(weekStarting, pickupDay);
 }

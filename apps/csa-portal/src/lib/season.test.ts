@@ -63,10 +63,18 @@ test('getSchedule returns the spring_veg config', () => {
   assertEqual(getSchedule('spring_veg'), { firstDelivery: '2026-05-06', totalWeeks: 4 });
 });
 
+test('getSchedule returns the fall_veg config', () => {
+  // 2026 Fall: Wed Oct 14 → Nov 18, six weeks (Todd 2026-09-17).
+  assertEqual(getSchedule('fall_veg'), { firstDelivery: '2026-10-14', totalWeeks: 6 });
+});
+
+test('fall_veg season closes on the final delivery Wednesday', () => {
+  assertEqual(lastDelivery(getSchedule('fall_veg')!), '2026-11-18');
+});
+
 test('getSchedule returns null for an unconfigured share type', () => {
-  // flower IS configured now (Week 1 Jun 24, 16 weeks); fall_veg + flex
-  // remain TBD until the owner supplies start dates.
-  assertEqual(getSchedule('fall_veg'), null);
+  // summer_veg / spring_veg / flower / fall_veg are all configured now;
+  // flex remains TBD until the owner supplies start dates.
   assertEqual(getSchedule('flex'), null);
   assertEqual(getSchedule('not_a_real_type'), null);
 });
