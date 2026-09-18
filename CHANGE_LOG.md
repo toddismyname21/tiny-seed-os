@@ -1,3 +1,44 @@
+## 2026-09-18 (evening) — PM_ARCHITECT — Deployed; fall roster verified clean
+
+Todd approved both blocked actions.
+
+**Deployed** `vercel --prod` from apps/csa-portal (dpl_8RWaLeg8…, then
+dpl for the self-heal fix). csa.tinyseedfarm.com now serves Wednesday's Fall CSA
+groundwork plus today's unit and season-date fixes. Production had been stale
+since Sep 15.
+
+**Backfilled** the nine fall rows via `scripts/fix_fall_season_dates.mts --apply`.
+First run hit CHECK `members_weeks_remaining` (weeks_remaining <= total_weeks,
+0004_members.sql) — shrinking total_weeks 18 → 6 has to carry weeks_remaining
+with it. The fall season hasn't started, so weeks_remaining = total_weeks = 6.
+All nine now read Fall / 2026-10-14 → 2026-11-18 / 6 wk / rem 6.
+
+**Verified on the deployed site, not inferred:**
+
+  /admin/labels/2026-09-23   "No pickup set" labels: 3 → 0. Beth Cline, who has
+                             no summer share, is gone from next week entirely.
+                             Walczyk 2 → 1 mention, Duckworth 3 → 2.
+  /admin/labels/2026-10-14   all nine fall members present, one label each.
+  /admin/wholesale/pack      23 line items, every one reads "lb". Zero "ea".
+
+**Third bug, found while verifying:** three fall members had a NULL pickup that
+NOTHING would ever have healed — `BACKFILL_SHARE_TYPES` in nightly-health.ts
+excluded fall_veg by name, written when no fall member existed. Added fall_veg
+plus its title pattern to pickVariantForShareType, deployed, and ran the job:
+`pickups_fixed: 3, pickups_remaining: 1, unmatched_variants: []`. Walczyk and
+Duckworth → Rochester (Farm Pickup) Wed; Cline → Sewickley Market Sat.
+
+**Two items left for Todd:**
+
+  1. Carla Nappi (#27108, $270 = 6×$30 + 6×$15) bought Home Delivery. Correctly
+     no pickup stop, but her fall row has no delivery_address. Shopify default
+     address is 2224 Jane St, Pittsburgh PA 15203 — the same address already on
+     her summer row. Needs the admin RPC; a direct write is blocked by trigger.
+  2. The nine existing fall members will never receive a welcome email. It fires
+     only when the sync CREATES a member row, and theirs already existed when
+     the code went live. A one-off send needs Todd's approval and his review of
+     the copy.
+
 ## 2026-09-18 (later) — PM_ARCHITECT — Fall CSA orders got SUMMER dates; and production was 3 days stale
 
 Found while verifying the unit fix on the live site. Two problems, one of them
