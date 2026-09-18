@@ -127,19 +127,23 @@ function escapeHtml(s: string): string {
  *       with a non-NULL pickup → copy.
  * ────────────────────────────────────────────────────────────────── */
 
-/** Active SHARE share-types we backfill. add_on / wholesale_csa / fall_veg
- *  are explicitly out of scope — add_on inherits pickup from the primary
- *  share, wholesale_csa is its own workflow. Typed against the members
- *  share_type domain so .in() typechecks. */
+/** Active SHARE share-types we backfill. add_on / wholesale_csa are out of
+ *  scope — add_on inherits pickup from the primary share, wholesale_csa is
+ *  its own workflow. fall_veg WAS out of scope too, written when no fall
+ *  member existed; the first nine ordered 2026-09-18 and three of them
+ *  (Rochester ×2, Sewickley) landed with a NULL pickup that nothing would
+ *  ever have healed. Typed against the members share_type domain so .in()
+ *  typechecks. */
 type BackfillShareType = Extract<
   Database['public']['Tables']['members']['Row']['share_type'],
-  'summer_veg' | 'flex' | 'flower' | 'spring_veg'
+  'summer_veg' | 'flex' | 'flower' | 'spring_veg' | 'fall_veg'
 >;
 const BACKFILL_SHARE_TYPES: readonly BackfillShareType[] = [
   'summer_veg',
   'flex',
   'flower',
   'spring_veg',
+  'fall_veg',
 ];
 
 interface BackfillCandidate {
@@ -203,6 +207,7 @@ interface CustomerOrdersResp {
  *   flex        → title contains "flex" AND "csa"
  *   flower      → title contains "flower" AND ("csa" OR "share")
  *   spring_veg  → title contains "spring" AND "csa"
+ *   fall_veg    → title contains "fall" AND "csa" AND NOT "flex"
  */
 function pickVariantForShareType(
   resp: CustomerOrdersResp | null,
@@ -227,6 +232,12 @@ function pickVariantForShareType(
       }
       if (shareType === 'spring_veg' &&
           title.includes('spring') && title.includes('csa')) {
+        return v;
+      }
+      // "Fall CSA Share 2026 — 6 Weeks of Organic Vegetables | Pittsburgh &
+      // North Hills". The !flex guard mirrors summer_veg's.
+      if (shareType === 'fall_veg' &&
+          title.includes('fall') && title.includes('csa') && !title.includes('flex')) {
         return v;
       }
     }
