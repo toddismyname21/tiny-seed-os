@@ -1,3 +1,63 @@
+## 2026-09-18 (later) — PM_ARCHITECT — Fall CSA orders got SUMMER dates; and production was 3 days stale
+
+Found while verifying the unit fix on the live site. Two problems, one of them
+live right now.
+
+### 1. Production has not been deployed since Tue Sep 15 09:52 ET
+
+`vercel ls` shows the only Ready production deployment is `dpl_GGxdp2mm…`, built
+Sep 15. Every git push to `csa-migration` since then has produced a PREVIEW build
+that FAILS: the git integration clones the repo root, installs the ROOT
+package.json, and dies with `sh: astro: command not found` (exit 127). Production
+deployments have always come from `vercel --prod` run inside apps/csa-portal
+("Retrieving list of deployment files", not "Cloning github.com/…").
+
+So commit 1439ccb (Sep 17, Fall CSA groundwork) is NOT live: no season gate, no
+welcome email, no pickup rewrites, no flex-label fix. Neither is today's unit fix.
+
+### 2. The sync stamps every non-spring order with SUMMER dates
+
+`resolveSeasonDates()` was a spring-or-summer binary and ignored the share type
+it had just categorized. The nine Fall CSA members who ordered today landed with:
+
+    season=Summer   start_date=2026-06-10   end_date=2026-10-07   total_weeks=18
+
+An end date four weeks before their season begins. The welcome email reads
+`start_date`, so the first fall welcome would have said "your first delivery is
+Wednesday, June 10."
+
+Now keyed off `cat.share_type` whenever SEASON_SCHEDULE has an entry for it
+(fall_veg → Oct 14 × 6, season 'Fall'). This also brings flower into line: the
+sync would have stamped 6/10 × 18 while every flower row in the database already
+carries 6/24 × 16. add_on has no schedule and keeps the summer fallback, which is
+what all 64 existing add_on rows carry. `members.season` is free text — live
+values include Summer, Spring, Bouquet, Flex and 2026 — so 'Fall' breaks nothing.
+
+### Live impact, read off the deployed site (not inferred)
+
+`/admin/labels/2026-09-23` on csa.tinyseedfarm.com prints three fall shares on
+next Wednesday's run — Tamara Walczyk, Jan Duckworth and Beth Cline, each as a
+"No pickup set / SHARE / Week of Sep 21" label. Walczyk and Duckworth also have
+their real summer labels, so those are duplicates. **Beth Cline has no summer
+share at all** — that label is a box she did not buy, four weeks early.
+
+Deploying the season gate stops this: `isShareInSeasonForWeek` reads
+SEASON_SCHEDULE, not the member row, so fall_veg drops off every week outside
+Oct 14 – Nov 18. Verified the resolver never gates on members.start_date /
+end_date — the only start/end filtering in cycle.ts is on holds.
+
+### Blocked, needs Todd
+
+Both of these were denied by the permission classifier and are waiting:
+
+  1. `npx vercel --prod` from apps/csa-portal — deploys Sep 17 + today's work.
+  2. `npx tsx scripts/fix_fall_season_dates.mts --apply` — corrects the nine
+     rows to 2026-10-14 → 2026-11-18, 6 weeks, season 'Fall'. Dry run reviewed;
+     it rewrites only season/start_date/end_date/total_weeks on share_type
+     ='fall_veg', and leaves weeks_remaining alone.
+
+Gate on the code: astro check 0 errors / 0 warnings, 25 unit tests pass, build clean.
+
 ## 2026-09-18 — PM_ARCHITECT — Pack team read "25 ea" for 25 LB; five sheets fixed
 
 Todd: "THE units are still incorrect for the wholesale pack sheets. It says

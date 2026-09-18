@@ -370,7 +370,7 @@ function checkAuth(request: Request): Response | null {
  * ────────────────────────────────────────────────────────────────── */
 
 interface SeasonDates {
-  season: 'Spring' | 'Summer';
+  season: 'Spring' | 'Summer' | 'Fall';
   start_date: string;
   end_date: string;
   total_weeks: number;
@@ -384,15 +384,29 @@ interface SeasonDates {
  */
 function resolveSeasonDates(cat: Category): SeasonDates | null {
   const isSpring = cat.spring === true || cat.share_type === 'spring_veg';
-  const scheduleKey = isSpring ? 'spring_veg' : 'summer_veg';
+  // USE THE SHARE TYPE'S OWN SCHEDULE when one is configured. This was a
+  // spring-or-summer binary, so EVERY non-spring line got the SUMMER dates.
+  // On 2026-09-18 the first nine Fall CSA orders landed with
+  // start_date 2026-06-10 / end_date 2026-10-07 — a season that ends four
+  // weeks before theirs begins — and the welcome email reads start_date, so
+  // it would have told a fall member their first delivery was in June.
+  // Share types with no schedule (add_on) keep the summer fallback, which is
+  // what every existing add_on row already carries.
+  const byShareType = getSchedule(cat.share_type);
+  const scheduleKey = byShareType ? cat.share_type : isSpring ? 'spring_veg' : 'summer_veg';
   const schedule: SeasonSchedule | null = getSchedule(scheduleKey);
   if (!schedule) return null;
 
   const totalWeeks =
     cat.freq === 'biweekly' ? Math.ceil(schedule.totalWeeks / 2) : schedule.totalWeeks;
 
+  // `members.season` is free text (live values include Summer, Spring,
+  // Bouquet, Flex, 2026), so a new 'Fall' label breaks no constraint.
+  const season: SeasonDates['season'] =
+    scheduleKey === 'fall_veg' ? 'Fall' : isSpring ? 'Spring' : 'Summer';
+
   return {
-    season: isSpring ? 'Spring' : 'Summer',
+    season,
     start_date: schedule.firstDelivery,
     end_date: lastDelivery(schedule),
     total_weeks: totalWeeks,
@@ -417,7 +431,7 @@ interface PlannedMember {
    *  categorize().freq — a biweekly order lands cadence='biweekly' with a NULL
    *  biweekly_week (member/admin assigns A/B later, visible in the counter). */
   cadence: 'weekly' | 'biweekly';
-  season: 'Spring' | 'Summer';
+  season: SeasonDates['season'];
   start_date: string;
   end_date: string;
   total_weeks: number;
