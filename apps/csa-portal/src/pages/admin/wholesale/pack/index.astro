@@ -134,13 +134,14 @@ type Item = {
   qty: number | null;
   qty_packed: number | null;
   fulfillment_status: 'pending' | 'packed' | 'short' | 'unavailable';
+  unit: string | null;
   product: { unit: string } | null;
 };
 let items: Item[] = [];
 if (orderIds.length) {
   const { data: itemRows } = await supabaseAdmin
     .from('wholesale_order_items')
-    .select('id, order_id, product_name, qty, qty_packed, fulfillment_status, product:wholesale_products ( unit )')
+    .select('id, order_id, product_name, qty, qty_packed, unit, fulfillment_status, product:wholesale_products ( unit )')
     .in('order_id', orderIds)
     .overrideTypes<Item[], { merge: false }>();
   items = itemRows ?? [];
@@ -152,9 +153,15 @@ for (const it of items) { const a = itemsByOrder.get(it.order_id) ?? []; a.push(
 const pick = new Map<string, { qty: number; unit: string }>();
 for (const it of items) {
   const name = it.product_name ?? 'Item';
-  const e = pick.get(name) ?? { qty: 0, unit: it.product?.unit ?? 'each' };
+  // The LINE's own unit wins. Lines entered by hand or by script have no
+  // product_id, so the wholesale_products join returns null and the old code
+  // fell through to 'each' — the pack sheet read "25 ea" for 25 LB of
+  // tomatoes (Todd 2026-09-18). Same precedence the labels page has used
+  // since the 2026-09-08 unitless-label fix.
+  const lineUnit = it.unit ?? it.product?.unit ?? null;
+  const e = pick.get(name) ?? { qty: 0, unit: lineUnit ?? 'each' };
   e.qty += Number(it.qty) || 0;
-  if ((!e.unit || e.unit === 'each') && it.product?.unit) e.unit = it.product.unit;
+  if ((!e.unit || e.unit === 'each') && lineUnit) e.unit = lineUnit;
   pick.set(name, e);
 }
 const pickRows = Array.from(pick.entries()).map(([name, v]) => ({ name, ...v })).sort((a, b) => a.name.localeCompare(b.name));
@@ -408,7 +415,7 @@ const pretty = prettyDeliveryDate(deliveryDate);
                 <li class="pack-item" data-item-id={it.id} data-qty={qtyText(it.qty)} data-fs={it.fulfillment_status}>
                   <span class="pack-check" aria-hidden="true"></span>
                   <span class="pack-item-name">{it.product_name}</span>
-                  <span class="pack-qty">{it.qty}<small>{it.product?.unit ? ` ${it.product.unit}` : ' ea'}</small></span>
+                  <span class="pack-qty">{it.qty}<small>{(it.unit ?? it.product?.unit) ? ` ${it.unit ?? it.product?.unit}` : ' ea'}</small></span>
                   <span class="pack-line-controls no-print">
                     <span class="pack-chip" data-role="chip">{lineChip(it)}</span>
                     <label class="pack-actual-label" for={`actual-${it.id}`}>Actual</label>

@@ -625,15 +625,17 @@ if (printAll && loadOrder && loadOrder.stops.some((s) => s.kind === 'wholesale')
   const orderIds = wOrderRows.map((o) => o.id);
   const itemsByOrder = new Map<string, WholesaleLine[]>();
   if (orderIds.length) {
-    type WItem = { order_id: string; product_name: string | null; qty: number | null; product: { unit: string | null } | null };
+    type WItem = { order_id: string; product_name: string | null; qty: number | null; unit: string | null; product: { unit: string | null } | null };
     const { data: itemRows } = await supabaseAdmin
       .from('wholesale_order_items')
-      .select('order_id, product_name, qty, product:wholesale_products ( unit )')
+      .select('order_id, product_name, qty, unit, product:wholesale_products ( unit )')
       .in('order_id', orderIds)
       .overrideTypes<WItem[], { merge: false }>();
     for (const it of (itemRows ?? []) as WItem[]) {
       const arr = itemsByOrder.get(it.order_id) ?? [];
-      arr.push({ name: it.product_name ?? 'Item', qty: Number(it.qty) || 0, unit: it.product?.unit ?? null });
+      // Line unit first — hand/script-entered lines have no product link, so
+      // the join is null and the unit printed blank (Todd 2026-09-18).
+      arr.push({ name: it.product_name ?? 'Item', qty: Number(it.qty) || 0, unit: it.unit ?? it.product?.unit ?? null });
       itemsByOrder.set(it.order_id, arr);
     }
   }

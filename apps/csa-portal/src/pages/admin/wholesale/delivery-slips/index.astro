@@ -39,6 +39,10 @@ type OrderRow = {
     product_name: string | null;
     qty: number | null;
     qty_packed: number | null;
+    /** The LINE's own unit (migration 20260831083400). Authoritative — a
+     *  hand-entered or script-entered line has no product_id, so the
+     *  wholesale_products join below is null for it. */
+    unit: string | null;
     unit_price_cents: number | null;
     product: { unit: string | null } | null;
   }> | null;
@@ -47,7 +51,7 @@ const { data: orderRows } = await supabaseAdmin
   .from('wholesale_orders')
   .select(
     'id, account_id, status, packed_at, account:wholesale_accounts ( restaurant_name, contact_name ), ' +
-      'items:wholesale_order_items ( id, product_name, qty, qty_packed, unit_price_cents, product:wholesale_products ( unit ) )',
+      'items:wholesale_order_items ( id, product_name, qty, qty_packed, unit, unit_price_cents, product:wholesale_products ( unit ) )',
   )
   .eq('delivery_date', deliveryDate)
   .in('status', [...REAL_STATUSES])
@@ -88,7 +92,10 @@ for (const o of orderRows ?? []) {
     const up = Number.isFinite(Number(it.unit_price_cents)) ? Number(it.unit_price_cents) / 100 : null;
     const lt = up != null ? Math.round(eff * up * 100) / 100 : 0;
     total += lt;
-    lines.push({ name, qty: eff, unit: it.product?.unit?.trim() || '', unitPrice: up, lineTotal: lt });
+    // Line's own unit first — hand-entered lines have no product_id, so the
+    // join is null and the slip printed a blank unit column (Todd 2026-09-18).
+    const lineUnit = (it.unit ?? it.product?.unit ?? '').trim();
+    lines.push({ name, qty: eff, unit: lineUnit, unitPrice: up, lineTotal: lt });
   }
   if (lines.length === 0 && shorts.length === 0) continue;
   lines.sort((a, b) => b.lineTotal - a.lineTotal || a.name.localeCompare(b.name));

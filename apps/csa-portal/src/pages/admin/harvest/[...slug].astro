@@ -220,6 +220,9 @@ function wholesaleTabFor(deliveryDate: string): 'mon' | 'thu' {
 interface WholesaleItemRow {
   product_name: string | null;
   qty: number;
+  /** The LINE's own unit. Authoritative: hand/script-entered orders have no
+   *  product_id, so the wholesale_products join below is null for them. */
+  unit: string | null;
   product: {
     unit: string | null;
     photo_url: string | null;
@@ -235,7 +238,7 @@ const { data: wholesaleOrderRows, error: wholesaleErr } = await supabase
   .from('wholesale_orders')
   .select(
     'id, delivery_date, ' +
-    'items:wholesale_order_items ( product_name, qty, ' +
+    'items:wholesale_order_items ( product_name, qty, unit, ' +
       'product:wholesale_products ( unit, photo_url, library:product_library ( photo_url ) ) )',
   )
   .eq('status', 'submitted')
@@ -256,7 +259,10 @@ for (const o of wholesaleOrderRows ?? []) {
     const name = it.product_name?.trim();
     if (!name) continue;
     if (tab !== dayTab) { wholesaleHasOther = true; continue; }
-    const unit = it.product?.unit?.trim() || 'each';
+    // Line unit first — a hand-entered line has no product link, and falling
+    // through to 'each' printed "25 ea" for 25 LB (Todd 2026-09-18). It also
+    // split one crop into two rows, since `unit` is part of the group key.
+    const unit = (it.unit ?? it.product?.unit)?.trim() || 'each';
     const photo = it.product?.library?.photo_url ?? it.product?.photo_url ?? null;
     const key = `${name.toLowerCase()}|${unit.toLowerCase()}`;
     const existing = wholesaleMap.get(key);

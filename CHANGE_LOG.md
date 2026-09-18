@@ -1,3 +1,46 @@
+## 2026-09-18 — PM_ARCHITECT — Pack team read "25 ea" for 25 LB; five sheets fixed
+
+Todd: "THE units are still incorrect for the wholesale pack sheets. It says
+(25 ea) instead of 25 lbs. This has been confusing for our pack team." Then,
+narrowing it himself: "it looks like it was wrong only on the orders you
+imported." He was exactly right, and that is the whole diagnosis.
+
+The DATA was never wrong. Every line this week stores the correct
+`wholesale_order_items.unit` (added by migration 20260831083400). The RENDER was
+wrong: five pages read the unit off the joined `wholesale_products` row instead
+of off the line. A chef-portal order carries `product_id`, so the join resolves
+and those pages looked fine. An order entered by hand or by script carries NO
+product_id — the join returns null and the code fell through to `'ea'` / `'each'`.
+29 of this week's 45 live lines are exactly those orders.
+
+Fixed to `it.unit ?? it.product?.unit` — the precedence the labels page has used
+since the 2026-09-08 unitless-label fix:
+
+  src/pages/admin/wholesale/pack/index.astro          pick list + per-order lines
+  src/pages/admin/wholesale/delivery-slips/index.astro chef-facing slip
+  src/pages/admin/harvest/[...slug].astro             harvest demand
+  src/pages/admin/pick-pack/[...slug].astro           crop merge, dest matrix, print-pack
+  src/pages/admin/pack-check/[...slug].astro          pack check
+
+Second, quieter bug on the two aggregating sheets: `unit` is part of the group
+key, so one crop ordered by both channels split into two rows — "Grape Tomatoes
+| lb" and "Grape Tomatoes | each". Those now merge.
+
+Verified against live data before committing (29 lines change, 0 regress):
+
+  Fet Fisk        Heirloom Tomatoes   25 ea -> 25 lb
+  Fet Fisk        Slicing Tomatoes    25 ea -> 25 lb
+  Brooklyn Bagel  Slicing Tomatoes    20 ea -> 20 lb
+  Della Terra     Cherry Bomb Peppers 20 ea -> 20 lb
+  Center for Hope Slicing Tomato Flat  5 ea -> 5 flat
+  Center for Hope Sweet/Green Pepper   3 ea -> 3 half bushel
+  ... 23 more. `no_unit_anywhere = 0`, so nothing still renders a fallback.
+
+Also typed `createdShareTypes` as `MemberShareType` in shopify-orders.ts — the
+welcome-email commit left a type error that `astro check` was carrying.
+
+Gate: astro check 0 errors / 0 warnings, 25 unit tests pass, build clean.
+
 ## 2026-08-31 (later) — PM_ARCHITECT — Rule: never guess, act from a source of truth
 
 Todd: "Make it a rule that you don't guess. You act from a source of truth always."
@@ -22857,3 +22900,19 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
 ## 2026-09-15 — PM_Architect — Organic lot labels LIVE in portal
 - NEW /admin/labels/organic — nonretail container labels per OEFFA-approved proof (Action Item 00052432): CERTIFIED ORGANIC + OEFFA #3839 + LOT TSF-[MMDD]-[field], Avery 8163 10-up (geometry mirrored from wholesale item-label mode). Field picker = real OSP field list (harvest-source attribution). Linked from /admin/labels hub. Verified live: page 200, week catch-all intact.
 - Also: OEFFA disclosure+label-proof email SENT (Todd release issue — see send-gate hardening f5c8c26); toolkit gap research delivered.
+
+## 2026-09-17 — PM_Architect — Inspection eve: shelf audit + handling guide + supplement disclosure
+- Shelf photo audit (26 photos via texts): found 4 undisclosed products (Serenade, Badge X2, RootShield, expired Blue Gold) + Soluble MAXX mfr correction; cover crop seed verified certified organic (Welter rye/peas, MOSA)
+- SENT supplemental disclosure to OEFFA (Todd release; Badge X2 = used 1x tomatoes; Serenade/RootShield = on-hand-not-used; Blue Gold being disposed)
+- NEW: INPUT_HANDLING_GUIDE.pdf (31 products, app/handling/storage, source-tagged, zero invented facts) · SPRAYER_RATE_CHART.pdf (4-gal + per-acre, fill-from-label blanks) · INPUT_BIN_CARDS.pdf · PRODUCTION_SALES_SUMMARY_2026.pdf · FRIDAY_CHECKLIST.md
+- Loren flower lists received (4 fields incl. CL=dahlias) — every field answered; all docs rendered to PDF print pack
+
+## 2026-09-18 — PM_Architect — Inspection day: field records refined + Don workbook delivered
+- Field-by-field refinement w/ Todd: JS10 (row map, sprays, Hi-K side-dress 7/4, Bt series 6/1×3), JS01 (full rebuild, smartweed war), JS06, IL, JL, K, High Tunnel, F3L bed map, Z1 lifecycle (5/5→9/16), field E added (buckwheat/clover 6/5, EH+EL 0.75ac, rhubarb/asparagus 2027) — activity log ~65 rows
+- Logan Labs 5/8 soil test found+filed: K deficient ALL 18 fields → documents potash/Hi-K/micros. Final packet emailed (7 PDFs + Q&A + advice)
+- One-page spray chart v6 (actives), pesticide storage sheet, 15-pg print pack
+- QB: Food Bank payments + $14.47 forgiven + 3 Rivers sales receipts (Cut Flowers item)
+- Don workbook (his format) filled w/ 25 as-grown rows + EH/EL→T, SENT to Don (Todd release)
+
+## 2026-09-18 — PM_Architect — Organic records reorganized by year
+- NEW canonical home: legal/organic_certification/{2025,2026,2027}/ — 2026 has 7 numbered sections (packet, field records, seeds, inputs, sales, signs, OEFFA corres.); 2025 holds initial-cert originals (was oeffa_2026_renewal/); Desktop symlink "Organic Records"

@@ -961,7 +961,7 @@ async function handle(request: Request, url: URL): Promise<Response> {
       const touchedMemberIds: string[] = [];
       // Share types whose member row this run CREATED (not updated).
       // Drives the one-time welcome email at the end of the order.
-      const createdShareTypes: string[] = [];
+      const createdShareTypes: MemberShareType[] = [];
       for (const m of plan.members) {
         // Resolve the pickup match up-front (pure, no IO).
         const match = matchVariantToPickup(m.variantTitle, pickupLocations);

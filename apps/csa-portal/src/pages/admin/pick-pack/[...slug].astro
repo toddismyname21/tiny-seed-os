@@ -305,6 +305,9 @@ function isJunkProductName(name: string): boolean {
 interface WholesaleItemRow {
   product_name: string | null;
   qty: number;
+  /** The LINE's own unit. Authoritative: hand/script-entered orders carry no
+   *  product_id, so the wholesale_products join is null for them. */
+  unit: string | null;
   product: { unit: string | null; photo_url: string | null; library: { name: string | null; photo_url: string | null; category: string | null } | null } | null;
 }
 interface WholesaleOrderRow { id: string; delivery_date: string; account_id: string | null; items: WholesaleItemRow[] | null; }
@@ -312,7 +315,7 @@ const { data: wholesaleOrderRows, error: wholesaleErr } = await db
   .from('wholesale_orders')
   .select(
     'id, delivery_date, account_id, ' +
-    'items:wholesale_order_items ( product_name, qty, ' +
+    'items:wholesale_order_items ( product_name, qty, unit, ' +
       'product:wholesale_products ( unit, photo_url, library:product_library ( name, photo_url, category ) ) )',
   )
   // submitted AND confirmed/packed: manual admin-entered orders default to
@@ -341,7 +344,11 @@ for (const o of wholesaleOrderRows ?? []) {
     const crop = libName ?? rawName;
     const canonical = !!libName;
     const sourceName = libName && normCrop(rawName) !== normCrop(libName) ? rawName : undefined;
-    const unit = it.product?.unit?.trim() || 'each';
+    // Line unit first. A hand/script-entered order has no product_id, so the
+    // join is null and this fell through to 'each' — the sheet read "25 ea"
+    // for 25 LB, and split one crop into two rows since `unit` is in the key
+    // (Todd 2026-09-18). Same precedence as the labels page.
+    const unit = (it.unit ?? it.product?.unit)?.trim() || 'each';
     const qty = Number(it.qty) || 0;
     if (qty <= 0) continue;
     const photo = it.product?.library?.photo_url ?? it.product?.photo_url ?? null;
@@ -833,7 +840,7 @@ if (view === 'packhouse' || view === 'printpack') {
       // SAME merged row the overall sheet built — a library rename that shares no
       // text with the vendor name would otherwise orphan the cell.
       const name = it.product?.library?.name?.trim() || rawName;
-      const unit = it.product?.unit?.trim() || 'each';
+      const unit = (it.unit ?? it.product?.unit)?.trim() || 'each';
       const qty = Number(it.qty) || 0;
       if (qty <= 0) continue;
       destInputs.push({ crop: name, qty, unit, kind: 'wholesale', destKey, destLabel });
@@ -1078,7 +1085,7 @@ if (view === 'printpack') {
       const libName = it.product?.library?.name?.trim() || null;
       const name = libName ?? rawName;
       const sourceName = libName && normCrop(rawName) !== normCrop(libName) ? rawName : undefined;
-      const unit = it.product?.unit?.trim() || 'each';
+      const unit = (it.unit ?? it.product?.unit)?.trim() || 'each';
       items.push({ name, qty, unit, sourceName });
     }
     if (items.length === 0) continue; // an all-junk / empty order stages nothing
