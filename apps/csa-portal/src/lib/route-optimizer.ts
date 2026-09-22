@@ -434,10 +434,14 @@ export async function gatherDayStops(
   }
 
   // 3) Wholesale restaurants with an order this delivery date.
+  //    CANCELLED orders are excluded (Todd 2026-09-22: Sprezzatura + EYV showed
+  //    on the Wed route from standing orders that had been cancelled — a
+  //    cancelled order must never create a delivery stop).
   const { data: orders } = await supabase
     .from('wholesale_orders')
     .select('account_id')
-    .eq('delivery_date', deliveryDate);
+    .eq('delivery_date', deliveryDate)
+    .neq('status', 'cancelled');
   const acctIds = Array.from(new Set((orders ?? []).map((o: any) => o.account_id).filter(Boolean)));
   if (acctIds.length) {
     const { data: accts } = await supabase
