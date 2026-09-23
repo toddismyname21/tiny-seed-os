@@ -131,3 +131,23 @@ Summary file: `QUICKBOOKS_DATA_SUMMARY.md` — single source of truth
 `legal/HORIZON_PREQUALIFICATION_WORKSHEET_DRAFT.html`
 — Print in browser, sign Page 1, send to Molly Decker (724.787.3332) with 2022, 2023, 2024 tax returns.
 — Numbers now synchronized with FSA Balance Sheet.
+
+
+## MAJOR UPDATE — 2026-08-30 (from Todd's 7/06 emails to Julie Metzler, FSA)
+**The debt schedule was PAID OFF to $0 in June–July 2026** using the FSA loan:
+PNC 8003 + 8428, PayPal Credit, Amex, Chase 7070, Shopify Credit, Shopify Capital,
+DGPerry, Ryan Utz, and **the Kretschmann lease arrears — "landlord's tally confirming
+all prior invoices paid."** The old arrears dispute ($16,775 → ~$9,715) is RESOLVED;
+do not act on the stale numbers. Post-payoff Kretschmann checks (#1737 $4,151.48
+5/25, #1744 $2,533.82 8/21, memo'd to invoice series 1048xx) are CURRENT rent.
+
+**FSA loan:** Julie Metzler released **$42,000** (~June) for equipment:
+Sutton Ag Seed Spider $19,569.28 + FORIGO G35-130 stone burier (SN G10645)
+$21,895.00 = **$41,464.28 — the same figure as the PA AIG R1 reimbursement claim**
+(the grant reimburses this equipment). Van title owed to FSA when it arrives.
+
+**QuickBooks does NOT reflect any of this (verified 2026-08-30):** no FSA loan
+liability, neither machine on Fixed Assets, and stale card/loan balances
+(Chase −$3,897.21, PNC 8003 −$6,227.20, Ryan Utz −$5,500, Shopify 2025.2
+−$5,150.26, Itria +$448.04). Cleanup entries proposed to Todd; CPA (DGPerry)
+flagged for Section 179 treatment of the two machines.

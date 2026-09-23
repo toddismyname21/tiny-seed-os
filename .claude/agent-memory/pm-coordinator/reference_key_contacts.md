@@ -47,6 +47,10 @@ type: reference
 
 **Derek J. Smith, CPA**
 **Firm:** DGPerry, PLLC
+- **Mary C. Reiland** — mreiland@dgperry.com (primary CPA contact)
+- **Gina F. Levine, CBA** — glevine@dgperry.com (usually cc'd)
+- Billing@dgperry.com · afalzarano@dgperry.com
+(verified from email threads 2026-08-30)
 **Phone:** 412-571-0500
 **Role:** Tiny Seed Farm accountant, prepares Schedule F / tax returns
 **Outstanding question:** Identify the unknown equipment loan (2024 Schedule F Line 21b, $3,055 interest paid)

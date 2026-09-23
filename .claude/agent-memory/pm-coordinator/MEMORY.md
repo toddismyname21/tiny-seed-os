@@ -1,10 +1,22 @@
 # PM Coordinator Agent Memory Index
 
+- [NEVER send without confirmation](feedback_never_send_without_confirmation.md) — HARD STOP: nothing goes to a third party until Todd says send. Urgency/pre-auth are NOT approval.
+- [Check the blast radius FIRST](feedback_check_blast_radius_first.md) — stop before the edit, not after. Find other callers + exceptions in the DATA, show impact, wait. Don't make Todd ask for care.
+- [Source-of-truth chain](reference_source_of_truth_chain.md) — LOOK IT UP, don't ask Todd. Portal → Shopify (orders + flex balance) → QuickBooks (invoiced/paid) or flex `locked` status.
+- [Open deadlines with money attached](project_open_deadlines.md) — Alberta's judgment praecipe (~30 days), Food Bank $5,852.60, Ray-Ban card-dispute window closes mid-Oct 2026.
+- [Farm Flex weekly cadence](project_flex_weekly_cadence.md) — the whole weekly loop: Thu auto-draft, Todd publishes, Tue 8am cutoff, Wed delivery. Flex list goes ONLY to flex members + store-credit holders (~41), NOT summer_veg (152).
+- [Don't over-explain to members](feedback_dont_over_explain.md) — established members know the portal. Weekly list emails = what's new, what's gone, the deadline, the link. No tutorials.
+- [Write plain](feedback_write_plain.md) — no clever lines or aphorisms in outbound email. Would Todd say it out loud? If not, cut it.
+
 ## ⭐ START HERE
 - [RESPONSIBILITIES BOARD](project_responsibilities_board.md) — `docs/TODD_RESPONSIBILITIES_BOARD.md` = master list of ALL Todd's commitments. Check every session; log every promise (email/text/chat); run Friday Accountability Hour. Todd asked to be held accountable (2026-08-02).
 - [GLOSSARY OF TRUTH](reference_glossary_of_truth.md) — `docs/CSA_GLOSSARY_OF_TRUTH.md` is THE canonical naming/terms/rules ref. Consult BEFORE labeling anything; never invent synonyms. Ends the naming drift.
+- [Loren's workspace](project_loren_workspace.md) — Loren=Flower Manager, has HER OWN terminal; ALL her files go in git-ignored `loren/` (never commit — public repo). 2026-08-19
 
 ## Feedback
+- [Loren's bouquet-email voice](feedback_loren_email_voice.md) — short; "Hi everyone" not "flower friends"; never "bunch"; close "Enjoy the flowers!"; template = 2026-09-03 sent version
+- [Confirm texts before sending](feedback_confirm_texts_before_send.md) — texts need Todd's OK on BOTH wording and recipient; verify the number from the registry. Urgency ≠ approval (2026-08-31)
+- [VERIFY BEFORE SEND — the rule](feedback_verify_before_send.md) — nothing goes out unless every fact was READ from a source of truth in that same action; recall is not a source. After a customer's cell went out as Todd's in 68 emails (2026-08-27)
 - [Verify flex status by RUNNING code, not comments](feedback_verify_flex_by_running_code.md) — never state flex open/closed from code comments/memory; run flex-order.ts funcs + check member-side before emailing. Stale comment → bad reminder, Todd "sloppy" (2026-07-20)
 - [ALWAYS use resolveCycle for weekly counts](feedback_always_use_resolvecycle.md) — any "this week" count (boxes/flowers/flex/harvest/deliveries) MUST come from resolveCycle (applies A/B + holds + season). Raw active-member counts are WRONG (flower 56 raw vs 32 actual, 2026-06-22)
 - [No business data on public pages](feedback_no_business_data_public_pages.md) — logged-out pages = sign-in only; member counts/locations/box go behind auth
@@ -40,6 +52,7 @@
 - [CSA portal UX initiative](project_csa_portal_ux_initiative.md) — long-run best-in-class UX effort; deep research (audit + premium polish docs) → roadmap → execute
 - [CSA portal feature backlog](project_csa_portal_feature_backlog.md) — Todd ideas 2026-05-24: IG photo feed, per-location chat, weekly box+recipe email; feasibility + decisions each needs
 - [CSA staff + comms](project_csa_staff_comms.md) — Frankie=staff (tinyseedcsa@gmail.com); contact routes to both Frankie+Todd; per-member comms log; tinyseedcsa@ owns 2 shares (move TBD)
+- [Gleaner's is NOT PASS — bill Linda directly](project_gleaners_not_pass.md) — St. Ferdinand's/Gleaner's (Linda Leary) billed direct to QB #1095, invoice handed in person, no email; Center for Hope IS PASS (#1099). Corrected 2026-08-25
 - [CSA Delivery & Pickup Locations 2026](project_csa_locations.md) — 12 stops (9 Wed CSA + 3 market), season dates, share types, home delivery $15/wk
 - [WEEK ON THE FARM (canonical)](project_week_on_the_farm.md) — THE weekly framework: daily duties + order windows for CSA/Flex/Markets/Wholesale/Floral; flex closes Tue6am(Tue/Wed) & Thu6am(Sat/Sun), opens Thu; wholesale Tue(close Mon6am)/Fri(close Thu6am), currently on Wed w/CSA, Mediterra always Wed; floral same days/stops
 - [CSA weekly cycle LOCKED](project_csa_weekly_cycle.md) — week=Mon–Sun w/ 4 pickup days (Tue Lawrenceville/Wed delivery/Sat markets/Sun South Side); stays current thru Sun, rolls Mon; labeled by DATE RANGE everywhere (no "this/next week")
@@ -64,6 +77,8 @@
 - [CSA running to-do / backlog](../../../docs/CSA_TODO.md) — `docs/CSA_TODO.md`: deferred CSA items (collab inbox, correction-note-to-66, paid-status sync, flex card-overage, 43 to-verify members, security). CHECK each session.
 
 ## Reference
+- [Texting from the Mac WORKS](reference_imessage_send_read.md) — send via AppleScript/Messages from Todd's own number; read+decode chat.db (attributedBody blobs, CAST date math). Twilio not needed
+- [Todd's phone = 717-725-5177](reference_todd_phone.md) — NEVER put a number in an email without checking here first; 412-720-1821 is John Rezzetano's (put in 68 emails by mistake 2026-08-27)
 - [Flex cutoff TRUTH + override](reference_flex_cutoff_truth.md) — real Wed-run flex close = MONDAY 7 AM (comments say Tue 8am = WRONG); weekend = Thu 7 AM; WEEK_EXTENDED_TUE constant extends one week to Tue 7 AM (needs deploy). Verify by running flex_diag.ts
 - [Product photo pipeline](reference_product_photo_pipeline.md) — where portal photos live (flex-images bucket) + how to process (PIL exif_transpose iPhone orient=6 + resize), upload, and link to product_library/wholesale_products/flex_inventory; Shopify is the original source
 - [Hooks configuration](reference_hooks_config.md) — 7 registered hooks, model assignments, scripts directory

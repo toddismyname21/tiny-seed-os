@@ -19,6 +19,8 @@ It reads `RESEND_API_KEY` + `RESEND_FROM_EMAIL` from `apps/csa-portal/.env` (git
 
 **RULE: never claim an email sent without proof** (Resend message `id`, or check the Sent mailbox).
 
+**Gmail API send ALSO works (verified 2026-08-19):** for 1:1 notes that should come from Todd's real address (todd@tinyseedfarmpgh.com) and land in his Sent folder, use the [[gmail-read-access]] OAuth token (scope includes gmail.send): refresh token → POST `users/me/messages/send` with base64url RFC822. Returns message id on success. Always BCC todd@. Used for the Loren terminal-link email (id 1a01a798c7b102e3).
+
 **Team visibility (Todd 2026-06-08):** all sends now set `reply_to` = the 3 team addresses **tinyseedcsa@gmail.com · todd@tinyseedfarmpgh.com · tinyseedfleurs@gmail.com** so customer replies reach all three. (Wired into `send_email.py` + `send_all_member_emails.py`.) Todd also wants **hello@tinyseedfarm.com forwarded to all 3** — set up as a Google Workspace Group (tinyseedfarm.com email = Google Workspace, MX → google) with the 3 as members; Todd must do this in admin.google.com (I have no Google Admin access). OPEN: whether the team wants a COPY of every outbound send (BCC-every = inbox flood for big campaigns, vs one copy per campaign) — pending Todd's choice. 
 
 **Channel guide:** ad-hoc files to Todd → this script. Member blasts (flex segment / all members / weekly box) → deployed portal campaign/Resend (proper unsubscribe), targeted by share_type. Custom member lists (the 89 non-logged-in, Allison Park) → this script with a generated recipient list, or builder adds CSV-upload to the campaign tool. See [[project_csa_flex_ordering_build]].

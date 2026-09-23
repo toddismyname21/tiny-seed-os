@@ -97,10 +97,18 @@ filled. Add-on packing and make-up verification are the fix — not seven apolog
 - [x] ~~**AIG R1 reimbursement #1 $41,464.28**~~ — **PAID.** PDA reimbursed **$27,642.86** by ACH 2026-09-16
       (remittance from RA-OBE-REMITTANCE@pa.gov, doc 2216101118). Lesson: **PDA pays 2/3 of receipts**, not
       dollar-for-dollar — $75,000 award against $112,500 of required receipts.
-- [ ] **AIG R1 reimbursement #002 — Tilmor, $15,082.20 receipts (~$10,054.80 PDA). DRAFTED 2026-09-23, NOT SENT.**
-      Packet at `legal/grants/ag_innovation_2026/round1_C940002366/reimbursements/002_DRAFT_tilmor/`.
-      ➡️ BLOCKED on proof of payment for Tilmor order 12391675 ($8,534.10, ordered 9/23, Todd confirms paid) —
-      attach the Stripe receipt when it arrives, then send to Roth.
+- [ ] **AIG R1 reimbursement #002 — Tilmor, $17,497.56 receipts (~$11,665 PDA). BUILT, REVIEWED, WAITING.**
+      Seven orders, all with itemized invoices. Packet at
+      `legal/grants/ag_innovation_2026/round1_C940002366/reimbursements/002_DRAFT_tilmor/`.
+      ➡️ **Trigger: the Tilmor receipt for order 12391675 ($8,534.10).** Tilmor bills at order
+      finalization, so it lags 1–2 days — watch `from:receipts@tilmor.com`. Todd 2026-09-23:
+      "I'll wait for the finalized receipt and then we can send it all."
+- [ ] **AIG: ask Roth whether the $876 Tractor Mounted Dibbler is covered** (order 12378899). Tilmor sells it
+      as planting equipment; Todd uses it to align hand-transplanted rows with the cultivation toolbar.
+      One-pager written. If he says no, packet 002 drops to $16,621.56.
+- [ ] **AIG R2: ask what was funded + when purchases can start.** Goal is the full system running for the
+      2027 season. Round 1's performance period opened 07/01/2024, ~2 yrs before execution — if R2 is the
+      same, Todd can order NOW. Both questions are in the same drafted email as the dibbler question.
 - [ ] **AIG R1: ask Krystel at Tilmor for invoices on four older orders** — 08/12/2024, 04/21/2025, 04/30/2025,
       05/14/2025, totalling **$2,415.36**. Found in the QuickBooks bank feed with no itemized invoice; inside the
       performance period, worth ~$1,610 PDA. Goes in reimbursement 003.
