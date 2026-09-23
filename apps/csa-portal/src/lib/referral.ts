@@ -30,9 +30,12 @@ import { supabaseAdmin } from './supabase';
 /** The standing referral bonus paid to the referrer (USD). */
 export const REFERRAL_BONUS_AMOUNT = 25;
 
-/** The friend's discount: $25 off, $300 minimum, CSA collection only. */
+/** The friend's discount: $25 off, $150 minimum, CSA collection only.
+ *  Minimum lowered 300 → 150 (Todd 2026-09-23) so referral codes work on
+ *  the $180 Fall CSA share — the $300 floor silently excluded it and the
+ *  program had zero referrals all season. */
 export const REFERRAL_DISCOUNT_AMOUNT = 25;
-export const REFERRAL_MINIMUM_SUBTOTAL = 300;
+export const REFERRAL_MINIMUM_SUBTOTAL = 150;
 
 /**
  * The Shopify CSA collection the friend discount is restricted to

@@ -60,7 +60,7 @@ import {
   type Category,
 } from '../../../lib/shopify';
 import { isFlexFundsTitle, planFlexCredit } from '../../../lib/flex';
-import { REFERRAL_BONUS_AMOUNT } from '../../../lib/referral';
+import { REFERRAL_BONUS_AMOUNT, REFERRAL_MINIMUM_SUBTOTAL } from '../../../lib/referral';
 import {
   matchVariantToPickup,
   type PickupLocation,
@@ -68,8 +68,10 @@ import {
 
 export const prerender = false;
 
-/** Minimum referred-order total for a referral bonus to pay out ($300). */
-const REFERRAL_MINIMUM_TOTAL = 300;
+/** Minimum referred-order total for a referral bonus to pay out. Shared
+ *  with lib/referral.ts (single source — was a drift-prone local 300; both
+ *  sides moved to $150 on 2026-09-23 so Fall CSA referrals qualify). */
+const REFERRAL_MINIMUM_TOTAL = REFERRAL_MINIMUM_SUBTOTAL;
 
 /** Where the error-alert email goes. Hardcoded to the farm owner — this is
  *  an operational alert, not a member-facing send. */

@@ -1,0 +1,143 @@
+---
+/**
+ * /survey — Fall 2026 member feedback survey (public, no login).
+ *
+ * WHY (Todd 2026-09-23): "send a survey out to the CSA members for any
+ * feedback — both positive and negative — and then we can get the updates
+ * through this weekend." Links arrive by email with ?e=<email> so the form
+ * pre-fills; anonymous submissions are still accepted (a blank email is
+ * better than a lost response).
+ *
+ * Submissions POST same-page → /api/survey/submit (service-role insert into
+ * member_survey_responses; honeypot field `website` rejects bots silently).
+ * No member data is READ here — public page renders nothing personal.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export const prerender = false;
+
+const url = new URL(Astro.request.url);
+const prefillEmail = (url.searchParams.get('e') ?? '').slice(0, 200);
+const submitted = url.searchParams.get('thanks') === '1';
+
+const inputCls = 'w-full rounded-ts-md border border-ts-border bg-white px-3 py-2 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+const labelCls = 'block text-sm font-semibold text-ts-text mb-1';
+const groupCls = 'mb-5';
+---
+
+<BaseLayout title="2026 Member Survey — Tiny Seed Farm">
+  <main class="mx-auto w-full max-w-xl px-4 py-10">
+    {submitted ? (
+      <div class="rounded-ts-md border border-ts-border bg-white p-8 text-center shadow-sm">
+        <p class="text-4xl" aria-hidden="true">🌱</p>
+        <h1 class="mt-3 font-display text-2xl font-bold text-ts-text">Thank you!</h1>
+        <p class="mt-2 text-sm text-ts-text-secondary">
+          Every response gets read — your feedback goes straight into the
+          improvements we're making this season and next.
+        </p>
+        <p class="mt-4 text-sm text-ts-text-secondary">
+          One small ask while you're here: <strong>please keep returning your
+          wax boxes</strong> — they're built for many trips, and every return
+          saves the farm real money.
+        </p>
+      </div>
+    ) : (
+      <form method="POST" action="/api/survey/submit" class="rounded-ts-md border border-ts-border bg-white p-6 shadow-sm sm:p-8">
+        <h1 class="font-display text-2xl font-bold text-ts-text">2026 Member Survey</h1>
+        <p class="mt-1 mb-6 text-sm text-ts-text-secondary">
+          Two minutes, honest answers — good and bad. This directly shapes what
+          we fix and build next.
+        </p>
+
+        <!-- honeypot: humans never see it; bots fill it and get dropped -->
+        <div class="hidden" aria-hidden="true">
+          <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="email">Your email <span class="font-normal text-ts-text-muted">(optional — helps us follow up)</span></label>
+          <input class={inputCls} type="email" id="email" name="email" value={prefillEmail} maxlength="200" />
+        </div>
+
+        <div class={groupCls}>
+          <span class={labelCls}>Overall, how's your CSA season going?</span>
+          <div class="flex gap-4 text-sm text-ts-text">
+            {[1,2,3,4,5].map((n) => (
+              <label class="flex flex-col items-center gap-1">
+                <input type="radio" name="overall_rating" value={String(n)} required />
+                <span>{n}</span>
+              </label>
+            ))}
+          </div>
+          <p class="mt-1 text-xs text-ts-text-muted">1 = rough · 5 = fantastic</p>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="working_well">What's working well? What do you love?</label>
+          <textarea class={inputCls} id="working_well" name="working_well" rows="3" maxlength="4000"></textarea>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="improve">What should we improve? Be blunt — it helps.</label>
+          <textarea class={inputCls} id="improve" name="improve" rows="3" maxlength="4000"></textarea>
+        </div>
+
+        <h2 class="mb-2 mt-8 font-display text-lg font-bold text-ts-text">Delivery times</h2>
+        <p class="mb-4 text-sm text-ts-text-secondary">
+          Straight talk: your CSA share and our restaurant orders ride the same
+          truck, and the week's wholesale load changes the route — that's why
+          arrival times shift week to week. We don't yet have the crew to run
+          separate trucks, so we built two tools to take the guessing out of it:
+          the live <strong>Track&nbsp;My&nbsp;Box</strong> tracker in your portal, and
+          a <strong>text from your driver</strong> when your share arrives.
+        </p>
+
+        <div class={groupCls}>
+          <span class={labelCls}>How's delivery timing been for you?</span>
+          <div class="flex gap-4 text-sm text-ts-text">
+            {[1,2,3,4,5].map((n) => (
+              <label class="flex flex-col items-center gap-1">
+                <input type="radio" name="delivery_rating" value={String(n)} required />
+                <span>{n}</span>
+              </label>
+            ))}
+          </div>
+          <p class="mt-1 text-xs text-ts-text-muted">1 = frustrating · 5 = no problem at all</p>
+        </div>
+
+        <div class={groupCls}>
+          <span class={labelCls}>Have you used Track My Box (in your member portal)?</span>
+          <div class="flex flex-wrap gap-4 text-sm text-ts-text">
+            <label class="flex items-center gap-1.5"><input type="radio" name="used_tracker" value="yes" required /> Yes</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="used_tracker" value="no" /> No</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="used_tracker" value="didnt_know" /> Didn't know it existed</label>
+          </div>
+        </div>
+
+        <div class={groupCls}>
+          <span class={labelCls}>Do you get a text when your share arrives?</span>
+          <div class="flex flex-wrap gap-4 text-sm text-ts-text">
+            <label class="flex items-center gap-1.5"><input type="radio" name="gets_arrival_texts" value="always" required /> Always</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="gets_arrival_texts" value="sometimes" /> Sometimes</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="gets_arrival_texts" value="never" /> Never</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="gets_arrival_texts" value="not_sure" /> Not sure</label>
+          </div>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="tools_helpful">Are the tracker + arrival texts helpful? What would make them better?</label>
+          <textarea class={inputCls} id="tools_helpful" name="tools_helpful" rows="2" maxlength="4000"></textarea>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="comments">Anything else on your mind?</label>
+          <textarea class={inputCls} id="comments" name="comments" rows="2" maxlength="4000"></textarea>
+        </div>
+
+        <button type="submit" class="mt-2 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark">
+          Send feedback →
+        </button>
+      </form>
+    )}
+  </main>
+</BaseLayout>
