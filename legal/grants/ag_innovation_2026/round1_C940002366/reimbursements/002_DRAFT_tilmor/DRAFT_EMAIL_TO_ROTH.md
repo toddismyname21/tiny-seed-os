@@ -32,12 +32,30 @@ If it doesn't qualify, no argument — I'll pull it and the request comes to
 $16,621.56. I'd just rather ask than have it come out at review. I've attached a
 one-page description.
 
-**2. Round 2 — which line items were approved?**
+**2. Round 2 — I need to know what was funded, and when I can start buying.**
 
 We were notified of the $31,380 award on August 14, but I still don't have the
-approved line items or Attachment 1. I don't want to order anything until I know
-what's in it, and the transplanter is imported with a long lead time, so the
-timing matters.
+approved line items or Attachment 1. A few questions so I can plan:
+
+- **What was funded?** We asked for $46,703 across eight items and were awarded
+  $31,380, so something came out. I need the approved list before I commit to
+  anything — I don't want to spend match money on a line that isn't in the
+  contract.
+- **When does the performance period start, and can I purchase before the
+  contract is countersigned?** On Round 1 the period opened 07/01/2024, well
+  before we executed, so purchases made in between were eligible. If Round 2
+  works the same way I can start now. If it doesn't, I'll wait — but I'd like to
+  know which it is.
+- **What's the realistic timeline to an executed contract?** I'm ready to sign
+  the day it arrives.
+
+The reason I'm pushing on dates: I want the full system in the ground and
+running for the 2027 season, not half of it. The Checchi & Magli transplanter is
+imported and has the longest lead time of anything on the list, so it has to be
+ordered months ahead of spring. Everything else — the irrigation, the
+greenhouse automation, the rinse conveyor — needs to be installed and tested
+before the season starts, not during it. If I know what's approved and when I
+can buy, I can sequence the orders and have it all working by spring 2027.
 
 Our vendor number is 833615.
 
