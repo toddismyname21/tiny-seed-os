@@ -94,9 +94,16 @@ filled. Add-on packing and make-up verification are the fix — not seven apolog
       lines were funded is STILL unknown. His 2026-08-20 email answered only the R1 reimbursement and never mentioned R2. 
       This gates all vendor ordering — the Checchi & Magli transplanter ($28K, imported) is the longest lead item.
 - [ ] **AIG R2: send vendor number (#833615) to Mike Roth** (separate email; drafted)
-- [x] ~~**AIG R1 reimbursement #1 $41,464.28**~~ — Roth SUBMITTED it 2026-08-20 after six weeks. ➡️ **Payment expected 
-      ~2026-09-17.** If it hasn't landed by then, email him — he invited the follow-up. Official invoice template for 
-      batch 2 saved at `legal/grants/ag_innovation_2026/13_Wilson_AIG_InvoiceTemplate.docx`.
+- [x] ~~**AIG R1 reimbursement #1 $41,464.28**~~ — **PAID.** PDA reimbursed **$27,642.86** by ACH 2026-09-16
+      (remittance from RA-OBE-REMITTANCE@pa.gov, doc 2216101118). Lesson: **PDA pays 2/3 of receipts**, not
+      dollar-for-dollar — $75,000 award against $112,500 of required receipts.
+- [ ] **AIG R1 reimbursement #002 — Tilmor, $15,082.20 receipts (~$10,054.80 PDA). DRAFTED 2026-09-23, NOT SENT.**
+      Packet at `legal/grants/ag_innovation_2026/round1_C940002366/reimbursements/002_DRAFT_tilmor/`.
+      ➡️ BLOCKED on proof of payment for Tilmor order 12391675 ($8,534.10, ordered 9/23, Todd confirms paid) —
+      attach the Stripe receipt when it arrives, then send to Roth.
+- [ ] **AIG R1: ask Krystel at Tilmor for invoices on four older orders** — 08/12/2024, 04/21/2025, 04/30/2025,
+      05/14/2025, totalling **$2,415.36**. Found in the QuickBooks bank feed with no itemized invoice; inside the
+      performance period, worth ~$1,610 PDA. Goes in reimbursement 003.
 - [ ] Tilmor 4-row finger weeder — follow-up SENT 8/2 (CC Alex Kozel); order when quote lands
 - [x] ~~**Mac migration**~~ — DONE 8/16 (verified + prod deploy from new Mac; see Done log). ⚠️ FOLLOW-UP: **revoke Sam's Mac GitHub key by Sun Aug 23** (see Deadlines)
 - [ ] Kick off **Jackie Wood / Good Roots** business-planning (= the Vitality↔AIG complement promised in the R2 application)

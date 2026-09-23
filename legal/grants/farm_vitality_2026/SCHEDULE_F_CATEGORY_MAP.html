@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule F Category Map — Tiny Seed Farm</title>
+<style>
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none; }
+    .page-break { page-break-before: always; }
+  }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.4in;
+    color: #1a1a1a;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+  h1 {
+    text-align: center;
+    color: #1a5c1a;
+    font-size: 18pt;
+    margin-bottom: 2px;
+    border-bottom: 3px solid #1a5c1a;
+    padding-bottom: 6px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #666;
+    font-size: 9pt;
+    margin-bottom: 16px;
+  }
+  .purpose {
+    background: #f0f7f0;
+    border-left: 4px solid #1a5c1a;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-size: 9.5pt;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 9.5pt;
+  }
+  th {
+    background: #1a5c1a;
+    color: #fff;
+    text-align: left;
+    padding: 6px 8px;
+    font-size: 9pt;
+  }
+  td {
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f9f9f9; }
+  .line-num { font-weight: bold; color: #1a5c1a; white-space: nowrap; min-width: 50px; }
+  .category { font-weight: 600; }
+  .examples { color: #444; font-size: 9pt; }
+  .examples ul { margin: 2px 0 0 16px; padding: 0; }
+  .examples li { margin-bottom: 1px; }
+  .na { color: #999; font-style: italic; }
+  .flag { background: #fff3cd; }
+  .income-section th { background: #2a6e2a; }
+  .note {
+    background: #fff8e6;
+    border-left: 4px solid #d4a017;
+    padding: 8px 12px;
+    margin: 12px 0;
+    font-size: 9pt;
+  }
+  h2 {
+    color: #1a5c1a;
+    font-size: 13pt;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #1a5c1a;
+    padding-bottom: 4px;
+  }
+  .auto-tag {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 8pt;
+    font-weight: 600;
+  }
+  .manual-tag {
+    display: inline-block;
+    background: #fff3e0;
+    color: #e65100;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 8pt;
+    font-weight: 600;
+  }
+  .print-btn {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 36px;
+    background: #1a5c1a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12pt;
+    cursor: pointer;
+  }
+  .print-btn:hover { background: #145014; }
+</style>
+</head>
+<body>
+
+<h1>Schedule F Category Map</h1>
+<p class="subtitle">Tiny Seed Farm LLC — Todd Wilson — EIN 81-5299411<br>Reference for QuickBooks categorization &amp; future auto-categorization training</p>
+
+<div class="purpose">
+<strong>Purpose:</strong> Every transaction in QuickBooks should map to a Schedule F line item. This document is the bridge between your bank/credit card transactions and your tax return. Categorize manually now to build the training data for automatic categorization later.<br>
+<strong>Tags:</strong> <span class="auto-tag">AUTO</span> = can be auto-categorized by vendor/keyword &nbsp; <span class="manual-tag">MANUAL</span> = needs human judgment
+</div>
+
+<!-- ============ INCOME ============ -->
+<h2>Part I: Farm Income (Lines 1–9)</h2>
+
+<table class="income-section">
+<tr>
+  <th style="width:60px;">Line</th>
+  <th style="width:180px;">Schedule F Category</th>
+  <th>Your Farm Examples</th>
+  <th style="width:60px;">Auto?</th>
+</tr>
+<tr>
+  <td class="line-num">2</td>
+  <td class="category">Sales of livestock, produce, grains, and other products you raised</td>
+  <td class="examples">
+    <ul>
+      <li>Farmers market sales (cash, card, Venmo)</li>
+      <li>CSA membership payments</li>
+      <li>Wholesale restaurant invoices</li>
+      <li>Grocery/retail salad clamshell sales</li>
+      <li>Cut flower sales</li>
+      <li>Farm stand / on-farm sales</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+<tr>
+  <td class="line-num">4a</td>
+  <td class="category">Agricultural program payments</td>
+  <td class="examples">
+    <ul>
+      <li>USDA EQIP payments</li>
+      <li>NRCS conservation payments</li>
+      <li>PA Ag Innovation Grant reimbursements</li>
+      <li>Farm Vitality Grant reimbursements</li>
+    </ul>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+<tr>
+  <td class="line-num">6d</td>
+  <td class="category">Custom hire (machine work) income</td>
+  <td class="examples"><span class="na">N/A currently — would apply if you did custom tillage/seeding for other farms</span></td>
+  <td>—</td>
+</tr>
+<tr>
+  <td class="line-num">8</td>
+  <td class="category">Other income</td>
+  <td class="examples">
+    <ul>
+      <li>Federal/state fuel tax credit or refund</li>
+      <li>Crop insurance proceeds</li>
+      <li>Miscellaneous farm income</li>
+    </ul>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+</table>
+
+<!-- ============ EXPENSES ============ -->
+<h2>Part II: Farm Expenses (Lines 10–32)</h2>
+
+<table>
+<tr>
+  <th style="width:60px;">Line</th>
+  <th style="width:180px;">Schedule F Category</th>
+  <th>Your Farm Examples</th>
+  <th style="width:60px;">Auto?</th>
+</tr>
+
+<tr>
+  <td class="line-num">10</td>
+  <td class="category">Car and truck expenses</td>
+  <td class="examples">
+    <ul>
+      <li>Farm truck fuel (separate from tractor fuel — Line 19)</li>
+      <li>Farm truck maintenance, tires, registration</li>
+      <li>Mileage to/from markets, deliveries, supply runs</li>
+    </ul>
+    <em>Note: Can use actual expenses OR standard mileage rate. Pick one method and stick with it.</em>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">11</td>
+  <td class="category">Chemicals</td>
+  <td class="examples">
+    <ul>
+      <li>Bt (Dipel, Monterey B.t.)</li>
+      <li>Neem oil</li>
+      <li>Entrust (spinosad)</li>
+      <li>PyGanic (pyrethrin)</li>
+      <li>Sluggo (iron phosphate)</li>
+      <li>Copper sulfate / NuCop</li>
+      <li>Regalia, Serenade</li>
+      <li>Ag sulfur</li>
+    </ul>
+    <em>All OMRI-listed pest/disease control products</em>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">12</td>
+  <td class="category">Conservation expenses</td>
+  <td class="examples">
+    <ul>
+      <li>Cover crop seed (rye, clover, buckwheat, oats, phacelia)</li>
+      <li>Erosion control materials</li>
+      <li>Buffer strip establishment</li>
+    </ul>
+    <em>Must be approved by NRCS or consistent with NRCS plan. See Form 8645.</em>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">13</td>
+  <td class="category">Custom hire (machine work)</td>
+  <td class="examples">
+    <ul>
+      <li>Hired tillage or field prep from another farmer</li>
+      <li>Custom compost turning</li>
+      <li>Custom spreading</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">14</td>
+  <td class="category">Depreciation and Section 179</td>
+  <td class="examples">
+    <ul>
+      <li>Ortomec seeder</li>
+      <li>FORIGO G-25 power harrow</li>
+      <li>Harvester 2000</li>
+      <li>PTO compost turner</li>
+      <li>Tilmor cultivation tools</li>
+      <li>3pt platform</li>
+      <li>Drop spreader</li>
+      <li>Walk-in cooler</li>
+      <li>Greenhouse structures (if owned)</li>
+    </ul>
+    <em>Your accountant calculates this — you just need to track equipment purchases with dates and costs.</em>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">15</td>
+  <td class="category">Employee benefit programs</td>
+  <td class="examples">
+    <ul>
+      <li>Health insurance for employees (not you — that's personal)</li>
+      <li>Workers comp insurance</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">16</td>
+  <td class="category">Feed</td>
+  <td class="examples"><span class="na">N/A — no livestock</span></td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td class="line-num">17</td>
+  <td class="category">Fertilizers and lime</td>
+  <td class="examples">
+    <ul>
+      <li>Compost (purchased)</li>
+      <li>Kelp meal</li>
+      <li>Chilean nitrate (Ohio Earth Foods)</li>
+      <li>Sulfate of potash</li>
+      <li>Soft rock phosphate</li>
+      <li>Gypsum</li>
+      <li>Granular boron (Ohio Earth Foods)</li>
+      <li>Maxicrop (liquid kelp)</li>
+      <li>Lime/dolomitic limestone</li>
+      <li>Fish emulsion, bone meal</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">18</td>
+  <td class="category">Freight and trucking</td>
+  <td class="examples">
+    <ul>
+      <li>Shipping on equipment orders (Brookdale, Nolt's)</li>
+      <li>Freight on seed/supply orders (Johnny's, Welter)</li>
+      <li>Delivery charges from vendors</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">19</td>
+  <td class="category">Gasoline, fuel, and oil</td>
+  <td class="examples">
+    <ul>
+      <li>Diesel for tractors</li>
+      <li>Gas for equipment (tillers, mowers, etc.)</li>
+      <li>Oil, hydraulic fluid, grease for farm machinery</li>
+    </ul>
+    <em>Farm vehicle fuel goes on Line 10 if using actual expense method</em>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">20</td>
+  <td class="category">Insurance (other than health)</td>
+  <td class="examples">
+    <ul>
+      <li>Farm liability insurance</li>
+      <li>Crop insurance</li>
+      <li>Equipment/property insurance</li>
+      <li>Product liability</li>
+    </ul>
+    <em>NOT your personal health insurance — that's a personal deduction</em>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">21a</td>
+  <td class="category">Interest — Mortgage</td>
+  <td class="examples"><span class="na">N/A — you lease, don't own the land</span></td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td class="line-num">21b</td>
+  <td class="category">Interest — Other</td>
+  <td class="examples">
+    <ul>
+      <li>FSA loan interest</li>
+      <li>Operating line of credit interest</li>
+      <li>Equipment loan interest</li>
+      <li>Credit card interest (farm cards only)</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">22</td>
+  <td class="category">Labor hired</td>
+  <td class="examples">
+    <ul>
+      <li>Employee wages (W-2)</li>
+      <li>Seasonal/part-time crew wages</li>
+      <li>Payroll taxes (employer share — FICA, FUTA, SUTA)</li>
+    </ul>
+    <em>Does NOT include contract labor (1099) — that goes on Line 32</em>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">23</td>
+  <td class="category">Pension and profit-sharing</td>
+  <td class="examples"><span class="na">N/A currently</span></td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td class="line-num">24a</td>
+  <td class="category">Rent/lease — Vehicles, machinery, equipment</td>
+  <td class="examples">
+    <ul>
+      <li>Equipment rental (if any)</li>
+      <li>Tractor lease payments (if applicable)</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr class="flag">
+  <td class="line-num">24b</td>
+  <td class="category">Rent/lease — Other (land, buildings)</td>
+  <td class="examples">
+    <ul>
+      <li><strong>Kretschmann lease payments (~$32,000+/yr)</strong></li>
+      <li>Any other land or building rent</li>
+    </ul>
+    <em>This is your biggest single expense — make sure every payment is categorized here</em>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">25</td>
+  <td class="category">Repairs and maintenance</td>
+  <td class="examples">
+    <ul>
+      <li>Tractor repair parts and labor</li>
+      <li>Greenhouse repair (plastic, framing, heaters)</li>
+      <li>Irrigation repair (fittings, hoses, valves)</li>
+      <li>Equipment maintenance and parts</li>
+      <li>Building/barn repairs</li>
+    </ul>
+    <em>Repairs maintain — improvements get depreciated (Line 14)</em>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">26</td>
+  <td class="category">Seeds and plants</td>
+  <td class="examples">
+    <ul>
+      <li>Johnny's Selected Seeds orders</li>
+      <li>Welter Seed orders (cover crop seed goes to Line 12 if conservation)</li>
+      <li>Seed garlic, onion sets, potato seed</li>
+      <li>Transplant plugs (purchased)</li>
+      <li>Perennial plants</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">27</td>
+  <td class="category">Storage and warehousing</td>
+  <td class="examples">
+    <ul>
+      <li>Cold storage rental (if off-farm)</li>
+      <li>Storage unit rental for supplies/equipment</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">28</td>
+  <td class="category">Supplies</td>
+  <td class="examples">
+    <ul>
+      <li>Clamshell containers / packaging</li>
+      <li>CSA boxes and bags</li>
+      <li>Harvest totes and bins</li>
+      <li>Rubber bands, twist ties, labels</li>
+      <li>Row cover (Agribon)</li>
+      <li>Landscape fabric / weed barrier</li>
+      <li>Drip tape and irrigation supplies</li>
+      <li>Potting soil, seed trays, cell packs</li>
+      <li>Greenhouse supplies (heat mats, lights)</li>
+      <li>Hand tools (hoes, knives, pruners)</li>
+      <li>Gloves, buckets, tarps</li>
+      <li>Sanitizer / cleaning supplies (harvest)</li>
+      <li>Market supplies (signage, tablecloths, displays)</li>
+    </ul>
+    <em>This is the catch-all — if it's not a specific category above, it's probably a supply</em>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">29</td>
+  <td class="category">Taxes</td>
+  <td class="examples">
+    <ul>
+      <li>Real estate taxes on farm property (if you owned it)</li>
+      <li>Personal property tax on equipment</li>
+      <li>LLC annual registration fees</li>
+    </ul>
+    <em>NOT income tax, self-employment tax, or payroll tax (employer share is on Line 22)</em>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">30</td>
+  <td class="category">Utilities</td>
+  <td class="examples">
+    <ul>
+      <li>Electric (greenhouse, cooler, barn, irrigation pumps)</li>
+      <li>Water/sewer (if metered for farm use)</li>
+      <li>Propane/natural gas (greenhouse heating)</li>
+      <li>Phone/internet (farm business portion)</li>
+    </ul>
+  </td>
+  <td><span class="auto-tag">AUTO</span></td>
+</tr>
+
+<tr>
+  <td class="line-num">31</td>
+  <td class="category">Veterinary, breeding, medicine</td>
+  <td class="examples"><span class="na">N/A — no livestock</span></td>
+  <td>—</td>
+</tr>
+
+<tr>
+  <td class="line-num">32</td>
+  <td class="category">Other expenses (specify)</td>
+  <td class="examples">
+    <ul>
+      <li><strong>32a: OEFFA organic certification fees</strong></li>
+      <li><strong>32b: Farmers market booth fees / dues</strong></li>
+      <li><strong>32c: Professional services</strong> (accountant, attorney, consultants)</li>
+      <li><strong>32d: Marketing &amp; advertising</strong> (website, social media ads, flyers, business cards)</li>
+      <li><strong>32e: Education &amp; conferences</strong> (PASA, OEFFA conference, workshops)</li>
+      <li><strong>32f: Subscriptions &amp; software</strong> (QuickBooks, Tiny Seed OS, Mailchimp, etc.)</li>
+    </ul>
+    <em>Anything that doesn't fit Lines 10-31. Label each sub-line clearly.</em>
+  </td>
+  <td><span class="manual-tag">MANUAL</span></td>
+</tr>
+</table>
+
+<!-- ============ TRICKY ONES ============ -->
+<h2>Common Categorization Mistakes</h2>
+
+<div class="note">
+<strong>Cover crop seed:</strong> Could be Line 12 (conservation) OR Line 26 (seeds). If part of a conservation plan or purely for soil health, use Line 12. If it's part of your crop rotation plan, Line 26 is fine. Pick one approach and be consistent. Your accountant should decide.
+</div>
+
+<div class="note">
+<strong>Repair vs. Improvement:</strong> Fixing a broken greenhouse heater = Line 25 (repair). Replacing all greenhouse plastic with a better grade = Line 14 (depreciation/improvement). Rule of thumb: if it makes something better than it was, it's an improvement. If it puts it back to where it was, it's a repair.
+</div>
+
+<div class="note">
+<strong>Gas station purchases:</strong> Farm truck fuel = Line 10 or Line 19 depending on your method. Tractor diesel = Line 19. Snacks at the gas station = NOT deductible. Separate these at the register or split the transaction in QuickBooks.
+</div>
+
+<div class="note">
+<strong>Amazon / hardware store:</strong> These are the hardest to auto-categorize because you buy farm supplies AND personal items from the same vendors. Every Amazon and hardware store transaction needs manual review until you have enough training data.
+</div>
+
+<div class="note">
+<strong>Grant reimbursements:</strong> When PDA reimburses you for the Innovation Grant or Vitality Grant, that's income on Line 4a (agricultural program payments), NOT a reduction of the expense. You deduct the expense when you pay it AND report the reimbursement as income when you receive it.
+</div>
+
+<!-- ============ AUTOMATION PLAN ============ -->
+<h2 class="page-break">Automation Training Plan</h2>
+
+<p>The goal: categorize manually now, build rules, then automate. Here's how the training data flows:</p>
+
+<table>
+<tr>
+  <th>Step</th>
+  <th>What You Do</th>
+  <th>What Gets Trained</th>
+</tr>
+<tr>
+  <td><strong>1. Manual</strong><br>(Now)</td>
+  <td>Categorize every transaction in QuickBooks using this map. Add a memo/note for ambiguous ones.</td>
+  <td>Every categorized transaction becomes a training example: vendor + amount + description → Schedule F line</td>
+</tr>
+<tr>
+  <td><strong>2. Rules</strong><br>(After ~3 months)</td>
+  <td>Review patterns. Create QuickBooks rules for vendors that always go to the same category (e.g., Johnny's = Seeds, OEFFA = Certification).</td>
+  <td>Vendor-based rules handle ~60% of transactions automatically</td>
+</tr>
+<tr>
+  <td><strong>3. Smart Rules</strong><br>(After ~6 months)</td>
+  <td>Build keyword-based rules for mixed vendors (e.g., Amazon purchase with "drip tape" in memo = Supplies).</td>
+  <td>Keyword + vendor rules handle ~80% of transactions</td>
+</tr>
+<tr>
+  <td><strong>4. Auto-Categorize</strong><br>(Season 2+)</td>
+  <td>Build auto-categorizer in Tiny Seed OS that suggests categories based on historical patterns. You approve or correct.</td>
+  <td>ML model trained on your actual categorization history. Gets smarter with each correction.</td>
+</tr>
+</table>
+
+<div class="note">
+<strong>Key principle:</strong> The manual work you do now IS the training data. Every transaction you categorize correctly teaches the system what the right answer is. Don't skip the manual phase — it's not wasted work, it's building the model.
+</div>
+
+<br>
+<button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+
+</body>
+</html>

@@ -1,50 +1,52 @@
 ---
 name: aig-grants-status
-description: PA Ag Innovation Grant status — R1 $75K executed, reimbursement #1 $41,464.28 SUBMITTED by Roth 2026-08-20 (payment ~4 wks); R2 awarded $31,380 of $46,703 ask, LINE ITEMS STILL UNKNOWN
+description: PA Ag Innovation Grant — R1 $75K, invoice 001 PAID $27,642.86 (PDA reimburses 2/3 of receipts); invoice 002 Tilmor $15,082.20 DRAFTED not sent; R2 awarded $31,380, Attachment 1 still unknown
 metadata:
   type: project
 ---
 
-**PA Agriculture Innovation Grant — status as of 2026-08-20.** Files: `legal/grants/ag_innovation_2026/` (contains BOTH rounds). PDA contact: **Michael Roth, Director of Innovation, michroth@pa.gov, cell 717-210-1217**. Vendor **#833615**.
+**Files are now organized.** Start at `legal/grants/ag_innovation_2026/README.md`,
+then `round1_C940002366/LEDGER.md` — the ledger carries every running total and
+names its source. Do not re-derive totals from email; read the ledger.
 
-## Round 1 — app #202411157573, $75,000 · contract C940002366 EXECUTED
-Performance period through 6/30/2027.
+PDA contact **Michael Roth**, michroth@pa.gov, 717-210-1217. Vendor **#833615**.
 
-**✅ Reimbursement #1 UNBLOCKED 2026-08-20.** Invoice TSF-AIG-001, **$41,464.28** (Sutton Seed Spider + FORIGO stone burier). Submitted 7/6, nudged 8/2 and 8/15 with no reply for six weeks. Roth finally answered **2026-08-20 3:30 PM ET**:
+## THE REIMBURSEMENT RATIO — the thing that was not known before 2026-09-23
 
-> "My sincere apologies for the delay… I have submitted your reimbursement request. I would expect **payment in about four weeks**. Let me know if you do not see it come through. For the next submission, you can use the attached template."
+**PDA pays two-thirds of receipts submitted**, not dollar for dollar. Award
+$75,000 against $112,500 of required receipts = 66.667%. Proven: invoice 001
+submitted **$41,464.28** of receipts and PDA paid **$27,642.86** (remittance
+from RA-OBE-REMITTANCE@pa.gov, ACH 09/16/2026, document 2216101118).
 
-- **Expect payment ~2026-09-17.** If nothing lands by then, email Roth — he explicitly invited the follow-up.
-- **He supplied the official invoice template**: `legal/grants/ag_innovation_2026/13_Wilson_AIG_InvoiceTemplate.docx`. **Use it for batch 2** — batch 2 receipts (Tilmor etc.) are already accumulating.
+Always quote Todd the PDA figure, not the receipt total.
 
-## Round 2 — app #202604189681, submitted 4/18/2026
-**Awarded $31,380 against a $46,703 PDA ask** (press release 8/14, announced by Roth 8/14).
+## Round 1 — C940002366, EXECUTED, $75,000, period 07/01/2024–06/30/2027
 
-🔴 **APPROVED LINE ITEMS ARE STILL UNKNOWN.** Roth's 8/20 email addressed ONLY the Round 1 reimbursement and said nothing about Round 2. He had indicated individual grant details ~8/21. **Ask him directly — do not assume the silence means anything.**
+Invoice **001** PAID. Receipts remaining **$71,035.72**; PDA remaining **$47,357.14**.
 
-The 8-item request (see `SUBMISSION_READY.md` Q5), PDA ask / match / total:
+Invoice **002 — DRAFTED 2026-09-23, NOT SENT.** Tilmor cultivation,
+$15,082.20 of receipts → ~$10,054.80 PDA. Folder
+`round1_C940002366/reimbursements/002_DRAFT_tilmor/`. Blocked only on proof of
+payment for order 12391675.
 
-| Item | PDA | Match | Total |
-|---|---|---|---|
-| Checchi & Magli BABY COMPACT transplanter | $18,760 | $9,240 | $28,000 |
-| Greenhouse + high-tunnel automation (Nolt's) | $8,487 | $4,181 | $12,668 |
-| Toro Tempus Ag smart irrigation (Brookdale) | $6,831 | $3,364 | $10,195 |
-| Stainless rinse conveyor (Martin's) | $4,020 | $1,980 | $6,000 |
-| Irrigation delivery — layflat, filters, drip | $3,544 | $1,746 | $5,290 |
-| Schaper Bros 5' drop spreader (Market Farm) | $2,848 | $1,403 | $4,250 |
-| Sumisansui R-Wide spray tubes (Tilmor) | $1,931 | $951 | $2,882 |
-| 200-cell drop seeders ×2 (Bootstrap) | $281 | $139 | $420 |
-| **TOTAL** | **$46,703** | **$23,003** | **$69,706** |
+Approved budget line #7 is literally **"Compatible Cultivation system, tooled
+through Tilmor" — $20,000 PDA / $30,000 total** (contract p.18), so Tilmor
+purchases need no extra blessing. Lines 1, 2, 5, 6 (cooler humidity, compost
+turner, Harvester 2000, Farmmade platform) are ALL still unclaimed.
 
-Filed fallback: if the Checchi & Magli is not funded, a custom 3-pt mount for the existing **Lannen RT-20** by Market Farm Implement — PDA $3,015 / total $4,500.
+## Finding Tilmor purchases — neither source alone is complete
 
-**Subset-sum inference (NOT fact):** everything except greenhouse automation ($8,487) + Toro irrigation ($6,831) = $31,384 — $4 off the award. Best fit, but it is arithmetic, not a contract.
+Email found the 2026 orders; **QuickBooks found four more** (2024-08-12 $242.96,
+2025-04-21 $490.80, 2025-04-30 $1,443.60, 2025-05-14 $238.00 — $2,415.36) that
+never surfaced in email. Conversely the 4/17/2026 $948.70 and 9/23/2026
+$8,534.10 are NOT in QuickBooks. **Always check both.** QB Purchase queries cap
+at 1000 rows — paginate with `startposition` or you will miss 8,000 rows.
 
-**Why it matters:** no grant funds may go to anything outside the contract's Attachment 1, and the transplanter is imported with the longest lead time. Ordering before Attachment 1 arrives risks spending match money on an unapproved line.
+Two Tilmor charges predate the period and are NOT eligible: 2024-03-18 $333.10,
+2024-05-13 $324.60.
 
-**Contract not yet started** — Todd signs → Commonwealth countersigns → executed copy emailed → then reimbursements. Reimbursement points at months 4/9/12. ~$23K match cash reserve needed. CONFIDENTIAL until the press event.
+## Round 2 — 202604189681, awarded $31,380 of a $46,703 ask
 
-## How to apply
-- R1 money: watch for payment ~9/17; chase Roth if absent.
-- R2: the ONLY open question with Roth now is **Attachment 1 / approved line items**. Chase that specifically — the reimbursement question is closed.
-- Verify approved lines against the 8-item table above the moment the contract lands.
+🔴 Approved line items STILL unknown. See `round2_202604189681/README.md`.
+Chase Roth for **Attachment 1** — that is the only open R2 question. Nothing
+can be ordered until it lands.
