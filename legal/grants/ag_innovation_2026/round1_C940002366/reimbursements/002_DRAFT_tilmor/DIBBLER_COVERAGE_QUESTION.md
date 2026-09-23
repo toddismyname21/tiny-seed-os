@@ -21,13 +21,28 @@ real line items. Nothing is unaccounted for.
 
 A toolbar-mounted implement carrying wheels of blunt pegs — here, four wheels of
 16 dibbles each. Rolled over a prepared bed, it presses a grid of evenly spaced
-dimples that mark and open the spots where transplants or seed go. It mounts on
-the same 2" Tilmor toolbar as the cultivation tools in this grant, and it was
-bought with a frame adapter for that toolbar.
+dimples marking where each transplant goes. It mounts on the same 2" Tilmor
+toolbar as the cultivation tools in this grant, and was bought with a frame
+adapter for that toolbar.
 
 **Tilmor itself catalogues it under "Seeding/Planting"** — alongside planters,
 seed rollers and dibble wheels — not with their cultivation tools (spring hoe
-kits, finger weeders, torsion weeders). That is the honest difficulty.
+kits, finger weeders, torsion weeders).
+
+## What it is actually for on this farm
+
+We use the dibbler when we hand transplant, so that the rows we set by hand line
+up with the cultivation equipment that has to come back through them.
+
+That is the whole reason it was bought. The dibble wheels are spaced to match
+the tool spacing on the cultivation toolbar, so a bed planted by hand can still
+be cultivated by machine. Without it, hand-transplanted rows wander, the toolbar
+cannot follow them, and those beds fall back to hand weeding — which is the
+labor the cultivation upgrade exists to eliminate.
+
+So the dibbler is not planting equipment in the sense of getting a crop in the
+ground faster. It is the alignment step that makes the rest of the Tilmor
+cultivation system work on hand-planted crops.
 
 ## Why it might be covered
 
@@ -36,19 +51,21 @@ kits, finger weeders, torsion weeders). That is the honest difficulty.
   cultivation, and bed wide stale seedbedding, **and adaptations to our current
   tractors**."* The dibbler is a toolbar adaptation on the tractors this line
   upgraded, bought with the frame adapter to fit it.
-- The contract's own eligibility determination (p.29, item 23) rules the Tilmor
-  line *"Eligible under **Farm Equipment** for comprehensive cultivation needs"* —
-  Farm Equipment being the broad designation, not a planting-specific one.
+- The contract's own eligibility determination (p.29, item 23) funds this line
+  *"under **Farm Equipment** for comprehensive cultivation needs, enabling
+  efficient **weed management** and soil health improvement."* Weed management is
+  exactly what the dibbler delivers — it is what lets the finger weeders,
+  torsion weeders and spring hoes bought under this same grant run through a
+  hand-transplanted bed at all.
 - The coversheet approves a single budget category, **Equipment — Harvesting and
   Production Equipment**, and invoice 001 was reimbursed in full even though two
   of its items exceeded their individual line amounts. PDA has not been reading
   the budget row by row.
-- Even spacing at transplant is what makes mechanical cultivation possible. A
-  crop dibbled on grid can be cultivated by machine; one planted by eye cannot.
 
 ## Why it might not be
 
-- Tilmor sells it as planting equipment, and dibbling is a planting operation.
+- Tilmor sells it as planting equipment, and on its face dibbling happens at
+  planting time.
 - The application's planting items were **cut from the approved budget**. The
   Rain-Flo 1670 water wheel transplanter (eligibility list item 19, *Planting
   Equipment*) and the Jang toolbar seeders (item 17) both appear in the earlier
@@ -64,13 +81,3 @@ changes — the request simply drops from **$17,497.56** to **$16,621.56** of
 receipts.
 
 We would rather ask now than have it pulled at review.
-
----
-
-### ⚠️ Before this goes out — Todd needs to answer one thing
-
-**How do you actually use the dibbler?** If it is used to mark spacing for the
-beds that the Tilmor cultivation system then cultivates, say so plainly — that
-is the strongest and most truthful argument, and it is the one fact here that
-only you can supply. If it is used for something else, the note should say that
-instead.
