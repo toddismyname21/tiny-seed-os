@@ -23017,3 +23017,15 @@ User requested deep research on plugins + MCP servers for March 2026. Current ec
 
 ## 2026-09-18 — PM_Architect — Organic records reorganized by year
 - NEW canonical home: legal/organic_certification/{2025,2026,2027}/ — 2026 has 7 numbered sections (packet, field records, seeds, inputs, sales, signs, OEFFA corres.); 2025 holds initial-cert originals (was oeffa_2026_renewal/); Desktop symlink "Organic Records"
+
+## 2026-09-19 — PM_Architect — Week 9/21 fully set up for Todd Mon–Wed absence
+- Flex published (37 items; +beets/radishes/kohlrabi $4/petite kale, −beans/chard) + announcement to 40 (32 flex + 8 credit holders, Fall CSA pitch)
+- Fresh sheet to 86 chefs + 5 fall products added + fall-additions follow-up w/ personal order links (86/86); Brooklyn Bagel STANDING 20# slicers Wed until tomatoes done
+- Box staged (7 common + 2 large) · weekly email to 123 receiving members (Fall CSA + bulk last call)
+- SEND PROTOCOL instituted after fresh-sheet violation: show content+audience → Todd replies SEND; hook now blocks bulk sends without TODD_RELEASE marker
+
+## 2026-09-23 — PM_Architect (Claude)
+- **Survey:** built + deployed public `/survey` page → `member_survey_responses` (migration 20260923155320, applied live). E2E verified on prod.
+- **Referrals:** opened existing program (0024/`/account/refer`) to the Fall CSA — min $300→$150 in `referral.ts` + order-sync (shared constant); minted 195 real Shopify discount codes (all ACTIVE, $25 off/$150 min, CSA collection). Deleted 194 accidental non-Shopify rows created earlier same day.
+- **Route planner:** fixed cancelled-order stops (route-optimizer.ts); Google Cloud billing reactivated; Maps APIs re-enabled; Della Terra/Titusz/Brooklyn Bagel customer links + address fixed.
+- **Member sweep:** 7 promises converted to member_notices; invoices 9000111/9000112 voided + $22.50 flex debits; Mediterra tomatoes tiered ($432.50).
