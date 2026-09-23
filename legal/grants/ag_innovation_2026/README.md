@@ -46,3 +46,27 @@ round1_C940002366/
 round2_202604189681/
 _archive_working_docs/  drafting notes from the R2 application. Not authoritative.
 ```
+
+## The grant portal is the document vault — check it FIRST
+
+`apps/grant-portal` → **grant-portal-ashy.vercel.app** (password `tinyseed2026`),
+backed by its own Supabase project `tiny-seed-grants` (ref `xkiplnkamcjjuzwpsqvf`,
+free tier — it auto-pauses, resume it in the dashboard if DNS fails).
+
+It holds `grants`, `grant_budget_lines`, `expenses`, `deadlines`,
+`grant_deliverables`, `documents` (files in the private `documents` bucket),
+`reimbursements`, plus the FSA loan and its payoff proofs.
+
+**It already had all six older Tilmor invoices** when email and QuickBooks each
+had only part of the picture. Search it before concluding a document is missing.
+
+## A third grant lives here too
+
+**Farm Vitality Planning Grant — C940002569, $14,250**, contact Neil Imes
+(nimes@pa.gov, 717-787-5539), application 202603138391. Reimburses **75% at
+completion, one time**, match 25% cash with **no in-kind allowed**. Service
+provider: Good Roots. Target completion ~June 2027.
+
+Logged spend so far is all Trellis Legal: $600 (6/22) + $700 (8/4) cash, plus a
+$500 in-kind market-credit barter that **probably does not qualify** given the
+no-in-kind rule. Confirm with Imes before counting it.
