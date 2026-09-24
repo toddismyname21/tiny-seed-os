@@ -211,24 +211,83 @@ a freshly rebuilt fuel system away untested and find out in April.
 
 ---
 
-## Parts to order — bring these numbers
+## Parts — VERIFIED from the OEM diagram
 
-Order against **CV14S, SPEC 14107**:
+Pulled 2026-09-24 from the PartsTree OEM parts diagram for
+**Kohler CV14-14107 — "Command PRO Engine, Made for Simplicity, 14hp."**
+That listing names Simplicity explicitly, which confirms it is this machine's
+engine. Prices and stock as of that date.
 
-| Part | Note |
+Model page:
+`https://www.partstree.com/models/cv14-14107-kohler-command-pro-engine-made-for-simplicity-14hp/`
+
+### Fuel system — diagram 8-27-146
+
+| Ref | Part | Kohler number | Price | Stock | Note |
+|---|---|---|---|---|---|
+| 4 | **KIT, CARBURETOR** | **12 853 93-S** | **$269.99** | only 2 left | **includes both gaskets below** |
+| 5 | Gasket, air cleaner base | 12 041 02-S | $2.99 | 20+ | in the carb kit |
+| 6 | Gasket, carburetor | 12 041 01-S | $2.49 | 20+ | in the carb kit |
+| 7 | Deflector, heat | 12 265 08-S | $9.49 | 2–5 days | inspect, replace if cracked |
+| 8 | Clamp, band spring hose | 25 237 08-S → **25 237 37-S** | $2.49 | 3 left | superseded |
+| 9 | **Hose, LW perm. fuel, 24"** | 25 111 34-S → **25 111 81-S** | $17.99 | qty 5 | superseded |
+| 10 | Clamp, hose (KM) | 25 237 14-S → **25 237 31-S** | $5.49 | 3 left | superseded |
+| 11 | **Filter, fuel, 75 micron** (gravity feed) | 25 050 21-S | $12.99 | 20+ | |
+| 12 | **KIT, FUEL PUMP** | 12 559 02-S | — | qty 17 | see note |
+
+### Air intake — diagram 10-27-15
+
+| Ref | Part | Kohler number | Price |
+|---|---|---|---|
+| 4 | **PRE-CLEANER** (the foam wrap) | **12 083 08-S** | $6.99 |
+| 5 | **ELEMENT W/SEAL KIT** | **12 083 05-S** | $27.99 |
+| | ↳ retail-boxed as an air filter kit | 12 883 05-S1 | |
+
+### Also noted
+| Part | Number | Price |
+|---|---|---|
+| Gasket, cylinder head | 12 041 08-S | $20.99 |
+
+---
+
+## Three decisions before you order
+
+### 1. The OEM carburetor is $269.99 — and only 2 are in stock
+That is real money against a 25-year-old mower. Aftermarket carburetors for this
+engine are commonly $40–70. The honest trade:
+
+- **OEM 12 853 93-S** — correct jetting, correct linkage geometry, includes both
+  gaskets, and it will run right the first time.
+- **Aftermarket** — usually fine on a simple engine like this, but the common
+  failures are wrong jetting (runs rich or lean and you chase it for a season),
+  linkage holes in slightly the wrong place, and cheap float needles that stick.
+
+On a machine you intend to keep, OEM. On a machine near the end of its life, an
+aftermarket carb is a defensible gamble. **Your call — tell me which and I will
+find the best source.** If you want OEM, order soon; two in stock is thin.
+
+### 2. Does yours have a fuel PUMP or is it GRAVITY feed?
+The diagram lists both a fuel pump kit (12 559 02-S) **and** a filter labeled
+"gravity feed" (25 050 21-S). This engine family was built both ways.
+
+**Go look before you order.** Follow the line from the tank. If there is a pump
+on the engine, its diaphragm is the same age as the rotted hose and should be
+replaced at the same time. If it is gravity feed, skip the pump entirely.
+
+### 3. Three of these parts are superseded
+Order the **new** numbers, not the ones cast into the old parts:
+`25 237 08-S → 25 237 37-S` · `25 111 34-S → 25 111 81-S` ·
+`25 237 14-S → 25 237 31-S`
+
+---
+
+## Still to confirm
+
+| Need | Where |
 |---|---|
-| Carburetor | **Must be confirmed against spec 14107**, not just CV14S |
-| Carburetor gasket set | Never reuse old gaskets |
-| Fuel line | Match ID to the old line; ethanol-rated (SAE 30R7 or marine) |
-| Fuel line clamps | Spring or pinch style, not worm-gear |
-| Inline fuel filter | Note the flow direction arrow |
-| Fuel pump | Only if spec 14107 uses one — confirm |
-| Tank cap | If the vent does not pass air |
-| Spark plug | Get the **gap spec** with it |
-| Air filter element | |
-| Pre-cleaner | The separate foam piece — easy to forget |
-| Oil filter | |
-| Oil | Viscosity and capacity from the manual |
+| Spark plug number and **gap** | Not on the diagrams I pulled — get from the CV14 owner's manual or a dealer |
+| Oil filter number | Same |
+| Oil viscosity and crankcase capacity | Same |
+| Carb bolt and plug torque | CV14 service manual |
 
-**Where to get the numbers:** any Kohler dealer, or an online parts lookup, using
-model + spec + serial. The spec number is the one that matters.
+Quote **CV14S, SPEC 14107, SERIAL 3012206931** for any of these.
