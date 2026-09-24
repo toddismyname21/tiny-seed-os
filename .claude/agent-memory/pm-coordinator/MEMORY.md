@@ -98,4 +98,4 @@
 - [CSA Day 10 email — actual blockers](project_csa_day10_email_unblocked.md) — Resend already verified, Cloudflare migration NOT a prereq; real blockers are Supabase SMTP=null + DMARC missing + Day 10 impl work
 - [BCC Todd on all emails](feedback_email_bcc_todd.md) — every outgoing email BCCs todd@tinyseedfarmpgh.com; batch sends = BCC first + report count
 
-- [AIG 002 pending send](project_aig_002_pending_send.md) — built & reviewed; trigger is the Tilmor receipt for order 12391675, then send to Roth
+- [.docx cell verification](feedback_docx_cell_verification.md) — python-docx row.cells drops content-control cells; verify Word tables from raw XML

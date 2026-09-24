@@ -35,12 +35,17 @@ Production Equipment" — so the invoice template's Category dropdown is always
 | Invoice | Submitted | Receipts | PDA paid | Paid on |
 |---|---|---|---|---|
 | **C940002366-001** | 2026-07-06 | $41,464.28 | **$27,642.86** | ACH 2026-09-16 ✅ |
-| **002 (draft)** | — | $17,497.56 | ~$11,665.04 expected | — |
+| **002** | 2026-09-24 | $17,497.56 | ~$11,665.04 expected | pending |
 
 | Running total | Amount | Remaining |
 |---|---|---|
-| Receipts submitted | $41,464.28 of $112,500 | **$71,035.72** |
+| Receipts submitted | $58,961.84 of $112,500 | **$53,538.16** |
 | PDA paid | $27,642.86 of $75,000 | **$47,357.14** |
+| PDA in flight (invoice 002) | ~$11,665.04 | — |
+
+Invoice 002 went to Roth **2026-09-24**. Two versions were sent so he can pick:
+**$17,497.56 with the dibbler**, **$16,621.56 without**. If he drops it, receipts
+submitted become $58,085.84.
 
 ## What invoice 001 covered
 
