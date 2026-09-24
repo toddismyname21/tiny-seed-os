@@ -68,6 +68,10 @@ const fmt = (iso: string): string =>
   subtitle={`${rows.length} response${rows.length === 1 ? '' : 's'} · sent 9/23 to 194 households`}
   pageTitle="Survey results — Tiny Seed Admin"
 >
+  <p class="mb-4 text-sm text-ts-text-secondary">
+    <a class="font-semibold text-ts-primary underline" href="/admin/survey/flowers">💐 Flower CSA survey results →</a>
+  </p>
+
   <div class="grid gap-4 sm:grid-cols-4">
     <Card padding="md" elevation="sm">
       <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Responses</p>

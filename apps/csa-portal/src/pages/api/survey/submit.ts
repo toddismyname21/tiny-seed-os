@@ -27,8 +27,8 @@ const rating = (v: FormDataEntryValue | null): number | null => {
   const n = Number(String(v ?? ''));
   return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
 };
-const oneOf = (v: FormDataEntryValue | null, allowed: string[]): string | null => {
-  const s = String(v ?? '').trim();
+const oneOf = <T extends string>(v: FormDataEntryValue | null, allowed: readonly T[]): T | null => {
+  const s = String(v ?? '').trim() as T;
   return allowed.includes(s) ? s : null;
 };
 
@@ -56,8 +56,8 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     working_well: clamp(form.get('working_well'), 4000),
     improve: clamp(form.get('improve'), 4000),
     delivery_rating: rating(form.get('delivery_rating')),
-    used_tracker: oneOf(form.get('used_tracker'), ['yes', 'no', 'didnt_know']),
-    gets_arrival_texts: oneOf(form.get('gets_arrival_texts'), ['always', 'sometimes', 'never', 'not_sure']),
+    used_tracker: oneOf(form.get('used_tracker'), ['yes', 'no', 'didnt_know'] as const),
+    gets_arrival_texts: oneOf(form.get('gets_arrival_texts'), ['always', 'sometimes', 'never', 'not_sure'] as const),
     tools_helpful: clamp(form.get('tools_helpful'), 4000),
     comments: clamp(form.get('comments'), 4000),
     source: 'fall_2026_email',

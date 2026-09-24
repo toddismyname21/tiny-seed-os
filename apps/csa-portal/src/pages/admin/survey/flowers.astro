@@ -1,0 +1,162 @@
+---
+/**
+ * /admin/survey/flowers — 💐 Flower CSA 2026 season survey results.
+ *
+ * Read side of the public /survey/flowers form (Loren, approved 2026-09-24).
+ * Summary up top (overall avg, renew-intent counts, vase-life spread, 2027
+ * interest tallies — the demand signals for spring/dahlia/dried CSAs and
+ * workshops), then every response in full, newest first.
+ *
+ * Linked from /admin/survey (veg results page) and vice versa so neither
+ * report is orphaned. Reads flower_survey_responses via supabaseAdmin under
+ * AdminShell's requireAdmin guard; the table has no anon policies.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+export const prerender = false;
+
+type Row = import('../../../lib/database.types').Database['public']['Tables']['flower_survey_responses']['Row'];
+
+const { data } = await supabaseAdmin
+  .from('flower_survey_responses')
+  .select('*')
+  .order('created_at', { ascending: false });
+const rows = (data ?? []) as Row[];
+
+const avg = (vals: (number | null)[]): string => {
+  const v = vals.filter((n): n is number => typeof n === 'number');
+  return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '—';
+};
+const overallAvg = avg(rows.map((r) => r.overall_rating));
+
+const VASE_LABELS: Record<string, string> = {
+  week_plus: 'A week or more', four_five_days: 'About 4–5 days',
+  few_days: 'Only a few days', varied: 'Varied a lot',
+};
+const RENEW_LABELS: Record<string, string> = {
+  definitely: 'Definitely', probably: 'Probably',
+  not_sure: 'Not sure', probably_not: 'Probably not',
+};
+const INTEREST_LABELS: Record<string, string> = {
+  spring_csa: 'Spring flower CSA',
+  dahlia_csa: 'Dahlia CSA',
+  dried_csa: 'Fall dried flower CSA',
+  pick_your_own: 'Pick your own at the farm',
+  arrangement_workshops: 'Fresh arrangement workshops',
+  wreath_workshops: 'Dried flower wreath workshops',
+  holiday_wreaths: 'Holiday wreaths',
+  keep_same: 'Keep everything the same!',
+};
+const interestCount = (k: string): number => rows.filter((r) => (r.interests ?? []).includes(k)).length;
+const renewYes = rows.filter((r) => r.renew_2027 === 'definitely' || r.renew_2027 === 'probably').length;
+
+const fmt = (iso: string): string =>
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  }).format(new Date(iso));
+---
+
+<AdminShell
+  title="Flower CSA 2026 survey"
+  subtitle={`${rows.length} response${rows.length === 1 ? '' : 's'} · Loren's end-of-season survey`}
+  pageTitle="Flower survey results — Tiny Seed Admin"
+>
+  <p class="mb-4 text-sm text-ts-text-secondary">
+    <a class="font-semibold text-ts-primary underline" href="/admin/survey">← Veg member survey results</a>
+  </p>
+
+  <div class="grid gap-4 sm:grid-cols-4">
+    <Card padding="md" elevation="sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Responses</p>
+      <p class="mt-1 font-display text-3xl font-bold text-ts-text">{rows.length}</p>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Season avg</p>
+      <p class="mt-1 font-display text-3xl font-bold text-ts-text">{overallAvg}<span class="text-base font-normal text-ts-text-muted"> / 5</span></p>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Renew for 2027</p>
+      <p class="mt-1 font-display text-3xl font-bold text-ts-text">{renewYes}<span class="text-base font-normal text-ts-text-muted"> def+prob</span></p>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Low ratings (≤2)</p>
+      <p class={`mt-1 font-display text-3xl font-bold ${rows.some((r) => (r.overall_rating ?? 5) <= 2) ? 'text-ts-danger' : 'text-ts-text'}`}>
+        {rows.filter((r) => (r.overall_rating ?? 5) <= 2).length}
+      </p>
+      <p class="text-xs text-ts-text-muted">follow up within 48h</p>
+    </Card>
+  </div>
+
+  <div class="mt-4 grid gap-4 sm:grid-cols-3">
+    <Card padding="md" elevation="sm">
+      <h2 class="font-display text-base font-bold text-ts-text">🌷 2027 interest</h2>
+      <ul class="mt-2 space-y-1 text-sm text-ts-text-secondary">
+        {Object.entries(INTEREST_LABELS).map(([k, label]) => (
+          <li class="flex justify-between gap-2">
+            <span>{label}</span>
+            <span class="font-semibold text-ts-text">{interestCount(k)}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <h2 class="font-display text-base font-bold text-ts-text">⏳ Vase life</h2>
+      <ul class="mt-2 space-y-1 text-sm text-ts-text-secondary">
+        {Object.entries(VASE_LABELS).map(([k, label]) => (
+          <li class="flex justify-between gap-2">
+            <span>{label}</span>
+            <span class="font-semibold text-ts-text">{rows.filter((r) => r.vase_life === k).length}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <h2 class="font-display text-base font-bold text-ts-text">🔁 Renew intent</h2>
+      <ul class="mt-2 space-y-1 text-sm text-ts-text-secondary">
+        {Object.entries(RENEW_LABELS).map(([k, label]) => (
+          <li class="flex justify-between gap-2">
+            <span>{label}</span>
+            <span class="font-semibold text-ts-text">{rows.filter((r) => r.renew_2027 === k).length}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  </div>
+
+  <section class="mt-6" aria-label="All responses">
+    <h2 class="mb-3 font-display text-lg font-bold text-ts-text">All responses (newest first)</h2>
+    <div class="space-y-3">
+      {rows.map((r) => (
+        <Card padding="md" elevation="sm">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <p class="text-sm font-semibold text-ts-text">{r.email || 'anonymous'}</p>
+            <p class="text-xs text-ts-text-muted">{fmt(r.created_at)}</p>
+          </div>
+          <p class="mt-1 text-xs text-ts-text-secondary">
+            Season <strong class={(r.overall_rating ?? 5) <= 2 ? 'text-ts-danger' : 'text-ts-text'}>{r.overall_rating ?? '—'}/5</strong>
+            &nbsp;·&nbsp; Vase life: {VASE_LABELS[r.vase_life ?? ''] ?? '—'}
+            &nbsp;·&nbsp; 2027: {RENEW_LABELS[r.renew_2027 ?? ''] ?? '—'}
+          </p>
+          {(r.interests ?? []).length > 0 && (
+            <p class="mt-2 text-sm text-ts-text"><span class="font-semibold text-ts-primary">🌷 Interested in:</span> {(r.interests ?? []).map((k) => INTEREST_LABELS[k] ?? k).join(', ')}</p>
+          )}
+          {r.loved && (
+            <p class="mt-2 text-sm text-ts-text"><span class="font-semibold text-ts-primary">💛 Loved:</span> {r.loved}</p>
+          )}
+          {r.change_request && (
+            <p class="mt-2 text-sm text-ts-text"><span class="font-semibold text-amber-700">🔧 Change:</span> {r.change_request}</p>
+          )}
+          {r.comments && (
+            <p class="mt-2 text-sm text-ts-text"><span class="font-semibold text-ts-text-secondary">💭 Comments:</span> {r.comments}</p>
+          )}
+        </Card>
+      ))}
+      {rows.length === 0 && (
+        <Card padding="md" elevation="sm"><p class="text-sm text-ts-text-secondary">No responses yet — the survey email hasn't been released.</p></Card>
+      )}
+    </div>
+  </section>
+</AdminShell>

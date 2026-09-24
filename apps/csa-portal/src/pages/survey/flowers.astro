@@ -1,0 +1,132 @@
+---
+/**
+ * /survey/flowers — Flower CSA 2026 season survey (public, no login).
+ *
+ * WHY (Loren, approved 2026-09-24): end-of-season feedback for the ~56 flower
+ * members + gauge interest in 2027 offerings (spring CSA, dahlia CSA, dried
+ * flowers, workshops, wreaths). Question set approved verbatim by Loren.
+ * SEND IS HELD until Loren releases it (week of 2026-09-28) — the page being
+ * live is harmless; nobody is linked to it until the email goes out.
+ *
+ * Same trust model as /survey: links arrive by email with ?e=<email> so the
+ * form pre-fills; anonymous submissions still accepted. POST →
+ * /api/survey/flowers (service-role insert into flower_survey_responses;
+ * honeypot field `website` drops bots silently). No member data is READ here.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export const prerender = false;
+
+const url = new URL(Astro.request.url);
+const prefillEmail = (url.searchParams.get('e') ?? '').slice(0, 200);
+const submitted = url.searchParams.get('thanks') === '1';
+
+const inputCls = 'w-full rounded-ts-md border border-ts-border bg-white px-3 py-2 text-sm text-ts-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary';
+const labelCls = 'block text-sm font-semibold text-ts-text mb-1';
+const groupCls = 'mb-5';
+
+const interestOptions: Array<[string, string]> = [
+  ['spring_csa', 'Spring flower CSA'],
+  ['dahlia_csa', 'Dahlia CSA'],
+  ['dried_csa', 'Fall dried flower CSA'],
+  ['pick_your_own', 'Pick your own at the farm'],
+  ['arrangement_workshops', 'Fresh flower arrangement workshops at the farm'],
+  ['wreath_workshops', 'Dried flower wreath workshops'],
+  ['holiday_wreaths', 'Holiday wreaths'],
+  ['keep_same', 'Keep everything the same!'],
+];
+---
+
+<BaseLayout title="2026 Flower CSA Survey — Tiny Seed Fleurs">
+  <main class="mx-auto w-full max-w-xl px-4 py-10">
+    {submitted ? (
+      <div class="rounded-ts-md border border-ts-border bg-white p-8 text-center shadow-sm">
+        <p class="text-4xl" aria-hidden="true">💐</p>
+        <h1 class="mt-3 font-display text-2xl font-bold text-ts-text">Thank you!</h1>
+        <p class="mt-2 text-sm text-ts-text-secondary">
+          Every response gets read — your answers shape what we grow and how we
+          do flowers next year. Thanks for a beautiful season!
+        </p>
+      </div>
+    ) : (
+      <form method="POST" action="/api/survey/flowers" class="rounded-ts-md border border-ts-border bg-white p-6 shadow-sm sm:p-8">
+        <h1 class="font-display text-2xl font-bold text-ts-text">2026 Flower CSA Survey</h1>
+        <p class="mt-1 mb-6 text-sm text-ts-text-secondary">
+          Two minutes, honest answers — good and bad. This shapes what we grow
+          and how we do flowers next year. — Loren
+        </p>
+
+        <!-- honeypot: humans never see it; bots fill it and get dropped -->
+        <div class="hidden" aria-hidden="true">
+          <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="email">Your email <span class="font-normal text-ts-text-muted">(optional — helps us follow up)</span></label>
+          <input class={inputCls} type="email" id="email" name="email" value={prefillEmail} maxlength="200" />
+        </div>
+
+        <div class={groupCls}>
+          <span class={labelCls}>How was your flower share overall this season?</span>
+          <div class="flex gap-4 text-sm text-ts-text">
+            {[1,2,3,4,5].map((n) => (
+              <label class="flex flex-col items-center gap-1">
+                <input type="radio" name="overall_rating" value={String(n)} required />
+                <span>{n}</span>
+              </label>
+            ))}
+          </div>
+          <p class="mt-1 text-xs text-ts-text-muted">1 = disappointing · 5 = fantastic</p>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="loved">What did you love? <span class="font-normal text-ts-text-muted">Favorite flowers, favorite weeks, anything that made you smile</span></label>
+          <textarea class={inputCls} id="loved" name="loved" rows="3" maxlength="4000"></textarea>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="change_request">What would you change? <span class="font-normal text-ts-text-muted">Variety, size, vase life, pickup — anything</span></label>
+          <textarea class={inputCls} id="change_request" name="change_request" rows="3" maxlength="4000"></textarea>
+        </div>
+
+        <div class={groupCls}>
+          <span class={labelCls}>How was the vase life of your bouquets, typically?</span>
+          <div class="flex flex-col gap-2 text-sm text-ts-text">
+            <label class="flex items-center gap-1.5"><input type="radio" name="vase_life" value="week_plus" required /> Lasted a week or more</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="vase_life" value="four_five_days" /> About 4–5 days</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="vase_life" value="few_days" /> Only a few days</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="vase_life" value="varied" /> Varied a lot</label>
+          </div>
+        </div>
+
+        <div class={groupCls}>
+          <span class={labelCls}>Would you sign up for the 2027 flower CSA?</span>
+          <div class="flex flex-wrap gap-4 text-sm text-ts-text">
+            <label class="flex items-center gap-1.5"><input type="radio" name="renew_2027" value="definitely" required /> Definitely</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="renew_2027" value="probably" /> Probably</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="renew_2027" value="not_sure" /> Not sure</label>
+            <label class="flex items-center gap-1.5"><input type="radio" name="renew_2027" value="probably_not" /> Probably not</label>
+          </div>
+        </div>
+
+        <div class={groupCls}>
+          <span class={labelCls}>Would you be interested in any of these next year? <span class="font-normal text-ts-text-muted">(check all that apply)</span></span>
+          <div class="flex flex-col gap-2 text-sm text-ts-text">
+            {interestOptions.map(([value, label]) => (
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="interests" value={value} /> {label}</label>
+            ))}
+          </div>
+        </div>
+
+        <div class={groupCls}>
+          <label class={labelCls} for="comments">Anything else?</label>
+          <textarea class={inputCls} id="comments" name="comments" rows="2" maxlength="4000"></textarea>
+        </div>
+
+        <button type="submit" class="mt-2 inline-flex h-11 w-full items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm transition-colors hover:bg-ts-primary-dark">
+          Send feedback →
+        </button>
+      </form>
+    )}
+  </main>
+</BaseLayout>

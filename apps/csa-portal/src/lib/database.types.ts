@@ -732,6 +732,52 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['box_feedback']['Row']>;
         Relationships: [];
       };
+      // Fall 2026 member survey (migration 20260923155320). Written ONLY by
+      // the service-role /api/survey/submit endpoint (public /survey form,
+      // honeypot + clamps). RLS enabled with no anon/authed policies.
+      member_survey_responses: {
+        Row: {
+          id: string;
+          email: string | null;
+          name: string | null;
+          overall_rating: number | null;
+          working_well: string | null;
+          improve: string | null;
+          delivery_rating: number | null;
+          used_tracker: 'yes' | 'no' | 'didnt_know' | null;
+          gets_arrival_texts: 'always' | 'sometimes' | 'never' | 'not_sure' | null;
+          tools_helpful: string | null;
+          comments: string | null;
+          source: string;
+          created_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['member_survey_responses']['Row']>;
+        Update: Partial<Database['public']['Tables']['member_survey_responses']['Row']>;
+        Relationships: [];
+      };
+      // Flower CSA 2026 season survey (migration 20260924153500, Loren).
+      // Written ONLY by the service-role /api/survey/flowers endpoint (public
+      // /survey/flowers form). interests = whitelist-filtered checkbox keys.
+      // RLS enabled with no anon/authed policies.
+      flower_survey_responses: {
+        Row: {
+          id: string;
+          email: string | null;
+          name: string | null;
+          overall_rating: number | null;
+          loved: string | null;
+          change_request: string | null;
+          vase_life: 'week_plus' | 'four_five_days' | 'few_days' | 'varied' | null;
+          renew_2027: 'definitely' | 'probably' | 'not_sure' | 'probably_not' | null;
+          interests: string[];
+          comments: string | null;
+          source: string;
+          created_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['flower_survey_responses']['Row']>;
+        Update: Partial<Database['public']['Tables']['flower_survey_responses']['Row']>;
+        Relationships: [];
+      };
       // Pack & Load per-stop check-off state (migration 0061). One row per
       // (week_starting, stop_id) recording the crew's "stop loaded" toggle.
       // stop_id is the cycle resolver's StopTotals.stop_id (a pickup_location
