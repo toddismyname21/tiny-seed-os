@@ -250,23 +250,60 @@ Model page:
 
 ---
 
-## Three decisions before you order
+## The carburetor — DECIDED: aftermarket (Todd, 2026-09-24)
 
-### 1. The OEM carburetor is $269.99 — and only 2 are in stock
-That is real money against a 25-year-old mower. Aftermarket carburetors for this
-engine are commonly $40–70. The honest trade:
+OEM is not a close call on this engine. Checked 2026-09-24:
 
-- **OEM 12 853 93-S** — correct jetting, correct linkage geometry, includes both
-  gaskets, and it will run right the first time.
-- **Aftermarket** — usually fine on a simple engine like this, but the common
-  failures are wrong jetting (runs rich or lean and you chase it for a season),
-  linkage holes in slightly the wrong place, and cheap float needles that stick.
+| Genuine Kohler | Price |
+|---|---|
+| 12 853 93-S — Kit, Carburetor | $269.99 |
+| 42 853 03-S — Carburetor Kit with Gaskets (the number most aftermarket sellers cross to) | **$348.99** |
 
-On a machine you intend to keep, OEM. On a machine near the end of its life, an
-aftermarket carb is a defensible gamble. **Your call — tell me which and I will
-find the best source.** If you want OEM, order soon; two in stock is thin.
+Against a 25-year-old mower, that is indefensible. Aftermarket equivalents run
+**$18–34**. Todd chose aftermarket.
 
-### 2. Does yours have a fuel PUMP or is it GRAVITY feed?
+### Recommended, by review weight
+
+Ranked by review COUNT, not just star rating — on a cheap part, 500 reviews at
+4.2 stars is worth far more than 5 reviews at 5 stars.
+
+| Pick | Seller | Price | Rating | Reviews | Link |
+|---|---|---|---|---|---|
+| **1st** | Mannial | **$27.99** | 4.2★ | **537** | `amazon.com/dp/B07MB132PS` |
+| **2nd** | Mannial | **$18.99** | 4.2★ | 285 | `amazon.com/dp/B07MHHYGZR` |
+| 3rd | MDAIRC | $33.99 | 4.0★ | 152 | `amazon.com/dp/B08LCHHKWX` |
+
+Both Mannial listings name **12 853 93-S** and **CV14** explicitly.
+
+**Avoid** the $32.99 listing at 1.0★ / 2 reviews, and anything under ~50
+reviews. At this price point the reviews are the only quality control there is.
+
+### Two things to do because it is aftermarket
+
+1. **Buy the OEM gaskets separately — $5.48 total.** Carburetor gasket
+   `12 041 01-S` ($2.49) and air cleaner base gasket `12 041 02-S` ($2.99).
+   Aftermarket carbs ship with gaskets of unknown quality, and a gasket is the
+   one part where failure means an air leak and a lean run you will chase for
+   weeks. Cheapest insurance on this whole job.
+
+2. **Keep the old carburetor.** Do not throw it out after you cut the bowl open.
+   These aftermarket carbs advertise fitment across **CV12.5 through CV16** —
+   12.5 to 16 HP on one part number. Real jetting is not identical across that
+   range. If the new one runs rich or lean, the old carb is your reference for
+   comparing jet sizes, and its float and needle are known-correct for spec
+   14107.
+
+**The honest risk:** a "fits everything" carburetor may be jetted for the middle
+of that range rather than for your engine. Most people never notice. If yours
+runs black-smoky or surges at part throttle after the swap, that is what
+happened — and it is usually correctable with the mixture screw or by swapping
+the main jet from the old carb.
+
+---
+
+## Also before you order
+
+### Does yours have a fuel PUMP or is it GRAVITY feed?
 The diagram lists both a fuel pump kit (12 559 02-S) **and** a filter labeled
 "gravity feed" (25 050 21-S). This engine family was built both ways.
 
@@ -274,7 +311,7 @@ The diagram lists both a fuel pump kit (12 559 02-S) **and** a filter labeled
 on the engine, its diaphragm is the same age as the rotted hose and should be
 replaced at the same time. If it is gravity feed, skip the pump entirely.
 
-### 3. Three of these parts are superseded
+### Three parts are superseded
 Order the **new** numbers, not the ones cast into the old parts:
 `25 237 08-S → 25 237 37-S` · `25 111 34-S → 25 111 81-S` ·
 `25 237 14-S → 25 237 31-S`
