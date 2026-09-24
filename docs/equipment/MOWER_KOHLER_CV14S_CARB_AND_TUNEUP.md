@@ -38,9 +38,9 @@ CV14S engines with different specs take different carburetors.
 **When you order or call a dealer, give them: `CV14S`, `SPEC 14107`,
 `SERIAL 3012206931`.**
 
-I could not verify a part number — the lookups were blocked and the research
-runs failed. Do not let anyone sell you a carburetor on "CV14S" alone. Ask them
-to confirm it against spec 14107.
+The verified numbers are at the bottom of this document, pulled from the OEM
+diagram for this exact engine. Do not let anyone sell you a carburetor on
+"CV14S" alone — make them confirm it against spec 14107.
 
 ---
 
