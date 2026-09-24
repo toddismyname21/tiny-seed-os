@@ -934,22 +934,31 @@ async function handle(request: Request, url: URL): Promise<Response> {
       }
 
       // ── LIVE: upsert customer ────────────────────────────────────
+      //
+      // NEVER-NULL-OVERWRITE (2026-09-24): phone / city / state / zip /
+      // shopify_customer_id are only included when the order actually
+      // carries a value. `phone: order.phone ?? null` used to WIPE the
+      // stored phone every time a member placed an order without one —
+      // 17 active members (incl. two stop hosts) lost their numbers and
+      // stopped getting delivery texts. Same guard the pickup fields
+      // below have always had: the sync FILLS IN, it never blanks.
       const addr = order.address;
+      const custPayload: Record<string, unknown> = {
+        email,
+        contact_name: bestName(order, email),
+        customer_type: 'csa',
+      };
+      if (order.customerGid) {
+        const gidNum = gidNumericOrNull(order.customerGid);
+        if (gidNum) custPayload.shopify_customer_id = gidNum;
+      }
+      if (order.phone) custPayload.phone = order.phone;
+      if (addr?.city) custPayload.city = addr.city;
+      if (addr?.province) custPayload.state = addr.province;
+      if (addr?.zip) custPayload.zip = addr.zip;
       const { data: custRow, error: custErr } = await supabaseAdmin
         .from('customers')
-        .upsert(
-          {
-            email,
-            contact_name: bestName(order, email),
-            customer_type: 'csa',
-            shopify_customer_id: order.customerGid ? gidNumericOrNull(order.customerGid) : null,
-            phone: order.phone ?? null,
-            city: addr?.city ?? null,
-            state: addr?.province ?? null,
-            zip: addr?.zip ?? null,
-          },
-          { onConflict: 'email' }
-        )
+        .upsert(custPayload, { onConflict: 'email' })
         .select('id')
         .maybeSingle();
 
