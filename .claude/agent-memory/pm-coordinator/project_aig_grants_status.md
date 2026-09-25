@@ -24,10 +24,24 @@ Always quote Todd the PDA figure, not the receipt total.
 
 Invoice **001** PAID. Receipts remaining **$71,035.72**; PDA remaining **$47,357.14**.
 
-Invoice **002 — DRAFTED 2026-09-23, NOT SENT.** Tilmor cultivation,
-$15,082.20 of receipts → ~$10,054.80 PDA. Folder
-`round1_C940002366/reimbursements/002_DRAFT_tilmor/`. Blocked only on proof of
-payment for order 12391675.
+Invoice **002 — SENT 2026-09-24** to michroth@pa.gov. Tilmor cultivation,
+**seven orders, $17,497.56** of receipts → ~$11,665 PDA. Folder
+`round1_C940002366/reimbursements/002_2026-09-24_SUBMITTED/`.
+
+Two versions went so Roth can pick: **$17,497.56 with the dibbler**,
+**$16,621.56 without**. The $876 Tractor Mounted Dibbler is the open question —
+Tilmor sells it as planting equipment; Todd uses it to align hand-transplanted
+rows with the cultivation toolbar so the cultivating equipment can follow them.
+One-pager `DIBBLER_COVERAGE_QUESTION.pdf` went with it.
+
+⚠️ A first email at 15:06 carried forms with a column error **that I made** —
+values shifted one column right, putting figures in "Amount to Reimburse" which
+is PDA's to complete. Todd caught it and sent corrected forms at 15:40. The
+15:40 versions are verified correct. See [[docx-cell-verification]].
+
+**WATCH FOR:** Roth's ruling on the dibbler, his answer on R2 Attachment 1, and
+the remittance from RA-OBE-REMITTANCE@pa.gov. Invoice 001 took ~8 weeks door to
+door, so expect payment around late November.
 
 Approved budget line #7 is literally **"Compatible Cultivation system, tooled
 through Tilmor" — $20,000 PDA / $30,000 total** (contract p.18), so Tilmor

@@ -99,3 +99,5 @@
 - [BCC Todd on all emails](feedback_email_bcc_todd.md) — every outgoing email BCCs todd@tinyseedfarmpgh.com; batch sends = BCC first + report count
 
 - [.docx cell verification](feedback_docx_cell_verification.md) — python-docx row.cells drops content-control cells; verify Word tables from raw XML
+- [Research tooling](reference_research_tooling.md) — WebSearch/WebFetch now granted; scripts/research/ Playwright tools; type into site search boxes, don't guess URLs
+- [Machines winter 2026](project_machines_winter_2026.md) — mower + Mule 550 both down; plans in docs/equipment/; Mule's whole drive side already replaced
