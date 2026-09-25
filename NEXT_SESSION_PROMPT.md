@@ -16,6 +16,10 @@ and your memory at `.claude/agent-memory/pm-coordinator/MEMORY.md` before answer
    tools that DO work — read `reference_research_tooling.md` first.
 2. `gh` 2.101.0 and Google Chrome 154 were installed 2026-09-24. Chrome needs me
    to launch it once and add the Claude extension — ask me whether I have.
+3. A **Brave Search API key** is on my to-do list, not done yet. Everything is
+   already wired — `scripts/research/brave.mjs` and a `BRAVE_API_KEY=` slot in
+   the gitignored `.env`. Do not chase me about it; just use WebSearch or the
+   Playwright tools until I get to it.
 
 **Then pick up the machine work.** It is the active job. Read
 `docs/equipment/WINTER_2026_BUY_LIST.md` first, then the two procedures.

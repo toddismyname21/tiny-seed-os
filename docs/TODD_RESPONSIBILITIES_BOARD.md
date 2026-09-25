@@ -113,6 +113,24 @@ filled. Add-on packing and make-up verification are the fix — not seven apolog
 - [x] ~~**Mac migration**~~ — DONE 8/16 (verified + prod deploy from new Mac; see Done log). ⚠️ FOLLOW-UP: **revoke Sam's Mac GitHub key by Sun Aug 23** (see Deadlines)
 - [ ] Kick off **Jackie Wood / Good Roots** business-planning (= the Vitality↔AIG complement promised in the R2 application)
 
+## 🔧 WINTER MACHINES + TOOLING (added 2026-09-24)
+
+- [ ] **Three facts before ordering machine parts** — all on the machines, 5 minutes:
+      **Mule VIN** (under seat / left rear frame rail) · **Simplicity chassis model** (frame decal) ·
+      **does each machine have a fuel PUMP or gravity feed?** The last one decides two line items.
+      ➡️ Write them into `docs/equipment/MACHINE_REGISTRY.md`.
+- [ ] **Mule Stage 0 — free, 30 min, do before parts arrive.** Drop the muffler and drive 100 feet
+      (top suspect now the drive side is all new) · spin the rear wheels for a dragging brake ·
+      watch the throttle plate reach wide open · check the new CVT's belt width/alignment/deflection.
+- [ ] **Order Tier 1 parts, ~$100** — `docs/equipment/WINTER_2026_BUY_LIST.md`. Ratings verified.
+- [ ] **Brave Search API key — LOW PRIORITY, 5 minutes when there's energy.**
+      Register at `https://api-dashboard.search.brave.com/register` → verify email → keys page →
+      paste into `BRAVE_API_KEY=` on line 5 of the gitignored `.env` at the repo root.
+      **Do NOT send the key in chat.** $5/mo free credit = 1,000 searches/mo.
+      Everything else is already wired: `scripts/research/brave.mjs` works the moment the key lands.
+- [ ] **Launch Chrome once + add the Claude extension** — installed 2026-09-24, unlocks pages behind
+      Todd's logged-in sessions (Tilmor invoices, dealer portals).
+
 ## 🔁 Recurring commitments (caught from text, 2026-08-16)
 - [ ] **Food Bank / "St. Ferdinands" — Linda Leary** `(412) 585-5183`. Todd sells them produce for the **LAST WEDNESDAY of every month**, and owes her an **availability list the Wednesday BEFORE**. Dates computed:
   | Send list | Delivery |
