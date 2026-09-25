@@ -12,7 +12,7 @@ address, so delivery estimates on those links are real.
 
 # BUY LIST
 
-## Tier 1 — buy now, $122. Unblocks all the work.
+## Tier 1 — buy now, ~$100. Unblocks all the work.
 
 ### Tools (buy first — you cannot diagnose the Mule without this)
 
@@ -27,7 +27,7 @@ Buy the dual-purpose one. The Mule plan calls for both tests.
 
 | Item | Part | Price | Link |
 |---|---|---|---|
-| **Carburetor** (aftermarket) | Mannial | **$27.99** | `amazon.com/dp/B07MB132PS` · 4.2★, **537 rev** |
+| **Carburetor** (aftermarket) | Mannial | **$18.99** | `amazon.com/dp/B07MHHYGZR` · **4.2★ / 285 rev** / In Stock |
 | Gasket, carburetor | Kohler **12 041 01-S** | $2.49 | PartsTree — buy OEM |
 | Gasket, air cleaner base | Kohler **12 041 02-S** | $2.99 | PartsTree — buy OEM |
 | Fuel filter, 75 micron | Kohler **25 050 21-S** | $12.99 | PartsTree |
@@ -47,21 +47,40 @@ A bad gasket means an air leak and a lean run you chase for weeks.
 
 | Item | Part | Price | Link |
 |---|---|---|---|
-| **CVT drive belt** | Kawasaki **59011-1071** | **$31.39** | `amazon.com/dp/B0FN18HB3Y` — **Gates Sportline** |
-| **Tune-up kit** — air + pre-filter + oil + fuel filter + plug | air `11029-1004` · fuel `49019-1055` · oil `49065-7010` | **$31.99** | `amazon.com/dp/B0819PKNSF` · 4.4★, 106 rev |
+| **Tune-up kit** — air + pre-filter + oil + fuel filter + plug | air `11029-1004` · fuel `49019-1055` · oil `49065-7010` | **$31.99** | `amazon.com/dp/B0819PKNSF` · **4.4★ / 106 rev** / In Stock |
 
-**On the belt, spend the money on a real brand.** Unlike the carburetor, a CVT
-belt *is* the transmission — it carries every bit of torque to the wheels and it
-fails under exactly the load you are trying to fix. Gates and Dayco actually
-manufacture belts. The $23.50 no-name belts may be fine, but this is my top
-suspect for your symptom, and a second failure costs you the diagnosis, not just
-the part.
+**No drive belt — Todd already replaced it**, along with the starter, carburetor
+and both clutches. The entire drive side is new, which is why the diagnosis
+document now leads with the exhaust rather than the belt.
 
-- **Gates Sportline — $31.39** ← recommended, real manufacturer, sensible price
-- Dayco HP — $80.21, 4.3★ — premium, probably overkill here
-- TCINDRR — $23.50, 4.4★, 12 rev — saves $8, unknown maker
+**Tier 1 total: ~$100**
 
-**Tier 1 total: ~$122**
+## Every rated part, verified
+
+Read off each product page on 2026-09-24, not from a search snippet:
+
+| Part | Price | Rating | Reviews | Stock |
+|---|---|---|---|---|
+| Leak-down + compression tester `B0B8SMT1CW` | $33.99 | **4.3★** | 295 | In Stock |
+| Mannial carburetor `B07MHHYGZR` | $18.99 | **4.2★** | 285 | In Stock |
+| HIFROM Mule tune-up kit `B0819PKNSF` | $31.99 | **4.4★** | 106 | In Stock |
+
+**Standard applied: 4.0★ minimum and 100+ reviews.** On no-name parts the brand
+means nothing, so review volume is the only real quality signal. Everything
+above clears it.
+
+**Rejected on ratings:**
+- A $32.99 CV14 carburetor sitting at **1.0★ on 2 reviews**
+- A $16.69 Mule kit at 4.6★ but only **47 reviews** — and it omits the oil filter
+- Several carburetors under 20 reviews regardless of star rating
+
+The Kohler gaskets and filters are genuine OEM, so ratings do not apply.
+
+### Why this carburetor over the $27.99 one
+Both are Mannial, both 4.2★. The $27.99 listing (`B07MB132PS`, 537 reviews) has
+more reviews, but its title leads with **CV15S** and cites 12-853-95-S. The
+$18.99 listing names **`12 853 93-S`** — your exact OEM number — and **CV14**
+directly in the title. Fitment clarity beats review count here, and it saves $9.
 
 ---
 
@@ -77,7 +96,7 @@ Do not buy any of this yet.
 | Mower fuel pump `12 559 02-S` | Only if it has one — go look |
 | Mower tank cap | Only if the vent will not pass air |
 | Mule ignition coil | Only if Stage 2 shows spark breaking down |
-| Mule muffler / spark arrestor | Only if Stage 0.4 finds it plugged |
+| Mule muffler / spark arrestor | Only if Stage 0.1 finds it plugged — **check this first** |
 | Flywheel key | Couple of dollars — grab one if you pull the flywheel |
 | Valve job / head gasket | Only if leak-down says so |
 
@@ -89,13 +108,15 @@ Do not buy any of this yet.
 
 From `MULE_550_NO_POWER_DIAGNOSIS.md`, four free checks, 30 minutes:
 
-1. **Look at the drive belt** — glazed, cracked, narrowed? If it is original, you
-   have probably found it.
+1. **Pull the spark arrestor — is it caked with carbon?** Or just drop the
+   muffler and drive 100 feet. If it suddenly pulls, you are done. **This is the
+   top suspect now that the whole drive side is new.**
 2. **Jack it and spin the rear wheels** — dragging brake?
 3. **Watch the throttle plate** while someone floors the pedal — does it reach
    wide open?
-4. **Pull the spark arrestor** — caked with carbon? Or drop the muffler and
-   drive 100 feet.
+4. **Check the new CVT's setup** — belt width and length to spec, sheave
+   alignment, belt deflection, both sheaves moving freely, no oil on the belt
+   faces. A correct belt installed with wrong geometry still slips.
 
 **Also while you are out there — write down the two numbers I am missing:**
 - the **Mule VIN** (under the seat, or the left rear frame rail)
@@ -106,7 +127,7 @@ Both go in `MACHINE_REGISTRY.md`.
 **And answer one question: does each machine have a fuel PUMP, or gravity feed?**
 That decides two line items above.
 
-## Step 2 — Order Tier 1. ~$122.
+## Step 2 — Order Tier 1. ~$100.
 
 ## Step 3 — Mower, once parts land. Half a day.
 
@@ -125,11 +146,14 @@ matters:
 
 **Remember: no valve adjustment on this engine.** Hydraulic lifters.
 
-## Step 4 — Mule, once the belt and kit land.
+## Step 4 — Mule, once the kit lands.
 
-1. **New belt first** if Stage 0 was inconclusive — cheapest real fix, top suspect
-2. If that does not do it, work `MULE_550_NO_POWER_DIAGNOSIS.md` in order:
-   Stage 1 fuel supply → Stage 2 ignition → Stage 3 governor → Stage 4 compression
+1. Work `MULE_550_NO_POWER_DIAGNOSIS.md` in order:
+   Stage 0 free checks → Stage 1 fuel supply → Stage 2 ignition →
+   Stage 3 governor → Stage 4 compression and leak-down
+2. The tune-up kit covers Stage 1's fuel filter and Stage 2's plug, so fit those
+   as you reach them rather than all at once — a change that fixes it tells you
+   what was wrong only if you make one change at a time
 3. **Set valve lash BEFORE the compression test** — a tight exhaust valve reads
    as a worn engine
 4. Compression test, then **leak-down** — the leak-down is the one that answers it

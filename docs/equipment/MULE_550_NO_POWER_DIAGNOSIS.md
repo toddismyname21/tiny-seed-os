@@ -4,7 +4,10 @@ Engine **FE290D-DS09**, e/no FE290DE402516. 286 cc, 9 HP, air-cooled OHV.
 
 **Symptom:** runs, but has no power under load — will not climb a hill.
 **Already replaced, none of which fixed it:** starter · carburetor · primary
-(drive) clutch · secondary (driven) clutch.
+(drive) clutch · secondary (driven) clutch · **drive belt**.
+
+**The entire drive side is new.** That eliminates the usual answer and is why
+this is a harder problem than it looks.
 
 ---
 
@@ -36,65 +39,59 @@ cannot affect it, and unlike a compression test it tells you *where* the leak is
 
 ---
 
-## STAGE 0 — Four free checks. Do these first. (30 minutes, $0)
+## STAGE 0 — Free checks. Do these first. (30 minutes, $0)
 
-Three of the four are more likely than a worn engine given what you have already
-replaced. None costs anything. Do not skip them because compression is more
-interesting.
+With the belt, both clutches and the carburetor already replaced, the drive side
+is eliminated. What remains that costs nothing:
 
-### 0.1 — Is the drive belt new?
+### 0.1 — Is the exhaust plugged?  ← TOP SUSPECT NOW
 
-You replaced both clutches. **Did you replace the belt?** On a CVT the belt *is*
-the transmission. A glazed, stretched, or cracked belt slips under load, on
-hills, and feels perfectly fine on the flat — which is your exact symptom. If
-that belt is original it is 25 years old.
+Carbon-plugged muffler or spark arrestor is the textbook "idles beautifully,
+falls on its face under load," and this engine is 25 years old. With the
+driveline ruled out, this is the most likely cheap answer on the machine.
 
-- Open the belt cover.
-- Look for: glazing (shiny, hard sidewalls), cracks across the ribs, frayed
-  edges, a belt that sits low in the primary sheave.
-- Measure the width across the top and compare to a new belt. A worn belt is
-  narrower and rides deeper, which changes the whole ratio and kills hill
-  climbing.
-- Check that both sheaves actually move freely and that the belt is not
-  contaminated with oil or grease.
+An engine cannot make power it cannot exhale. Restriction does almost nothing at
+idle and strangles the engine at full load — exactly your symptom.
 
-**If the belt is old, stop here and replace it.** This is the single most
-likely answer given what you have already done.
+- Pull the spark arrestor screen. If it is caked, wire-brush it or burn the
+  carbon off with a torch.
+- **The decisive test:** loosen the muffler clamp or drop the muffler entirely,
+  then drive it 100 feet. It will be obnoxiously loud. **If it suddenly pulls,
+  you have found it.**
 
 ### 0.2 — Are the brakes dragging?
 
-A seized caliper or an over-adjusted parking brake feels exactly like an engine
-with no power, and it will not show up on any engine test.
+A seized caliper or over-adjusted parking brake feels exactly like an engine
+with no power, and no engine test will ever show it.
 
 - Jack up the rear end.
-- Spin each rear wheel by hand. They should turn freely with light drag at most.
-- If one is tight, or if you can smell hot brake after a drive, that is your
-  problem.
-- Also put your hand near each hub after a short drive. A dragging brake runs
-  hot.
+- Spin each rear wheel by hand — free, with light drag at most.
+- After a short drive, put a hand near each hub. A dragging brake runs hot.
 
 ### 0.3 — Does the throttle actually reach wide open?
 
-A stretched cable or a misadjusted stop means you never get full throttle. This
-is common, free to check, and invisible from the driver's seat.
+A stretched cable or misadjusted stop means you never get full throttle.
+Common, free, and invisible from the driver's seat.
 
-- Have someone press the accelerator pedal all the way to the floor.
-- Watch the throttle plate at the carburetor. **It must swing to its full-open
-  stop.** If it stops short, adjust the cable.
-- While you are there, confirm the choke is fully OFF when running. A partly
-  closed choke runs rich and gutless.
+- Have someone floor the pedal while you watch the throttle plate at the carb.
+  **It must swing to its full-open stop.**
+- Confirm the choke is fully OFF when running. A partly closed choke runs rich
+  and gutless.
 
-### 0.4 — Is the exhaust plugged?
+### 0.4 — Is the new CVT actually set up right?
 
-Carbon-plugged muffler or spark arrestor is the textbook "idles beautifully,
-falls on its face under load" failure, and this engine is 25 years old.
+Not a criticism — a correctly-chosen belt installed with wrong geometry still
+slips, and you have new parts on both ends now.
 
-- Pull the spark arrestor screen. If it is caked, clean it with a wire brush and
-  burn the carbon off with a torch, or replace it.
-- Better test: loosen the muffler clamp or drop the muffler, then drive it 100
-  feet. It will be loud. **If it suddenly pulls**, you have found it.
-
----
+- **Belt width and length** — confirm the new belt matches spec. A belt slightly
+  too narrow rides deep in the sheave and never reaches full ratio, which kills
+  hill climbing specifically.
+- **Sheave alignment** — the primary and secondary must be in the same plane.
+- **Belt deflection** — to the manual's spec.
+- **Do both sheaves move freely?** Grab the primary and work it open and shut.
+  A clutch that binds part way will not shift under load.
+- Any oil or grease on the belt or sheave faces will make a new belt slip like
+  an old one. Clean with brake cleaner if so.
 
 ## STAGE 1 — Fuel supply under demand (45 minutes, ~$15)
 
@@ -277,7 +274,8 @@ a rebuild.
 ## Decision point
 
 - **Leak-down good (under ~20%), valves set right** → the engine is not your
-  problem. Go back to Stage 0. It is the belt, the brakes, or the exhaust.
+  problem. Go back to Stage 0 — most likely the exhaust, the brakes, or the CVT
+  setup. With the driveline parts all new, geometry is more suspect than wear.
 - **Leak-down bad at the exhaust valve** → valve job. Check the seat and whether
   the valve is burnt.
 - **Leak-down bad at the rings** (and the wet compression test confirmed it) →
