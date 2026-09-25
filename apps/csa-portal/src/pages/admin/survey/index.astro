@@ -31,6 +31,7 @@ interface Row {
   gets_arrival_texts: string | null;
   tools_helpful: string | null;
   comments: string | null;
+  testimonial: string | null;
 }
 
 const { data } = await supabaseAdmin
@@ -146,6 +147,9 @@ const fmt = (iso: string): string =>
           )}
           {r.comments && (
             <p class="mt-2 text-sm text-ts-text"><span class="font-semibold text-ts-text-secondary">💭 Comments:</span> {r.comments}</p>
+          )}
+          {r.testimonial && (
+            <p class="mt-2 rounded bg-ts-primary/5 p-2 text-sm text-ts-text"><span class="font-semibold text-ts-primary">⭐ Testimonial:</span> "{r.testimonial}"</p>
           )}
         </Card>
       ))}

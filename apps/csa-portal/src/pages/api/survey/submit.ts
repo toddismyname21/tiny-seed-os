@@ -60,6 +60,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     gets_arrival_texts: oneOf(form.get('gets_arrival_texts'), ['always', 'sometimes', 'never', 'not_sure'] as const),
     tools_helpful: clamp(form.get('tools_helpful'), 4000),
     comments: clamp(form.get('comments'), 4000),
+    testimonial: clamp(form.get('testimonial'), 4000),
     source: 'fall_2026_email',
   };
 
