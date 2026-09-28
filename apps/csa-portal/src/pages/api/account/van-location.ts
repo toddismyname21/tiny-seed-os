@@ -64,16 +64,21 @@ export const GET: APIRoute = async ({ locals }) => {
       ? { lat: Number(s.pickup_location.coordinates_lat), lng: Number(s.pickup_location.coordinates_lng), name: s.pickup_location.name }
       : null;
 
-    const fresh = r.status === 'in_progress'
-      && r.driver_lat != null && r.driver_loc_at != null
-      && Date.now() - Date.parse(r.driver_loc_at) < FRESH_MS;
+    // Map policy (Todd 2026-09-28): the map is PRESENT for the whole ride —
+    // from "Start route" until the route is finished. `van` carries the
+    // latest fix even when stale (client captions its age); `live` just says
+    // whether the fix is fresh (<5 min).
+    const rolling = r.status === 'in_progress';
+    const hasFix = r.driver_lat != null && r.driver_loc_at != null;
+    const fresh = rolling && hasFix && Date.now() - Date.parse(r.driver_loc_at!) < FRESH_MS;
 
     return json({
       ok: true,
+      rolling,
       live: fresh,
-      van: fresh ? { lat: r.driver_lat, lng: r.driver_lng, at: r.driver_loc_at } : null,
+      van: rolling && hasFix ? { lat: r.driver_lat, lng: r.driver_lng, at: r.driver_loc_at } : null,
       stop,
     });
   }
-  return json({ ok: true, live: false, van: null, stop: null });
+  return json({ ok: true, rolling: false, live: false, van: null, stop: null });
 };
