@@ -40,6 +40,7 @@ type RouteRow = {
   started_at: string | null;
   completed_at: string | null;
   notes: string | null;
+  leg: 'A' | 'B' | null;
   paused_at: string | null;
   pause_total_sec: number;
 };
@@ -480,9 +481,9 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
 ---
 
 <AdminShell
-  title={prettyDate(route.route_date)}
+  title={`${prettyDate(route.route_date)}${route.leg === 'A' || route.leg === 'B' ? ` — Route ${route.leg}` : ''}`}
   subtitle={`Driver ${route.driver_name} · ${stopList.length} stop${stopList.length === 1 ? '' : 's'}`}
-  pageTitle={`Route ${route.route_date} — Tiny Seed Admin`}
+  pageTitle={`Route ${route.leg ?? ''} ${route.route_date} — Tiny Seed Admin`}
 >
   {/* ════ Route header card ════ */}
   <section aria-labelledby="route-header" class="flex flex-col gap-4">
@@ -1426,6 +1427,31 @@ const nextStopTextLabel = nextStopKind === 'host' && nextStopGroupSms
       }
       closeIssueModal();
       reloadKeepingStop(stopIdForReload);
+    });
+  }
+</script>
+
+{/* ─── Live van heartbeat (Todd 2026-09-28) ──────────────────────────
+    While the route is in_progress and this page is open, send the driver's
+    GPS every 45s so members' Track My Box can draw the van on a map.
+    Fire-and-forget: GPS denial or network blips never disturb driving. */}
+<script is:inline define:vars={{ hbRouteId: routeId, hbActive: route.status === 'in_progress' }}>
+  if (hbActive && 'geolocation' in navigator) {
+    let last = 0;
+    const send = (pos) => {
+      const now = Date.now();
+      if (now - last < 45_000) return; // throttle watchPosition bursts
+      last = now;
+      fetch(`/api/admin/route/${hbRouteId}/location`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin',
+        keepalive: true,
+        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      }).catch(() => {});
+    };
+    navigator.geolocation.watchPosition(send, () => {}, {
+      enableHighAccuracy: true, maximumAge: 30_000, timeout: 20_000,
     });
   }
 </script>

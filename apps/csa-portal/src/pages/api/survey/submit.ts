@@ -64,7 +64,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     source: 'fall_2026_email',
   };
 
-  const { error } = await supabaseAdmin.from('member_survey_responses').insert(row);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the
+  // `testimonial` column (migration 20260925165509) postdates the locked
+  // generated types.
+  const { error } = await supabaseAdmin.from('member_survey_responses').insert(row as any);
   if (error) {
     console.error('[api/survey/submit] insert failed:', error.message);
     // Still thank the member — losing their goodwill over a DB hiccup is

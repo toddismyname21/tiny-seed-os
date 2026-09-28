@@ -38,7 +38,7 @@ const { data } = await supabaseAdmin
   .from('member_survey_responses')
   .select('*')
   .order('created_at', { ascending: false });
-const rows = (data ?? []) as Row[];
+const rows = (data ?? []) as unknown as Row[];
 
 const avg = (vals: (number | null)[]): string => {
   const v = vals.filter((n): n is number => typeof n === 'number');

@@ -37,6 +37,7 @@ import Card from '../../components/Card.astro';
 import Button from '../../components/Button.astro';
 import EmptyState from '../../components/EmptyState.astro';
 import { supabaseAdmin } from '../../lib/supabase';
+import { GOOGLE_MAPS_API_KEY } from 'astro:env/server';
 import { firstNameOf, isFarmPickup, todayET } from '../../lib/delivery';
 import { computeTrackingState, type TrackStop } from '../../lib/track';
 
@@ -412,6 +413,17 @@ const runningLate = tracking.state === 'in_progress' && tracking.delay_ms >= 10 
         </div>
       </Card>
 
+      {/* ─── Live van map (Todd 2026-09-28) ─────────────────────────
+           Shown ONLY when the driver's GPS fix is fresh (<5 min): the farm
+           van at the driver's real position + the member's OWN stop pin.
+           No other stops, no other members — same PII posture as the rest
+           of this page. Hidden entirely when there's no live fix. */}
+      <div
+        id="van-map"
+        class="hidden h-72 w-full overflow-hidden rounded-ts-xl border border-ts-border shadow-ts-sm"
+        aria-label="Live map — the Tiny Seed van's current position"
+      ></div>
+
       <p class="text-center text-xs text-ts-text-muted">
         This page updates on its own every minute.
       </p>
@@ -483,6 +495,48 @@ const runningLate = tracking.state === 'in_progress' && tracking.delay_ms >= 10 
             window.location.reload();
           }
         });
+      })();
+    </script>
+  )}
+
+  {/* ─── Van map loader. The page hard-reloads every 60s while moving, so a
+       one-shot fetch per load is inherently "live" — no polling loop needed.
+       SECURITY: same posture as /admin/route-plan — the Maps JS key must be
+       HTTP-referrer-restricted to csa.tinyseedfarm.com in Google Cloud. ─── */}
+  {tracking.state === 'in_progress' && (
+    <script is:inline define:vars={{ vmMapsKey: GOOGLE_MAPS_API_KEY }}>
+      (async function () {
+        try {
+          var el = document.getElementById('van-map');
+          if (!el || !vmMapsKey) return;
+          var res = await fetch('/api/account/van-location', { credentials: 'same-origin' });
+          var d = await res.json();
+          if (!d || !d.live || !d.van) return; // no fresh fix → stay hidden
+          await new Promise(function (ok, bad) {
+            var s = document.createElement('script');
+            s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(vmMapsKey);
+            s.onload = ok; s.onerror = bad;
+            document.head.appendChild(s);
+          });
+          el.classList.remove('hidden');
+          var van = { lat: d.van.lat, lng: d.van.lng };
+          var map = new google.maps.Map(el, {
+            center: van, zoom: 13, disableDefaultUI: true, zoomControl: true,
+            gestureHandling: 'cooperative',
+          });
+          new google.maps.Marker({
+            map: map, position: van, title: 'The Tiny Seed van',
+            icon: { url: '/van-marker.png', scaledSize: new google.maps.Size(56, 56), anchor: new google.maps.Point(28, 28) },
+            zIndex: 10,
+          });
+          if (d.stop && typeof d.stop.lat === 'number') {
+            var stop = { lat: d.stop.lat, lng: d.stop.lng };
+            new google.maps.Marker({ map: map, position: stop, title: d.stop.name || 'Your stop' });
+            var b = new google.maps.LatLngBounds();
+            b.extend(van); b.extend(stop);
+            map.fitBounds(b, 60);
+          }
+        } catch (e) { /* map is a bonus — never break tracking over it */ }
       })();
     </script>
   )}

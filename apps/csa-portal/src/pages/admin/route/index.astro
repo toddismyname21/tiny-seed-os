@@ -30,6 +30,7 @@ type RouteRow = {
   id: string;
   route_date: string;
   driver_name: string;
+  leg: 'A' | 'B' | null;
   status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
   total_stops: number;
   completed_stops: number;
@@ -39,7 +40,7 @@ type RouteRow = {
 
 const { data: routes, error: routesErr } = await supabase
   .from('delivery_routes')
-  .select('id, route_date, driver_name, status, total_stops, completed_stops, started_at, completed_at')
+  .select('id, route_date, driver_name, leg, status, total_stops, completed_stops, started_at, completed_at')
   .gte('route_date', thirtyDaysAgo)
   .order('route_date', { ascending: false })
   .overrideTypes<RouteRow[], { merge: false }>();
@@ -49,8 +50,17 @@ if (routesErr) {
 }
 
 const allRoutes = routes ?? [];
-const todaysRoute = allRoutes.find((r) => r.route_date === today) ?? null;
+// TODAY: every leg, as its own big card (Todd 2026-09-28 — the old .find()
+// surfaced only ONE of the two legs, so Route B was invisible and never got
+// driven in the app. A substitute driver must be able to just tap their leg.)
+const todaysRoutes = allRoutes
+  .filter((r) => r.route_date === today)
+  .sort((a, b) => (a.leg ?? 'Z').localeCompare(b.leg ?? 'Z'));
 const otherRoutes = allRoutes.filter((r) => r.route_date !== today);
+
+const legLabel = (r: RouteRow): string =>
+  r.leg === 'A' || r.leg === 'B' ? `Route ${r.leg}` : 'Route';
+const LEG_EMOJI: Record<string, string> = { A: '🅰️', B: '🅱️' };
 
 // Pretty status labels + tones for the badge column.
 const STATUS_LABEL: Record<RouteRow['status'], string> = {
@@ -93,34 +103,37 @@ const todayPretty = prettyDate(today);
       Today
     </h2>
 
-    {todaysRoute ? (
-      <Card padding="md" elevation="md">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="font-display text-lg font-semibold text-ts-text sm:text-xl">
-                {todayPretty} route
-              </span>
-              <span class={[
-                'inline-flex items-center rounded-ts-md px-2 py-0.5 text-xs font-semibold',
-                STATUS_TONE[todaysRoute.status],
-              ].join(' ')}>
-                {STATUS_LABEL[todaysRoute.status]}
-              </span>
+    {todaysRoutes.length > 0 ? (
+      todaysRoutes.map((r) => (
+        <Card padding="md" elevation="md">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-2xl" aria-hidden="true">{LEG_EMOJI[r.leg ?? ''] ?? '🚚'}</span>
+                <span class="font-display text-lg font-semibold text-ts-text sm:text-xl">
+                  {legLabel(r)} — {todayPretty}
+                </span>
+                <span class={[
+                  'inline-flex items-center rounded-ts-md px-2 py-0.5 text-xs font-semibold',
+                  STATUS_TONE[r.status],
+                ].join(' ')}>
+                  {STATUS_LABEL[r.status]}
+                </span>
+              </div>
+              <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
+                {r.completed_stops} of {r.total_stops} stops done
+                · Driver {r.driver_name}
+              </p>
             </div>
-            <p class="mt-1 text-sm text-ts-text-secondary tabular-nums">
-              {todaysRoute.completed_stops} of {todaysRoute.total_stops} stops done
-              · Driver {todaysRoute.driver_name}
-            </p>
+            <a
+              href={`/admin/route/${r.id}`}
+              class="inline-flex h-14 items-center justify-center rounded-ts-md bg-ts-primary px-8 text-lg font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:h-12 sm:text-base"
+            >
+              Open {legLabel(r)} →
+            </a>
           </div>
-          <a
-            href={`/admin/route/${todaysRoute.id}`}
-            class="inline-flex h-12 items-center justify-center rounded-ts-md bg-ts-primary px-6 text-base font-semibold text-white shadow-ts-sm transition-colors duration-150 hover:bg-ts-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ts-primary sm:h-11 sm:text-sm"
-          >
-            Open route →
-          </a>
-        </div>
-      </Card>
+        </Card>
+      ))
     ) : (
       <Card padding="md" elevation="sm">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -171,6 +184,7 @@ const todayPretty = prettyDate(today);
                 <div class="min-w-0 flex-1">
                   <p class="font-medium text-ts-text">
                     {prettyDate(r.route_date)}
+                    <span class="ml-2 inline-flex items-center rounded-ts-md bg-ts-bg-muted px-1.5 py-0.5 text-xs font-bold text-ts-text-secondary">{legLabel(r)}</span>
                   </p>
                   <p class="mt-0.5 text-xs text-ts-text-muted tabular-nums">
                     {r.completed_stops} / {r.total_stops} stops · Driver {r.driver_name}
