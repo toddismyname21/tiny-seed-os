@@ -1,0 +1,166 @@
+---
+/**
+ * /admin/bills — 💸 Vendor bills: what the farm OWES, in one place.
+ *
+ * WHY (Todd 2026-09-30, Bounty Beneath $250): "is there a way to get bills
+ * paid through you and ultimately the farm app we built?" This page is
+ * Stage 2's surface: every open QuickBooks Bill with due dates, overdue
+ * flags and totals, plus recently paid history.
+ *
+ * PAYMENT RAIL (deliberately NOT here): the farm banks with PNC, which has
+ * no self-serve payments API — so the pay buttons DEEP-LINK into
+ * QuickBooks/Melio where Todd gives the one human approval that actually
+ * moves money. HARD INVARIANT (same as api/cron/vendor-bills): nothing in
+ * this codebase ever creates a BillPayment or moves a dollar. If the farm
+ * later moves payables to an API bank (Relay/Mercury), the pay button gets
+ * wired for real — the page is built so only that handler changes.
+ *
+ * Bills ENTER the ledger two ways: the nightly vendor-bills cron
+ * (auto-parses inbox invoices < $500) and manual entry. This page reads
+ * straight from QuickBooks via lib/quickbooks.qbApi — QB stays the single
+ * source of truth for payables; nothing is mirrored into Supabase.
+ */
+import AdminShell from '../../../components/AdminShell.astro';
+import Card from '../../../components/Card.astro';
+import { qbApi, quickbooksConfigured } from '../../../lib/quickbooks';
+
+export const prerender = false;
+
+interface QbBill {
+  Id: string;
+  DocNumber?: string;
+  TxnDate: string;
+  DueDate?: string;
+  TotalAmt: number;
+  Balance: number;
+  VendorRef: { value: string; name?: string };
+}
+
+let openBills: QbBill[] = [];
+let paidBills: QbBill[] = [];
+let qbError: string | null = null;
+
+if (!quickbooksConfigured()) {
+  qbError = 'QuickBooks is not connected.';
+} else {
+  try {
+    const enc = (q: string) => `/query?query=${encodeURIComponent(q)}&minorversion=73`;
+    const open = await qbApi<{ QueryResponse?: { Bill?: QbBill[] } }>(
+      enc("SELECT * FROM Bill WHERE Balance > '0' ORDERBY DueDate"),
+    );
+    openBills = open.QueryResponse?.Bill ?? [];
+    const paid = await qbApi<{ QueryResponse?: { Bill?: QbBill[] } }>(
+      enc("SELECT * FROM Bill WHERE Balance = '0' ORDERBY MetaData.LastUpdatedTime DESC MAXRESULTS 12"),
+    );
+    paidBills = paid.QueryResponse?.Bill ?? [];
+  } catch (err) {
+    qbError = err instanceof Error ? err.message : 'QuickBooks read failed';
+  }
+}
+
+const todayISO = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date());
+
+const money = (v: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+const pretty = (d?: string) =>
+  d ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${d}T12:00:00`)) : '—';
+const isOverdue = (b: QbBill) => !!b.DueDate && b.DueDate < todayISO;
+
+const totalOpen = openBills.reduce((a, b) => a + b.Balance, 0);
+const overdue = openBills.filter(isOverdue);
+const totalOverdue = overdue.reduce((a, b) => a + b.Balance, 0);
+---
+
+<AdminShell
+  title="Bills"
+  subtitle="What the farm owes — QuickBooks is the source of truth"
+  pageTitle="Bills — Tiny Seed Admin"
+>
+  <Fragment slot="actions">
+    <a href="https://app.qbo.intuit.com/app/bills" target="_blank" rel="noopener" class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark">Pay in QuickBooks ↗</a>
+    <a href="https://app.melio.com" target="_blank" rel="noopener" class="inline-flex h-10 items-center justify-center rounded-ts-md border border-ts-border bg-ts-bg-surface px-4 text-sm font-semibold text-ts-text hover:border-ts-primary/40 hover:text-ts-primary">Melio ↗</a>
+  </Fragment>
+
+  {qbError && (
+    <Card tone="muted" padding="md" elevation="sm">
+      <p class="text-sm text-ts-danger">Couldn't read bills from QuickBooks: {qbError}</p>
+    </Card>
+  )}
+
+  <div class="grid gap-4 sm:grid-cols-3">
+    <Card padding="md" elevation="sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Open bills</p>
+      <p class="mt-1 font-display text-3xl font-bold text-ts-text">{openBills.length}</p>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Total owed</p>
+      <p class="mt-1 font-display text-3xl font-bold text-ts-text">{money(totalOpen)}</p>
+    </Card>
+    <Card padding="md" elevation="sm">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ts-text-muted">Overdue</p>
+      <p class={`mt-1 font-display text-3xl font-bold ${overdue.length ? 'text-ts-danger' : 'text-ts-text'}`}>
+        {overdue.length ? `${money(totalOverdue)}` : '$0'}
+      </p>
+      {overdue.length > 0 && <p class="text-xs text-ts-danger">{overdue.length} bill{overdue.length === 1 ? '' : 's'} past due</p>}
+    </Card>
+  </div>
+
+  <section class="mt-6" aria-label="Open bills">
+    <h2 class="mb-3 font-display text-lg font-bold text-ts-text">Open — needs your payment tap</h2>
+    {openBills.length === 0 && !qbError ? (
+      <Card padding="md" elevation="sm"><p class="text-sm text-ts-text-secondary">Nothing owed. 🎉</p></Card>
+    ) : (
+      <Card padding="none" elevation="sm">
+        <ul class="divide-y divide-ts-border/60">
+          {openBills.map((b) => (
+            <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <div class="min-w-0">
+                <p class="font-semibold text-ts-text">
+                  {b.VendorRef.name ?? `Vendor ${b.VendorRef.value}`}
+                  {b.DocNumber && <span class="ml-2 text-xs font-normal text-ts-text-muted">#{b.DocNumber}</span>}
+                </p>
+                <p class="mt-0.5 text-xs text-ts-text-muted">
+                  Billed {pretty(b.TxnDate)} · Due {pretty(b.DueDate)}
+                  {isOverdue(b) && <span class="ml-2 rounded bg-ts-danger/10 px-1.5 py-0.5 text-[11px] font-bold text-ts-danger">OVERDUE</span>}
+                </p>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-display text-lg font-bold tabular-nums text-ts-text">{money(b.Balance)}</span>
+                <a
+                  href={`https://app.qbo.intuit.com/app/bill?txnId=${b.Id}`}
+                  target="_blank" rel="noopener"
+                  class="inline-flex h-10 items-center justify-center rounded-ts-md bg-ts-primary px-4 text-sm font-semibold text-white shadow-ts-sm hover:bg-ts-primary-dark"
+                >Pay →</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    )}
+    <p class="mt-2 text-xs text-ts-text-muted">
+      The Pay button opens the bill in QuickBooks — the actual payment is always your approval, never automatic.
+      Bills under $500 from emailed invoices are entered automatically every night.
+    </p>
+  </section>
+
+  <section class="mt-6" aria-label="Recently paid">
+    <h2 class="mb-3 font-display text-lg font-bold text-ts-text">Recently paid</h2>
+    <Card padding="none" elevation="sm">
+      <ul class="divide-y divide-ts-border/60">
+        {paidBills.map((b) => (
+          <li class="flex items-center justify-between gap-3 px-5 py-3">
+            <p class="text-sm text-ts-text">
+              <span class="font-medium">{b.VendorRef.name ?? `Vendor ${b.VendorRef.value}`}</span>
+              {b.DocNumber && <span class="ml-2 text-xs text-ts-text-muted">#{b.DocNumber}</span>}
+              <span class="ml-2 text-xs text-ts-text-muted">billed {pretty(b.TxnDate)}</span>
+            </p>
+            <span class="text-sm font-semibold tabular-nums text-ts-text-secondary">{money(b.TotalAmt)} ✓</span>
+          </li>
+        ))}
+        {paidBills.length === 0 && <li class="px-5 py-3 text-sm text-ts-text-muted">No paid bills yet.</li>}
+      </ul>
+    </Card>
+  </section>
+</AdminShell>
