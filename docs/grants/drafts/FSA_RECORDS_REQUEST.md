@@ -1,16 +1,14 @@
 # DRAFT — NOT SENT. Needs Todd's explicit go.
 
-**To:** allison.pruskowski@usda.gov
-**CC:** julie.metzler@usda.gov · Jaklin.Beaver@usda.gov · Devin.Cunningham@usda.gov
+**To:** Sara.Downs@usda.gov · Lisa.Bauer@usda.gov
 **Subject:** Records request — AD-1026, subsidiary print, field boundaries; and setting up regular acreage reporting
 
 ---
 
-Hi Allison,
+Hi Sara, Hi Lisa,
 
 I'm working with Pasa on a USDA program and they've asked me for a few records
-from FSA. Hoping you can either pull these or point me to the right person in
-the county office.
+from FSA. Hoping you can help me pull these together.
 
 What they've asked for:
 
@@ -19,10 +17,13 @@ What they've asked for:
 2. **Subsidiary print** for the operation.
 3. **GeoJSON of our field boundaries** — the CLU data you have on our farm.
 
-I'd also like to confirm the **farm, tract and field numbers** on record, and
-that the ground we're actually farming is registered to Tiny Seed Farm LLC as
-the operator. We lease some of our ground, and I want to be sure the leased
-fields are recorded correctly rather than only under the landowner.
+I'd also like to confirm the **farm, tract and field numbers** on record.
+
+**We lease all of our ground — we don't own any of the land we farm.** So I want
+to make sure every tract we operate is recorded with Tiny Seed Farm LLC as the
+**operator**, and not only under the landowners' names. If anything we're
+farming isn't on our records, I'd like to know what it takes to add it, and
+whether you need lease documentation from me.
 
 **Separately — I'd like to get on a regular footing with acreage reporting.**
 
@@ -60,16 +61,15 @@ todd@tinyseedfarmpgh.com
 
 | Fact | Source | ✓ |
 |---|---|---|
-| allison.pruskowski@usda.gov — FSA Loan Officer, lead on our file | `reference_key_contacts.md` | ✓ |
-| Julie Metzler, Jaklin Beaver, Devin Cunningham — CC on all FSA correspondence | same | ✓ |
+| Sara.Downs@usda.gov · Lisa.Bauer@usda.gov | **Todd, this conversation** — the staff he works with most. He said "I believe," so addresses are his recollection, not verified against a USDA directory. Low risk: a wrong USDA address bounces, it does not misinform anyone. | ⚠️ |
 | 257 Zeigler Road, Rochester, PA 15074 | OEFFA certificate | ✓ |
 | (717) 725-5177 | `config/verified_facts.json` | ✓ |
-| We lease ground | Kretschmann lease | ✓ |
+| **We lease ALL of our ground — own none of it** | Todd, 2026-10-01 | ✓ |
 
-⚠️ **Allison is Farm Loan Programs.** AD-1026, subsidiary prints, CLU boundaries
-and acreage reporting are **Farm Programs** — usually a different person at the
-county office. That is why the email opens by asking her to route it. She is the
-relationship we have, so she is the right door to knock on.
+**Sara and Lisa are the right people.** AD-1026, subsidiary prints, CLU
+boundaries and acreage reporting all sit with **Farm Programs**, not Farm Loan
+Programs — so these contacts fit the request better than the loan team
+(Allison Pruskowski and colleagues), who stay on the loan file.
 
 **Nothing about the grant.** Same reasoning as the vendor emails — though here
 it is less about price and more about not complicating a records request.
@@ -78,6 +78,8 @@ it is less about price and more about not complicating a records request.
 ## Decisions for Todd
 
 - [ ] **Send as written?**
-- [ ] Is the lease situation worth naming more specifically — which ground, whose
-      name it is under? More detail may get a faster answer, but it also raises a
-      question you may want to handle by phone instead.
+- [ ] Name the landlords specifically? Todd leases from Kretschmann and moved off
+      Simon Property this year. Naming them could speed things up, or could be
+      better handled by phone.
+- [ ] If either address bounces, the loan team can route it:
+      allison.pruskowski@usda.gov and colleagues.

@@ -372,11 +372,17 @@ clean, the other makes supply consistent. Both are real on this farm.
 The project has to be tied to a field FSA actually has on record. That makes the
 GeoJSON request urgent, not administrative.
 
-**The risk:** the farm leases ground from Kretschmann and moved off Simon
-Property this year. **If the fields where we grow greens and tomatoes are not
-registered to Tiny Seed Farm LLC in FSA's records, there is nothing to attach
-the project to.** Leased ground in particular is often recorded under the
-landowner, not the operator.
+🚨 **THE RISK IS BIGGER THAN FIRST WRITTEN. Todd 2026-10-01: the farm leases
+ALL of its ground and owns none of it.**
+
+Leased ground is commonly recorded under the **landowner**, not the operator. If
+that is the case here, then **every single field could be missing from FSA's
+records under Tiny Seed Farm LLC** — and there would be nothing to attach the
+AMP project to. This is not a detail to confirm at the end; it is the first
+thing to settle.
+
+Compounding it: the farm moved off Simon Property this year and leases from
+Kretschmann, so the records may also be out of date on which ground is current.
 
 **Do this before the Luka meeting:**
 
