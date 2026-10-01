@@ -40,6 +40,7 @@ in market, conservation, and business terms. Do not lead with climate.**
 - **Business development is for: marketing, expanding current markets, gaining
   access to NEW markets.** Todd: *"A lot of flexibility."* Project has to be
   framed under that umbrella.
+- **No single item can be over $10,000.**
 
 ---
 
@@ -191,6 +192,45 @@ market next door (schools, hospitals, larger distributors, aggregators) is
 **The move that makes infrastructure fundable here:** a cooler is not a cooler. It
 is *"the post-harvest capacity required to meet the delivery standards of
 institutional buyers we cannot currently serve."* Same steel, correct frame.
+
+### The $10,000 per-item rule shapes the design
+
+Cap ~$15,000, **no single line over $10,000.** So this cannot be one big
+purchase — it has to be **at least two components**, and the natural shape is
+one anchor item at or under $10K plus $5K of supporting cost.
+
+That is actually good for us. A single $15K machine would be a weak
+"market access" story. A $10K capability plus $5K of the marketing that puts it
+to work reads as a coherent project, which is what the umbrella is asking for.
+
+#### A package that fits the rules — institutional market access
+
+| # | Component | Budget | Why it is market access |
+|---|---|---|---|
+| 1 | **Post-harvest / cold-chain or pack-line capability** — the thing that lets us meet buyer specs | **≤ $10,000** | *"Capacity required to meet institutional delivery standards"* |
+| 2 | **Food-safety certification** — GAP audit fees, plan writing, training, signage | ~$3,000 | The literal gate on schools, hospitals, distributors |
+| 3 | **Wholesale sales materials** — line sheets, product photography, wholesale-facing ordering page | ~$2,000 | Plain marketing |
+| | **Total** | **~$15,000** | |
+
+Three components, none over $10K, and each one answers a specific reason a buyer
+cannot say yes today. That is a much stronger application than a single
+equipment request.
+
+⚠️ **Watch the cooler.** AIG budget line 1 is a *Humidity Control System for
+Walk-In Cooler*, $2,000 PDA / $3,000 total, and it is **unspent**. If AMP
+component 1 is cold-chain, make sure the two buy different things and say so
+explicitly. Easiest clean split: AIG does humidity control on the existing
+cooler, AMP does whatever serves the new market — packing, handling, transport
+temperature.
+
+#### Alternative anchors, if cold chain is not the gap
+
+- **Packaging and labeling system** — cases, liners, a label printer, pack-size
+  standardization to buyer spec
+- **Refrigerated transport capability** — getting product to institutional
+  buyers at temperature
+- **Wholesale ordering platform** — extending the CSA portal we already built to
+  wholesale buyers. Low cost, high differentiation, and we own the code.
 
 ### Other defensible frames, all true of this farm
 
