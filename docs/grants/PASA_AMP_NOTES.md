@@ -59,6 +59,7 @@ in market, conservation, and business terms. Do not lead with climate.**
      quotes** are what they want to see
   6. **We can factor in our own labor.**
 - 🚨 **IF ANY PROJECT DISTURBS SOIL, DON'T DO IT.**
+- 🚨 **No environmental concerns of any kind. Design them out.**
 
 ---
 
@@ -777,6 +778,77 @@ question inside the budget line instead of leaving a reviewer to wonder.
 an existing building or existing pad with the room, the floor, and the electrical
 service to take it. If there is no such space, this line needs rethinking before
 the budget builder, not after.
+
+---
+
+# 🚨 DESIGN RULE — zero environmental triggers
+
+**Todd: don't want any environmental concerns.** Broader than soil. Design the
+whole project so there is nothing for a reviewer to look at.
+
+### Everything that can trigger review — and our status
+
+| Trigger | Our exposure | Verdict |
+|---|---|---|
+| **Ground disturbance** — excavation, footings, trenching | Designed out. Cooler goes inside an existing building on the existing floor. | ✅ clean |
+| **New construction** | None. We are installing equipment inside an existing footprint. | ✅ clean |
+| **Modifying a historic structure** | ⚠️ **The one to watch.** Section 106 covers historic *buildings*, not just archaeology. Kretschmann is an old farm — some buildings may be old enough to qualify. | **Mitigate — see below** |
+| **Wastewater / effluent** | ⚠️ A cooler produces only condensate. **A wash line would produce wash water** — do not put washing or produce-wash equipment in this project. | ✅ clean if we stay off wash water |
+| Wetlands, streams, floodplain | Nothing sited near water. Indoors. | ✅ clean |
+| Water withdrawal — new well, new irrigation draw | None requested | ✅ clean |
+| Endangered species habitat | No land conversion, no new ground | ✅ clean |
+| Air quality / emissions | None | ✅ clean |
+| Chemical or fuel storage | None | ✅ clean |
+| Land-use conversion | None — existing cropland stays cropland | ✅ clean |
+
+### Mitigating the historic-building risk
+
+Installing inside an old barn could in principle raise Section 106 if the
+building is historic. **Design it so the answer is obviously no:**
+
+- **Freestanding.** The insulated panel box stands on the existing floor. It is
+  **not attached to, cut into, or supported by** the building's structure.
+- **Fully reversible.** It could be unbolted and removed, leaving the building
+  exactly as found. Say that word — *reversible* — in the application.
+- **No structural modification.** No new openings cut, no walls removed, no
+  beams altered, no historic fabric touched.
+- **Surface-mounted electrical** tied to existing service. No chasing into walls.
+
+> **Say it plainly in the line item:** *"Freestanding, fully reversible
+> equipment installation within an existing building. No structural
+> modification, no new openings, no attachment to the building. No ground
+> disturbance."*
+
+### The positives to lead with
+
+This project is not environmentally neutral — it is environmentally **good**, and
+that is worth stating:
+
+- **Certified organic** since 12/11/2025, OEFFA, NOP ID 1600003839
+- **The conservation practices are the project's foundation** — tarping,
+  netting, mulching (484). Insect netting in particular **displaces pesticide
+  application** with a physical barrier.
+- **Cold chain reduces food waste.** Every pound of salad greens that holds
+  quality to the buyer is a pound not composted — fewer wasted inputs, fewer
+  wasted acres.
+- No land converted, no water drawn, nothing built, nothing dug.
+
+### The one-line environmental summary for the application
+
+> This project installs freestanding, reversible equipment inside existing
+> buildings and applies surface conservation practices to land already in
+> vegetable production. **There is no ground disturbance, no new construction, no
+> structural modification, no water withdrawal, and no discharge.** The farm is
+> certified organic, and the project reduces both pesticide use — via insect
+> netting — and post-harvest food waste.
+
+### Final confirmations for Luka
+- [ ] Does an indoor, freestanding, reversible equipment install clear
+      environmental review entirely?
+- [ ] Is there a form to file regardless?
+- [ ] **Must anything be approved BEFORE work begins?** On most USDA programs,
+      starting early disqualifies the cost outright.
+- [ ] Any concern about the age of the building we install in?
 
 ---
 
