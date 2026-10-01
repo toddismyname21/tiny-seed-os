@@ -33,9 +33,9 @@ Could you send me:
 3. Lead time
 4. Freight cost shipped to: **257 Zeigler Road, Rochester, PA 15074**
 
-One note on the quote — we're putting together a grant application and the
-funder wants written contractor quotes, so if you can send it on your letterhead
-with the freight broken out separately, that would help a lot.
+If you could send this as a written quote on your letterhead with freight listed
+separately, that would help — I'm comparing a few options and need the numbers
+side by side.
 
 I'd also like a quote on a spin dryer in the same package. Drying is our other
 bottleneck — right now we're spinning greens in small batches and it backs up
@@ -83,9 +83,10 @@ todd@tinyseedfarmpgh.com
 - [ ] **Send as written?**
 - [x] ~~Keep the spin dryer question in?~~ — **Todd confirmed yes.** Now asks for
       Model 20 and Model 22 by name, with Model 32 Hydraulic as an option.
-- [ ] **Keep the grant mention?** It explains why you need a formal written quote
-      and usually gets a better-documented response. Remove if you'd rather not
-      say.
+- [x] ~~Keep the grant mention?~~ — **REMOVED at Todd's direction 2026-10-01.**
+      His reasoning: a vendor who knows grant money is paying may quote higher.
+      The letterhead-and-freight request stands on its own as normal purchasing;
+      no explanation owed.
 - [x] ~~Any pack size to specify?~~ — **Todd supplied: 1/4 lb and 1 lb retail,
       3 lb wholesale.** Now in the email, and the filler head question asks
       whether heads swap quickly since all three sizes run.

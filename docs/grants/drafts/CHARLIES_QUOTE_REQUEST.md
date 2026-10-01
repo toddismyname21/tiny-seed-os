@@ -49,11 +49,11 @@ For each item, could you also include:
 - Water use and drainage on the wash equipment — gallons per fill and how often
   it's dumped. We need to understand what the discharge looks like.
 
-Two last things. We're putting together a grant application and the funder wants
-written contractor quotes, so if you can send this on your letterhead with
-freight broken out separately, that would help. And if any of this is NSF-rated,
-please note which — we're working toward food safety certification and it
-matters for us.
+Two last things. If you could send this as a written quote on your letterhead
+with freight listed separately, that would help — I'm pricing a few
+configurations and need to compare them cleanly. And if any of this is
+NSF-rated, please note which — we're working toward food safety certification
+and it matters for us.
 
 Thanks,
 

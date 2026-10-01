@@ -10,9 +10,16 @@ figure out a way to enhance our research... This stinks we can't get this done."
 
 ## The tools, in order of preference
 
-1. **`WebSearch` / `WebFetch`** — granted to pm-coordinator 2026-09-24. Try
-   these first. They did not exist before that date, which is why every earlier
-   lookup had to be delegated to a subagent.
+1. **`WebSearch` / `WebFetch`** — granted to pm-coordinator 2026-09-24, and
+   **confirmed working** the same day after restart (ran a real query, got real
+   results). Try these first. They did not exist before that date, which is why
+   every earlier lookup had to be delegated to a subagent.
+   **But do not stop at the WebSearch synthesis for anything load-bearing** — it
+   is itself a small model summarizing results, and can misread a spec exactly
+   the way a person can. For a number someone is about to act on physically
+   (torque spec, compression spec, a phone number), pull the actual source
+   WebSearch found and read it directly. WebFetch 403s on some sites
+   (jackssmallengines, ereplacementparts) — fall back to `fetch.mjs` below.
 2. **`scripts/research/*.mjs`** — headless Chromium via Playwright. Use when
    WebFetch is blocked or the page needs JavaScript.
    - `fetch.mjs <url>` — render any page, print visible text
@@ -23,6 +30,33 @@ figure out a way to enhance our research... This stinks we can't get this done."
 3. **`mcp__claude-in-chrome__*`** — Chrome 154 installed 2026-09-24. Needs Todd
    to launch it once and add the extension. This is the ONLY path to pages
    behind his logged-in sessions.
+
+## Verifying a PDF spec table — do not trust linear text extraction
+
+**Learned 2026-09-24, verifying Kawasaki/Kohler engine specs.** `pypdf`
+`page.extract_text()` linearizes a table into reading order, and on any table
+with merged cells (an arrow "←" meaning "same value as the column to the left",
+or a value spanning multiple sub-columns), the linear text can look plausible
+and still put the wrong number under the wrong column — the exact failure mode
+already recorded in [[docx-cell-verification]], just for PDFs instead of
+`.docx`. It nearly happened here: text extraction suggested a merged "0.12mm /
+unnecessary" cell might apply ambiguously across FE120-290; rendering the
+actual page as an image showed the true column break was between FE290 and
+FE350, not where the linear text implied.
+
+**The fix:** when `pdftoppm`/`poppler` isn't installed (it wasn't; no `brew`
+either), render pages with `pymupdf` (`pip install pymupdf`, `import fitz` —
+deprecated alias, `import pymupdf` is current):
+```python
+import fitz
+doc = fitz.open(path)
+pix = doc[page_index].get_pixmap(matrix=fitz.Matrix(3, 3))  # 3x for readability
+pix.save(f'{outdir}/page.png')
+```
+Then `Read` the PNG and visually confirm the table structure before writing the
+number into a document someone will act on. Use `pypdf` text extraction to find
+*which* pages matter (grep for keywords), then always confirm the actual number
+on the rendered image.
 
 ## Hard-won specifics
 

@@ -35,17 +35,27 @@ the muffler, drive 100 feet. Then brakes dragging, throttle not reaching WOT,
 CVT geometry, fuel supply upstream of the carb, ignition under load, governor,
 then compression.
 
-⚠️ **Never condemn this engine on a cranking compression number.** Many Kawasaki
-FE engines have an automatic compression release; a healthy one can read 60–90
-psi. **UNVERIFIED for FE290D specifically** — verify it, then use the leak-down
-test, which is immune to the question.
+✅ **SETTLED 2026-09-24, from the Kawasaki FE120-FE400 factory service manual**
+(saved at `docs/equipment/reference_pdfs/KAWASAKI_FE_SERIES_SERVICE_MANUAL.pdf`,
+read directly + page images cross-checked, not a search summary): FE290 **does**
+have an ACR. Compression minimum 290 kPa/42 psi recoil-cranked or 390 kPa/57 psi
+electric-cranked, WITH the ACR active — that's a factory floor, not a "should be
+higher" red flag. Valve lash 0.12mm intake+exhaust, cold — and **FE290 has no
+HLA** (that's FE350/400 only), so lash genuinely needs setting on this engine.
+Spark plug NGK BPR5ES, gap 0.7-0.8mm; torque unverified. Leak-down is still the
+deciding test regardless (immune to the ACR question by design), but the
+compression number is no longer a black box either.
 
 ## Three things Todd owes before ordering
 1. **Mule VIN** — under the seat or left rear frame rail
 2. **Simplicity chassis model** — frame decal
-3. **Does each machine have a fuel PUMP or gravity feed?** — decides 2 line items
+3. **Does each machine have a fuel PUMP or gravity feed?** — decides 2 line
+   items. Still open for both machines even after research — mower has NEW
+   leaning-yes evidence (spec-14107 parts catalog shows a full pump parts set,
+   not an optional accessory) but OEM diagrams bundle running changes, so it's
+   still a physical look-and-tell, not resolved by documents.
 
-## Buy list ~$100 — ratings verified off the product pages
+## Buy list ~$120-125 — ratings verified off the product pages
 Standard: **4.0★ minimum AND 100+ reviews.**
 
 | Part | ASIN | Price | Rating |
@@ -55,8 +65,10 @@ Standard: **4.0★ minimum AND 100+ reviews.**
 | HIFROM Mule tune-up kit | B0819PKNSF | $31.99 | 4.4★ / 106 |
 
 Plus Kohler OEM: gaskets `12 041 01-S` + `12 041 02-S`, fuel filter
-`25 050 21-S`, air element `12 083 05-S`, pre-cleaner `12 083 08-S`. Fuel line
-bulk from a local store, NOT the $17.99 Kohler 24-inch piece.
+`25 050 21-S`, air element `12 083 05-S`, pre-cleaner `12 083 08-S`, spark plug
+`12 132 02-S` (gap 1.0mm), oil filter `52 050 02-S`, SAE 10W-30 (1.9L w/filter).
+Fuel line bulk from a local store, NOT the $17.99 Kohler 24-inch piece.
 
-Still unverified: mower spark plug + gap + oil filter + capacity; FE290D
-compression spec and valve lash.
+Mower spark plug/oil filter/capacity now verified (see above) — two
+independent sources (Kohler owner's manual + spec-14107 parts catalog) agree
+exactly. FE290D compression spec and valve lash also verified, see above.
