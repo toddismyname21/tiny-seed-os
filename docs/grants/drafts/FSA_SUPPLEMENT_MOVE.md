@@ -1,4 +1,18 @@
-# DRAFT — NOT SENT. Needs Todd's explicit go.
+# ⛔ NOT SENT — PARKED 2026-10-01
+
+**Todd: "I think our field boundaries are updated."**
+
+So this supplement is unnecessary and would be worse than unnecessary — it tells
+FSA our records are wrong when we have no evidence they are, and it makes the
+farm look like it does not know its own filings.
+
+**This morning's email already covers it.** It asks FSA to confirm the farm,
+tract and field numbers and that every tract is recorded with Tiny Seed Farm LLC
+as operator. If the boundaries are current, FSA simply sends the GeoJSON and we
+are done. If they are stale, the reply will show it and we act then — with
+evidence instead of a guess.
+
+**Kept, not deleted**, in case the GeoJSON comes back wrong.
 
 **To:** Sara.Downs@usda.gov · Lisa.Bauer@usda.gov
 **Subject:** Re: Records request — one more detail on the field boundaries

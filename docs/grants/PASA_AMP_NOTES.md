@@ -384,12 +384,42 @@ thing to settle.
 Compounding it: the farm moved off Simon Property this year and leases from
 Kretschmann, so the records may also be out of date on which ground is current.
 
+### What Luka actually asked for — verified from his email
+
+Luka Hildebrandt, Technical Assistance Provider, **luka@pasafarming.org**,
+**814.349.9856 x747**. Original email 2026-09-08, "NEXT STEPS for Pasa AMP
+Funding 2026."
+
+He asked for exactly **two documents**: the **GeoJSON** file and the
+**Subsidiary Print**. Both were requested 2026-10-01, plus AD-1026. **Nothing on
+his list is outstanding.**
+
+Also from that email:
+- **The application dates to 2024.** Todd worked with a different TAP in 2025;
+  Pasa had funding difficulties that cost about a year. Luka is new to the file.
+- As TAP, Luka works **with** Todd to build the conservation plan — practice
+  selection is a joint exercise at the meeting, not handed down.
+- **Luka offered to help pull the documents from the FSA office directly.** Use
+  that if the county office is slow.
+- ⚠️ Luka asked *"Have you completed this move yet?"* on 9/8. Todd's 9/29 reply
+  only asked to schedule a call — **the question was never answered.** Answer it
+  at the meeting; Luka is still waiting on it.
+
 ### ✅ FSA EMAIL SENT 2026-10-01 — Sara Downs + Lisa Bauer, Resend `01a0f7e5-9958…`
 
 Asked for AD-1026 status, subsidiary print, GeoJSON field boundaries, farm /
 tract / field numbers, confirmation that **all** leased tracts are recorded with
 Tiny Seed Farm LLC as **operator**, and what it takes to add any that are
 missing. Plus the acreage-reporting process questions.
+
+**Todd believes the field boundaries ARE already updated** for the move to the
+new area of Kretschmann (2026-10-01). A supplement telling FSA otherwise was
+drafted and **parked unsent** — no evidence, and it would misrepresent the farm.
+`drafts/FSA_SUPPLEMENT_MOVE.md` if it turns out to be needed.
+
+🔍 **The GeoJSON is the proof.** When it lands, open it and check the boundaries
+against the ground actually being farmed. Todd's belief is the best information
+we have; the file is the fact. Do not build the AMP application on the belief.
 
 **Watch for the reply.** Two answers decide the schedule:
 1. **Is AD-1026 on file?** If not, it has to be signed at the county office.
