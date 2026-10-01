@@ -781,6 +781,119 @@ the budget builder, not after.
 
 ---
 
+# 🔬 CURRENT WORKFLOW — and exactly where it breaks
+
+**Todd, 2026-10-01, how it actually works today:**
+
+> Greens come off the line → run through a sink → spun dry → **dumped into a
+> 200-gallon Rubbermaid stock tank** → packed individually into bags straight
+> from the stock tank.
+> Bagging is three steps: **fill bags · tie bags closed · sticker.**
+
+### The bottleneck named precisely: three touches per bag
+
+Every single bag is handled **three separate times.** That is the slow part, and
+it is not a labor problem you can solve by hiring — it is a process with two
+steps that should not exist.
+
+| Today | The fix | What it removes |
+|---|---|---|
+| **1. Fill** — scoop from the stock tank, weigh, adjust | **Dual Pack Table DP-2** — bag sits on the scale over a 6" funnel, fill until the display hits weight | weigh-then-adjust becomes **fill-to-weight, one motion** |
+| **2. Tie closed** — by hand, one at a time | **Horizontal Band Sealer** — continuous conveyor seal | **the tying step disappears** |
+| **3. Sticker** — apply a label to each bag | **Pre-printed branded bags** + the sealer's built-in code printer | **the stickering step disappears entirely** |
+
+**Three touches become one and a half.** And every piece of that is on PASA's
+eligible list under packaging, logo and brand building.
+
+### ⭐ The Horizontal Band Sealer is the key machine
+
+`charliesmachineandsupply.com/catalog/hoizbandsealer.shtml`
+
+> *"The Tilting Seal Head feature allows tilt up to a 30-degree angle, which
+> makes this sealer ideal for most any produce **including those with some
+> liquid in the package**."*
+
+That line is written for washed greens. Spun greens still carry moisture, and a
+tilting head is what lets you seal them without pulling product into the seal.
+
+- All stainless steel construction
+- Seal head and conveyor **tilt up to 30°**
+- Solid-state temperature control — consistent seals regardless of throughput
+- **Standard Hot Stamp Code Imprinter** ⭐
+
+**The code imprinter is worth more than it looks.** It stamps lot code and pack
+date onto the bag *as it seals*. That is:
+- **a GAP traceability requirement, satisfied by the machine** — not a binder
+- the second half of the stickering step, gone
+- exactly the recall-readiness an institutional buyer asks about
+
+### ⭐ Pre-printed bags kill the third touch AND do the branding
+
+Instead of stickering every bag by hand, **print the farm's brand on the bag
+itself.** One decision that:
+- removes an entire handling step from every bag
+- puts the Tiny Seed brand in front of every customer who opens a fridge
+- is funded under **packaging** and **logo / brand building** — two named
+  categories
+- makes the product look like it belongs on a wholesale shelf
+
+**This is the single cheapest, highest-leverage change in the whole project.**
+
+### ⚠️ The stock tank is costing you shelf life
+
+Greens sit in a 200-gallon stock tank while bagging works through them. **The
+slower the bagging, the longer they sit.**
+
+So the slow bagging is not only a labor cost — **it is a quality cost.** Greens
+warming in a tank are greens losing the shelf life that the entire wholesale
+argument depends on.
+
+That connects the two bottlenecks Todd named:
+
+> **Fix the bagging and you shorten the time greens spend in the tank. Add
+> forced-air cooling and the time they do spend costs less.** The two
+> investments compound.
+
+- [ ] **Todd: is that stock tank inside the cooler, or at ambient?** If it is at
+      ambient, that is where shelf life is being lost, and it is the strongest
+      single sentence in the application.
+
+### The redesigned line
+
+```
+HARVEST ─► WASH ─────────► DRY ──────────► HOLD ───────► FILL ────────► SEAL ──────► OUT
+          Jr. Double-Wash   Veg Dryer      stock tank     Dual Pack      Horizontal
+          + Klorman         20–40 lb/load  + FORCED AIR   Table DP-2     Band Sealer
+          sanitizer                                       fill-to-weight + code print
+                                                                         on pre-printed
+                                                                         branded bags
+```
+
+### Updated package
+
+| Stage | Item | Quote | Notes |
+|---|---|---|---|
+| Wash | Jr. Double-Wash *(or single-tank)* | $______ | Klorman sanitizer = food safety |
+| Dry | Veg Dryer 601559 | $______ | 20–40 lb/load |
+| Cool | Forced-air retrofit, existing coolers | $______ | cheap, high impact |
+| **Pack** | **Dual Pack Table DP-2** | $______ | fill-to-weight |
+| **Seal** | **Horizontal Band Sealer w/ code printer** | $______ | kills the tie step, prints lot code |
+| **Brand** | **Pre-printed branded bags** | $______ | kills the sticker step |
+| | **~$15,000, none over $10,000** | | |
+
+That is more lines than money. **Get all the quotes, then cut.** My ranking if it
+does not all fit:
+
+1. **Band sealer + pre-printed bags** — removes two of three touches, adds lot
+   coding and branding. Highest return per dollar in the package.
+2. **Dual Pack Table** — fixes the third touch.
+3. **Forced-air cooling** — cheap, protects the quality everything else is for.
+4. **Veg Dryer** — real capacity gain.
+5. **Jr. Double-Wash** — biggest ticket, and the existing sink is at least
+   working today.
+
+---
+
 # 🏭 CHARLIE'S MACHINE & SUPPLY — the whole line, one vendor
 
 `charliesmachineandsupply.com` — Todd's lead, read 2026-10-01. **They make
