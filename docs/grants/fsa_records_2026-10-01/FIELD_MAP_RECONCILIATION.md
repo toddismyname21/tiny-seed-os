@@ -62,6 +62,77 @@ but carry **no acreage** — incomplete records.
 All three farms are clustered within about a mile — 40.741 to 40.750 N,
 -80.160 to -80.164 W. Consistent with adjoining ground on one operation.
 
+# 🗺️ RECONCILED — Todd's field map vs. FSA, 2026-10-01
+
+Todd supplied the hand-drawn **Tiny Seed Farm Field Map (12/22 update)**. It
+resolves what the data alone could not.
+
+## The farm is a long north–south strip along Zeigler Rd
+
+The map shows **three production clusters** separated by woods, with the barn,
+house and greenhouse mid-farm on the Zeigler Rd side. **FSA has exactly three
+farms**, and sorted by latitude they stack north→south with **no overlap at
+all**:
+
+| | FSA farm | Fields | Acres | Latitude band |
+|---|---|---|---|---|
+| **NORTH** | **1238** / tract 1783 | 3 | 9.52 | 40.74963 – 40.75012 |
+| **MIDDLE** | **1068** / tract 446 | 6 | 66.68 | 40.74375 – 40.74877 |
+| **SOUTH** | **1079** / tract 1583 | 2 | 21.21 | 40.74163 – 40.74284 |
+
+## The proposed mapping
+
+| FSA farm | Map cluster | OS blocks | Production ac | Tract ac |
+|---|---|---|---|---|
+| **1238** (N) | top of map — JS strips + House | JS10, JS6, JS1, JS3, JS4, House | **≈ 2.0** | 9.52 |
+| **1068** (MID) | F-fields, pond, barn/home/greenhouse, mid blocks | F3L, F3M, F7M, F11M, SO, IL, HOL, JL, K1, K2, M, IOL, CL, B, Greenhouse | **≈ 4.6** | 66.68 |
+| **1079** (S) | bottom of map | **Z3, Z5** | **0.93** | 21.21 |
+| | | **TOTAL** | **≈ 7.5** | **97.41** |
+
+≈7.5 production acres against the OS total of **7.60** — the gap is the blocks
+carrying bed counts but no acreage (`Kretschmann`, `Rosemary`, `Z1`).
+
+## Why I believe this
+
+1. **Three clusters, three farms, same order.** The map grouping and the
+   latitude bands agree without being forced.
+2. ⭐ **The south section is the clincher.** Farm 1079 has **exactly 2 FSA
+   fields.** The south of the map has **exactly 2 blocks — Z3 and Z5.**
+3. **The acreage gap is explained by the drawing itself** — it is covered in the
+   word WOODS, plus a pond. 7.5 acres of beds inside 97 acres of tract is
+   precisely what that map depicts.
+4. **Farm 1068 is the largest tract and holds the most blocks**, the pond, the
+   buildings and most of the woods. Consistent.
+
+⚠️ **Hypothesis, not survey.** Built on latitude ordering and cluster shape. One
+look at the map links settles it.
+
+## 🎯 The only question left for AMP
+
+Not 24 blocks. Not 11 fields. **One question:**
+
+> **Which cluster grows the salad greens — north (JS), middle (F / SO / I / H /
+> J / K / M / IO), or south (Z)? And which grows the tomatoes?**
+
+| Commodity | Cluster | → FSA farm/tract | Blocks | Production ac |
+|---|---|---|---|---|
+| **Salad greens** | | | | |
+| **Tomatoes** | | | | |
+
+### What each answer would mean
+
+- **North (JS) → 1238/1783.** Smallest tract. **1238/1783/1 is HEL.**
+- **Middle (F/SO/I/H/J/K/M/IO) → 1068/446.** Largest, most blocks, holds the
+  greenhouse and barn — the likeliest home for intensive salad, since greens move
+  to the pack house constantly. **1068/446/1 and /2 are HEL.**
+- **South (Z) → 1079/1583.** Only 0.93 production acres. **1079/1583/1 is HEL.**
+
+**If greens and tomatoes are both in the middle cluster, that is the best
+outcome** — one FSA farm, two commodities, HEL ground available for the practice.
+Exactly the shape AMP wants.
+
+---
+
 ## ❌ Why I cannot finish this automatically
 
 **The OS field records carry no coordinates.** They have names, bed counts and
