@@ -1,4 +1,6 @@
-# DRAFT — NOT SENT. Needs Todd's explicit go.
+# ✅ SENT 2026-10-01 to charliet@charliesmachineandsupply.com
+
+Resend id `01a0f7d1-ffd0-7379-bef8-f3673168a8fe` · approved by Todd: *"send them please"* · BCC todd@tinyseedfarmpgh.com
 
 **To:** charliet@charliesmachineandsupply.com
 **Subject:** Quote request — wash, dry and pack equipment, shipped to Rochester PA

@@ -1,4 +1,6 @@
-# DRAFT — NOT SENT. Needs Todd's explicit go.
+# ✅ SENT 2026-10-01 to althea@cmiequip-eng.com
+
+Resend id `01a0f7d1-ca9f-735e-8a3f-9bafc9d991e3` · approved by Todd: *"send them please"* · BCC todd@tinyseedfarmpgh.com
 
 **To:** althea@cmiequip-eng.com
 **Subject:** Quote request — Double Bagging Table and Spin Dryer, shipped to Rochester PA

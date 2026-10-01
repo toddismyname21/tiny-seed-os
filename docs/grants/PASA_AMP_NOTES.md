@@ -1122,7 +1122,25 @@ Chiller*, but at 170" long and 400 gallons it is the same oversizing problem.
 comes in over $10,000, it cannot go in as one line. Ask about the **single-tank
 version** and the **Single Washer** as alternates in the same call.
 
-### ☎️ The call to Charlie's — ask for all of this at once
+### ✅ QUOTES REQUESTED 2026-10-01 — awaiting replies
+
+| Vendor | Contact | Asked for | Resend id |
+|---|---|---|---|
+| **CMI Equipment & Engineering** | althea@cmiequip-eng.com | Double Bagging Table · Model 20 + Model 22 Electric Spin Dryers · extra baskets | `01a0f7d1-ca9f-735e…` |
+| **Charlie's Machine & Supply** | charliet@charliesmachineandsupply.com | Dual Pack Table (2- and 3-hole) · Jr. Double-Wash (2-tank + single) · Triple Wash · Veg Dryer 601559 · extra baskets | `01a0f7d1-ffd0-7379…` |
+
+Both asked for: letterhead quote, freight itemized to 257 Zeigler Rd, lead time,
+power requirements, and **water use and drainage** on the wash equipment.
+Charlie's also asked which items are **NSF-rated**.
+
+**Neither mentions the grant** — Todd's call, to avoid being quoted to the
+ceiling. See [[never-mention-grant-to-vendors]].
+
+**When the quotes land:** fill the budget-builder worksheet, check nothing
+breaks the **$10,000 per-item cap**, and decide Jr. Double-Wash vs. Triple Wash
+on the numbers.
+
+### ☎️ Remaining questions for Charlie's if not answered in the quote
 
 - [ ] Price: **Jr. Double-Wash**, two-tank AND single-tank versions
 - [ ] Price: **Single Washer** and **Soak Tank** as lower-cost alternates
