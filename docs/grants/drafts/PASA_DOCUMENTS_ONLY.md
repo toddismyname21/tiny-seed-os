@@ -58,6 +58,40 @@ Stripped from the earlier draft:
 
 What stayed is only what Pasa needs to process the file.
 
+## ✅ VERIFICATION — every requested document is present and valid
+
+Checked 2026-10-01 against all three sources that asked.
+
+| Requested by | Document | Have it | Verified |
+|---|---|---|---|
+| **Luka**, 9/8 email | GeoJSON | ✅ | valid JSON · 11 features · **all 3 farms (1068, 1079, 1238)** |
+| **Luka**, 9/8 email | Subsidiary Print | ✅ | 2 pages · text readable · **dated 10/01/2026** |
+| **Chris**, 10/1 call (Todd's notes) | subsidiary print | ✅ | same as above |
+| **Chris**, 10/1 call | AD-1026 | ✅ | 2 pages · **3000 px scan, fully legible** |
+| **Chris**, 10/1 call | geo-json | ✅ | same as above |
+| **Lisa Bauer**, 10/1 | "GeoJSon files, current AD-1026, subsidiary print" | ✅ **all three** | |
+
+**Nothing requested is missing.**
+
+### Two notes
+
+**1. "GeoJSon files" was plural — Lisa said one for each farm.** FSA sent a
+single file containing all three. Nothing is lost; every farm is in it. But in
+case Pasa's upload wants them separately, per-farm copies are now generated and
+verified lossless:
+
+| File | Fields | Acres |
+|---|---|---|
+| `03b_GeoJSON_Farm1068_…` | 6 | 66.68 |
+| `03b_GeoJSON_Farm1079_…` | 2 | 21.21 |
+| `03b_GeoJSON_Farm1238_…` | 3 | 9.52 |
+
+Send the combined file; hold the split ones in case they ask.
+
+**2. FSA also included `clu_ISO_2024.xml`** — a CLU export in ISO format, dated
+2024. **Nobody asked for it** and it is a year older than the GeoJSON, so it is
+not attached. Available if Pasa's system prefers that format.
+
 ## Fact check
 
 | Fact | Source | ✓ |
