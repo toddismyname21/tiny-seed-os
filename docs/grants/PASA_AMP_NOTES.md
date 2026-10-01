@@ -781,6 +781,115 @@ the budget builder, not after.
 
 ---
 
+# ✅ THE REAL PACKAGE — Todd's actual bottlenecks
+
+**Todd 2026-10-01, the answer to "where are the bottlenecks":**
+**salad spinners · cooling · a triple wash sink (TS Designs) · bagging is very slow.**
+
+That is a wash-pack line. All four stages, in order, and it is exactly the gap
+AIG leaves open.
+
+> **Project: "Seed to Sale with Salad — Closing the Post-Harvest Gap."**
+> AIG took salad from seed through harvest. This takes it from harvest to sale.
+
+### The line, stage by stage
+
+| Stage | Item | Estimate | Greens | Tomatoes |
+|---|---|---|---|---|
+| **Wash** | **Triple wash sink** — TS Designs or equivalent | **$______** | ✅ | ✅ |
+| **Dry** | **Salad spinners ×3** — Dynamic Electric, $959 ea | **$2,877** | ✅ | ❌ |
+| **Cool** | **Forced-air cooling** retrofit into the coolers we already own | **$______** | ✅ | ✅ |
+| **Pack** | **Bagging and weighing station** | **$______** | ✅ | ✅ |
+| | **Target total** | **~$15,000** | | |
+
+**Three of the four serve both commodities.** The spinners are greens-only, but
+the project as a whole covers greens and tomatoes, which is what the rule asks.
+
+### Verified pricing so far
+
+**Dynamic Electric Salad Spinner — $959.00** (Johnny's, checked 2026-10-01)
+- 5.2 gal / 20 L, 200 W motor, 500 RPM, 1-minute timer
+- ~6 heads of lettuce per load
+- Food-grade polypropylene, removable basket, **HACCP-compliant, ETL listed to
+  NSF/ANSI sanitation standards** ← say this in the application; it is a
+  food-safety credential, not just a feature
+- `johnnyseeds.com/tools-supplies/post-harvest/wash-pack/salad-spinners/dynamic-electric-salad-spinner-9619.html`
+
+**Buy three, not one.** $2,877. One spinner is still a queue — three running in
+parallel is what actually breaks the bottleneck, and the per-unit cost keeps us
+far under the $10,000 ceiling.
+
+### ⭐ Why forced-air cooling is the smartest line in this package
+
+Todd already owns walk-in coolers, so we are not asking for a cooler. **We are
+asking to make the coolers he has actually work.**
+
+A walk-in **holds** temperature but pulls field heat out of a packed tote slowly
+— hours. **Forced-air cooling** puts a fan and baffle at the end of a pallet so
+cold air is pulled *through* the product instead of drifting around it. Several
+times faster to temperature.
+
+That matters because **the first hours after harvest set shelf life**, and shelf
+life is the whole wholesale argument. It is also:
+- **Cheap** relative to everything else here
+- **Installed inside existing coolers** — no construction, no ground disturbance
+- **Serves greens and tomatoes both**
+- A story reviewers like: *we already invested in cold storage; this makes that
+  investment deliver.*
+
+### Bagging — needs defining before it can be quoted
+
+"Bagging is very slow" is the right problem. The fix depends on what slow means:
+
+| If the slow part is… | The fix | Rough cost |
+|---|---|---|
+| Weighing each bag by hand | Digital bench scale + bag-holder stand so it is fill-to-weight, one motion | low |
+| Opening and holding bags | Bagging stand / funnel / wicketed bags | low |
+| Closing bags | Impulse sealer or clipper | low–moderate |
+| All of it, at volume | Semi-automatic weigh-filler | moderate–high |
+
+- [ ] **Todd: which part is actually slow — the weighing, the filling, or the
+      closing?** That decides whether this is a $600 line or a $5,000 line.
+
+### ⚠️ TS Designs — I could not verify them
+
+Searching "TS Designs" returns TypeScript and TeamSpeak; I could not confirm the
+company or price the sink. **Todd has the lead — get the quote directly.**
+
+Ask them for: tank dimensions, number of tanks, stainless gauge, drain
+configuration, and whether it is NSF-rated. **NSF rating matters** for the
+food-safety argument.
+
+Also worth quoting against: **Nolt's Produce Supply** (PA — already our vendor
+for the AIG R2 greenhouse automation) and **Market Farm Implement** (PA — also
+already a quoted vendor). Two quotes strengthen the budget line, and both are
+local.
+
+### ⚠️ Wash water — keep this clean
+
+A triple wash sink **replaces how we already wash**, so it should not create new
+discharge. **Say that explicitly**: this is existing wash activity moved into
+proper NSF equipment, not a new wastewater stream. If anything, contained tanks
+with managed drainage are better than whatever happens now.
+
+- [ ] Confirm with Luka that wash equipment raises no discharge question
+
+### How it chains back to the conservation practice
+
+> We **tarp and net** the salad green and tomato beds on **FSA field ___**
+> *(mulching, 484)* → the crop comes out of the field **cleaner, with less soil
+> contact and less insect damage** → it washes faster and better in a proper
+> **triple wash sink**, dries in **spinners** instead of a queue, and goes to
+> temperature fast under **forced-air cooling** → so it holds the shelf life
+> wholesale and institutional buyers require → **packed to a consistent weight**
+> and sold into markets we cannot serve today.
+
+**The conservation practice is upstream of everything.** A cleaner crop is a
+faster wash and a longer shelf life. That is not a stretch — it is the
+operational reality, and it makes the two halves of this grant one project.
+
+---
+
 # 🥬 SALAD PRODUCTION, END TO END — where are the bottlenecks?
 
 **Todd 2026-10-01: we already have walk-in coolers. Don't need them.** Strike the
