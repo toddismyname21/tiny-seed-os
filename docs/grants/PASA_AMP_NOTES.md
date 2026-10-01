@@ -781,6 +781,110 @@ the budget builder, not after.
 
 ---
 
+# 🥬 SALAD PRODUCTION, END TO END — where are the bottlenecks?
+
+**Todd 2026-10-01: we already have walk-in coolers. Don't need them.** Strike the
+cooler line. Think about salad holistically instead.
+
+### The chain, and who has paid for each link
+
+| # | Stage | Status | Funded by |
+|---|---|---|---|
+| 1 | **Seed** | ✅ solved | AIG — Sutton "Seed Spider" 18-line precision seeder, $19,569, specified for *"bed width salad and baby greens seeding"* |
+| 2 | **Field prep** | ✅ solved | AIG — FORIGO G35-130 stone burier, $21,895 |
+| 3 | **Cultivate / weed** | ✅ solved | AIG — Tilmor system, $17,498 submitted |
+| 4 | **Harvest** | ⚠️ **approved, UNSPENT** | AIG — Harvester 2000 **$24,466** + 3pt platform **$1,200**. ⏰ **expires 2027-06-30** |
+| 5 | **Wash** | ❌ **funded by nothing** | — |
+| 6 | **Dry / spin** | ❌ **funded by nothing** | — |
+| 7 | **Weigh / bag / pack** | ❌ **funded by nothing** | — |
+| 8 | **Remove field heat** | ⚠️ **have coolers — but is cooling FAST enough?** | — |
+| 9 | **Cold storage** | ✅ have it | — |
+| 10 | **Deliver** | existing vans | — |
+| 11 | **Sell / market** | ❌ **funded by nothing** | — |
+
+### The gap moved — and it is sharper than before
+
+**The gap is not cooling. It is stages 5, 6, 7 and 11 — wash, dry, pack, sell.**
+
+That is still "filling in the gap," and it is a better story: AIG takes salad
+from seed through harvest, and then **the crop hits the pack house and stops.**
+
+### 🚨 Use AIG for harvest — it expires first
+
+**Do not put harvest equipment in AMP.** AIG already has **$24,466 approved and
+unspent** for the Harvester 2000 and **$1,200** for the harvesting platform, and
+that money **dies 2027-06-30.** AMP runs to April 2028.
+
+> **Spend AIG on harvest. Spend AMP on what AIG does not cover.**
+
+Same logic for the $3,000 humidity control line — that is AIG's, and it upgrades
+coolers we already own.
+
+### My hypotheses on the real bottleneck — correct me
+
+I do not have the pack house documented anywhere in the OS, so these are
+informed guesses about salad operations generally, not claims about ours:
+
+**1. DRYING / SPINNING — the usual hard limit** ⭐
+Wet greens rot, so drying gates everything downstream. Most small farms run a
+converted washing machine doing 5–10 lb a load, and on a big harvest day that
+one machine sets the ceiling on how much salad can be packed, no matter how fast
+the field work goes. **If there is one classic salad bottleneck, this is it.**
+
+**2. FIELD HEAT REMOVAL — having a cooler is not the same as cooling fast** ⭐
+A walk-in holds temperature well but pulls field heat out of a packed tote
+slowly — hours. **Forced-air cooling** — a fan and baffle that pull cold air
+*through* the pallet — does it several times faster, and it **installs inside
+the coolers you already own.** Cheap, no ground disturbance, and it serves
+**greens and tomatoes both.** This leverages what you have instead of
+duplicating it.
+
+**3. WEIGHING AND BAGGING** — hand-weighing into bags is slow and inconsistent,
+and inconsistent pack weights are exactly what wholesale buyers reject.
+
+**4. WASH CAPACITY** — tank volume and water changes.
+⚠️ **Careful here:** new wash capacity could raise a **wastewater** question, and
+we are trying to keep this free of environmental concerns. Upgrading how
+existing wash water is handled is safer than creating new discharge.
+
+### Which of these serves BOTH commodities
+
+Remember the rule: two commodities, greens **and** tomatoes.
+
+| Candidate | Greens | Tomatoes | Two-commodity test |
+|---|---|---|---|
+| **Forced-air cooling in existing coolers** | ✅ | ✅ | ⭐ **passes easily** |
+| **Packing / sorting tables, pack line** | ✅ | ✅ | ⭐ passes |
+| **Scales, weighing, bagging** | ✅ | ✅ | ⭐ passes |
+| **Packaging and labeling** | ✅ | ✅ | ⭐ passes |
+| **Harvest and handling totes / bins** | ✅ | ✅ | passes |
+| Salad spinner / greens dryer | ✅ | ❌ | **fails alone** — pair it with something |
+
+⚠️ **A spinner is probably your biggest bottleneck but it only serves greens.**
+If we use it, it has to be paired so the overall project still covers both.
+
+---
+
+## ❓ What I need from you to finish this
+
+I can design the application, but you know the pack house and I do not. Four
+questions:
+
+1. **On a big salad harvest day, what is the step everyone is waiting on?**
+   That is the bottleneck, whatever I guessed.
+2. **How do you dry greens now** — converted washing machine, commercial spinner,
+   something else? How much per load, and how many loads on a heavy day?
+3. **How long does it take to pull field heat out of greens** once they are in
+   the cooler? Are you ever loading a delivery with product that is not fully
+   cold?
+4. **What do you pack into, and how do you weigh it?** Is pack weight consistent
+   enough for a wholesale buyer who orders by the case?
+
+Answer those and I will rebuild the three budget lines around the real
+constraint instead of my guess.
+
+---
+
 # 🚨 DESIGN RULE — zero environmental triggers
 
 **Todd: don't want any environmental concerns.** Broader than soil. Design the
