@@ -70,7 +70,39 @@ acreage — no geography. FSA's file has polygons but no names we recognise.
 guess here puts a conservation practice on the wrong tract in a federal
 application.
 
-## ✅ What Todd needs to do — 20 minutes
+## ⭐ Todd 2026-10-01: "The production fields are the ones I am using."
+
+Confirmed — the **7.60 acres of production blocks are the farm**. The other ~90
+acres in FSA's file are tract area, not ground in vegetables.
+
+### Two things that follow, and both make this easier
+
+**1. The practice acreage is the PRODUCTION acreage, not the field acreage.**
+If tarps go on 2 acres of salad greens sitting inside FSA field 1068/446/1,
+the application reports **2 acres of practice on field 1068/446/1** — not 33.55.
+You are not on the hook for treating 97 acres. The FSA field number is an
+address; the acreage you report is what you actually treat.
+
+**2. You do not need all 24 blocks mapped.** For AMP you need exactly two
+answers:
+
+> **Which FSA field holds the salad greens?**
+> **Which FSA field holds the tomatoes?**
+
+Everything else can wait for Sara's acreage reporting. Two rows is the whole
+blocker.
+
+### The narrow ask
+
+| Need | FSA farm/tract/field | OS blocks | Production acres |
+|---|---|---|---|
+| **Salad greens** | | | |
+| **Tomatoes** | | | |
+
+If greens and tomatoes share an FSA field, that is simpler still — one field,
+two commodities, which is exactly what AMP asks for.
+
+## ✅ The fuller mapping — 20 minutes, when there is time
 
 Open each map link above and name what is there. The centroids are real
 coordinates; the satellite view should make them obvious.
