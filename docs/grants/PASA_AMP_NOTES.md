@@ -55,7 +55,9 @@ in market, conservation, and business terms. Do not lead with climate.**
   2. **How does it improve the business?**
   3. **What commodity** are you connecting it to?
   4. They **want to see receipts**
-  5. **Estimates** go in the **budget builder** PASA is sending
+  5. **Estimates** go in the **budget builder** PASA is sending — **contractor
+     quotes** are what they want to see
+  6. **We can factor in our own labor.**
 
 ---
 
@@ -778,6 +780,73 @@ wholesale ordering page, market and farm signage.
 
 ---
 
+---
+
+## 🔧 Our own labor counts — build vs. contract
+
+**Todd: we can factor in our labor.** That changes the cooler line materially.
+
+### The arithmetic
+
+A turnkey contractor quote sends the whole $10,000 off the farm. If our labor is
+an eligible cost, a self-build keeps part of it here:
+
+| Approach | Materials | Labor | Total line | Cash that leaves the farm |
+|---|---|---|---|---|
+| Turnkey contractor | — | — | $10,000 | **$10,000** |
+| **Hybrid — recommended** | ~$6,500 | ~$3,500 ours | $10,000 | **~$6,500** |
+| Full self-build | ~$8,000 | ~$2,000 ours | $10,000 | ~$8,000 |
+
+Same grant dollars, roughly **$3,500 of it staying with us** as paid labor on
+work we would otherwise do for free.
+
+### But do NOT self-build the refrigeration
+
+**Refrigerant work legally requires EPA 608 certification.** Charging a system,
+brazing line sets, commissioning — that is a licensed trade, and doing it
+ourselves would be both illegal and a good way to destroy a compressor.
+
+**The clean split:**
+
+| Us | Contractor |
+|---|---|
+| Site and slab prep | Condensing unit and evaporator install |
+| Insulated panel assembly | Line set, brazing, evacuation and charge |
+| Door hang and trim | Commissioning and startup |
+| Shelving and racking | Any refrigerant handling |
+| Conduit runs and rough-in | Final electrical tie-in if code requires a licensed electrician |
+
+**Get the contractor quote for their scope specifically**, not turnkey — that is
+the number that goes in the budget builder alongside our labor line and the
+materials.
+
+### ⚠️ If we claim labor, we must document it from day one
+
+Claimed labor gets audited harder than a receipt, because a receipt is a
+third-party document and a timesheet is us saying so.
+
+**Set this up before the first hour is worked, not reconstructed after:**
+
+- [ ] **Timesheets** — date, person, hours, and the specific task. "Cooler build"
+      is not enough; "framed and set north wall panels" is.
+- [ ] **A defensible hourly rate** — what we actually pay for comparable work, or
+      a documented local prevailing rate. Do not invent a number.
+- [ ] **Photos as you go** — before, during, after. They corroborate the hours and
+      they are free.
+- [ ] Ask Luka: **does it have to be paid labor, or does unpaid owner labor count
+      as in-kind?** The answer changes the bookkeeping entirely.
+- [ ] Ask: **is there a cap or a required rate** on labor?
+
+The farm already runs a time clock and employee management in the OS — use it
+for this rather than a notebook, so the record is contemporaneous and exportable.
+
+### Ask Luka about labor
+- [ ] Does our own labor get **reimbursed**, or only count as **match**?
+- [ ] Owner labor vs. employee labor — treated the same?
+- [ ] What rate, and is it capped?
+- [ ] What documentation do they want — timesheets, payroll records, both?
+- [ ] Does labor count against the **$10,000 per-item ceiling**, or is it separate?
+
 ## 🔨 ACTION — get estimates now, before the builder arrives
 
 The budget builder needs numbers. Quotes take longer than filling a form, so
@@ -785,7 +854,9 @@ start these this week.
 
 | Line | Who to ask | Status |
 |---|---|---|
-| Cooler buildout | Local refrigeration contractor for a turnkey quote; also price panels + condensing unit separately, and a CoolBot/mini-split build as the low-cost comparison | ☐ |
+| Cooler — **contractor quote** | Refrigeration contractor, scoped to **their work only** — unit install, line set, charge, commissioning. Not turnkey. | ☐ |
+| Cooler — **materials** | Insulated panels, door, condensing unit + evaporator, shelving. Price these ourselves. | ☐ |
+| Cooler — **our labor** | Estimate hours for slab, panel assembly, door, shelving, rough-in × our documented rate | ☐ |
 | Packaging | A produce packaging supplier — cases, clamshells, flats. Ask for a quote **at wholesale pack sizes**, and ask what our existing wholesale buyers want. | ☐ |
 | Label printer | Price a thermal label printer and stock | ☐ |
 | Photographer | Local; ask for a half-day farm + product session | ☐ |
