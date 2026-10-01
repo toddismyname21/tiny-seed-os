@@ -781,6 +781,92 @@ the budget builder, not after.
 
 ---
 
+# 🏷️ LABELS MUST CARRY THE USDA ORGANIC SEAL — and that has rules
+
+**Todd 2026-10-01: we have to get the labels designed with the USDA organic logo.**
+
+Good — it is the farm's most valuable credential and it belongs on the package.
+But organic labeling is **regulated**, not decorative, and a non-compliant label
+is a certification problem, not a design problem.
+
+### Our certification, for the label copy
+
+| | |
+|---|---|
+| Certifier | **OEFFA** (Ohio Ecological Food and Farm Association) |
+| NOP ID / certificate | **1600003839** |
+| Operation # | 3839 |
+| Effective | 12/11/2025 |
+| Scope | USDA NOP — Crop |
+| Contact | **Lauren Pope**, lpope@oeffa.org, (614) 725-3163 |
+| Verify | `organic.ams.usda.gov/Integrity/CP/OPP?nopid=1600003839` |
+
+### What the regulation requires — **confirm each with OEFFA**
+
+I could not reach the AMS labeling page (it blocks automated access) and the
+search tooling is unreliable today, so **treat the following as the agenda for a
+call with Lauren Pope, not as verified law.** On a printed run, being wrong is
+expensive.
+
+1. **The certifying agent's name must appear on the label.** This is the single
+   most commonly missed requirement — something to the effect of *"Certified
+   Organic by OEFFA."* ⚠️ Confirm the exact wording OEFFA requires.
+2. **The USDA organic seal may only be used** on product that qualifies as
+   100% organic or organic. Raw salad greens from a certified crop operation
+   should qualify — confirm.
+3. **The seal cannot be altered.** Fixed proportions, specified colours, or
+   black and white. Do not let a designer restyle it.
+4. **"Organic" claims and placement** on the display panel have rules.
+5. 🚨 **OEFFA very likely requires label review and approval BEFORE use.** Most
+   certifiers do. **Ask this first** — it is the long pole.
+
+### ⭐ This settles the pre-printed bag question
+
+If OEFFA has to approve the label — and if the seal, the certifier statement,
+or the layout needs a revision — then:
+
+| | Cost of a label change |
+|---|---|
+| **Stickers / label applicator** | reprint a roll. Cheap. |
+| **25,000 pre-printed bags** | **you eat the skid** |
+
+**Do not print bags until a label is OEFFA-approved.** The applicator path is now
+clearly correct for the first round: get the design approved, run it on labels,
+and revisit printed bags later with an approved artwork file and known volume.
+
+That is two independent arguments pointing the same way — the break-even math,
+and now compliance risk.
+
+### The design work itself is fundable
+
+Label and seal design sits inside PASA's named categories — **packaging, logo,
+brand building and marketing.** Budget for a designer who has done **organic
+label compliance before**, not just a logo. The compliance knowledge is the
+part worth paying for; anyone can draw.
+
+Design deliverables to ask for:
+- Compliant label artwork for salad greens **and** tomatoes (two commodities)
+- Correct USDA seal use, unaltered
+- OEFFA certifier statement, exact approved wording
+- Print-ready files in label format now, **and bag-print-ready files held for
+  later** so we are not redesigning when volume justifies printed bags
+- Space reserved for the band sealer's **hot-stamp lot code and pack date**
+
+### ☎️ Call OEFFA — Lauren Pope — before any design work
+
+- [ ] **Does OEFFA require label approval before use?** What is the turnaround?
+- [ ] Exact required wording for the certifier statement
+- [ ] Any OEFFA-specific requirements beyond the NOP rules
+- [ ] Confirm our certification covers salad greens and tomatoes as labeled
+- [ ] Is there a fee for label review?
+- [ ] Ask for examples of compliant labels from other OEFFA crop operations
+
+⚠️ **Also confirm our certification is current.** Memory shows an anniversary
+date of 05/15/2026, which has passed. **Verify renewal is complete before putting
+the seal on anything.**
+
+---
+
 # 🔬 CURRENT WORKFLOW — and exactly where it breaks
 
 **Todd, 2026-10-01, how it actually works today:**
