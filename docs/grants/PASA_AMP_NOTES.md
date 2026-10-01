@@ -45,6 +45,7 @@ in market, conservation, and business terms. Do not lead with climate.**
   to a SPECIFIC commodity we are focusing on.**
 - **Business development must be connected to TWO commodity products.**
 - **Must connect to an FSA-REGISTERED FIELD.**
+- **Must connect to a CONSERVATION PRACTICE that we implement.**
 
 ---
 
@@ -284,6 +285,74 @@ them alone.
 - **Strongest evidence if we can get it:** a buyer who has said *"we cannot buy
   from you until you are certified."* Ask around before the meeting.
 
+### ⭐⭐ THE FULL CHAIN — this is the whole application
+
+Every business-development item has to carry all of it:
+
+> **item → business improvement → TWO commodities → FSA-registered field →
+> conservation practice implemented on that field**
+
+**The two buckets are not separate applications.** Business development rides on
+top of a conservation practice. That changes how to approach next week:
+
+> ⚠️ **Do not treat the Luka conservation meeting as a separate conversation.**
+> The conservation practice chosen there **determines what business-development
+> story can be told.** Walk in knowing which practice you want, on which field,
+> growing which two commodities — or the business side gets built on whatever
+> the conservation side happened to pick.
+
+### Candidate conservation practices — which one carries the business story
+
+Practices the farm already does or is positioned to do. NRCS practice codes are
+my inference and **UNVERIFIED** against PASA's list, which they are sending —
+but the codes are standard and the practices are real here.
+
+| Practice | NRCS code | Do we do it? | How well it carries the business story |
+|---|---|---|---|
+| **Mulching** | **484** | Yes — plastic and organic mulch; we own Tilmor plastic-mulch equipment | ⭐ **Strongest.** See below. |
+| **High Tunnel System** | **325** | Yes — tunnels on the farm; R2 application covers tunnel automation | ⭐ **Very strong.** Season extension → supply consistency. |
+| Cover Crop | 340 | Yes — named in the AIG application | Good — soil health → yield and quality |
+| Reduced / No-Till | 345 / 329 | Yes — reduced tillage named in AIG | Good |
+| Soil Carbon Amendment | 808 | Yes — compost production is a core AIG goal | Good |
+| Irrigation Water Management | 449 | R2 includes Toro Tempus smart irrigation | Good — consistent sizing meets buyer spec |
+| Nutrient Management | 590 | Yes | Weaker link to market access |
+
+**PASA's own case study cited "(Mulching, 484)" — so 484 is on their list.**
+
+#### Why MULCHING (484) is the tightest fit
+
+Mulch keeps soil off the crop. **Soil splash onto leafy greens is a recognized
+contamination pathway**, and keeping produce out of soil contact is exactly what
+a food-safety auditor looks for. So:
+
+> We mulch the greens and tomato beds **(conservation practice 484, on FSA field
+> ___)** → the crop stays out of soil contact → **cleaner, safer product with
+> better shelf life** → which is what **GAP certification** requires and what
+> **institutional buyers** demand → so the cold chain, the certification, and the
+> wholesale marketing **turn that practice into actual sales** of
+> **salad greens and tomatoes**.
+
+Every link in that is true, and the conservation practice is not decoration —
+it is the thing that makes the product saleable into the new market.
+
+#### Why HIGH TUNNEL (325) is the other strong option
+
+> Tunnels **(practice 325, FSA field ___)** extend the season on **salad greens**
+> and start **tomatoes** earlier → **consistent supply across more weeks** →
+> institutional buyers require consistent year-round supply and will not contract
+> with a grower who disappears for months → the cold chain and certification let
+> us serve them once we can supply them.
+
+**Mulching and high tunnel together are even better** — one makes the product
+clean, the other makes supply consistent. Both are real on this farm.
+
+### Ask Luka
+- [ ] Which practices are on the AMP list — is 484 Mulching on it? 325 High Tunnel?
+- [ ] **Does the business-development project have to connect to a practice we are
+      funding through AMP conservation, or any practice we implement?**
+- [ ] Can one practice support the business-development project on two commodities?
+- [ ] Do practices already in place count, or must they be newly implemented?
+
 ### ⚠️ Must connect to an FSA-REGISTERED FIELD — this is the piece that could bite
 
 The project has to be tied to a field FSA actually has on record. That makes the
@@ -305,10 +374,10 @@ landowner, not the operator.
 - [ ] **Map it:** which FSA field number grows salad greens, which grows tomatoes.
       Both commodities need a named field.
 
-| Need | Field | FSA farm / tract / field # |
-|---|---|---|
-| Salad greens | | |
-| Tomatoes | | |
+| Commodity | Our field name | FSA farm / tract / field # | Conservation practice on it |
+|---|---|---|---|
+| Salad greens | | | |
+| Tomatoes | | | |
 
 Fill this in the moment the GeoJSON lands. Our own field records are in
 `soil-tests.html` under Field Zones and the REF_Fields sheet — cross-check the
