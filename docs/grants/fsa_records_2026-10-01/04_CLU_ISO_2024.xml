@@ -1,0 +1,830 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mdb:MD_Metadata xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cat="http://standards.iso.org/iso/19115/-3/cat/1.0" xmlns:cit="http://standards.iso.org/iso/19115/-3/cit/1.0" xmlns:gcx="http://standards.iso.org/iso/19115/-3/gcx/1.0" xmlns:gex="http://standards.iso.org/iso/19115/-3/gex/1.0" xmlns:lan="http://standards.iso.org/iso/19115/-3/lan/1.0" xmlns:srv="http://standards.iso.org/iso/19115/-3/srv/2.0" xmlns:mac="http://standards.iso.org/iso/19115/-3/mac/1.0" xmlns:mas="http://standards.iso.org/iso/19115/-3/mas/1.0" xmlns:mcc="http://standards.iso.org/iso/19115/-3/mcc/1.0" xmlns:mco="http://standards.iso.org/iso/19115/-3/mco/1.0" xmlns:mda="http://standards.iso.org/iso/19115/-3/mda/1.0" xmlns:mdb="http://standards.iso.org/iso/19115/-3/mdb/1.0" xmlns:mdt="http://standards.iso.org/iso/19115/-3/mdt/1.0" xmlns:mex="http://standards.iso.org/iso/19115/-3/mex/1.0" xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/1.0" xmlns:mds="http://standards.iso.org/iso/19115/-3/mds/1.0" xmlns:mmi="http://standards.iso.org/iso/19115/-3/mmi/1.0" xmlns:mpc="http://standards.iso.org/iso/19115/-3/mpc/1.0" xmlns:mrc="http://standards.iso.org/iso/19115/-3/mrc/1.0" xmlns:mrd="http://standards.iso.org/iso/19115/-3/mrd/1.0" xmlns:mri="http://standards.iso.org/iso/19115/-3/mri/1.0" xmlns:mrs="http://standards.iso.org/iso/19115/-3/mrs/1.0" xmlns:msr="http://standards.iso.org/iso/19115/-3/msr/1.0" xmlns:mdq="http://standards.iso.org/iso/19157/-2/mdq/1.0" xmlns:dqc="http://standards.iso.org/iso/19157/-2/dqc/1.0" xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink">
+<mdb:defaultLocale>
+<lan:PT_Locale>
+<lan:language>
+<lan:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/php/code_list.php" codeListValue="eng">eng</lan:LanguageCode>
+</lan:language>
+<lan:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</lan:country>
+<lan:characterEncoding>
+<lan:MD_CharacterSetCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_CharacterSetCode" codeListValue="utf8">utf8</lan:MD_CharacterSetCode>
+</lan:characterEncoding>
+</lan:PT_Locale>
+</mdb:defaultLocale>
+<mdb:metadataScope>
+<mdb:MD_MetadataScope>
+<mdb:resourceScope>
+<mcc:MD_ScopeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</mcc:MD_ScopeCode>
+</mdb:resourceScope>
+<mdb:name>
+<gco:CharacterString>dataset</gco:CharacterString>
+</mdb:name>
+</mdb:MD_MetadataScope>
+</mdb:metadataScope>
+<mdb:contact>
+<cit:CI_Responsibility>
+<cit:role>
+<cit:CI_RoleCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_RoleCode" codeListValue="originator">originator</cit:CI_RoleCode>
+</cit:role>
+<cit:party>
+<cit:CI_Organisation>
+<cit:name>
+<gco:CharacterString>USDA Farm Service Agency</gco:CharacterString>
+</cit:name>
+<cit:contactInfo>
+<cit:CI_Contact>
+<cit:phone>
+<cit:CI_Telephone>
+<cit:number>
+<gco:CharacterString>801-844-2922</gco:CharacterString>
+</cit:number>
+<cit:numberType>
+<cit:CI_TelephoneTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_TelephoneTypeCode" codeListValue="voice">voice</cit:CI_TelephoneTypeCode>
+</cit:numberType>
+</cit:CI_Telephone>
+</cit:phone>
+<cit:address>
+<cit:CI_Address>
+<cit:deliveryPoint>
+<gco:CharacterString>1400 Independence Ave SW</gco:CharacterString>
+</cit:deliveryPoint>
+<cit:city>
+<gco:CharacterString>Washington</gco:CharacterString>
+</cit:city>
+<cit:administrativeArea>
+<gco:CharacterString>DC</gco:CharacterString>
+</cit:administrativeArea>
+<cit:postalCode>
+<gco:CharacterString>20250</gco:CharacterString>
+</cit:postalCode>
+<cit:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</cit:country>
+<cit:electronicMailAddress>
+<gco:CharacterString>geo.sales@usda.gov</gco:CharacterString>
+</cit:electronicMailAddress>
+</cit:CI_Address>
+</cit:address>
+<cit:hoursOfService>
+<gco:CharacterString>Monday to Friday from 8 AM – 5 PM EST</gco:CharacterString>
+</cit:hoursOfService>
+<cit:contactInstructions>
+<gco:CharacterString>Customer Service Representatives are available via phone or live chat Monday to Friday from 8 AM – 5 PM EST.  Closed on Federal Holidays.</gco:CharacterString>
+</cit:contactInstructions>
+</cit:CI_Contact>
+</cit:contactInfo>
+</cit:CI_Organisation>
+</cit:party>
+</cit:CI_Responsibility>
+</mdb:contact>
+<mdb:dateInfo>
+<cit:CI_Date>
+<cit:date>
+<gco:DateTime>2023-04-06T00:00:00</gco:DateTime>
+</cit:date>
+<cit:dateType>
+<cit:CI_DateTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_DateTypeCode" codeListValue="revision">revision</cit:CI_DateTypeCode>
+</cit:dateType>
+</cit:CI_Date>
+</mdb:dateInfo>
+<mdb:metadataStandard>
+<cit:CI_Citation>
+<cit:title>
+<gco:CharacterString>ISO 19115-3 Geographic Information - Metadata - Part 1: Fundamentals</gco:CharacterString>
+</cit:title>
+<cit:edition>
+<gco:CharacterString>2014</gco:CharacterString>
+</cit:edition>
+</cit:CI_Citation>
+</mdb:metadataStandard>
+<mdb:spatialRepresentationInfo>
+<msr:MD_VectorSpatialRepresentation>
+<msr:topologyLevel>
+<msr:MD_TopologyLevelCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_TopologyLevelCode" codeListValue="geometryOnly">geometryOnly</msr:MD_TopologyLevelCode>
+</msr:topologyLevel>
+<msr:geometricObjects>
+<msr:MD_GeometricObjects>
+<msr:geometricObjectType>
+<msr:MD_GeometricObjectTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_GeometricObjectTypeCode" codeListValue="composite">composite</msr:MD_GeometricObjectTypeCode>
+</msr:geometricObjectType>
+<msr:geometricObjectCount>
+<gco:Integer>1328</gco:Integer>
+</msr:geometricObjectCount>
+</msr:MD_GeometricObjects>
+</msr:geometricObjects>
+</msr:MD_VectorSpatialRepresentation>
+</mdb:spatialRepresentationInfo>
+<mdb:referenceSystemInfo>
+<mrs:MD_ReferenceSystem>
+<mrs:referenceSystemIdentifier>
+<mcc:MD_Identifier>
+<mcc:code>
+<gco:CharacterString>26910</gco:CharacterString>
+</mcc:code>
+<mcc:codeSpace>
+<gco:CharacterString>EPSG</gco:CharacterString>
+</mcc:codeSpace>
+<mcc:version>
+<gco:CharacterString>6.13(3.0.1)</gco:CharacterString>
+</mcc:version>
+</mcc:MD_Identifier>
+</mrs:referenceSystemIdentifier>
+</mrs:MD_ReferenceSystem>
+</mdb:referenceSystemInfo>
+<mdb:identificationInfo>
+<mri:MD_DataIdentification>
+<mri:citation>
+<cit:CI_Citation>
+<cit:title>
+<gco:CharacterString>Common Land Unit</gco:CharacterString>
+</cit:title>
+<cit:alternateTitle>
+<gco:CharacterString>Common Land Unit</gco:CharacterString>
+</cit:alternateTitle>
+<cit:date>
+<cit:CI_Date>
+<cit:date>
+<gco:DateTime>2023-04-05T00:00:00</gco:DateTime>
+</cit:date>
+<cit:dateType>
+<cit:CI_DateTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_DateTypeCode" codeListValue="publication">publication</cit:CI_DateTypeCode>
+</cit:dateType>
+</cit:CI_Date>
+</cit:date>
+<cit:edition>
+<gco:CharacterString>20151130</gco:CharacterString>
+</cit:edition>
+<cit:citedResponsibleParty>
+<cit:CI_Responsibility>
+<cit:role>
+<cit:CI_RoleCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_RoleCode" codeListValue="originator">originator</cit:CI_RoleCode>
+</cit:role>
+<cit:party>
+<cit:CI_Organisation>
+<cit:name>
+<gco:CharacterString>USDA Farm Service Agency</gco:CharacterString>
+</cit:name>
+<cit:contactInfo>
+<cit:CI_Contact>
+<cit:phone>
+<cit:CI_Telephone>
+<cit:number>
+<gco:CharacterString>801-844-2922</gco:CharacterString>
+</cit:number>
+<cit:numberType>
+<cit:CI_TelephoneTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_TelephoneTypeCode" codeListValue="voice">voice</cit:CI_TelephoneTypeCode>
+</cit:numberType>
+</cit:CI_Telephone>
+</cit:phone>
+<cit:address>
+<cit:CI_Address>
+<cit:deliveryPoint>
+<gco:CharacterString>1400 Independence Ave SW</gco:CharacterString>
+</cit:deliveryPoint>
+<cit:city>
+<gco:CharacterString>Washington</gco:CharacterString>
+</cit:city>
+<cit:administrativeArea>
+<gco:CharacterString>DC</gco:CharacterString>
+</cit:administrativeArea>
+<cit:postalCode>
+<gco:CharacterString>20250</gco:CharacterString>
+</cit:postalCode>
+<cit:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</cit:country>
+<cit:electronicMailAddress>
+<gco:CharacterString>geo.sales@usda.gov</gco:CharacterString>
+</cit:electronicMailAddress>
+</cit:CI_Address>
+</cit:address>
+<cit:hoursOfService>
+<gco:CharacterString>Monday to Friday from 8 AM – 5 PM EST</gco:CharacterString>
+</cit:hoursOfService>
+<cit:contactInstructions>
+<gco:CharacterString>Customer Service Representatives are available via phone or live chat Monday to Friday from 8 AM – 5 PM EST.  Closed on Federal Holidays.</gco:CharacterString>
+</cit:contactInstructions>
+</cit:CI_Contact>
+</cit:contactInfo>
+</cit:CI_Organisation>
+</cit:party>
+</cit:CI_Responsibility>
+</cit:citedResponsibleParty>
+<cit:presentationForm>
+<cit:CI_PresentationFormCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_PresentationFormCode" codeListValue="mapDigital">mapDigital</cit:CI_PresentationFormCode>
+</cit:presentationForm>
+<cit:series>
+<cit:CI_Series>
+<cit:name>
+<gco:CharacterString>Common Land Units</gco:CharacterString>
+</cit:name>
+<cit:issueIdentification>
+<gco:CharacterString>20151130</gco:CharacterString>
+</cit:issueIdentification>
+</cit:CI_Series>
+</cit:series>
+</cit:CI_Citation>
+</mri:citation>
+<mri:abstract>
+<gco:CharacterString>The Common Land Unit (CLU) dataset consists of digitized farm, tract, and field boundaries and associated attribute data. An individual CLU is the smallest unit of land that has a permanent, contiguous boundary, common land cover and/or land management, common owner and common producer association. Permanent boundaries may be defined by visible features, differences in management, differences in ownership, or by FSA program requirements. A tract is defined in 7 CFR 718.2 as a unit of contiguous land that is all of the following:1 or more fields,under 1 common ownership and operated as a farm or a part of a farm. A farm is made up of tracts that have the same owner and the same operator.  Land with different owners may be combined if all the land is operated by 1 producer with all of the following elements in common and substantially separate from that of any other tracts: labor equipment accounting system management. CLU datasets are projected in the UTM coordinate system, NAD 83. In counties that are split by two UTM  zones, the CLU will be projected in the single, predominant zone.  CLUs were digitized using the North American Datum of 1983 and Universal Transverse Mercator Grid System.</gco:CharacterString>
+</mri:abstract>
+<mri:purpose>
+<gco:CharacterString>Common Land Units are used to identify and delineate farm, tract, and field boundaries needed to administer USDA farm commodity support and conservation programs in a GIS environment.</gco:CharacterString>
+</mri:purpose>
+<mri:credit>
+<gco:CharacterString>United States Department of Agriculture Farm Service Agency</gco:CharacterString>
+</mri:credit>
+<mri:status>
+<mcc:MD_ProgressCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_ProgressCode" codeListValue="completed">completed</mcc:MD_ProgressCode>
+</mri:status>
+<mri:pointOfContact>
+<cit:CI_Responsibility>
+<cit:role>
+<cit:CI_RoleCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_RoleCode" codeListValue="originator">originator</cit:CI_RoleCode>
+</cit:role>
+<cit:party>
+<cit:CI_Organisation>
+<cit:name>
+<gco:CharacterString>USDA Farm Service Agency</gco:CharacterString>
+</cit:name>
+<cit:contactInfo>
+<cit:CI_Contact>
+<cit:phone>
+<cit:CI_Telephone>
+<cit:number>
+<gco:CharacterString>801-844-2922</gco:CharacterString>
+</cit:number>
+<cit:numberType>
+<cit:CI_TelephoneTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_TelephoneTypeCode" codeListValue="voice">voice</cit:CI_TelephoneTypeCode>
+</cit:numberType>
+</cit:CI_Telephone>
+</cit:phone>
+<cit:address>
+<cit:CI_Address>
+<cit:deliveryPoint>
+<gco:CharacterString>1400 Independence Ave SW</gco:CharacterString>
+</cit:deliveryPoint>
+<cit:city>
+<gco:CharacterString>Washington</gco:CharacterString>
+</cit:city>
+<cit:administrativeArea>
+<gco:CharacterString>DC</gco:CharacterString>
+</cit:administrativeArea>
+<cit:postalCode>
+<gco:CharacterString>20250</gco:CharacterString>
+</cit:postalCode>
+<cit:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</cit:country>
+<cit:electronicMailAddress>
+<gco:CharacterString>geo.sales@usda.gov</gco:CharacterString>
+</cit:electronicMailAddress>
+</cit:CI_Address>
+</cit:address>
+<cit:hoursOfService>
+<gco:CharacterString>Monday to Friday from 8 AM – 5 PM EST</gco:CharacterString>
+</cit:hoursOfService>
+<cit:contactInstructions>
+<gco:CharacterString>Customer Service Representatives are available via phone or live chat Monday to Friday from 8 AM – 5 PM EST.  Closed on Federal Holidays.</gco:CharacterString>
+</cit:contactInstructions>
+</cit:CI_Contact>
+</cit:contactInfo>
+</cit:CI_Organisation>
+</cit:party>
+</cit:CI_Responsibility>
+</mri:pointOfContact>
+<mri:spatialRepresentationType>
+<mcc:MD_SpatialRepresentationTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_SpatialRepresentationTypeCode" codeListValue="vector">vector</mcc:MD_SpatialRepresentationTypeCode>
+</mri:spatialRepresentationType>
+<mri:topicCategory>
+<mri:MD_TopicCategoryCode>farming</mri:MD_TopicCategoryCode>
+</mri:topicCategory>
+<mri:topicCategory>
+<mri:MD_TopicCategoryCode>boundaries</mri:MD_TopicCategoryCode>
+</mri:topicCategory>
+<mri:extent>
+<gex:EX_Extent>
+<gex:description>
+<gco:CharacterString>Digitizing of Common Land Units began as part of a business process reengineering initiative in 1997.  Full production of CLUs in digitizing centers began in 1999 and was largely complete by 2003.  CLU datasets were completed on a county by county basis and are subsequently aggregated into state and national level datasets.  Maintenance of CLU data is ongoing.</gco:CharacterString>
+</gex:description>
+<gex:geographicElement>
+<gex:EX_GeographicBoundingBox>
+<gex:extentTypeCode>
+<gco:Boolean>true</gco:Boolean>
+</gex:extentTypeCode>
+<gex:westBoundLongitude>
+<gco:Decimal>-114.0471</gco:Decimal>
+</gex:westBoundLongitude>
+<gex:eastBoundLongitude>
+<gco:Decimal>-112.1446</gco:Decimal>
+</gex:eastBoundLongitude>
+<gex:southBoundLatitude>
+<gco:Decimal>39.9032</gco:Decimal>
+</gex:southBoundLatitude>
+<gex:northBoundLatitude>
+<gco:Decimal>41.0767</gco:Decimal>
+</gex:northBoundLatitude>
+</gex:EX_GeographicBoundingBox>
+</gex:geographicElement>
+<gex:temporalElement>
+<gex:EX_TemporalExtent>
+<gex:extent>
+<gml:TimePeriod>
+<gml:beginPosition>1997-01-01T00:00:00</gml:beginPosition>
+<gml:endPosition>2023-12-31T00:00:00</gml:endPosition>
+</gml:TimePeriod>
+</gex:extent>
+</gex:EX_TemporalExtent>
+</gex:temporalElement>
+</gex:EX_Extent>
+</mri:extent>
+<mri:resourceMaintenance>
+<mmi:MD_MaintenanceInformation>
+<mmi:maintenanceAndUpdateFrequency>
+<mmi:MD_MaintenanceFrequencyCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_MaintenanceFrequencyCode" codeListValue="asNeeded">asNeeded</mmi:MD_MaintenanceFrequencyCode>
+</mmi:maintenanceAndUpdateFrequency>
+<mmi:contact>
+<cit:CI_Responsibility>
+<cit:role>
+<cit:CI_RoleCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_RoleCode" codeListValue="originator">originator</cit:CI_RoleCode>
+</cit:role>
+<cit:party>
+<cit:CI_Organisation>
+<cit:name>
+<gco:CharacterString>USDA Farm Service Agency</gco:CharacterString>
+</cit:name>
+<cit:contactInfo>
+<cit:CI_Contact>
+<cit:phone>
+<cit:CI_Telephone>
+<cit:number>
+<gco:CharacterString>801-844-2922</gco:CharacterString>
+</cit:number>
+<cit:numberType>
+<cit:CI_TelephoneTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_TelephoneTypeCode" codeListValue="voice">voice</cit:CI_TelephoneTypeCode>
+</cit:numberType>
+</cit:CI_Telephone>
+</cit:phone>
+<cit:address>
+<cit:CI_Address>
+<cit:deliveryPoint>
+<gco:CharacterString>1400 Independence Ave NW</gco:CharacterString>
+</cit:deliveryPoint>
+<cit:city>
+<gco:CharacterString>Washington</gco:CharacterString>
+</cit:city>
+<cit:administrativeArea>
+<gco:CharacterString>DC</gco:CharacterString>
+</cit:administrativeArea>
+<cit:postalCode>
+<gco:CharacterString>20250</gco:CharacterString>
+</cit:postalCode>
+<cit:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</cit:country>
+<cit:electronicMailAddress>
+<gco:CharacterString>geo.sales@usda.gov</gco:CharacterString>
+</cit:electronicMailAddress>
+</cit:CI_Address>
+</cit:address>
+<cit:hoursOfService>
+<gco:CharacterString>Monday to Friday from 8 AM – 5 PM EST</gco:CharacterString>
+</cit:hoursOfService>
+<cit:contactInstructions>
+<gco:CharacterString>Customer Service Representatives are available via phone or live chat Monday to Friday from 8 AM – 5 PM EST.  Closed on Federal Holidays.</gco:CharacterString>
+</cit:contactInstructions>
+</cit:CI_Contact>
+</cit:contactInfo>
+</cit:CI_Organisation>
+</cit:party>
+</cit:CI_Responsibility>
+</mmi:contact>
+</mmi:MD_MaintenanceInformation>
+</mri:resourceMaintenance>
+<mri:descriptiveKeywords>
+<mri:MD_Keywords>
+<mri:keyword>
+<gco:CharacterString>State name</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>State Abbreviation</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>FIPS Code</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>County name</gco:CharacterString>
+</mri:keyword>
+<mri:type>
+<mri:MD_KeywordTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#napMD_KeywordTypeCode" codeListValue="place">place</mri:MD_KeywordTypeCode>
+</mri:type>
+<mri:thesaurusName>
+<cit:CI_Citation>
+<cit:title>
+<gco:CharacterString>Geographic Names Information System</gco:CharacterString>
+</cit:title>
+</cit:CI_Citation>
+</mri:thesaurusName>
+</mri:MD_Keywords>
+</mri:descriptiveKeywords>
+<mri:descriptiveKeywords>
+<mri:MD_Keywords>
+<mri:keyword>
+<gco:CharacterString>boundaries</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>farming</gco:CharacterString>
+</mri:keyword>
+<mri:type>
+<mri:MD_KeywordTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#napMD_KeywordTypeCode" codeListValue="theme">theme</mri:MD_KeywordTypeCode>
+</mri:type>
+<mri:thesaurusName>
+<cit:CI_Citation>
+<cit:title>
+<gco:CharacterString>ISO 19115 Topic Category</gco:CharacterString>
+</cit:title>
+</cit:CI_Citation>
+</mri:thesaurusName>
+</mri:MD_Keywords>
+</mri:descriptiveKeywords>
+<mri:descriptiveKeywords>
+<mri:MD_Keywords>
+<mri:keyword>
+<gco:CharacterString>Agriculture</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>Farm Service Agency</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>Fields</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>CLU</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>USDA</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>Common Land Unit</gco:CharacterString>
+</mri:keyword>
+<mri:keyword>
+<gco:CharacterString>Tracts</gco:CharacterString>
+</mri:keyword>
+<mri:type>
+<mri:MD_KeywordTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#napMD_KeywordTypeCode" codeListValue="theme">theme</mri:MD_KeywordTypeCode>
+</mri:type>
+</mri:MD_Keywords>
+</mri:descriptiveKeywords>
+<mri:descriptiveKeywords>
+<mri:MD_Keywords>
+<mri:keyword>
+<gco:CharacterString>Downloadable Data</gco:CharacterString>
+</mri:keyword>
+<mri:thesaurusName uuidref="723f6998-058e-11dc-8314-0800200c9a66">
+</mri:thesaurusName>
+</mri:MD_Keywords>
+</mri:descriptiveKeywords>
+<mri:resourceConstraints>
+<mco:MD_Constraints>
+<mco:useLimitation>
+<gco:CharacterString>For use only by FSA or agency partnerships.  Data contained in this file is considered "producer-provided" and cannot be distributed under 7 USC 8791 except to a person or Federal, State, local, or tribal agency working in cooperation with the Secretary of Agriculture in any Department program when providing technical or financial assistance with respect to the agricultural operation, agricultural land, or farming or conservation practices; or when responding to a disease or pest threat to agricultural operations, if the Secretary determines that a threat to agricultural operations exists and the disclosure of information to a person or cooperating government entity is necessary to assist the Secretary in responding to the disease or pest threat as authorized by law.If digitizing, use a scale of 1:4800 or 1 inch equals 300 feet. This will maintain the proper digitizing accuracy.</gco:CharacterString>
+</mco:useLimitation>
+</mco:MD_Constraints>
+</mri:resourceConstraints>
+<mri:resourceConstraints>
+<mco:MD_LegalConstraints>
+<mco:useLimitation>
+<gco:CharacterString>In no event shall the creators, custodians, or distributors of the this informaiton be liable for any damages arising out of its use (or inability to use it).</gco:CharacterString>
+</mco:useLimitation>
+<mco:otherConstraints>
+<gco:CharacterString>Access is currently limited to FSA and agency partnerships.</gco:CharacterString>
+</mco:otherConstraints>
+</mco:MD_LegalConstraints>
+</mri:resourceConstraints>
+<mri:defaultLocale>
+<lan:PT_Locale>
+<lan:language>
+<lan:LanguageCode codeList="http://www.loc.gov/standards/iso639-2/php/code_list.php" codeListValue="eng">eng</lan:LanguageCode>
+</lan:language>
+<lan:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</lan:country>
+<lan:characterEncoding>
+<lan:MD_CharacterSetCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_CharacterSetCode" codeListValue="utf8">utf8</lan:MD_CharacterSetCode>
+</lan:characterEncoding>
+</lan:PT_Locale>
+</mri:defaultLocale>
+<mri:environmentDescription>
+<gco:CharacterString> Version 6.2 (Build 9200) ; Esri ArcGIS 10.9.1.28388</gco:CharacterString>
+</mri:environmentDescription>
+</mri:MD_DataIdentification>
+</mdb:identificationInfo>
+<mdb:distributionInfo>
+<mrd:MD_Distribution>
+<mrd:distributionFormat>
+<mrd:MD_Format>
+<mrd:formatSpecificationCitation>
+<cit:CI_Citation>
+<cit:title>
+<gco:CharacterString>Shapefile</gco:CharacterString>
+</cit:title>
+<cit:edition>
+<gco:CharacterString>None</gco:CharacterString>
+</cit:edition>
+</cit:CI_Citation>
+</mrd:formatSpecificationCitation>
+</mrd:MD_Format>
+</mrd:distributionFormat>
+<mrd:distributor>
+<mrd:MD_Distributor>
+<mrd:distributorContact>
+<cit:CI_Responsibility>
+<cit:role>
+<cit:CI_RoleCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_RoleCode" codeListValue="originator">originator</cit:CI_RoleCode>
+</cit:role>
+<cit:party>
+<cit:CI_Organisation>
+<cit:name>
+<gco:CharacterString>USDA Farm Service Agency</gco:CharacterString>
+</cit:name>
+<cit:contactInfo>
+<cit:CI_Contact>
+<cit:phone>
+<cit:CI_Telephone>
+<cit:number>
+<gco:CharacterString>801-844-2922</gco:CharacterString>
+</cit:number>
+<cit:numberType>
+<cit:CI_TelephoneTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_TelephoneTypeCode" codeListValue="voice">voice</cit:CI_TelephoneTypeCode>
+</cit:numberType>
+</cit:CI_Telephone>
+</cit:phone>
+<cit:address>
+<cit:CI_Address>
+<cit:deliveryPoint>
+<gco:CharacterString>1400 Independence Ave SW</gco:CharacterString>
+</cit:deliveryPoint>
+<cit:city>
+<gco:CharacterString>Washington</gco:CharacterString>
+</cit:city>
+<cit:administrativeArea>
+<gco:CharacterString>DC</gco:CharacterString>
+</cit:administrativeArea>
+<cit:postalCode>
+<gco:CharacterString>20250</gco:CharacterString>
+</cit:postalCode>
+<cit:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</cit:country>
+<cit:electronicMailAddress>
+<gco:CharacterString>geo.sales@usda.gov</gco:CharacterString>
+</cit:electronicMailAddress>
+</cit:CI_Address>
+</cit:address>
+<cit:hoursOfService>
+<gco:CharacterString>Monday to Friday from 8 AM – 5 PM EST</gco:CharacterString>
+</cit:hoursOfService>
+<cit:contactInstructions>
+<gco:CharacterString>Customer Service Representatives are available via phone or live chat Monday to Friday from 8 AM – 5 PM EST.  Closed on Federal Holidays.</gco:CharacterString>
+</cit:contactInstructions>
+</cit:CI_Contact>
+</cit:contactInfo>
+</cit:CI_Organisation>
+</cit:party>
+</cit:CI_Responsibility>
+</mrd:distributorContact>
+</mrd:MD_Distributor>
+</mrd:distributor>
+<mrd:transferOptions>
+<mrd:MD_DigitalTransferOptions>
+<mrd:transferSize>
+<gco:Real>0.738</gco:Real>
+</mrd:transferSize>
+</mrd:MD_DigitalTransferOptions>
+</mrd:transferOptions>
+</mrd:MD_Distribution>
+</mdb:distributionInfo>
+<mdb:dataQualityInfo>
+<mdq:DQ_DataQuality>
+<mdq:scope>
+<mcc:MD_Scope>
+<mcc:level>
+<mcc:MD_ScopeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</mcc:MD_ScopeCode>
+</mcc:level>
+</mcc:MD_Scope>
+</mdq:scope>
+<mdq:report>
+<mdq:DQ_ConceptualConsistency>
+<mdq:measure>
+<mdq:DQ_MeasureReference>
+<mdq:measureDescription>
+<gco:CharacterString>Polygon and chain-node topology present, no additional checks for topological consistency were performed on this data set. Attribution of the digital data set includes polygon areas that define agricultural and non-agricultural lands.</gco:CharacterString>
+</mdq:measureDescription>
+</mdq:DQ_MeasureReference>
+</mdq:measure>
+<mdq:result gco:nilReason="missing">
+</mdq:result>
+</mdq:DQ_ConceptualConsistency>
+</mdq:report>
+<mdq:report>
+<mdq:DQ_CompletenessOmission>
+<mdq:measure>
+<mdq:DQ_MeasureReference>
+<mdq:measureDescription>
+<gco:CharacterString>This information reflects land that is enrolled in or participating in FSA business programs.</gco:CharacterString>
+</mdq:measureDescription>
+</mdq:DQ_MeasureReference>
+</mdq:measure>
+<mdq:result gco:nilReason="missing">
+</mdq:result>
+</mdq:DQ_CompletenessOmission>
+</mdq:report>
+<mdq:report>
+<mdq:DQ_QuantitativeAttributeAccuracy>
+<mdq:measure>
+<mdq:DQ_MeasureReference>
+<mdq:measureDescription>
+<gco:CharacterString>Polygon attributes cannot be checked for accuracy due to the absence of the original photomaps with original boundary and attribute information. All attribute data was collected and transferred from the aerial photographs, which were maintained by the county FSA office, to the computerized attribute table. Certain attributes were verified using quality control procedures. The CLU layer is searched for duplicate CLU numbers, duplicate tract numbers, and acreage differences between system calculated acreage and official FSA acreage.</gco:CharacterString>
+</mdq:measureDescription>
+</mdq:DQ_MeasureReference>
+</mdq:measure>
+<mdq:result gco:nilReason="missing">
+</mdq:result>
+</mdq:DQ_QuantitativeAttributeAccuracy>
+</mdq:report>
+<mdq:report>
+<mdq:DQ_AbsoluteExternalPositionalAccuracy>
+<mdq:measure>
+<mdq:DQ_MeasureReference>
+<mdq:measureDescription>
+<gco:CharacterString>All features digitized shall be within 3 meters of their locations as depicted on a display of the digital ortho-imagery. Positional accuracy standard is applicable only to delineated tract and field boundaries that follow visible features.</gco:CharacterString>
+</mdq:measureDescription>
+</mdq:DQ_MeasureReference>
+</mdq:measure>
+<mdq:result gco:nilReason="missing">
+</mdq:result>
+</mdq:DQ_AbsoluteExternalPositionalAccuracy>
+</mdq:report>
+</mdq:DQ_DataQuality>
+</mdb:dataQualityInfo>
+<mdb:resourceLineage>
+<mrl:LI_Lineage>
+<mrl:statement>
+<gco:CharacterString>CLU data was created using heads-up digitizing methods to capture farm, tract and field boundaries that were originally drawn on 24" x 24" 1:7,920 scale rectified photomaps (aerial photographs) that were maintained in USDA Service Centers. CLU was digitized at a scale of 1:4800 on-screen with digital orthophotography using ESRI ArcView GIS.  The base ortho imagery was produced by mosaicking digital orthophoto quarter quads (DOQs) into a seamless county image. The CLU were digitized from an image base of digital ortho quadrangles mosaicked together creating a seamless image base.  The mosaicking process eliminates or minimizes any offset that would normally be present between standard USGS quarter quadrangles. </gco:CharacterString>
+</mrl:statement>
+<mrl:scope>
+<mcc:MD_Scope>
+<mcc:level>
+<mcc:MD_ScopeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_ScopeCode" codeListValue="dataset">dataset</mcc:MD_ScopeCode>
+</mcc:level>
+</mcc:MD_Scope>
+</mrl:scope>
+<mrl:processStep>
+<mrl:LI_ProcessStep>
+<mrl:description>
+<gco:CharacterString>Tract and field boundaries were digitized on-screen with digital orthophotography using ESRI's ArcGIS products. Creation and last change dates are in the attribute table.</gco:CharacterString>
+</mrl:description>
+<mrl:stepDateTime>
+<gml:TimeInstant>
+<gml:timePosition>2023-01-01T00:00:00</gml:timePosition>
+</gml:TimeInstant>
+</mrl:stepDateTime>
+<mrl:processor>
+<cit:CI_Responsibility>
+<cit:role>
+<cit:CI_RoleCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_RoleCode" codeListValue="originator">originator</cit:CI_RoleCode>
+</cit:role>
+<cit:party>
+<cit:CI_Organisation>
+<cit:name>
+<gco:CharacterString>USDA Farm Service Agency</gco:CharacterString>
+</cit:name>
+<cit:contactInfo>
+<cit:CI_Contact>
+<cit:phone>
+<cit:CI_Telephone>
+<cit:number>
+<gco:CharacterString>801-844-2922</gco:CharacterString>
+</cit:number>
+<cit:numberType>
+<cit:CI_TelephoneTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_TelephoneTypeCode" codeListValue="voice">voice</cit:CI_TelephoneTypeCode>
+</cit:numberType>
+</cit:CI_Telephone>
+</cit:phone>
+<cit:address>
+<cit:CI_Address>
+<cit:deliveryPoint>
+<gco:CharacterString>1400 Independence Ave SW</gco:CharacterString>
+</cit:deliveryPoint>
+<cit:city>
+<gco:CharacterString>Washington</gco:CharacterString>
+</cit:city>
+<cit:administrativeArea>
+<gco:CharacterString>DC</gco:CharacterString>
+</cit:administrativeArea>
+<cit:postalCode>
+<gco:CharacterString>20250</gco:CharacterString>
+</cit:postalCode>
+<cit:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</cit:country>
+<cit:electronicMailAddress>
+<gco:CharacterString>geo.sales@usda.gov</gco:CharacterString>
+</cit:electronicMailAddress>
+</cit:CI_Address>
+</cit:address>
+<cit:hoursOfService>
+<gco:CharacterString>Monday to Friday from 8 AM – 5 PM EST</gco:CharacterString>
+</cit:hoursOfService>
+<cit:contactInstructions>
+<gco:CharacterString>Customer Service Representatives are available via phone or live chat Monday to Friday from 8 AM – 5 PM EST.  Closed on Federal Holidays.</gco:CharacterString>
+</cit:contactInstructions>
+</cit:CI_Contact>
+</cit:contactInfo>
+</cit:CI_Organisation>
+</cit:party>
+</cit:CI_Responsibility>
+</mrl:processor>
+</mrl:LI_ProcessStep>
+</mrl:processStep>
+</mrl:LI_Lineage>
+</mdb:resourceLineage>
+<mdb:metadataConstraints>
+<mco:MD_SecurityConstraints>
+<mco:classification>
+<mco:MD_ClassificationCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_ClassificationCode" codeListValue="unclassified">unclassified</mco:MD_ClassificationCode>
+</mco:classification>
+<mco:classificationSystem>
+<gco:CharacterString>None</gco:CharacterString>
+</mco:classificationSystem>
+<mco:handlingDescription>
+<gco:CharacterString>None</gco:CharacterString>
+</mco:handlingDescription>
+</mco:MD_SecurityConstraints>
+</mdb:metadataConstraints>
+<mdb:metadataMaintenance>
+<mmi:MD_MaintenanceInformation>
+<mmi:maintenanceAndUpdateFrequency>
+<mmi:MD_MaintenanceFrequencyCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#MD_MaintenanceFrequencyCode" codeListValue="continual">continual</mmi:MD_MaintenanceFrequencyCode>
+</mmi:maintenanceAndUpdateFrequency>
+<mmi:contact>
+<cit:CI_Responsibility>
+<cit:role>
+<cit:CI_RoleCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_RoleCode" codeListValue="originator">originator</cit:CI_RoleCode>
+</cit:role>
+<cit:party>
+<cit:CI_Organisation>
+<cit:name>
+<gco:CharacterString>USDA Farm Service Agency</gco:CharacterString>
+</cit:name>
+<cit:contactInfo>
+<cit:CI_Contact>
+<cit:phone>
+<cit:CI_Telephone>
+<cit:number>
+<gco:CharacterString>801-844-2922</gco:CharacterString>
+</cit:number>
+<cit:numberType>
+<cit:CI_TelephoneTypeCode codeList="standards.iso.org/19115/-3/lan/1.0/codelists.xml#CI_TelephoneTypeCode" codeListValue="voice">voice</cit:CI_TelephoneTypeCode>
+</cit:numberType>
+</cit:CI_Telephone>
+</cit:phone>
+<cit:address>
+<cit:CI_Address>
+<cit:deliveryPoint>
+<gco:CharacterString>1400 Independence Ave NW</gco:CharacterString>
+</cit:deliveryPoint>
+<cit:city>
+<gco:CharacterString>Washington</gco:CharacterString>
+</cit:city>
+<cit:administrativeArea>
+<gco:CharacterString>DC</gco:CharacterString>
+</cit:administrativeArea>
+<cit:postalCode>
+<gco:CharacterString>20250</gco:CharacterString>
+</cit:postalCode>
+<cit:country>
+<lan:CountryCode codeList="http://www.iso.org/iso/country_codes/iso_3166_code_lists.htm" codeListValue="US">US</lan:CountryCode>
+</cit:country>
+<cit:electronicMailAddress>
+<gco:CharacterString>geo.sales@usda.gov</gco:CharacterString>
+</cit:electronicMailAddress>
+</cit:CI_Address>
+</cit:address>
+<cit:hoursOfService>
+<gco:CharacterString>Monday to Friday from 8 AM – 5 PM EST</gco:CharacterString>
+</cit:hoursOfService>
+<cit:contactInstructions>
+<gco:CharacterString>Customer Service Representatives are available via phone or live chat Monday to Friday from 8 AM – 5 PM EST.  Closed on Federal Holidays.</gco:CharacterString>
+</cit:contactInstructions>
+</cit:CI_Contact>
+</cit:contactInfo>
+</cit:CI_Organisation>
+</cit:party>
+</cit:CI_Responsibility>
+</mmi:contact>
+</mmi:MD_MaintenanceInformation>
+</mdb:metadataMaintenance>
+</mdb:MD_Metadata>
