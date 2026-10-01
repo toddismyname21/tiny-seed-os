@@ -781,6 +781,116 @@ the budget builder, not after.
 
 ---
 
+# 🏭 CHARLIE'S MACHINE & SUPPLY — the whole line, one vendor
+
+`charliesmachineandsupply.com` — Todd's lead, read 2026-10-01. **They make
+equipment for every one of the four bottlenecks.** No prices online; everything
+below needs a phone quote.
+
+### ⚠️ First: the Triple Wash is too big for us
+
+| Triple Wash System | |
+|---|---|
+| Capacity | **2,000 lb of loose-leaf lettuce per hour** |
+| Size | 48"w × **144"L (12 feet)** × 46"h |
+| Water | **375 gallons** |
+| Build | stainless, 3 tanks, 2 hydro sieve filters |
+
+That is a commercial processor's machine. **2,000 lb/hr** is far past our volume,
+12 feet needs serious floor space, and 375 gallons of wash water is a
+wastewater conversation we are trying not to have. It is also very likely **over
+the $10,000 per-item cap** on its own.
+
+### ⭐ The right-sized line from the same catalog
+
+**1. WASH — "Jr. Double-Wash"**
+> *"Economical wash system designed to meet the needs of processors who require
+> more frequent, smaller type loads yet can handle larger size jobs when
+> required."*
+- Two wash tanks, two conveyors, **separate final rinse**
+- **Only 10' long × 2' wide** — half the footprint of the Triple Wash
+- **Includes the Klorman Calcium Hypochlorite Dispenser for sanitizing produce**
+  ⭐ ← this is a **food-safety feature**, not a convenience. It is a direct,
+  quotable answer to the GAP/institutional-buyer argument.
+- Quick-remove dewatering pan and filter screen; conveyors lift out for cleaning
+- **A single-tank version is also available** — the fallback if the Jr. is over
+  the $10,000 cap
+- `charliesmachineandsupply.com/catalog/jrdoublewash.shtml`
+
+**2. DRY — "Veg Dryer" (model 601559)** ⭐ *this replaces the spinner plan*
+> *"Perfect for small runs of vegetables. **20 to 40 lbs per load.** Great for
+> leafy greens."*
+- Stainless body and lid, 20-gallon basket, extra baskets available
+- **110v** — no electrical upgrade
+- 32½" × 27" × 27", 80 lb
+- `charliesmachineandsupply.com/catalog/vpDryer.shtml`
+
+**Compare to the Johnny's plan:** three Dynamic Electric spinners = $2,877 for
+roughly 6 heads per load each. **This single machine does 20–40 lb per load.**
+One machine, far more capacity, one thing to clean. **Drop the three spinners.**
+
+**3. PACK — "Dual Pack Table" (DP-2)** ⭐ *this is exactly the bagging fix*
+> *"Place the bag over the 6" funnel and the bag sits on the scale. The operator
+> then pulls product into the discharge funnel until the remote digital display
+> reaches the desired weight."*
+- **304 stainless**, digital scales with remote-mount displays
+- Adjustable scale platforms for most bag heights, 6" adjustable legs
+- **Two bagging stations** — two people filling at once
+- Also made in one, three and four-hole; **they will customize**
+- 110v, 40" × 72" × 54"
+- `charliesmachineandsupply.com/catalog/dualTable.shtml`
+
+Todd said bagging is very slow. This is the answer: **fill-to-weight with a live
+display instead of weigh-then-adjust**, two stations running in parallel, and
+consistent pack weights — which is the thing wholesale buyers actually reject
+you over.
+
+**4. COOL — forced-air retrofit** into the coolers we already own. Not from
+Charlie's; a fan-and-baffle build. Charlie's does offer a *Swirl & Wash with
+Chiller*, but at 170" long and 400 gallons it is the same oversizing problem.
+
+### The package
+
+| Stage | Item | Quote | Greens | Tomatoes |
+|---|---|---|---|---|
+| Wash | **Jr. Double-Wash** (or single-tank version) | $______ | ✅ | ✅ |
+| Dry | **Veg Dryer 601559** | $______ | ✅ | partial |
+| Pack | **Dual Pack Table DP-2** | $______ | ✅ | ✅ |
+| Cool | Forced-air retrofit, existing coolers | $______ | ✅ | ✅ |
+| | **Target** | **~$15,000** | | |
+
+🚨 **The $10,000 per-item cap is the live risk.** If the Jr. Double-Wash alone
+comes in over $10,000, it cannot go in as one line. Ask about the **single-tank
+version** and the **Single Washer** as alternates in the same call.
+
+### ☎️ The call to Charlie's — ask for all of this at once
+
+- [ ] Price: **Jr. Double-Wash**, two-tank AND single-tank versions
+- [ ] Price: **Single Washer** and **Soak Tank** as lower-cost alternates
+- [ ] Price: **Veg Dryer 601559**, plus extra baskets
+- [ ] Price: **Dual Pack Table DP-2**, and what a 3-hole costs
+- [ ] **Water use and drainage** on the Jr. Double-Wash — gallons per fill, how
+      often dumped, what the discharge looks like *(we need this clean)*
+- [ ] Lead time — the funding runs to April 2028 but we want this working sooner
+- [ ] Do they provide a **written quote on letterhead**? The budget builder wants
+      contractor quotes.
+- [ ] Is the equipment **NSF-rated**? Ask explicitly — it strengthens the
+      food-safety argument.
+- [ ] Installation: what do they do, what do we do? **Our labor counts**, so the
+      more we can self-install the further the money goes.
+- [ ] Power requirements — confirm everything runs on **110v** so there is no
+      electrical upgrade, which would be its own cost and possibly its own
+      permit.
+
+### Why this package is strong on paper
+
+Every machine maps to a stage, and two of them carry **food-safety features we
+can name**: the Klorman chlorine dispenser on the wash and the stainless,
+cleanable, NSF-style construction throughout. That is not incidental — it is the
+evidence behind the institutional-market argument, built into the equipment list.
+
+---
+
 # ✅ THE REAL PACKAGE — Todd's actual bottlenecks
 
 **Todd 2026-10-01, the answer to "where are the bottlenecks":**
