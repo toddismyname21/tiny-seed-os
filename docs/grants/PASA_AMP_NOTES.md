@@ -384,6 +384,19 @@ thing to settle.
 Compounding it: the farm moved off Simon Property this year and leases from
 Kretschmann, so the records may also be out of date on which ground is current.
 
+### ✅ FSA EMAIL SENT 2026-10-01 — Sara Downs + Lisa Bauer, Resend `01a0f7e5-9958…`
+
+Asked for AD-1026 status, subsidiary print, GeoJSON field boundaries, farm /
+tract / field numbers, confirmation that **all** leased tracts are recorded with
+Tiny Seed Farm LLC as **operator**, and what it takes to add any that are
+missing. Plus the acreage-reporting process questions.
+
+**Watch for the reply.** Two answers decide the schedule:
+1. **Is AD-1026 on file?** If not, it has to be signed at the county office.
+2. **Are the leased tracts recorded under Tiny Seed Farm as operator?** If not,
+   adding them may need lease documentation from the landowners — and that is
+   the long pole on this whole application.
+
 **Do this before the Luka meeting:**
 
 - [ ] Get the GeoJSON and the farm/tract/field numbers from FSA

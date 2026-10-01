@@ -1,4 +1,6 @@
-# DRAFT — NOT SENT. Needs Todd's explicit go.
+# ✅ SENT 2026-10-01 to Sara.Downs@usda.gov and Lisa.Bauer@usda.gov
+
+Resend id `01a0f7e5-9958-7dd5-b008-c8a85f3fe32f` · approved by Todd: *"send it"* · BCC todd@tinyseedfarmpgh.com
 
 **To:** Sara.Downs@usda.gov · Lisa.Bauer@usda.gov
 **Subject:** Records request — AD-1026, subsidiary print, field boundaries; and setting up regular acreage reporting
