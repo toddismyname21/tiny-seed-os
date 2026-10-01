@@ -461,6 +461,85 @@ temperature.
 
 ---
 
+## ⭐⭐⭐ THE NARRATIVE — "Seed to Sale with Salad: filling in the gap"
+
+**Todd's framing, 2026-10-01.** This is the spine of the application and it is
+better than anything I had.
+
+### Why it is strong: it is already our story with a federal agency
+
+The AIG Round 1 project is titled, in USDA's own payment system:
+
+> **"Tiny Seed Farm: From Seed to Sale Innovation for Sustainable…"**
+> — Treasury remittance, invoice C940002366-001, document 2216101118
+
+We are not inventing a theme. We are **continuing one**, and PASA can verify it.
+
+### The gap, stated plainly
+
+AIG bought the **front half** of seed-to-sale, and it was built around salad
+greens from the start:
+
+| AIG funded | Stage | Status |
+|---|---|---|
+| Sutton "Seed Spider" 18-line precision seeder — *"precise bed width salad and baby greens seeding"* | **Seed** | bought, $19,569 |
+| FORIGO stone burier — *"consistent field prep before seeding"* | **Field prep** | bought, $21,895 |
+| Tilmor cultivation system | **Cultivate** | bought, $17,498 |
+| Harvester 2000, 3pt harvesting platform | **Harvest** | approved, unspent |
+
+**And then it stops.** The crop is seeded precisely, grown in clean beds,
+cultivated mechanically, harvested efficiently — **and then we are on our own.**
+No cold chain to hold it, no packaging to meet a buyer's spec, no brand to sell
+it under, no channel to sell it into.
+
+> **That is the gap. Harvest to sale. AMP fills it.**
+
+### The arc
+
+```
+   SEED ─── GROW ─── CULTIVATE ─── HARVEST ─┊─ COOL ─── PACK ─── BRAND ─── SELL
+   └──────────── AIG (PDA, funded) ─────────┊──────── AMP (USDA, this ask) ────┘
+                                        the gap
+```
+
+### Why this is the best possible deconfliction argument
+
+The risk on this application was always overlap — three grants, one farm. **"Filling
+in the gap" turns that risk into the strongest point in the application.** The
+grants are **sequential, not duplicative**, and they can be shown that way:
+
+| Grant | Segment of seed-to-sale |
+|---|---|
+| **AIG** C940002366 | seed → harvest |
+| **AMP** this ask | harvest → sale |
+| **FVPG** C940002569 | the planning around both |
+
+Say exactly that to Luka. It answers "are you double-dipping" before it is asked,
+and it demonstrates that the farm has a coherent long-term build rather than a
+habit of chasing grants.
+
+### The full chain, in the narrative
+
+> We invested federal and state dollars in seeding, field prep and cultivation to
+> grow **salad greens** — the cornerstone of this farm's economics — plus
+> **tomatoes** in the warm season. We **tarp and net those beds (mulching, 484)**
+> on **FSA field ___**, which keeps the crop out of soil contact and produces a
+> cleaner, safer product. **But we cannot sell that quality into the markets that
+> would pay for it**, because we have no cold chain to hold it, no packaging that
+> meets buyer specification, and no brand to sell it under. **This project fills
+> that gap** — a cooler buildout, packaging and signage, and the photography and
+> wholesale marketing to reach institutional and wholesale buyers — turning a crop
+> we already grow well into sales in a market we cannot currently access.
+
+### Suggested project title
+
+**"Seed to Sale with Salad: Closing the Post-Harvest Gap"**
+
+Or simply **"Filling in the Gap: From Harvest to Market for Salad Greens and
+Tomatoes."**
+
+---
+
 ## ⭐ PROPOSED PACKAGE — built only from PASA's named categories
 
 Everything below is on the list Todd was given. Nothing invented.
