@@ -43,6 +43,8 @@ in market, conservation, and business terms. Do not lead with climate.**
 - **No single item can be over $10,000.**
 - **Every item must show (a) how it improves the business and (b) a connection
   to a SPECIFIC commodity we are focusing on.**
+- **Business development must be connected to TWO commodity products.**
+- **Must connect to an FSA-REGISTERED FIELD.**
 
 ---
 
@@ -202,9 +204,10 @@ judged on. Each line has to carry the whole chain. "We need a cooler" fails.
 "This cooler lets us hold salad greens at temperature, which is what institutional
 buyers require, which is a market we cannot sell greens into today" passes.
 
-**It also settles the commodity question. Pick SALAD GREENS.** Not because it
-sounds good — because every item in this project genuinely traces to it, and to
-nothing else as cleanly:
+**Two commodities are required.** Recommendation: **salad greens + tomatoes.**
+
+**Salad greens** — not because it sounds good, because every item traces to it
+and to nothing else as cleanly:
 
 - Salad greens are **the most perishable thing the farm grows.** Shelf life
   collapses without immediate and sustained cooling. Cold chain is not a nice-to-
@@ -215,8 +218,21 @@ nothing else as cleanly:
   is *"the cornerstone of Tiny Seed Farm's economic stability."*
 - Institutional buyers **buy greens in volume**, every week, year round.
 
-Any other commodity makes at least one of the three items a stretch. Greens makes
-all three inevitable.
+**Tomatoes** — the required second commodity, and the right one:
+
+- **Our biggest wholesale volume this season.** Fet Fisk, Brooklyn Bagel, Black
+  Radish, Della Terra, Butter Joint, ShuBrew, plus flats to Center for Hope. The
+  whole fall sales push was tomatoes.
+- **Also highly perishable, also food-safety relevant.** Tomatoes carry their own
+  recall history, so the same cold chain and the same certification apply.
+- **They complement greens seasonally — and this is the strongest argument in the
+  whole application.** Greens are a cool-season crop; tomatoes are warm-season.
+  **Together they keep the cold chain in use all year instead of sitting idle
+  half the season.** Reviewers care about utilization, and two crops that share
+  infrastructure across opposite seasons is a far better story than one crop
+  that uses it for part of the year.
+
+Every component below serves both.
 
 #### The three chains, written out
 
@@ -226,8 +242,10 @@ all three inevitable.
 > *Business improvement:* extends saleable shelf life, cuts shrink and loss on
 > our highest-value crop, and lets us commit to a delivery standard we cannot
 > promise today.
-> *Commodity:* **salad greens.** They are the most temperature-sensitive crop we
-> grow — quality is lost in hours, not days.
+> *Commodities:* **salad greens and tomatoes.** Greens are the most
+> temperature-sensitive crop we grow — quality is lost in hours. Tomatoes are the
+> warm-season counterpart, so the same capacity is in use across the whole
+> season rather than half of it.
 > *Market:* institutional and wholesale buyers who require a guaranteed shelf
 > life we currently cannot offer.
 
@@ -236,8 +254,10 @@ all three inevitable.
 > handling changes needed to pass.
 > *Business improvement:* removes the single hard barrier between us and
 > institutional accounts, and reduces liability on our highest-risk product.
-> *Commodity:* **salad greens.** Leafy greens are the highest-risk produce
-> category; buyers require certification for greens before anything else.
+> *Commodities:* **salad greens and tomatoes.** Leafy greens are the
+> highest-risk produce category and buyers require certification for greens
+> before anything else; tomatoes carry their own recall history and the same
+> certification covers both.
 > *Market:* schools, hospitals, larger distributors — all of which require
 > certification as a condition of purchase, not a preference.
 
@@ -246,8 +266,8 @@ all three inevitable.
 > page built on the CSA portal we already own.
 > *Business improvement:* lets us approach buyers with a professional offer and
 > take repeat orders without a phone call each time.
-> *Commodity:* **salad greens** as the lead product, with the rest of the
-> vegetable line behind it.
+> *Commodities:* **salad greens and tomatoes** as the two lead products, with
+> the rest of the vegetable line behind them.
 > *Market:* the institutional and wholesale buyers opened by components 1 and 2.
 
 **The components compound.** Cold chain makes the product deliverable,
@@ -263,6 +283,36 @@ them alone.
   file with PDA
 - **Strongest evidence if we can get it:** a buyer who has said *"we cannot buy
   from you until you are certified."* Ask around before the meeting.
+
+### ⚠️ Must connect to an FSA-REGISTERED FIELD — this is the piece that could bite
+
+The project has to be tied to a field FSA actually has on record. That makes the
+GeoJSON request urgent, not administrative.
+
+**The risk:** the farm leases ground from Kretschmann and moved off Simon
+Property this year. **If the fields where we grow greens and tomatoes are not
+registered to Tiny Seed Farm LLC in FSA's records, there is nothing to attach
+the project to.** Leased ground in particular is often recorded under the
+landowner, not the operator.
+
+**Do this before the Luka meeting:**
+
+- [ ] Get the GeoJSON and the farm/tract/field numbers from FSA
+- [ ] Confirm the fields we actually farm are **registered to Tiny Seed Farm LLC
+      as the operator** — not just to the landowner
+- [ ] If leased ground is missing, ask FSA what it takes to add it. There may be
+      a lease-documentation step, and that is a schedule risk.
+- [ ] **Map it:** which FSA field number grows salad greens, which grows tomatoes.
+      Both commodities need a named field.
+
+| Need | Field | FSA farm / tract / field # |
+|---|---|---|
+| Salad greens | | |
+| Tomatoes | | |
+
+Fill this in the moment the GeoJSON lands. Our own field records are in
+`soil-tests.html` under Field Zones and the REF_Fields sheet — cross-check the
+FSA numbers against what we call them internally so nobody confuses the two.
 
 ### The $10,000 per-item rule shapes the design
 
