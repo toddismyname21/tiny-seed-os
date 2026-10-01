@@ -27,22 +27,19 @@ Could you quote the following:
   loose-leaf salad mix
 - Also, what would a 3-hole version cost, in case we want the extra station
 
-**2. Barrel Washer**
-
-**3. Jr. Double-Wash**
+**2. Jr. Double-Wash**
 - Both the two-tank and the single-tank version, if you'd quote them separately
 
-**4. Triple Wash System**
+**3. Triple Wash System**
 - I expect this is more machine than we need, but I'd like the number so I can
   compare it against the Jr. Double-Wash
 
-**5. Veg Dryer (model 601559)**
+**4. Veg Dryer (model 601559)**
 - Plus pricing on **extra baskets**
 
-**One question on the baskets:** the Barrel Washer and the Veg Dryer both use a
-20-gallon basket. Are those the same basket? If product can go from the washer
-straight into the dryer in the same basket, that saves us a transfer step, and
-it would change how many baskets we'd want to buy.
+**One question:** do you make anything for washing and sanitizing our harvest
+totes and baskets? That's a separate need from the produce washing above, and I
+haven't found it in your catalog.
 
 For each item, could you also include:
 
@@ -74,7 +71,6 @@ todd@tinyseedfarmpgh.com
 |---|---|---|
 | charliet@charliesmachineandsupply.com | Todd, this conversation | ✓ |
 | Dual Pack Table — digital remote display scales, 6" funnel, available in 1/3/4-hole, customizable | `/catalog/dualTable.shtml` | ✓ |
-| Barrel Washer — 20 gal basket, 3-min cycles, hydrosive filter, 304 stainless | `/catalog/barrelwasher.shtml` | ✓ |
 | Jr. Double-Wash — two tanks, two conveyors, final rinse, Klorman sanitizer, 10'×2', single-tank version available | `/catalog/jrdoublewash.shtml` | ✓ |
 | Triple Wash — 2,000 lb/hr, 12' long, 375 gal | `/catalog/tripleWash.shtml` | ✓ |
 | Veg Dryer model 601559 — 20–40 lb/load, 20 gal basket, extra baskets available, 110v | `/catalog/vpDryer.shtml` | ✓ |
@@ -84,10 +80,11 @@ todd@tinyseedfarmpgh.com
 
 ## Notes
 
-**Barrel Washer specs, for reference when the quote comes back:**
-25–50 kg per 3-minute cycle (**55–110 lb**), 500–600 kg/hour (**1,100–1,320
-lb/hr**). Roughly 66" L × 30" W × 66" H. That is a far better fit for us than
-the Triple Wash at 2,000 lb/hr.
+**Barrel Washer removed 2026-10-01.** Todd thought it cleaned baskets. It does
+not — it is a leafy-produce washer (20 gal basket, 3-min cycles, 55–110 lb per
+cycle). Dropped at his direction. Specs kept here only in case we want to
+reconsider it as a *produce* washer later, since at 1,100–1,320 lb/hr it is a
+much better size fit than the Triple Wash.
 
 **Why ask for the Triple Wash anyway:** it is the one Todd found first, and
 having the number makes the Jr. Double-Wash decision defensible instead of
