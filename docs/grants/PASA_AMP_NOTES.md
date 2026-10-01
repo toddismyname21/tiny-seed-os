@@ -827,17 +827,75 @@ date onto the bag *as it seals*. That is:
 - the second half of the stickering step, gone
 - exactly the recall-readiness an institutional buyer asks about
 
-### ⭐ Pre-printed bags kill the third touch AND do the branding
+### Pre-printed bags — I overstated this. Todd was right to push back.
 
-Instead of stickering every bag by hand, **print the farm's brand on the bag
-itself.** One decision that:
-- removes an entire handling step from every bag
-- puts the Tiny Seed brand in front of every customer who opens a fridge
-- is funded under **packaging** and **logo / brand building** — two named
+I called pre-printed bags *"the single cheapest, highest-leverage change."*
+**That was not checked, and on cost alone it is probably wrong at our volume.**
+
+#### The actual math
+
+**Stickering today, per bag:**
+| | |
+|---|---|
+| Label stock | $0.02 |
+| Labor, 3 sec @ $16/hr | $0.0133 |
+| **Total** | **$0.0333** |
+
+**Custom printed bags** carry a **plate / setup charge** — typically a few
+hundred dollars per colour — plus a per-bag print premium, and **high minimum
+order quantities**, often 10,000–25,000 bags.
+
+**Plate charge alone, amortized at $400:**
+| Annual bag volume | Plate cost per bag |
+|---|---|
+| 2,000 | $0.200 |
+| 5,000 | $0.080 |
+| 10,000 | $0.040 |
+| 25,000 | $0.016 |
+| 50,000 | $0.008 |
+
+**Break-even against $0.0333/bag:**
+| Print premium | Verdict |
+|---|---|
+| +$0.02/bag | saves $0.0133 → plate pays off at **30,000 bags** |
+| +$0.04/bag | **never cheaper** on materials and labor alone |
+| +$0.06/bag | **never cheaper** |
+
+**So: Todd is right. It is a scale play.** Below roughly 25–30,000 bags a year,
+and depending entirely on the print premium, pre-printed bags do **not** save
+money. They also lock up cash in inventory and freeze the branding — change the
+logo and you are eating the rest of the skid.
+
+#### What is still true
+
+The case for pre-printed bags was never really cost. It is:
+- **throughput** — if the pack line limits how much salad we can sell, removing a
+  step raises sellable volume, which is worth more than the materials delta
+- **shelf presence** — a branded bag is the farm's billboard in someone's fridge
+- it is squarely inside PASA's **packaging** and **logo / brand building**
   categories
-- makes the product look like it belongs on a wholesale shelf
 
-**This is the single cheapest, highest-leverage change in the whole project.**
+But those are benefits, not savings, and the application should say so honestly
+rather than claim a cost reduction that does not survive arithmetic.
+
+#### ⭐ The middle path — probably the right answer
+
+**A label applicator.** Semi-automatic, speeds the same step dramatically,
+**no plate charge, no minimum order, no inventory lock-in, and the branding stays
+changeable.** It attacks the three-touch problem without betting on volume.
+
+Order of preference until we know the volume:
+1. **Band sealer with the hot-stamp code printer** — handles lot code and date on
+   its own, so the sticker only needs to carry brand and product name
+2. **Label applicator** — faster stickering, no commitment
+3. **Pre-printed bags** — revisit **only** once annual bag volume is known and a
+   real quote with the plate charge and MOQ is in hand
+
+- [ ] **Todd: roughly how many salad bags a year?** That single number decides
+      this. Above ~25–30,000 and printed bags start to make sense; below it, the
+      applicator wins.
+- [ ] Get a printed-bag quote anyway — **plate charge, MOQ, and per-bag premium at
+      our actual volume** — so the decision is made on numbers, not instinct.
 
 ### ⚠️ The stock tank is costing you shelf life
 
@@ -884,8 +942,10 @@ HARVEST ─► WASH ─────────► DRY ────────�
 That is more lines than money. **Get all the quotes, then cut.** My ranking if it
 does not all fit:
 
-1. **Band sealer + pre-printed bags** — removes two of three touches, adds lot
-   coding and branding. Highest return per dollar in the package.
+1. **Band sealer** — removes the tying step and prints lot code and date as it
+   seals. Highest return per dollar in the package. *(Pre-printed bags demoted —
+   see the math above; a label applicator is likely the better buy until volume
+   justifies plates.)*
 2. **Dual Pack Table** — fixes the third touch.
 3. **Forced-air cooling** — cheap, protects the quality everything else is for.
 4. **Veg Dryer** — real capacity gain.
