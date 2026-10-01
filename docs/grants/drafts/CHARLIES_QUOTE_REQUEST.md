@@ -37,10 +37,6 @@ Could you quote the following:
 **4. Veg Dryer (model 601559)**
 - Plus pricing on **extra baskets**
 
-**One question:** do you make anything for washing and sanitizing our harvest
-totes and baskets? That's a separate need from the produce washing above, and I
-haven't found it in your catalog.
-
 For each item, could you also include:
 
 - Lead time
