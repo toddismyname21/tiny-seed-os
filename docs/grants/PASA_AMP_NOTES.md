@@ -46,6 +46,10 @@ in market, conservation, and business terms. Do not lead with climate.**
 - **Business development must be connected to TWO commodity products.**
 - **Must connect to an FSA-REGISTERED FIELD.**
 - **Must connect to a CONSERVATION PRACTICE that we implement.**
+- **Eligible general categories (from PASA):**
+  - *Business development and planning:* **packaging · photographer · consultant ·
+    logo · website · signs · brand building and marketing**
+  - *Also named:* **cooler buildout · low tunnels · tarps · insect netting**
 
 ---
 
@@ -454,6 +458,81 @@ temperature.
 - [ ] Does it cover **labor** — someone's time doing sales?
 - [ ] Is there a **cash match** on the business-development side?
 - [ ] Reimbursement or advance?
+
+---
+
+## ⭐ PROPOSED PACKAGE — built only from PASA's named categories
+
+Everything below is on the list Todd was given. Nothing invented.
+
+### The read on the four physical items
+
+PASA named **cooler buildout, low tunnels, tarps, insect netting** alongside the
+soft business-development costs. My read — **confirm with Luka** — is that the
+last three are conservation-side items and the cooler is the market-access one:
+
+| Item | Likely bucket | Conservation practice it is |
+|---|---|---|
+| **Tarps** | conservation | **Mulching / occultation — 484.** Silage tarps for stale seedbedding and weed suppression. The AIG application already commits us to *"bed wide stale seedbedding."* |
+| **Low tunnels** | conservation | Season extension — the low-tunnel cousin of High Tunnel 325 |
+| **Insect netting** | conservation | Pest exclusion — **595**, reduces spray need by keeping pests off physically |
+| **Cooler buildout** | business development | Post-harvest capacity = market access |
+
+**If that read is right, the whole project locks together.**
+
+### The project, end to end
+
+> **The conservation practices make the product. The cooler keeps it. The
+> branding sells it — into markets we cannot reach today.**
+
+**Conservation bucket** — on the FSA fields growing salad greens and tomatoes:
+- **Tarps** → mulching / occultation (484) → crop stays out of soil contact →
+  cleaner product, fewer weeds, better stand
+- **Insect netting** → pest exclusion → less spray, less damage, cleaner product
+- **Low tunnels** → season extension → greens earlier and later, tomatoes earlier
+
+**Business development bucket** — ~$15,000, nothing over $10,000:
+
+| # | Item | Budget | Business improvement | Commodities |
+|---|---|---|---|---|
+| 1 | **Cooler buildout** | **≤ $10,000** | Shelf life on the two most perishable things we sell; cuts shrink; lets us commit to a delivery standard we cannot promise today | greens + tomatoes |
+| 2 | **Packaging + signs + logo** | ~$3,000 | Product meets wholesale buyer spec and is identifiable at the buyer's dock and on the shelf | greens + tomatoes |
+| 3 | **Photographer + website** | ~$2,000 | Wholesale line sheet and ordering page — approach buyers with a real offer and take repeat orders without a phone call | greens + tomatoes |
+| | **Total** | **~$15,000** | | |
+
+### Why this wins on every rule they gave us
+
+| Rule | How it is satisfied |
+|---|---|
+| Market / expand markets / new market access | The entire frame is moving from direct-to-consumer into wholesale and institutional |
+| ~$15,000 cap | $15,000 exactly |
+| No item over $10,000 | Largest is the cooler at $10,000 |
+| Improves the business | Each line names a specific improvement, not a general good |
+| **Two commodities** | **Salad greens and tomatoes**, both served by every line |
+| FSA-registered field | Both commodities grown on named FSA fields — fill in the table above |
+| **Connects to a conservation practice we implement** | **Tarps = mulching (484)** on those same fields. The practice is what makes the product clean enough to sell into the market the cooler and branding open. |
+
+### The one-sentence version for the application
+
+> Tarping and netting the salad green and tomato beds on FSA field ___ produces a
+> cleaner, higher-quality crop; the cooler buildout preserves that quality through
+> delivery; and the packaging, signage and wholesale marketing put it in front of
+> the institutional and wholesale buyers we cannot currently reach — expanding two
+> commodities into a new market.
+
+### Still to confirm with Luka
+- [ ] Are low tunnels / tarps / insect netting **conservation** items, or can they
+      sit in business development too?
+- [ ] Is **cooler buildout** business development, as I have assumed?
+- [ ] Does "cooler buildout" cover **construction and installation labor**, or
+      equipment only?
+- [ ] Is a **consultant** eligible to help write or manage this? Todd was told
+      consultant is a category.
+- [ ] Cash match on the business-development side?
+
+⚠️ **Cooler conflict:** AIG budget line 1 is a *Humidity Control System for Walk-In
+Cooler*, $3,000 total, still unspent. If AMP funds a cooler buildout, the two must
+buy different things and we should say so on paper before either is invoiced.
 
 ---
 
