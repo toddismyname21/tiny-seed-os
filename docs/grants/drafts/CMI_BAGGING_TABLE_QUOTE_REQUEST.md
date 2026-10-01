@@ -16,16 +16,20 @@ by weight — right now that's done by hand and it's the slowest step in our pac
 line, so we're looking at your table to speed it up and get our pack weights
 consistent.
 
+**Our bag sizes are 1/4 lb and 1 lb for retail, and 3 lb for wholesale**, all
+loose-leaf salad mix.
+
 What I'm looking for:
 
 - Double bagging station
 - Electronic washdown scales
-- Your recommendation on filler head size for loose-leaf salad greens
+- Your recommendation on filler head sizes to cover 1/4 lb, 1 lb and 3 lb bags
 
 Could you send me:
 
 1. Price for the table as configured above
-2. Filler head options and what you'd recommend for bagged salad mix
+2. Filler head options and what you'd recommend to cover all three bag sizes —
+   and whether heads can be swapped out quickly, since we run all three
 3. Lead time
 4. Freight cost shipped to: **257 Zeigler Road, Rochester, PA 15074**
 
@@ -43,9 +47,13 @@ Could you price:
 - **Model 22 Electric Spin Dryer**
 
 and tell me the basket capacity on each, and roughly how many pounds of
-loose-leaf greens per load? If you think the **Model 32 Hydraulic** is a better
-fit for our volume, I'm open to that too — I'd just need to know what it
-requires for power and overhead clearance.
+loose-leaf greens per load? Please also include **pricing on extra baskets** —
+being able to swap a full basket out and keep the line moving is worth a lot to
+us.
+
+If you think the **Model 32 Hydraulic** is a better fit for our volume, I'm open
+to that too — I'd just need to know what it requires for power and overhead
+clearance.
 
 Thanks,
 
@@ -78,5 +86,7 @@ todd@tinyseedfarmpgh.com
 - [ ] **Keep the grant mention?** It explains why you need a formal written quote
       and usually gets a better-documented response. Remove if you'd rather not
       say.
-- [ ] Any pack size to specify? If you know your bag weights — half pound, pound,
-      3 lb — telling them makes the filler head recommendation much more useful.
+- [x] ~~Any pack size to specify?~~ — **Todd supplied: 1/4 lb and 1 lb retail,
+      3 lb wholesale.** Now in the email, and the filler head question asks
+      whether heads swap quickly since all three sizes run.
+- [x] ~~Extra baskets~~ — **added.**
