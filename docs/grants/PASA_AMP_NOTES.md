@@ -58,6 +58,7 @@ in market, conservation, and business terms. Do not lead with climate.**
   5. **Estimates** go in the **budget builder** PASA is sending — **contractor
      quotes** are what they want to see
   6. **We can factor in our own labor.**
+- 🚨 **IF ANY PROJECT DISTURBS SOIL, DON'T DO IT.**
 
 ---
 
@@ -696,6 +697,89 @@ buy different things and we should say so on paper before either is invoiced.
 
 ---
 
+# 🚨 NO GROUND DISTURBANCE — this reshapes the cooler
+
+**Todd, 2026-10-01: if any of these projects disturb soil, don't do it.**
+
+### Why this rule exists
+
+USDA money triggers federal environmental review. **Ground-disturbing activity**
+pulls in NEPA review and **Section 106 National Historic Preservation Act**
+consultation — archaeological and cultural resources — which can mean State
+Historic Preservation Office review and tribal consultation. That is months of
+delay on a program with an **April 2028** deadline, and it can sink a project
+outright.
+
+**Avoiding disturbance is not a preference. It is how this gets done on time.**
+
+### ⚠️ My cooler design as written would have triggered it
+
+The line item I drafted said **"slab prep and electrical rough-in."** That is
+exactly the trigger:
+
+| What I had | Problem |
+|---|---|
+| Slab prep / new concrete pour | Excavation = ground disturbance |
+| Footings for the box | Disturbance |
+| Trenched electrical | Disturbance |
+| Site grading | Disturbance |
+
+**Struck. Redesign the cooler to touch no soil.**
+
+### The no-disturbance cooler — how to build it
+
+| Approach | Ground disturbance | Notes |
+|---|---|---|
+| ⭐ **Build inside an existing building, on the existing floor** | **None** | Cleanest answer. Insulated panel room erected on a slab that already exists. |
+| ⭐ **Set on an existing concrete pad** | **None** | If we have a pad already poured, use it. |
+| **Self-contained / pre-fab cooler or reefer box, surface-set** | **None** | Sits on existing surface or on skids. No footings. |
+| Insulated room + CoolBot/mini-split inside existing structure | **None** | Low cost, proven, and nothing goes in the ground |
+| ❌ New pad, new footings, trenched service | **Yes** | **Do not propose this** |
+
+**Electrical:** run **surface-mounted conduit or overhead**, not trenched. Tie
+into existing service. Say so in the application.
+
+### Rewrite LINE 1 as
+
+> **Walk-in cooler buildout — installed within our existing building on the
+> existing floor slab.** Insulated panel box (___ × ___), condensing unit and
+> evaporator, insulated door, case shelving, and electrical tie-in to existing
+> service via surface-mounted conduit.
+> **No ground disturbance: no excavation, no new concrete, no trenching, no
+> footings.** Humidity control not included — funded separately under PDA AIG
+> contract C940002366, line 1.
+
+**Put the no-disturbance sentence in writing.** It answers the environmental
+question inside the budget line instead of leaving a reviewer to wonder.
+
+### The conservation items are fine
+
+| Item | Disturbance? |
+|---|---|
+| **Tarps** | None — laid on the surface |
+| **Insect netting** | None — surface structures |
+| **Low tunnels** | Minimal — hoops pushed in. **Normal ongoing farming operations are generally treated differently from construction**, but confirm with Luka. |
+| Packaging, photography, branding | None |
+
+### Confirm with Luka
+- [ ] **Does installing a cooler inside an existing building clear the
+      no-disturbance bar entirely?**
+- [ ] Do low tunnel hoops count as disturbance, or are normal farming operations
+      excluded?
+- [ ] Is there an environmental review form regardless, or does avoiding
+      disturbance skip it?
+- [ ] **Does anything need approval BEFORE we start work?** On most USDA programs,
+      starting before clearance disqualifies the cost. Ask explicitly.
+
+### ⚠️ Todd — the question I cannot answer
+
+**Where would the cooler actually go?** The whole redesign depends on there being
+an existing building or existing pad with the room, the floor, and the electrical
+service to take it. If there is no such space, this line needs rethinking before
+the budget builder, not after.
+
+---
+
 # 📋 BUDGET BUILDER WORKSHEET — pre-written, ready to transcribe
 
 PASA is sending a budget builder that asks, per line item: **category · how it
@@ -724,7 +808,11 @@ can supply.** Get the quotes, drop in the numbers, transcribe.
 > wholesale buyers require — opening a market we cannot sell into today.
 
 **Specify in the line:** insulated panel box (___ × ___), condensing unit and
-evaporator, insulated door, slab prep and electrical, case shelving.
+evaporator, insulated door, case shelving, electrical tie-in to existing service
+via surface-mounted conduit — **installed inside our existing building on the
+existing floor.**
+🚨 **State plainly: NO GROUND DISTURBANCE — no excavation, no new concrete, no
+trenching, no footings.**
 **State the exclusion:** *humidity control system not included — funded
 separately under PDA AIG contract C940002366, budget line 1.*
 
@@ -810,7 +898,7 @@ ourselves would be both illegal and a good way to destroy a compressor.
 
 | Us | Contractor |
 |---|---|
-| Site and slab prep | Condensing unit and evaporator install |
+| Floor prep on the EXISTING slab — no excavation | Condensing unit and evaporator install |
 | Insulated panel assembly | Line set, brazing, evacuation and charge |
 | Door hang and trim | Commissioning and startup |
 | Shelving and racking | Any refrigerant handling |
