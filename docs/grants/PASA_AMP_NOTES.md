@@ -41,6 +41,8 @@ in market, conservation, and business terms. Do not lead with climate.**
   access to NEW markets.** Todd: *"A lot of flexibility."* Project has to be
   framed under that umbrella.
 - **No single item can be over $10,000.**
+- **Every item must show (a) how it improves the business and (b) a connection
+  to a SPECIFIC commodity we are focusing on.**
 
 ---
 
@@ -192,6 +194,75 @@ market next door (schools, hospitals, larger distributors, aggregators) is
 **The move that makes infrastructure fundable here:** a cooler is not a cooler. It
 is *"the post-harvest capacity required to meet the delivery standards of
 institutional buyers we cannot currently serve."* Same steel, correct frame.
+
+### ⭐ THE REQUIRED CHAIN — every item must trace: item → business improvement → named commodity
+
+This is the structural requirement, and it is what the application will be
+judged on. Each line has to carry the whole chain. "We need a cooler" fails.
+"This cooler lets us hold salad greens at temperature, which is what institutional
+buyers require, which is a market we cannot sell greens into today" passes.
+
+**It also settles the commodity question. Pick SALAD GREENS.** Not because it
+sounds good — because every item in this project genuinely traces to it, and to
+nothing else as cleanly:
+
+- Salad greens are **the most perishable thing the farm grows.** Shelf life
+  collapses without immediate and sustained cooling. Cold chain is not a nice-to-
+  have for greens, it is the product.
+- Leafy greens are **the highest-risk category in produce food safety.** Buyers
+  demand certification for greens specifically. GAP is the literal gate.
+- Salad greens are **the highest value per acre** and the one we already told PDA
+  is *"the cornerstone of Tiny Seed Farm's economic stability."*
+- Institutional buyers **buy greens in volume**, every week, year round.
+
+Any other commodity makes at least one of the three items a stretch. Greens makes
+all three inevitable.
+
+#### The three chains, written out
+
+**Component 1 — cold chain / post-harvest capability (≤ $10,000)**
+> *Item:* capacity to bring salad greens to temperature immediately after harvest
+> and hold them there through delivery.
+> *Business improvement:* extends saleable shelf life, cuts shrink and loss on
+> our highest-value crop, and lets us commit to a delivery standard we cannot
+> promise today.
+> *Commodity:* **salad greens.** They are the most temperature-sensitive crop we
+> grow — quality is lost in hours, not days.
+> *Market:* institutional and wholesale buyers who require a guaranteed shelf
+> life we currently cannot offer.
+
+**Component 2 — food-safety / GAP certification (~$3,000)**
+> *Item:* audit fees, written food-safety plan, staff training, signage, and the
+> handling changes needed to pass.
+> *Business improvement:* removes the single hard barrier between us and
+> institutional accounts, and reduces liability on our highest-risk product.
+> *Commodity:* **salad greens.** Leafy greens are the highest-risk produce
+> category; buyers require certification for greens before anything else.
+> *Market:* schools, hospitals, larger distributors — all of which require
+> certification as a condition of purchase, not a preference.
+
+**Component 3 — wholesale sales and marketing materials (~$2,000)**
+> *Item:* wholesale line sheet, product photography, wholesale-facing ordering
+> page built on the CSA portal we already own.
+> *Business improvement:* lets us approach buyers with a professional offer and
+> take repeat orders without a phone call each time.
+> *Commodity:* **salad greens** as the lead product, with the rest of the
+> vegetable line behind it.
+> *Market:* the institutional and wholesale buyers opened by components 1 and 2.
+
+**The components compound.** Cold chain makes the product deliverable,
+certification makes it purchasable, and marketing makes it sold. That is one
+project, not three purchases — and it is a far stronger application than any of
+them alone.
+
+#### Evidence we can point to
+- Existing wholesale foothold: ~20 restaurant accounts, Greater Pittsburgh
+  Community Food Bank, PASS sites including Center for Hope
+- Certified organic since 12/11/2025, OEFFA, NOP ID 1600003839
+- Salad greens already named the economic foundation in the AIG application on
+  file with PDA
+- **Strongest evidence if we can get it:** a buyer who has said *"we cannot buy
+  from you until you are certified."* Ask around before the meeting.
 
 ### The $10,000 per-item rule shapes the design
 
