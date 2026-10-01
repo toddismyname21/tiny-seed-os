@@ -31,6 +31,37 @@ in market, conservation, and business terms. Do not lead with climate.**
 - Deadline on funding is **April 2028**.
 - Two funding buckets: **conservation practices** and **business development**.
 - Cannot be climate-focused, but the rules are practically the same.
+- **Conservation side: meeting booked with Luka next week.** Timeframe is quick.
+- PASA will send the **list of conservation practices**.
+- **They need the FSA subsidiary print and AD-1026.**
+
+---
+
+## ⚠️ FIRST ACTION — FSA paperwork. This gates everything.
+
+PASA asked for a **subsidiary print** and **AD-1026**. These are the standard USDA
+eligibility records, and no USDA program money moves until they are on file.
+
+| Item | What it is |
+|---|---|
+| **AD-1026** | Highly Erodible Land Conservation & Wetland Conservation Certification. Filed once with FSA; must be on file and current before USDA benefits are paid. |
+| **Subsidiary print** | The printout from FSA's system showing eligibility status — AD-1026 certification, payment eligibility, actively-engaged determination, AGI compliance. |
+
+**Both come from the FSA county office, not from PASA.** We already have a live
+relationship there from the Direct Operating Loan:
+
+- **Allison Pruskowski** — allison.pruskowski@usda.gov — FSA Loan Officer, lead on our file
+- Julie Metzler — julie.metzler@usda.gov
+- Jaklin Beaver — Jaklin.Beaver@usda.gov
+- Devin Cunningham — Devin.Cunningham@usda.gov
+
+**Do this before the Luka meeting.** If AD-1026 was never filed, it has to be
+signed at the county office and that is the long pole. If it IS on file, the
+subsidiary print is just a request.
+
+- [ ] Ask FSA whether **AD-1026 is on file and current** for Tiny Seed Farm LLC
+- [ ] Request the **subsidiary print**
+- [ ] Confirm the farm/tract numbers are right — PASA will likely need those too
 
 ---
 
