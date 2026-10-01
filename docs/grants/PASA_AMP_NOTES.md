@@ -540,6 +540,79 @@ Tomatoes."**
 
 ---
 
+## ⭐ BE SPECIFIC — vague line items burn future funding
+
+**Todd, 2026-10-01: choose the most specific items, because it could affect
+future funding.**
+
+This is the right instinct and it is worth money immediately. A vague line item
+does two bad things: it lets a future funder say *"you already got cooler
+money,"* and it can **retroactively poison a grant we already hold.**
+
+### The live example — a vague "cooler" costs us $3,000 of AIG money
+
+AIG budget line 1 is **"Humidity Control System for Walk-In Cooler," $2,000 PDA /
+$3,000 total — still unspent.**
+
+- If AMP says **"cooler buildout"** with no detail → that reads as covering the
+  same thing, and AIG line 1 becomes hard to invoice without a double-dip
+  question. **We lose $3,000 we already have.**
+- If AMP says **"walk-in cooler: insulated panels, condensing unit, evaporator,
+  door, slab prep, electrical — humidity control NOT included, funded separately
+  under PDA AIG C940002366 line 1"** → both are clean, and we spend both.
+
+**Name the exclusion in the application.** One sentence protects $3,000.
+
+### Specific line items
+
+#### 1 — Walk-in cooler buildout, ≤ $10,000
+Name the components:
+- Insulated panel walk-in box (specify dimensions)
+- Refrigeration: condensing unit + evaporator (or CoolBot + mini-split)
+- Insulated door and hardware
+- Slab prep / floor and electrical rough-in
+- Shelving and pallet racking for case storage
+- **Explicitly excluded:** humidity control system — funded under AIG line 1
+
+#### 2 — Packaging and labeling, ~$3,000
+Name the units:
+- Waxed produce cases and returnable crates **sized to wholesale buyer spec**
+- Clamshells / bags for **salad greens**, in buyer-standard pack sizes
+- Flats and boxes for **tomatoes**
+- Label printer and label stock
+- Printed labels carrying farm identity, lot code, pack date — **lot coding is a
+  GAP traceability requirement, which ties this line to food safety**
+
+#### 3 — Brand, photography and wholesale sales materials, ~$2,000
+Name the deliverables:
+- Product photography session — salad greens and tomatoes, field and pack house
+- Wholesale **line sheet** — product list, pack sizes, pricing, availability window
+- Logo / wholesale brand mark and case-stamp artwork
+- Wholesale-facing ordering page on the CSA portal we already own
+- Market and farm **signage**
+
+### Deliberately leave OUT — these are the next ask
+
+Do not name these now. Naming them spends the category for a project that is not
+ready, and the program runs to **April 2028.**
+
+| Hold for later | Why |
+|---|---|
+| **Refrigerated transport / van** | A separate, obvious next-stage ask once we have the cooler and the accounts |
+| **Second cooler or expansion** | Needs this one to exist and fill up first |
+| **Humidity control** | Belongs to AIG. Do not touch it here. |
+| **Consultant** | On PASA's list. Hold it for the planning we cannot yet define — or use it, but deliberately, not as filler |
+| **Processing / value-added equipment** | Washing, spinning, bagging line — a real future project, not this one |
+
+### The test for every line
+
+> **If a future funder read only this line, would they think we had already been
+> funded for the thing we want next?**
+
+If yes, write it narrower.
+
+---
+
 ## ⭐ PROPOSED PACKAGE — built only from PASA's named categories
 
 Everything below is on the list Todd was given. Nothing invented.
