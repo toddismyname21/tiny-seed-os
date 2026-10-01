@@ -1,7 +1,7 @@
 # DRAFT — NOT SENT. Needs Todd's explicit go.
 
 **To:** althea@cmiequip-eng.com
-**Subject:** Quote request — Double Bagging Table, shipped to Rochester PA
+**Subject:** Quote request — Double Bagging Table and Spin Dryer, shipped to Rochester PA
 
 ---
 
@@ -33,9 +33,19 @@ One note on the quote — we're putting together a grant application and the
 funder wants written contractor quotes, so if you can send it on your letterhead
 with the freight broken out separately, that would help a lot.
 
-Also, I noticed you make an Electric Spin Dryer. Drying is our other bottleneck,
-so if you can include pricing and capacity on that in the same quote I'd
-appreciate it.
+I'd also like a quote on a spin dryer in the same package. Drying is our other
+bottleneck — right now we're spinning greens in small batches and it backs up
+the whole line on a heavy harvest day.
+
+Could you price:
+
+- **Model 20 Electric Spin Dryer**
+- **Model 22 Electric Spin Dryer**
+
+and tell me the basket capacity on each, and roughly how many pounds of
+loose-leaf greens per load? If you think the **Model 32 Hydraulic** is a better
+fit for our volume, I'm open to that too — I'd just need to know what it
+requires for power and overhead clearance.
 
 Thanks,
 
@@ -54,7 +64,8 @@ todd@tinyseedfarmpgh.com
 | althea@cmiequip-eng.com | Todd, this conversation | ✓ |
 | Double Bagging Table is a real CMI product | `cmiequip-eng.com/double-bagging-table/`, read 2026-10-01 | ✓ |
 | Electronic washdown scales, filler head sizes, single/double stations are listed options | same page | ✓ |
-| CMI also makes an Electric Spin Dryer | their equipment list | ✓ |
+| Model 20 and Model 22 Electric Spin Dryers exist; up to 750 RPM; lightweight baskets, no overhead crane needed | `cmiequip-eng.com/electric-spin-dryer/` | ✓ |
+| Model 32 Hydraulic Spin Dryer, 11 cu. ft., for large volume | `cmiequip-eng.com/hydraulic-spin-dryer/` | ✓ |
 | 257 Zeigler Road, Rochester, PA 15074 | Todd this conversation + OEFFA organic certificate | ✓ |
 | (717) 725-5177 | `config/verified_facts.json` — "Todd Wilson — the farm number" | ✓ |
 | Certified organic | OEFFA, NOP ID 1600003839 | ✓ |
@@ -62,8 +73,8 @@ todd@tinyseedfarmpgh.com
 ## Decisions for Todd
 
 - [ ] **Send as written?**
-- [ ] **Keep the spin dryer question in?** It gets two bottlenecks priced in one
-      email. Remove it if you'd rather keep the ask simple.
+- [x] ~~Keep the spin dryer question in?~~ — **Todd confirmed yes.** Now asks for
+      Model 20 and Model 22 by name, with Model 32 Hydraulic as an option.
 - [ ] **Keep the grant mention?** It explains why you need a formal written quote
       and usually gets a better-documented response. Remove if you'd rather not
       say.
