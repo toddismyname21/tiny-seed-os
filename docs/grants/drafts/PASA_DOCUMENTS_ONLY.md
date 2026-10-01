@@ -6,7 +6,10 @@
 
 ---
 
-Hi Luka, Hi Chris,
+Hi Chris, Hi Luka,
+
+Chris — thanks for walking me through the program this morning, that was
+helpful.
 
 Attached are the FSA documents for Tiny Seed Farm:
 
@@ -67,9 +70,17 @@ What stayed is only what Pasa needs to process the file.
 | Actively Engaged — Not Filed | the subsidiary print itself | ✓ |
 | (717) 725-5177 | `config/verified_facts.json` | ✓ |
 
-⚠️ **Chris never requested documents in writing** — his only email is the
-calendar invite for today's Intake Survey Review. Including him is Todd's call,
-presumably from that conversation.
+**Chris ran this morning's Intake Survey Review** (Thu 10/1, 8–8:45am). **Every
+program rule in `PASA_AMP_NOTES.md` came from that call** — the ~$15,000 cap,
+the $10,000 per-item limit, two commodities, the FSA-registered field
+requirement, the conservation-practice link, the eligible categories, the
+no-soil-disturbance rule, and the budget builder. He is the program/intake side.
+
+**Luka is the Technical Assistance Provider** — conservation planning, meeting
+next week.
+
+So both belong on this: Chris knows the context, Luka needs the documents to
+enroll.
 
 ## Decisions for Todd
 

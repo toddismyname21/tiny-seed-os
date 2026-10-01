@@ -1,5 +1,12 @@
 # PASA — USDA AMP (Advancing Markets for Producers)
 
+## Who's who at Pasa
+
+| | Role | Email |
+|---|---|---|
+| **Chris Esposito** | **Program / intake.** Ran the Intake Survey Review 2026-10-01, 8–8:45am. **Every program rule in this document came from that call.** | chris@pasafarming.org |
+| **Luka Hildebrandt** | **Technical Assistance Provider** — conservation planning, builds the practice plan *with* Todd. Meeting next week. | luka@pasafarming.org · 814.349.9856 x747 |
+
 **Live notes. Started 2026-10-01.** Todd is taking notes here as he goes; I am
 structuring them, not inventing them. Anything I have not heard from Todd or
 read from a source is marked **UNVERIFIED** rather than filled in.
