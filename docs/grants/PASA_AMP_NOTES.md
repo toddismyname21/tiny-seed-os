@@ -24,6 +24,72 @@ in market, conservation, and business terms. Do not lead with climate.**
 
 ---
 
+## ✅ THE CHAIN IS COMPLETE — 2026-10-01
+
+Every requirement AMP imposed now has an answer. Todd: *"I can make sure they are
+both on the middle."*
+
+| Requirement | Answer |
+|---|---|
+| **Two commodity products** | **Salad greens + tomatoes** |
+| **FSA-registered field** | **Farm 1068 / Tract 446** — Beaver County (42007), 6 fields, 66.68 ac |
+| **Conservation practice we implement** | **Mulching / occultation — tarps**, with insect netting and low tunnels |
+| **Improves the business** | Wash → dry → cool → pack line; removes the three-touch bagging and the shelf-life loss in the stock tank |
+| **Category** | Business development and planning · cooler/equipment |
+| **~$15,000 cap, none over $10,000** | multi-line package, see budget worksheet |
+| **No ground disturbance** | all equipment, inside existing buildings |
+| **No environmental concerns** | nothing built, dug, drawn or discharged |
+
+### The field — farm 1068, tract 446
+
+| Field | Acres | Type |
+|---|---|---|
+| **1068/446/1** | **33.55** | **HEL** |
+| **1068/446/2** | **1.24** | **HEL** |
+| 1068/446/3 | 0.95 | UHEL |
+| 1068/446/4 | 6.41 | UHEL |
+| 1068/446/5 | 20.79 | UHEL |
+| 1068/446/6 | 3.74 | UHEL |
+
+OS blocks in this cluster: F3L, F3M, F7M, F11M, SO, IL, HOL, JL, K1, K2, M,
+IOL, CL, B, Greenhouse — **≈4.6 production acres**. The barn, house and
+greenhouse are here too, which is why it is the right home for the pack line.
+
+⭐ **Put the practice on HEL ground if the production blocks allow it.**
+1068/446/1 and 1068/446/2 are Highly Erodible Land. A conservation practice on
+HEL is not optional improvement — it is ground that *requires* conservation
+treatment, and AD-1026 is the farm's certification to exactly that. It is the
+strongest version of the argument available.
+
+### The application, in one paragraph
+
+> On **FSA farm 1068, tract 446** in Beaver County, Tiny Seed Farm grows
+> **salad greens and tomatoes** — the farm's two largest crops — on roughly 4.6
+> acres of intensive production, part of it on **Highly Erodible Land**. We
+> **tarp and net those beds (mulching, NRCS 484)**, which keeps the crop out of
+> soil contact and off pesticides, producing a cleaner and safer product. But we
+> cannot sell that quality into the markets that would pay for it: our wash is
+> done in small batches, our greens are dried in a queue, they sit warming in a
+> stock tank, and every bag is handled three separate times to fill, tie and
+> sticker it. **This project closes that gap** — wash, dry, forced-air cooling
+> into coolers we already own, and a pack-and-seal line — turning a crop we
+> already grow well into sales we cannot currently make.
+
+### ⚠️ One thing Todd is committing to
+
+"I can make sure they are both on the middle" means **planning 2027 production so
+salad greens and tomatoes are both on farm 1068/446.** That is an operational
+commitment, not a paperwork choice. Make sure it fits the rotation before the
+application says so — a grant that says one thing while the crop plan says
+another is a problem at inspection, not at submission.
+
+- [ ] Confirm the 2027 crop plan puts both commodities on 1068/446
+- [ ] Identify **which** of the six fields the greens and tomatoes sit in, so the
+      practice acreage is reported against the right field number
+- [ ] Prefer HEL fields 1068/446/1 or /2 for the practice if production allows
+
+---
+
 ## Running notes
 
 ### 2026-10-01
