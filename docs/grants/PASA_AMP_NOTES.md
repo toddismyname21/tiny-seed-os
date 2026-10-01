@@ -50,6 +50,12 @@ in market, conservation, and business terms. Do not lead with climate.**
   - *Business development and planning:* **packaging · photographer · consultant ·
     logo · website · signs · brand building and marketing**
   - *Also named:* **cooler buildout · low tunnels · tarps · insect netting**
+- **Application structure — what the budget builder will ask per line item:**
+  1. Fit the project into a **category**
+  2. **How does it improve the business?**
+  3. **What commodity** are you connecting it to?
+  4. They **want to see receipts**
+  5. **Estimates** go in the **budget builder** PASA is sending
 
 ---
 
@@ -685,6 +691,134 @@ last three are conservation-side items and the cooler is the market-access one:
 ⚠️ **Cooler conflict:** AIG budget line 1 is a *Humidity Control System for Walk-In
 Cooler*, $3,000 total, still unspent. If AMP funds a cooler buildout, the two must
 buy different things and we should say so on paper before either is invoiced.
+
+---
+
+# 📋 BUDGET BUILDER WORKSHEET — pre-written, ready to transcribe
+
+PASA is sending a budget builder that asks, per line item: **category · how it
+improves the business · what commodity · estimate.** Receipts come later.
+
+Each block below is drafted to those four fields. **Blanks are things only Todd
+can supply.** Get the quotes, drop in the numbers, transcribe.
+
+---
+
+### LINE 1 — Walk-in cooler buildout
+
+**Category:** Cooler buildout
+
+**Estimate:** $________ (target ≤ $10,000 — per-item ceiling)
+
+**Commodities:** Salad greens and tomatoes
+
+**How it improves the business:**
+> Salad greens lose marketable quality within hours of harvest without immediate
+> cooling, and tomatoes close behind. Today we have no capacity to bring either
+> to temperature and hold it, which caps us at same-day direct sales and rules
+> out buyers who require a guaranteed shelf life on delivery. A walk-in cooler
+> lets us harvest ahead, hold quality through delivery, cut shrink on our two
+> highest-value crops, and commit to the delivery standard institutional and
+> wholesale buyers require — opening a market we cannot sell into today.
+
+**Specify in the line:** insulated panel box (___ × ___), condensing unit and
+evaporator, insulated door, slab prep and electrical, case shelving.
+**State the exclusion:** *humidity control system not included — funded
+separately under PDA AIG contract C940002366, budget line 1.*
+
+**Quote from:** ________________________
+
+---
+
+### LINE 2 — Packaging and labeling
+
+**Category:** Business development and planning (packaging)
+
+**Estimate:** $________ (~$3,000)
+
+**Commodities:** Salad greens and tomatoes
+
+**How it improves the business:**
+> We currently pack to no consistent standard, which is a barrier with wholesale
+> and institutional buyers who order by pack size and require traceable labeling.
+> Standardized cases and buyer-spec pack sizes for salad greens and tomatoes,
+> with printed labels carrying farm identity, lot code and pack date, let us
+> quote and fill orders to specification and meet the traceability requirements
+> that food-safety certification and institutional purchasing demand.
+
+**Specify:** waxed cases and crates to buyer spec, clamshells/bags for greens,
+flats for tomatoes, label printer and stock, lot-coded labels.
+
+**Quote from:** ________________________
+
+---
+
+### LINE 3 — Brand, photography and wholesale sales materials
+
+**Category:** Business development and planning (photographer, logo, website,
+signs, brand building and marketing)
+
+**Estimate:** $________ (~$2,000)
+
+**Commodities:** Salad greens and tomatoes
+
+**How it improves the business:**
+> We have no wholesale-facing sales materials. Every new account to date has come
+> from a personal conversation, which does not scale and leaves us invisible to
+> buyers who have never met us. Product photography, a wholesale line sheet with
+> pack sizes and availability windows, brand marks for our cases, and a
+> wholesale ordering page let us approach buyers with a professional offer and
+> take repeat orders without a phone call each time — converting the capacity
+> built in lines 1 and 2 into actual accounts for salad greens and tomatoes.
+
+**Specify:** photography session, line sheet design, logo / case-stamp artwork,
+wholesale ordering page, market and farm signage.
+
+**Quote from:** ________________________
+
+---
+
+## 🔨 ACTION — get estimates now, before the builder arrives
+
+The budget builder needs numbers. Quotes take longer than filling a form, so
+start these this week.
+
+| Line | Who to ask | Status |
+|---|---|---|
+| Cooler buildout | Local refrigeration contractor for a turnkey quote; also price panels + condensing unit separately, and a CoolBot/mini-split build as the low-cost comparison | ☐ |
+| Packaging | A produce packaging supplier — cases, clamshells, flats. Ask for a quote **at wholesale pack sizes**, and ask what our existing wholesale buyers want. | ☐ |
+| Label printer | Price a thermal label printer and stock | ☐ |
+| Photographer | Local; ask for a half-day farm + product session | ☐ |
+| Logo / line sheet / signage | Designer, or bundle with the photographer | ☐ |
+
+**Get two quotes where you can.** It strengthens the application and protects
+against a reviewer asking whether the number is real.
+
+⚠️ **Ask your existing wholesale buyers what pack sizes they want** before
+quoting packaging. Fet Fisk, Black Radish, Butter Joint, Della Terra, the food
+bank — a line item that cites what real buyers asked for is far stronger than one
+we guessed at, and it is a free phone call.
+
+---
+
+## 💵 Receipts and cash flow — plan for this
+
+They want to see receipts, which means **this is reimbursement, like AIG.** We
+front the cash and get paid back.
+
+**Combined exposure to watch:**
+
+| Grant | Front | Status |
+|---|---|---|
+| AIG R1 | already fronting — $58,961.84 of receipts submitted so far | $27,642.86 reimbursed, ~$11,665 pending |
+| AIG R2 | ~$23,003 match when it starts | contract not issued |
+| **AMP** | **~$15,000** | this ask |
+| FVPG | 25% match, reimbursed at completion ~2027 | $1,300 spent |
+
+- [ ] Ask Luka: **reimbursement or advance?** and **how fast after receipts?**
+- [ ] Ask whether there is a **cash match** on business development
+- [ ] Keep every receipt filed the way we do for AIG — the grant portal document
+      vault already works for this
 
 ---
 
