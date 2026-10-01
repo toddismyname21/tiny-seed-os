@@ -34,6 +34,9 @@ in market, conservation, and business terms. Do not lead with climate.**
 - **Conservation side: meeting booked with Luka next week.** Timeframe is quick.
 - PASA will send the **list of conservation practices**.
 - **They need the FSA subsidiary print and AD-1026.**
+- **Also need the GeoJSON field-boundary file from FSA.**
+- **Business development: ~$15,000 cap. Does NOT impact the conservation money** —
+  the two buckets are separate, so taking one does not reduce the other.
 
 ---
 
@@ -61,7 +64,88 @@ subsidiary print is just a request.
 
 - [ ] Ask FSA whether **AD-1026 is on file and current** for Tiny Seed Farm LLC
 - [ ] Request the **subsidiary print**
-- [ ] Confirm the farm/tract numbers are right — PASA will likely need those too
+- [ ] Request the **GeoJSON of our field boundaries** (FSA's CLU / Common Land Unit
+      data). This is the mapped tract and field boundaries FSA holds on our farm.
+      Conservation practices get tied to specific fields, so PASA needs the
+      geometry to know what acreage a practice applies to.
+- [ ] Confirm the farm and tract numbers are right while we are in there
+
+**One email covers all four.** Allison Pruskowski is the lead; CC the rest of the
+team as we do on all FSA correspondence.
+
+⚠️ **Check the GeoJSON against reality when it arrives.** FSA boundaries are often
+stale — fields split, leased ground added or dropped. We lease from Kretschmann
+and moved off Simon Property this year, so the FSA map may not match what we
+actually farm. A wrong boundary means a practice booked on the wrong acreage.
+
+---
+
+## Which commodities do we connect the funding to?
+
+**Todd asked this 2026-10-01.** I do not have AMP's eligible-commodity list — that
+is a Luka question. But the decision logic does not depend on it:
+
+### The question is not "what do we grow." It is "what grows on the acres where
+### the conservation practices will go."
+
+Conservation practices are **field-based**. A cover crop, a mulching practice, a
+reduced-till pass — each is applied to specific ground. Whatever commodity is
+grown on that ground is the commodity the money attaches to. So work backwards:
+pick the fields the practices suit, then name what grows there.
+
+### What the farm actually produces
+
+| Commodity | Case for enrolling |
+|---|---|
+| **Salad / baby greens** | **The anchor.** The AIG application calls them *"the cornerstone of Tiny Seed Farm's economic stability."* Highest-value, most intensively managed ground, and the story is already on file with a state agency. |
+| **Mixed vegetables** | tomatoes, peppers, eggplant, leeks, potatoes, roots, brassicas, herbs. The acreage breadth — most of the farm. |
+| **Cut flowers** | Real revenue (flower CSA, bouquets, weddings). Floriculture **is** a USDA specialty crop. Worth asking whether AMP covers it. |
+| **Transplants / seedlings** | Presale + wholesale. Probably not a "commodity" in this sense — ask. |
+
+### My recommendation, to test with Luka
+
+**Lead with salad greens, enroll mixed vegetables for the acreage.**
+
+1. **Consistency matters.** We told PDA in the AIG application that salad greens
+   are the economic foundation. Telling USDA a different story in a different
+   program is the kind of inconsistency that surfaces at audit. Keep one story.
+2. **Breadth where the acres are.** If payment is per-acre, mixed vegetables
+   carry more ground than greens alone.
+3. **Do not over-enroll.** Every commodity added is more production records,
+   more reporting, more to defend. Enroll what is real and documented.
+4. **Ask about flowers explicitly** rather than assuming they are out. It is a
+   meaningful revenue line and floriculture is a recognized specialty crop.
+
+### Ask Luka
+- [ ] Is there an eligible-commodity list, and are specialty crops / vegetables on it?
+- [ ] **Do cut flowers qualify?**
+- [ ] Can we enroll multiple commodities, or does it have to be one?
+- [ ] Is payment per-acre, per-practice, or flat — this decides whether breadth matters
+- [ ] Does enrolling a commodity commit us to growing it for the contract term?
+
+---
+
+## ⚠️ Business development — $15,000 cap — COLLIDES WITH FVPG
+
+Business development is capped around **$15,000** and is **separate from the
+conservation money** — taking it does not reduce the conservation side.
+
+**But look at this:**
+
+| Grant | Amount | Covers |
+|---|---|---|
+| **AMP business development** | ~$15,000 | business development (scope TBD) |
+| **FVPG — C940002569** | $14,250 | business planning via Good Roots, 75% reimbursement at completion |
+
+These are nearly the same size and plausibly the same work. **Federal and state
+money cannot pay for the same activity.** FVPG has not been drawn yet — logged
+spend is $1,300 to Trellis Legal — so there is still room to steer each to
+different work.
+
+- [ ] Ask Luka **what business development actually covers** under AMP —
+      equipment? marketing? labor? certification? planning?
+- [ ] If it covers planning, **deconflict with FVPG before committing either**
+- [ ] Confirm whether AMP business development needs a cash match
 
 ---
 
