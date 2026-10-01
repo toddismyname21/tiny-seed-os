@@ -37,6 +37,9 @@ in market, conservation, and business terms. Do not lead with climate.**
 - **Also need the GeoJSON field-boundary file from FSA.**
 - **Business development: ~$15,000 cap. Does NOT impact the conservation money** —
   the two buckets are separate, so taking one does not reduce the other.
+- **Business development is for: marketing, expanding current markets, gaining
+  access to NEW markets.** Todd: *"A lot of flexibility."* Project has to be
+  framed under that umbrella.
 
 ---
 
@@ -146,6 +149,81 @@ different work.
       equipment? marketing? labor? certification? planning?
 - [ ] If it covers planning, **deconflict with FVPG before committing either**
 - [ ] Confirm whether AMP business development needs a cash match
+
+---
+
+## Framing the business-development project
+
+**The umbrella: market, expand current markets, gain access to new markets.**
+Lots of flexibility, ~$15,000 cap.
+
+### This also solves the FVPG collision cleanly
+
+Framed as *marketing and market access* rather than planning, the three grants
+stop overlapping:
+
+| Grant | Its lane |
+|---|---|
+| **AIG** C940002366 | **Production and harvest equipment** — seeder, stone burier, cultivation |
+| **FVPG** C940002569 | **Business planning** — lease security, financial planning, Good Roots |
+| **AMP business dev** | **Market access and marketing** — reaching buyers we cannot reach today |
+
+Keep AMP on the market side and nothing double-dips. Say it that way to Luka.
+
+### The strongest honest frame: moving from direct-to-consumer into wholesale and institutional
+
+The farm is already mostly direct-to-consumer — CSA, farmers markets — with a
+real but limited wholesale foothold: ~20 restaurants, the Greater Pittsburgh
+Community Food Bank, and PASS sites like Center for Hope. The institutional
+market next door (schools, hospitals, larger distributors, aggregators) is
+**bigger, steadier, and we are largely locked out of it.**
+
+**What locks us out is not demand. It is capability.** That gap is the project.
+
+| Barrier to the new market | What it would take | Fits the umbrella as |
+|---|---|---|
+| **Food-safety certification** (GAP / HGAP) | audit fees, written plan, training, signage, infrastructure to pass | *"Certification required for access to institutional buyers"* — textbook new-market access |
+| **Packaging to buyer spec** | cases, liners, labels, a labeling system, pack-size standardization | *"Meeting wholesale buyer specifications"* |
+| **Cold chain** | capacity to hold and deliver at temperature | *"Post-harvest capacity to serve institutional volume"* |
+| **Brand and sales materials** | line sheets, photography, a wholesale-facing site, trade materials | plain marketing |
+| **Sales capacity** | time and tooling to actually work buyers | market development |
+
+**The move that makes infrastructure fundable here:** a cooler is not a cooler. It
+is *"the post-harvest capacity required to meet the delivery standards of
+institutional buyers we cannot currently serve."* Same steel, correct frame.
+
+### Other defensible frames, all true of this farm
+
+1. **Season extension = more weeks of market.** The Fall CSA was launched this
+   year, Oct 14 – Nov 18. Extending further into winter is literally expanding
+   an existing market. Storage crops, winter greens, a winter share.
+2. **The CSA portal as direct-market infrastructure.** The farm built its own
+   ordering platform — Farm Flex store credit, online customization, home
+   delivery. That is genuine market-access technology, and extending it to
+   **wholesale buyers** would open a channel.
+3. **Aggregation.** Selling alongside other PASA farms to reach volume buyers
+   none of us can serve alone. PASA is administering this; they may already have
+   a route.
+4. **New customer segments.** Flowers into events and weddings is an existing
+   inquiry stream the farm has not systematically pursued.
+
+### What I need from Todd before drafting this
+
+- [ ] **Which market do you actually want?** Institutional and wholesale is the
+      biggest and the best-evidenced, but it is your call and the project should
+      be something you want to run, not something that reads well.
+- [ ] **Are we GAP certified, or has it ever been priced?** If not, this is
+      probably the single highest-leverage $15,000 on the table.
+- [ ] What has a buyer actually told you no over? A real "we cannot buy from you
+      until X" quote is the strongest possible justification.
+
+### Ask Luka
+- [ ] Does business development cover **equipment and infrastructure**, or only
+      soft costs like marketing and certification?
+- [ ] Does it cover **certification fees** (GAP audits)?
+- [ ] Does it cover **labor** — someone's time doing sales?
+- [ ] Is there a **cash match** on the business-development side?
+- [ ] Reimbursement or advance?
 
 ---
 
