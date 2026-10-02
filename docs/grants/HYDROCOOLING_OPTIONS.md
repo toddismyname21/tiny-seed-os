@@ -116,6 +116,17 @@ the single biggest quality change available.
 ❌ But it is a stopgap, not the answer. Someone fetches ice every harvest day
 forever, and the farm pays more than the machine costs every single season.
 
+> 🔴 **RATINGS WARNING on the Avantco line — read before buying.** Verified on
+> the product page 2026-10-02: the **KMC-H-530-A is rated 3.4★ on only 12
+> reviews**, and its siblings in the same line sit at **2.8★, 2.4★ and 2.8★.**
+> **That is below the farm's own buying standard of 4.0★ and 100+ reviews**
+> (see `docs/equipment/WINTER_2026_BUY_LIST.md`).
+> WebstaurantStore itself upsells away from it, pitching the $4,039 Diamond
+> EMC-H-530-A as offering *"enhanced durability."* When the seller implies the
+> cheaper model is not durable, believe them.
+> **Same lesson as the flail mower: this is not the place to buy cheapest.**
+> Price Manitowoc and Scotsman — the industry standards — before committing.
+
 ## Option B — ⭐ Make the ice on site. **$1,819–$2,879. Pays back inside one season.**
 
 | Machine | Output | Price |
@@ -198,6 +209,72 @@ the ice does the rest. Not a cooling system by itself.
 
 Also needs *"about 10 gallons per minute per square foot of cooling area"* with
 nozzles kept within 6–8 inches. **Immersion, not spray, for baby leaf.**
+
+---
+
+# 4b. ⭐ "HOW DO WE GET THE ICE OUT OF THE GREENS?" — keep them apart
+
+**Todd, 2026-10-02:** *"i dont understand how we get the ice out of the greens
+when spinning dry. unless the water circulates through the ice."*
+
+**That second sentence is the answer.** Nobody dumps loose cubes in with the
+product and then tries to fish them out. **The ice chills the water; the water
+chills the greens; the ice and the greens never meet.** This is exactly what
+Penn State means by a *"thermal storage immersion hydrocooler."*
+
+Three ways to do it, cheapest first.
+
+## 4b.1 — Mesh bags of ice. **$0–20. Do this tomorrow.**
+
+Ice in mesh/laundry bags, hung or floated at one end of the tank. Lift them out
+before the greens go in, or leave them in and skim around them.
+
+✅ Costs nothing, works today, proves the whole idea before any money is spent.
+❌ Fiddly, and the bags sit where you want to be working.
+
+## 4b.2 — ⭐ Perforated ice cage + the bubbler already being built. **~$100–200.**
+
+A perforated stainless basket or cage at one end of the 120" tank, holding the
+ice. **The spa-blower manifold already on order does the circulating** — the
+agitation that scrubs the greens also drives tank water through the ice cage and
+back.
+
+⭐ **This is the one to build, because it costs almost nothing on top of work
+already planned.** The tri-clamp manifold was specified to wash. The same
+airflow, with a cage at one end, makes it wash *and* chill. One tank, one blower,
+two jobs.
+
+| Why it fits | |
+|---|---|
+| Circulation | already provided by the spa blower + manifold |
+| Separation | the cage — greens physically cannot reach the ice |
+| Cleanability | perforated stainless, same food-grade standard as the manifold |
+| Cost | a stainless cage and a mount |
+
+## 4b.3 — Separate ice reservoir + recirculating pump. **More plumbing.**
+
+Ice and water in a second insulated tank. A pump sends chilled water to the wash
+tank; the overflow returns to the ice tank. Full separation, and the cold is
+stored where it is not in the way.
+
+**This is where a used stainless bulk milk tank earns its keep** — insulated,
+food-grade, already has refrigeration and an agitator.
+
+❌ More pump, plumbing, and sanitation surface than 4b.2. Worth it only at a
+volume the tank-and-cage cannot keep up with.
+
+## The point that makes all of this easy
+
+**Cold water does the work, not cold ice.** Ice is only a way of *storing* cold
+cheaply. Once that is clear, the design question stops being "how do I separate
+ice from greens" and becomes "where do I keep the ice so the water can run past
+it" — and the answer is: at the far end of the tank, in a cage, with the blower
+already pushing water through it.
+
+> ⚠️ **Consequence for the dry side:** nothing changes. Greens come out of a cold
+> tank wet and cold, go into the spinner exactly as they do now, and come out
+> cold and dry. **No ice ever enters the spinner.** The restored Mannhart and
+> Greens Machine baskets are unaffected.
 
 ---
 
