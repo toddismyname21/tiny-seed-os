@@ -85,7 +85,7 @@ auditor looks for.
 |---|---|---|
 | **Used stainless bagging table** (Essex Junction VT) | **$1,500.00** | ✅ listing |
 | — transport, drive it (~1,260 mi round) | $310.00 | est |
-| 2 × stainless portion scales | **$298.00** | ✅ $149 ea |
+| **2 × Brecknell 6030** washdown IP67 stainless, NSF, 10 lb × 0.002 lb | **$297.98** | ✅ $148.99 ea, 5.0★ |
 | **Band sealer with date + lot coder** | **$279.00** | ✅ VEVOR 4.2★/199 |
 | Bag + label stock (¼, 1, 3 lb) | $500.00 | est |
 | Label applicator | $500.00 | est — optional |
