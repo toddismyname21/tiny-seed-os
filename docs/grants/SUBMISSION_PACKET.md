@@ -25,14 +25,14 @@ blank** unless the form requires a zero.
 | Pasa category | Enter |
 |---|---|
 | Business Development and Planning | **$1,000.00** |
-| Brand Building and Marketing | **$1,854.66** |
+| Brand Building and Marketing | **$1,880.50** |
 | Market & Event Material | **$1,886.15** |
 | Food Safety, Certification, and Planning | *(blank — $0)* |
 | Wash/Pack Station and Post-Harvest Handling | **$3,861.89** |
 | Cooling, Storage, and Logistics | **$1,991.21** |
 | Product Protection Supplies | *(blank — $0)* |
 | **Other** | **$2,000.00** |
-| | **$12,593.91** |
+| | **$12,619.75** |
 
 ## Other — text field
 
@@ -87,15 +87,15 @@ water sanitation and monitoring for the recirculating chilled water loop.
 # FIELD 5 — Total Requested
 
 ```
-16768.91
+16794.75
 ```
 
 | | |
 |---|---|
-| Materials | $12,593.91 |
+| Materials | $12,619.75 |
 | Labor | $4,175.00 |
-| **Total** | **$16,768.91** |
-| vs the **soft** ceiling | **$1,768.91 over — submitting over, by decision** |
+| **Total** | **$16,794.75** |
+| vs the **soft** ceiling | **$1,794.75 over — submitting over, by decision** |
 
 ---
 

@@ -54,13 +54,14 @@ DATA = {
    "Photos By Aaron Sheedy published menu, February 2026 - attached separately. "
    "Scope to be agreed with the photographer within this budget."),
  ]),
- "BrandBuildingAndMarketing": ("Brand Building and Marketing", 1854.66, [
-  ("Custom vinyl product banners, 2ft x 4ft, full colour 13 oz (7 SKUs x 2 markets)",14,26.88,
-   "Amazon custom banner, 4.7 stars"),
-  ("Custom vinyl banner 3ft x 6ft - USDA ORGANIC status (1 per market)",2,36.96,
-   "Amazon custom banner, 4.7 stars"),
-  ("Custom vinyl banner 3ft x 6ft - farm identity (1 per market)",2,36.96,
-   "Amazon custom banner, 4.7 stars"),
+ "BrandBuildingAndMarketing": ("Brand Building and Marketing", 1880.50, [
+  ("Market signage OR SIMILAR - farm identity, USDA ORGANIC certified status, "
+   "and flagship product signs, sufficient for TWO simultaneous farmers markets. "
+   "Quantity, size and substrate to be determined - vinyl banner, rigid aluminium "
+   "or sign-shop printed as best serves each message.",1,550.00,
+   "reference pricing: custom vinyl banner 3ft x 6ft 13oz $36.96 (4.7 stars/570); "
+   "heavy-duty 18oz $39.00; rigid aluminium 24x18 .040 $45.79; local sign shop "
+   "approx $8-12 per sq ft"),
   ("Chalkboards - A-frame, hanging, tabletop, plus chalk markers",1,400.00,
    "A-frame chalkboard 40x20 rustic brown $61.99 (4.6 stars); hanging board $39.99; "
    "tabletop easel set $31.34; Chalk Ink markers $19.99"),
