@@ -16,22 +16,29 @@ what a GAP auditor expects to see on food-contact equipment:
 PVC would be a third the price and a tenth the defensibility. Threaded stainless
 is worse than both — threads are the hardest thing in a wash system to clean.
 
-## Bill of materials
+## Bill of materials — every price verified on its own product page, 2026-10-02
 
-| Item | Qty | Ea | Ext | Source |
-|---|---|---|---|---|
-| **Sanitary spool tube, 2" TC ends, 304 seamless** — header sections | 3 | $37.99 | **$113.97** | Dernord `B076F46Y7N` 4.8★/446 |
-| **Clamp tee, 3-way, 2" TC** — air inlet | 1 | $15.99 | $15.99 | Dernord, incl. 3 gaskets |
-| **Sanitary end cap, 2" TC** | 2 | $7.99 | $15.98 | Dernord 4.6★ |
-| **Tri-clamp, single-pin wing nut + silicone gasket** | 8 | $12.99 | **$103.92** | tool-free, 4.7★ |
-| Spare silicone gaskets | 1 | $15.00 | $15.00 | wear item |
-| Stainless standoffs / feet | — | $40.00 | $40.00 | hold the header off the tank floor |
-| | | **PARTS** | **$304.86** | |
-| **Spa blower** | 1 | — | **$0 — OWNED** | |
-| Labor — 8 hrs @ $25 (drill, assemble, mount) | | | **$200.00** | grant-eligible |
-| | | **TOTAL** | **$504.86** | |
+| Part | Qty | Ea | Ext | Rating | Link |
+|---|---|---|---|---|---|
+| **Sanitary spool tube, 2" TC ends, 304 seamless** — header sections | 3 | $37.99 | **$113.97** | 4.8★/446 | https://www.amazon.com/dp/B076F46Y7N |
+| **Clamp tee, 3-way, 2" TC** (incl. 3 gaskets) — air inlet | 1 | $15.99 | $15.99 | 4.6★/109 | https://www.amazon.com/dp/B08198ZPPK |
+| **End cap, 2" TC — 6 PACK** (need 2) | 1 | $13.99 | $13.99 | 4.5★/29 | https://www.amazon.com/dp/B0DCS3FMH4 |
+| **Tri-clamp, wing nut + gasket — 10 PACK** (need 8) | 1 | $42.99 | **$42.99** | 4.8★/21 | https://www.amazon.com/dp/B0DP9TC1BN |
+| **Silicone gaskets, 2" — 12 PACK** (spares) | 1 | $7.98 | $7.98 | 4.4★/23 | https://www.amazon.com/dp/B0D7WFHHD4 |
+| Stainless standoffs / feet | — | $40.00 | $40.00 | *estimate* | fab from scrap or buy |
+| | | **PARTS** | **$234.92** | | |
+| **Spa blower** | 1 | — | **$0 — OWNED** | | |
+| Labor — 8 hrs @ $25 | | | **$200.00** | | grant-eligible |
+| | | **TOTAL** | **$434.92** | | |
 
-**Against the $7,200 Amazon bubble washer: saves $6,695.**
+**$69.94 cheaper than my estimate**, because the multipacks beat buying
+singles — 10 tri-clamps for $42.99 against 8 at $12.99 each, and 6 end caps for
+$13.99 against 2 at $7.99.
+
+**Against the $7,200 Amazon bubble washer: saves $6,765.**
+
+**Only one line is still unsourced** — the $40 standoffs, which can likely be
+fabricated from scrap.
 
 ### ⚠️ Match the size to your blower
 Spa blowers are commonly **1.5" or 2"** outlet. The BOM above assumes **2"**.
