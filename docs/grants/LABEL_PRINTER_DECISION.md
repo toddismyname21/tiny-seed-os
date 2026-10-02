@@ -7,7 +7,39 @@ to stand moisture."*
 
 ---
 
-# 1. 🔴 FIRST — you linked the WRONG MODEL
+# ✅ RESOLVED 2026-10-02 — no printer in the budget, workshop on the Brother
+
+**Todd: *"we already have the brother printer we use with black and white
+labels. we will workshop with those until we finalize designs."***
+
+**Right call, and it closes the question cleanly.** Nothing in the budget pays for
+labels or a label printer. Designs get worked out on equipment the farm already
+owns, at no cost, and the decision on printed labels waits until there is a design
+worth printing and OEFFA has approved it.
+
+This is a better version of the "print one run of King Spring Mix first" idea —
+cheaper still, and infinitely more iterations.
+
+## ⚠️ One thing that will mislead you if you are not expecting it
+
+**A Brother thermal label on paper stock will fail in your cooler** — it wicks
+condensation, curls, and releases, and direct-thermal print fades.
+
+🔴 **Do not read that failure as a problem with the design.** It is the stock.
+Paper is fine for working out layout, type size, what fits and what reads from
+three feet away. It tells you nothing about whether the finished label survives.
+
+➡️ **When you want to test survival rather than layout, run the same design on a
+film/durable roll** — Brother sells them — and leave one on a bagged mix in the
+cooler for a week. That is the test that matters, and it costs the price of one
+roll.
+
+**The real-material spec has not changed:** poly/BOPP stock with a **wet-strength,
+all-temperature adhesive**, whenever the printed run eventually happens.
+
+---
+
+# 1. 🔴 For the record — the linked model was the wrong one *(superseded, kept for when this comes back)*
 
 You sent the **Matte** version (`C31CK03A9981`). Epson's own product page says:
 
