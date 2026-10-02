@@ -98,6 +98,39 @@ auditor looks for.
 | **CEILING** | $15,000.00 | |
 | **UNALLOCATED** | **$4,247.57** | |
 
+## Per-item cap test — whole budget
+
+**Todd, 2026-10-02:** *"the largest single item should be the table or the flail
+mower."* Correct. The $10,000 cap is a **whole-budget** test, not a per-system
+one, and the two biggest lines are tied:
+
+| Rank | Line | Amount |
+|---|---|---|
+| **1 =** | **Used stainless bagging table** + buffer | **$2,000.00** |
+| **1 =** | **48" flail mower, straight, used** | **$2,000.00** |
+| 3 | Chilled water loop *(a build, not one item)* | $1,915.00 |
+| 4 | Salad dryer baskets ×2 *(2 × ~$405)* | $900.00 |
+| 5 | Forced-air coolers ×2 *(a build)* | $835.52 |
+| 6 | Professional photography | $800.00 |
+| 7 | Greens washer manifold *(a build)* | $522.91 |
+| 8 | Transport / drive | $500.00 |
+| 8 | Wholesale line sheet | $500.00 |
+| 8 | Signage | $500.00 |
+| 11 | Band sealer with date + lot coder | $279.00 |
+
+✅ **Largest single item: $2,000 — just 20% of the $10,000 cap. $8,000 of
+headroom.** Nothing in this budget is anywhere near the equipment exclusion.
+
+⚠️ **Three lines are BUILDS, not single items** — the chilled water loop, the
+forced-air coolers, and the greens washer manifold. Each is parts plus our own
+labor, so no single purchase inside them approaches the cap either (the biggest
+is the loop's $563.33 pump). Worth stating that way on the Budget Builder so a
+reviewer does not read a $1,915 system as a $1,915 item.
+
+✅ **Shipping is a separate expense** per the Overview, so the $500 transport does
+not load the table's $2,000.
+
+
 **Removed 2026-10-02 at Todd's direction** — pending decisions on what the
 labelling actually becomes:
 

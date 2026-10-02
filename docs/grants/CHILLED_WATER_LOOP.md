@@ -129,7 +129,7 @@ food-grade stainless, **insulated**, usually with an **agitator**, and often wit
 | Real gap | greens currently get **no cooling step at all**; they sit at ambient in a stock tank while being bagged |
 | Measurable benefit | *"a one-hour delay in cooling can reduce shelf life by a day or more"*; salad greens respire **4× faster at 50°F than 32°F** |
 | Market access | **shelf life is the entire wholesale argument.** Buyers reject on wilt and short life |
-| Per-item cap | ✅ largest single item is the **$565 pump** — nowhere near $10,000 |
+| Per-item cap | ✅ **this loop is a BUILD, not a single item** — its largest single part is the **$563.33 pump.** For the whole-budget cap test see `PASA_BD_PLAN_REVISED.md` |
 | Food safety | tri-clamp sanitary fittings throughout, fully demountable — a quotable GAP strength |
 | Labor | eligible; we build it |
 
