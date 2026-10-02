@@ -30,6 +30,27 @@ traceable weight.
 
 ---
 
+# ⚠️ REVISED 2026-10-02 — real prices, and they change everything
+
+The CMI quote came in at **$20,530 for a bagging table and $30,675 for a
+spinner.** Absurd for a farm. CMI builds for commercial processors.
+
+**My estimates were 5–9× low, and then real farm-scale prices turned out to be
+5–10× LOWER than my estimates.** Both errors came from guessing instead of
+pricing. Verified prices below, checked 2026-10-02.
+
+| Item | CMI quoted | My estimate | **Real farm-scale** |
+|---|---|---|---|
+| Bag sealer w/ date coding | *(not quoted)* | $2,500 | **$144–$280** |
+| Spin dryer | **$30,675** | $3,500 | **$959** (Johnny's, verified) |
+| Bagging table w/ scales | **$20,530** | $3,800 | **~$1,200 built** |
+| Temp monitoring | — | $300 | **$39–$149** |
+
+**The operational fix is far cheaper than anyone thought — which means the
+$15,000 can do much more than the pack line.**
+
+---
+
 # THE PLAN
 
 ## PRIORITY 1 — Bagging. The named bottleneck. ~$6,800
