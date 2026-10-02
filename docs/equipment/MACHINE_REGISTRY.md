@@ -85,6 +85,45 @@ gallon** (current retail $3,059–$3,745; used VP1 units $1,800–$2,195 on eBay
 **That means a live OEM parts channel may reach this machine** — call Electrolux
 Professional parts, or Parts Town, with photos and the Shelleymatic name.
 
+## Salad dryer dimensions and drive — measured 2026-10-02
+
+| | |
+|---|---|
+| Bowl inside diameter | **21 in** |
+| Bowl depth | **19 in** |
+| Bowl volume | **6,581 in3 = 28.5 US gal** |
+| Basket implied (1/2 in clearance all round) | ~20 in x 18 in = **24.5 US gal** |
+| **Class** | **20-gallon commercial** — same class as Hobart SDPE-11 and Electrolux VP1 |
+| **Drive** | **cast octagonal boss the basket slips over.** Centre hole, rectangular slot beside it, two small holes on the centre line |
+| Both machines share the same drive | YES — Todd confirmed. **One basket pattern fits both** |
+
+**The octagonal drive rules out a plain produce basket.** The basket must have a
+matching octagonal socket in its floor or it spins free and drives nothing. Any
+"use a bushel basket" idea is dead, and the 1-1/4 bushel orange baskets on the
+farm equipment list are for something else.
+
+**Still needed to identify the part: the octagon itself** — across the flats,
+across the corners, and height above the deck.
+
+## Parts that exist, priced 2026-10-02
+
+Right aisle: WebstaurantStore **"Salad Dryer / Spinner Parts and Accessories"**
+(`/49725/`, 50 products).
+
+| Part | Price | Note |
+|---|---|---|
+| **Hobart `PESPIN-BASKET`** basket, SDPE-11 dryers | **$404.99** ea, ships free | item `425PESPINBAS`, 20-gal class |
+| **Delfield `6230116`** Liner with lid, plastic | **$364.49** ea | "liner" = the basket |
+| **Delfield `6230251`** **Drive, Liner, Casting** | **$134.64** | **same kind of part as Todd's octagonal boss** |
+| 176BASKETLG / 176BASKETSM | $51.49 / $40.49 | countertop size — far too small |
+| Hobart part at Kitchenall / Chef's Deal | $465.00 / $562.10 | worse prices |
+
+**Two baskets at OEM price is roughly $730-810.**
+
+**The Delfield route is the interesting one.** Delfield sells the drive casting
+as a separate part, so a mismatch is fixable: buy the liner AND its casting and
+swap the casting onto the machine. That turns a fitment problem into a bolt-on.
+
 ## Salad dryer basket sourcing — what is verified and what is not
 
 | Fact | Status |
