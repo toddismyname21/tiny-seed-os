@@ -107,6 +107,53 @@ carrying bed counts but no acreage (`Kretschmann`, `Rosemary`, `Z1`).
 ⚠️ **Hypothesis, not survey.** Built on latitude ordering and cluster shape. One
 look at the map links settles it.
 
+## 📍 TODD 2026-10-02 — "tomatoes in F3 next year, salad in many fields"
+
+**This narrows it most of the way.**
+
+### Tomatoes → F3 → farm 1068 / tract 446
+
+⚠️ **"F3" is an OS block name, not an FSA field number.** The OS carries
+**`F3L` (0.51 ac)** and **`F3M` (0.28 ac)** — the F-blocks all sit in the
+**MIDDLE cluster**, which maps to **FSA farm 1068 / tract 446**.
+
+**Do NOT write "field 3" on the form.** FSA field `1068/446/3` is a different
+thing — 0.95 ac of UHEL ground — and it is only a coincidence of numbering.
+
+🔴 **Still open: which of farm 1068's six FSA fields contains F3L/F3M.**
+
+| FSA field | Acres | Type | Satellite |
+|---|---|---|---|
+| 1068/446/1 | 33.55 | **HEL** | [map](https://maps.google.com/?q=40.747077,-80.163148) |
+| 1068/446/2 | 1.24 | **HEL** | [map](https://maps.google.com/?q=40.748767,-80.160136) |
+| 1068/446/3 | 0.95 | UHEL | [map](https://maps.google.com/?q=40.745867,-80.161083) |
+| 1068/446/4 | 6.41 | UHEL | [map](https://maps.google.com/?q=40.743748,-80.163655) |
+| 1068/446/5 | 20.79 | UHEL | [map](https://maps.google.com/?q=40.747596,-80.163886) |
+| 1068/446/6 | 3.74 | UHEL | [map](https://maps.google.com/?q=40.748348,-80.160861) |
+
+### ⭐ Salad "in many fields" is fine, and may even be the better answer
+
+The middle cluster already holds most production blocks — `F3L, F3M, F7M, F11M,
+SO, IL, HOL, JL, K1, K2, M, IOL, CL, B`. If salad is spread across those,
+**salad and tomatoes are both on farm 1068 / tract 446.**
+
+✅ **That is the outcome this document predicted as best:** one FSA farm, two
+commodities, HEL ground available for the practice. The cleanest possible shape
+for AMP.
+
+**And the acreage rule already established here still holds** — the FSA field
+number is an address; the acreage reported is the production acreage actually
+treated, not the 33.55 or 66.68 of tract.
+
+### 🔴 Two things to ask Chris
+
+1. **"Salad greens rotate across several blocks inside one FSA tract. Do we name
+   one field, several, or the tract?"** Rotation is normal and the form asks for
+   a specific field — this needs his answer rather than our guess.
+2. **"Tomatoes move to this ground next season. Does the conservation practice
+   need to be active on that field now, or at the time of the project?"** The
+   rule says the practice must be ACTIVE for those crops and that field.
+
 ## 🎯 The only question left for AMP
 
 Not 24 blocks. Not 11 fields. **One question:**
