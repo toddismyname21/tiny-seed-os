@@ -85,7 +85,6 @@ auditor looks for.
 |---|---|---|
 | **Used stainless bagging table** (Essex Junction VT) | **$1,500.00** | ✅ listing |
 | — transport / drive (~1,260 mi round) | **$500.00** | Todd's figure |
-| **2 × Liberty LS-915-SS** bench scale, 60 lb × 0.002 lb, NTEP, **column-mounted remote indicator** | **$1,377.98** | ✅ $688.99 ea |
 | **Band sealer with date + lot coder** | **$279.00** | ✅ VEVOR 4.2★/199 |
 | Bag + label stock (¼, 1, 3 lb) | $500.00 | est |
 | Label applicator | $500.00 | est — optional |
@@ -95,12 +94,13 @@ auditor looks for.
 | Wholesale line sheet | $500.00 | est |
 | Signage | $500.00 | est |
 | **GAP certification** | $3,000.00 | est — needs real PA fee |
-| **SUBTOTAL** | **$10,222.52** | |
+| **SUBTOTAL** | **$10,114.52** | |
 | **CEILING** | $15,000.00 | |
-| **REMAINING** | **$4,777.48** | |
+| **REMAINING** | **$4,885.48** | |
 
 ✅ Largest single item **$3,000** — well under the $10,000 cap.
-✅ **Struck: 3 × salad spinner, $2,877.** Todd already built his own.
+✅ **Struck: 3 × salad spinner, $2,877** — Todd already built his own.
+✅ **Struck: 2 × bench scales, $1,377.98** — Todd's call, 2026-10-02.
 
 ## ⭐ What the remaining $4,777 should buy
 
