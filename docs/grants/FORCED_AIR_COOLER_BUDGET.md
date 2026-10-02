@@ -34,11 +34,18 @@ suitable."* **Build the 4' version** — less lumber, less plastic, fits our sca
 UVM: *"easily constructed in an afternoon."* Call it **5 hours the first unit,
 4 the second** once you know the cuts — **9 hours**.
 
-| Rate | Labor | **Project total** |
-|---|---|---|
-| $25/hr | $225 | **$835.52** |
-| $30/hr | $270 | **$880.52** |
-| $35/hr | $315 | **$925.52** |
+### ✅ RATE SET: **$25/hr** — Todd, 2026-10-02
+
+| | |
+|---|---|
+| Materials | **$610.52** |
+| Labor — 9 hrs × $25/hr | **$225.00** |
+| **PROJECT TOTAL, BOTH UNITS** | **$835.52** |
+| *per unit* | *$417.76* |
+
+**Line for the budget builder:**
+> *Forced-air cooling units (2) — materials $610.52 + 9 hours farm labor @ $25/hr
+> $225.00 = **$835.52***
 
 ⚠️ **Use a rate you can document** — what the farm actually pays for comparable
 work. Do not pick a number. And log it properly: date, person, hours, and the

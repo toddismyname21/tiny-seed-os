@@ -44,13 +44,13 @@ $30,675.**
 small-farm greens dryer — roughly $200 used, handles 10–20 lb a spin. Not
 glamorous, entirely normal at this scale, and our labor to build it counts.*
 
-## C. Fix cooling — **~$750**
+## C. Fix cooling — **$1,133.52** ✅ costed
 
 | Item | Price | Note |
 |---|---|---|
-| Forced-air fan + baffle/ducting materials | **$400** est | pulls cold air **through** the pallet, not around it |
+| **2 × UVM pallet forced-air coolers** — materials $610.52 + 9 hrs labor @ $25 | **$835.52** ✅ costed | pulls cold air **through** the pallet, not around it. See `FORCED_AIR_COOLER_BUDGET.md` |
 | **Temp Stick WiFi monitor ×2** | **$298** | ✅ $149 ea, 4.4★ / 3.9K reviews, no subscription |
-| Misc fittings | $50 | |
+
 
 Not a cooler — we have coolers. This makes them pull field heat in minutes
 instead of hours, and the logger **proves the cold chain to a buyer.**
