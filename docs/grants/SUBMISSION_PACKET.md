@@ -61,10 +61,10 @@ consideration #1.
 
 | Field | Enter |
 |---|---|
-| **Farm owner labor hours = $** | **2450.00** |
+| **Farm owner labor hours = $** | **2950.00** |
 | **Farm staff labor hours = $** | **1225.00** |
 
-*(49.0 owner hours × $50 · 49.0 staff hours × $25 · **98 hours total**)*
+*(59.0 owner hours × $50 · 49.0 staff hours × $25 · **108 hours total**)*
 
 ## Explanation of how labor hours will be used
 
@@ -77,7 +77,9 @@ reservoir and a sanitary circulating pump that chills the greens wash tank.
 Designing product labels in house for seven packaged salad and tomato lines.
 And building branded wooden market display containers, which standardize how all
 seven salad and tomato lines are presented across two simultaneous farmers
-markets.
+markets. And ten owner hours to write the farm's food safety plan and standard
+operating procedures covering the new wash and cooling system, including wash
+water sanitation and monitoring for the recirculating chilled water loop.
 ```
 
 ---
@@ -85,15 +87,15 @@ markets.
 # FIELD 5 — Total Requested
 
 ```
-15668.31
+16168.31
 ```
 
 | | |
 |---|---|
 | Materials | $11,993.31 |
-| Labor | $3,675.00 |
-| **Total** | **$15,668.31** |
-| vs the soft ceiling | 🟡 **$668.31 over** |
+| Labor | $4,175.00 |
+| **Total** | **$16,168.31** |
+| vs the **soft** ceiling | **$1,168.31 over — submitting over, by decision** |
 
 ---
 
