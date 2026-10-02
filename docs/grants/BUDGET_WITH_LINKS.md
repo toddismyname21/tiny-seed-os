@@ -86,6 +86,56 @@ listing today. Swap anything you can beat and tell me the new number.
 
 ---
 
+# ⚠️ ON THE VINYL PRICES — Todd 2026-10-02: *"the vinyl sign prices seem low to me too"*
+
+**The price is real. The question is whether it is the right product.**
+
+Checked against the wider market today: NextDayFlyers 60×36 13 oz scrim is
+**$40.95**, Lush Banners heavy-duty **18 oz is $39.00**. Online banner printing
+genuinely runs **$2–3 per square foot.** So $36.96 for a 3'×6' is not an error.
+
+**But it is a commodity price for a commodity product.** A 13 oz banner set up and
+struck twice a week, in sun and wind, is a **one-to-two season item.** A local
+sign shop charges 4–6× as much because the material is better, you see a proof,
+and they fix it when it is wrong.
+
+| Tier | Each | × 11 | vs budget |
+|---|---|---|---|
+| Online commodity, 13 oz | $36.96 | $406.56 | — |
+| ⭐ **Online HEAVY DUTY, 18 oz** | **$39.00** | **$429.00** | **+$22.44** |
+| Rigid aluminium 24×18, .040 | $45.79 | $503.69 | +$97.13 |
+| Local sign shop @ $8/sq ft | $144.00 | $1,584.00 | +$1,177.44 |
+| Local sign shop @ $12/sq ft | $216.00 | $2,376.00 | +$1,969.44 |
+
+⭐ **Take the 18 oz regardless. It is $2.04 more per banner** — $22.44 across all
+eleven — and it is the difference between one season and three.
+
+## 💡 The better question: are eleven banners the right structure at all?
+
+**Product names change. Farm name and organic status do not.**
+
+| Message | Changes? | Right medium |
+|---|---|---|
+| Farm identity | never | **rigid or sign-shop quality** — buy it once, well |
+| **USDA ORGANIC status** | never | **rigid** — this is the credential, it should not look cheap |
+| King Spring Mix, Petite Kale… | **seasonally** | **chalkboards — already budgeted at $400** |
+
+➡️ **Fewer, better signs.** Four permanent ones (2 farm + 2 organic, one of each
+per market) done properly, and let the already-funded chalkboards carry the
+products that rotate.
+
+| Option | Cost | vs the 11-banner plan |
+|---|---|---|
+| 4 rigid aluminium @ $45.79 | **$183.16** | **−$223.40** |
+| 4 sign-shop vinyl @ $144 | $576.00 | +$169.44 |
+| 4 sign-shop vinyl @ $216 | $864.00 | +$457.44 |
+
+**Four good signs for $576 reads better at a market stand than eleven cheap ones
+for $406.** And it is the structure that matches how the information actually
+behaves.
+
+---
+
 # 🔴 THREE THINGS THIS EXERCISE CAUGHT
 
 ### 1. ⬇️ Band sealer is cheaper than budgeted — **$239.98, not $279.00**
