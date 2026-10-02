@@ -24,15 +24,15 @@ blank** unless the form requires a zero.
 
 | Pasa category | Enter |
 |---|---|
-| Business Development and Planning | **$1,656.15** |
+| Business Development and Planning | **$1,000.00** |
 | Brand Building and Marketing | **$1,524.16** |
-| Market & Event Material | **$959.90** |
+| Market & Event Material | **$1,616.05** |
 | Food Safety, Certification, and Planning | *(blank — $0)* |
 | Wash/Pack Station and Post-Harvest Handling | **$3,861.89** |
 | Cooling, Storage, and Logistics | **$1,991.21** |
 | Product Protection Supplies | *(blank — $0)* |
 | **Other** | **$2,000.00** |
-| | **$11,993.31** |
+| | **$11,993.31** *(unchanged — the label money moved to display containers)* |
 
 ## Other — text field
 
@@ -61,10 +61,10 @@ consideration #1.
 
 | Field | Enter |
 |---|---|
-| **Farm owner labor hours = $** | **1950.00** |
-| **Farm staff labor hours = $** | **975.00** |
+| **Farm owner labor hours = $** | **2450.00** |
+| **Farm staff labor hours = $** | **1225.00** |
 
-*(39.0 owner hours × $50 · 39.0 staff hours × $25 · 78 hours total)*
+*(49.0 owner hours × $50 · 49.0 staff hours × $25 · **98 hours total**)*
 
 ## Explanation of how labor hours will be used
 
@@ -75,8 +75,9 @@ taken apart and cleaned. Building two pallet forced-air coolers on the Universit
 of Vermont design. Assembling a chilled water loop, which is an insulated ice
 reservoir and a sanitary circulating pump that chills the greens wash tank.
 Designing product labels in house for seven packaged salad and tomato lines.
-And building branded wooden display containers to standardize how product is
-presented at two farmers markets.
+And building branded wooden market display containers, which standardize how all
+seven salad and tomato lines are presented across two simultaneous farmers
+markets.
 ```
 
 ---
@@ -84,32 +85,33 @@ presented at two farmers markets.
 # FIELD 5 — Total Requested
 
 ```
-14918.31
+15668.31
 ```
 
 | | |
 |---|---|
 | Materials | $11,993.31 |
-| Labor | $2,925.00 |
-| **Total** | **$14,918.31** |
+| Labor | $3,675.00 |
+| **Total** | **$15,668.31** |
+| vs the soft ceiling | 🟡 **$668.31 over** |
 
 ---
 
 # FIELD 6 — How these investments reach new customers, bring new products to market, or increase sales
 
 ```
-Tiny Seed Farm can grow more salad greens than it can wash, cool, pack and label.
-Greens are currently bagged in three separate touches out of an open stock tank
-with no cooling step, which shortens shelf life and keeps us out of wholesale
-accounts that require consistent pack weights, a lot code and a reliable product.
-This funding closes that gap: rapid hydrocooling for greens and forced-air
-cooling for tomatoes to protect shelf life, a bagging table and a band sealer
-that prints pack date and lot code as it seals, and branded packaging for seven
-named products including King Spring Mix, Something Fresh Mix and Petite Kale
-Mix. With consistent, traceable, branded pack sizes and market signage that
-states our certified organic status, we can hold the chef and institutional
-accounts we serve today and open retail and wholesale accounts we cannot serve
-now.
+Tiny Seed Farm can grow more salad greens than it can wash, cool, pack and sell,
+because greens are currently bagged in three separate touches out of an open
+stock tank with no cooling step, which shortens shelf life and keeps us out of
+wholesale accounts that require consistent pack weights, a lot code and a
+reliable product. This funding closes that gap with rapid hydrocooling for greens
+and forced-air cooling for tomatoes to protect shelf life, and a bagging table
+and band sealer that prints pack date and lot code as it seals. It also builds a
+standardized market presence across two simultaneous farmers markets through
+custom display containers, signage stating our certified organic status and our
+flagship products, and a CSA campaign reaching new neighbours, so that longer
+shelf life and traceable pack weights hold our chef and institutional accounts
+while a consistent market identity grows direct sales.
 ```
 
 *(3 sentences, within the 2–3 asked for.)*

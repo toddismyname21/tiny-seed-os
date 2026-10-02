@@ -48,11 +48,11 @@ DATA = {
   ("Tri-clamps with wing nut and gasket, 10 pack",1,42.99,"Amazon, 4.8 stars"),
   ("Silicone gaskets, 12 pack spares",1,7.98,"Amazon, 4.4 stars"),
  ]),
- "BusinessDevelopmentAndPlanning": ("Business Development and Planning", 1656.15, [
-  ("Professional photography, 15 images",1,1000.00,
-   "Photos By Aaron Sheedy published menu, February 2026 - attached separately"),
-  ("Product labels, 5,000, custom printed",1,656.15,
-   "UPrinting roll labels, verified $131.23 per 1,000 ($0.13 each)"),
+ "BusinessDevelopmentAndPlanning": ("Business Development and Planning", 1000.00, [
+  ("Professional photography - farm and product photography for marketing, "
+   "signage, website and wholesale materials",1,1000.00,
+   "Photos By Aaron Sheedy published menu, February 2026 - attached separately. "
+   "Scope to be agreed with the photographer within this budget."),
  ]),
  "BrandBuildingAndMarketing": ("Brand Building and Marketing", 1524.16, [
   ("Custom vinyl product banners, 2ft x 4ft, full colour 13 oz (7 SKUs x 2 markets)",14,26.88,
@@ -67,10 +67,12 @@ DATA = {
   ("'Won't You Be My Neighbor' CSA campaign - printed inserts for local builder "
    "new-homeowner welcome packets",1,600.00,"allowance, print quote pending"),
  ]),
- "MarketAndEventMaterial": ("Market & Event Material", 959.90, [
+ "MarketAndEventMaterial": ("Market & Event Material", 1616.05, [
   ("8 ft folding tables, 660 lb capacity",1,270.00,"Amazon, 4.6 stars, $99.99 ea reference"),
   ("Custom printed tablecloths with farm logo, 6 ft fitted",10,38.99,"Amazon, 4.6 stars"),
-  ("Branded wooden display containers - lumber, nails, screws",1,300.00,
+  ("Branded wooden market display containers - lumber, nails, screws, "
+   "hardware and finish. Standardises how all seven salad and tomato lines are "
+   "presented across two simultaneous farmers markets.",1,956.15,
    "materials only; build labour is in the labour line"),
  ]),
  "Other": ("Other", 2000.00, [
