@@ -79,36 +79,57 @@ auditor looks for.
 
 ---
 
-# BUDGET — as of 2026-10-02
+# BUDGET — 2026-10-02
 
 | Line | Amount | Source |
 |---|---|---|
-| **Used stainless bagging table** (Essex Junction VT) — incl. buffer for add-ons | **$2,000.00** | ✅ listing $1,500 + buffer |
-| — transport / drive (~1,260 mi round) | **$500.00** | Todd's figure |
+| **Used stainless bagging table** + buffer for add-ons | **$2,000.00** | ✅ listing $1,500 + headroom |
+| — transport / drive (~1,260 mi round) | $500.00 | Todd's figure |
 | **Band sealer with date + lot coder** | **$279.00** | ✅ VEVOR 4.2★/199 |
-| Bag + label stock (¼, 1, 3 lb) | **$500.00** | est |
-| Label applicator | **$500.00** | est |
 | **Forced-air coolers ×2** — materials + 9 hrs @ $25 | **$835.52** | ✅ costed |
 | **Greens washer — stainless tri-clamp manifold** (replaces PVC) — parts + 10 hrs @ $25 | **$522.91** | ✅ costed; tank + blower OWNED |
-| Label design — USDA organic seal, OEFFA statement | **$1,200.00** | est |
-| Professional photography | **$800.00** | est |
-| Wholesale line sheet | **$500.00** | est |
-| Signage | **$500.00** | est |
-| **GAP certification** | **$3,000.00** | est — needs real PA fee |
-| **SUBTOTAL** | **$11,137.43** | |
+| Professional photography | $800.00 | est |
+| Wholesale line sheet | $500.00 | ⚠️ see note |
+| Signage | $500.00 | est |
+| **SUBTOTAL** | **$5,937.43** | |
 | **CEILING** | $15,000.00 | |
-| **REMAINING** | **$3,862.57** | |
+| **UNALLOCATED** | **$9,062.57** | |
 
-✅ Largest single item **$3,000** — well under the $10,000 cap.
-✅ Shipping separately expensable per the Overview.
-✅ No ground disturbance; nothing in an excluded category.
+**Removed 2026-10-02 at Todd's direction** — pending decisions on what the
+labelling actually becomes:
 
-**Struck along the way:** 3 × salad spinner $2,877 (Todd built his own) ·
-2 × bench scales $1,377.98 (Todd's call) · $7,200 Amazon bubble washer
-(replaced by the $522.91 stainless manifold build).
+| | |
+|---|---|
+| Bag + label stock | −$500.00 |
+| Label applicator | −$500.00 |
+| Label design | −$1,200.00 |
+| GAP certification | −$3,000.00 |
+| **Freed** | **$5,200.00** |
 
-**Owned, so $0 in this budget:** stock tank 120×20×12 · spa blower · walk-in
-coolers.
+**Struck earlier:** 3 × salad spinner $2,877 · 2 × bench scales $1,377.98 ·
+$7,200 Amazon bubble washer, replaced by the $522.91 stainless build.
+
+**Owned, so $0:** stock tank 120×20×12 · spa blower · walk-in coolers · spinners.
+
+## What a "wholesale line sheet" is
+
+A **one-page sell sheet you send to a chef or buyer.** Not marketing fluff — it
+is the document wholesale buyers expect before they will order:
+
+- Every product you sell them, by name
+- **Pack size and unit** — "Salad mix, 3 lb case" — so they can order without asking
+- **Price per unit**
+- **Availability window** — which weeks each crop runs
+- Minimum order, delivery days, lead time, how to order
+- Farm name, certification, contact
+
+Right now every new wholesale account comes from a conversation. A line sheet is
+what lets a buyer who has never met you decide to buy — and what lets an existing
+one reorder without a phone call. Pasa lists it under *General Marketing
+Materials — item list*.
+
+**$500 is for design and print.** If you would rather build it yourself from the
+portal data, it costs nothing — say the word and I will drop the line.
 
 ## ⭐ What the remaining $4,777 should buy
 
