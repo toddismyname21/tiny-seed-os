@@ -25,14 +25,14 @@ blank** unless the form requires a zero.
 | Pasa category | Enter |
 |---|---|
 | Business Development and Planning | **$1,000.00** |
-| Brand Building and Marketing | **$1,524.16** |
+| Brand Building and Marketing | **$1,854.66** |
 | Market & Event Material | **$1,616.05** |
 | Food Safety, Certification, and Planning | *(blank — $0)* |
 | Wash/Pack Station and Post-Harvest Handling | **$3,861.89** |
 | Cooling, Storage, and Logistics | **$1,991.21** |
 | Product Protection Supplies | *(blank — $0)* |
 | **Other** | **$2,000.00** |
-| | **$11,993.31** *(unchanged — the label money moved to display containers)* |
+| | **$12,323.81** |
 
 ## Other — text field
 
@@ -87,15 +87,15 @@ water sanitation and monitoring for the recirculating chilled water loop.
 # FIELD 5 — Total Requested
 
 ```
-16168.31
+16498.81
 ```
 
 | | |
 |---|---|
-| Materials | $11,993.31 |
+| Materials | $12,323.81 |
 | Labor | $4,175.00 |
-| **Total** | **$16,168.31** |
-| vs the **soft** ceiling | **$1,168.31 over — submitting over, by decision** |
+| **Total** | **$16,498.81** |
+| vs the **soft** ceiling | **$1,498.81 over — submitting over, by decision** |
 
 ---
 
@@ -156,6 +156,24 @@ while a consistent market identity grows direct sales.
 | 2 | **Conservation practice named** | Mulching 484 on that field — and it must be ACTIVE |
 | 3 | **Two commodities named** | Salad greens + tomatoes |
 | 4 | **Phone number verified from the registry** | A wrong number reached 68 emails on 2026-08-27 |
+
+## ⚠️ ONE ELIGIBILITY QUESTION TO SETTLE — postage
+
+The campaign is now **direct mail**, so **$650 of the $930.50 is USPS postage.**
+
+Pasa excludes *"Utilities, Insurance, credit cards fees and 'general operating
+expenses'."* **Postage is not named in that list**, and EDDM postage is the
+delivery of a marketing piece rather than an operating cost — the printing is
+worthless without it. The category *"General Marketing Materials —
+Professionally printed brochures, flyers, pamphlets"* plainly covers the print.
+
+🔴 **But it is genuinely ambiguous. Ask Chris before filing:**
+
+> *"Our neighbour campaign is USPS Every Door Direct Mail. Printing is $280.50
+> and postage is $650. Is the postage eligible, or should we show printing only?"*
+
+If postage is excluded, the campaign line drops to **$280.50** and the total
+falls to **$15,848.31**.
 
 ## Two questions worth asking Chris first — they could free $2,500
 

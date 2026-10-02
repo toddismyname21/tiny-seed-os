@@ -54,7 +54,7 @@ DATA = {
    "Photos By Aaron Sheedy published menu, February 2026 - attached separately. "
    "Scope to be agreed with the photographer within this budget."),
  ]),
- "BrandBuildingAndMarketing": ("Brand Building and Marketing", 1524.16, [
+ "BrandBuildingAndMarketing": ("Brand Building and Marketing", 1854.66, [
   ("Custom vinyl product banners, 2ft x 4ft, full colour 13 oz (7 SKUs x 2 markets)",14,26.88,
    "Amazon custom banner, 4.7 stars"),
   ("Custom vinyl banner 3ft x 6ft - USDA ORGANIC status (1 per market)",2,36.96,
@@ -64,8 +64,14 @@ DATA = {
   ("Chalkboards - A-frame, hanging, tabletop, plus chalk markers",1,400.00,
    "A-frame chalkboard 40x20 rustic brown $61.99 (4.6 stars); hanging board $39.99; "
    "tabletop easel set $31.34; Chalk Ink markers $19.99"),
-  ("'Won't You Be My Neighbor' CSA campaign - printed inserts for local builder "
-   "new-homeowner welcome packets",1,600.00,"allowance, print quote pending"),
+  ("'Won't You Be My Neighbor' CSA direct-mail campaign - PRINTING. "
+   "2,500 full-colour 14pt EDDM postcards introducing the farm and the salad CSA "
+   "to surrounding households",1,280.50,
+   "verified online print pricing, 2,500 EDDM full colour 14pt = $280.55"),
+  ("'Won't You Be My Neighbor' campaign - POSTAGE. USPS Every Door Direct Mail, "
+   "2,500 pieces. EDDM targets by postal carrier route, reaching every household "
+   "in selected neighbourhoods without purchasing a mailing list.",2500,0.26,
+   "USPS published rate: EDDM Retail USPS Marketing Mail Flats, $0.26 per piece"),
  ]),
  "MarketAndEventMaterial": ("Market & Event Material", 1616.05, [
   ("8 ft folding tables, 660 lb capacity",1,270.00,"Amazon, 4.6 stars, $99.99 ea reference"),
