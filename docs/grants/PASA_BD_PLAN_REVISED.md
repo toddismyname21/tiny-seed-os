@@ -88,13 +88,13 @@ auditor looks for.
 | **Band sealer with date + lot coder** | **$279.00** | ✅ VEVOR 4.2★/199 |
 | **Forced-air coolers ×2** — materials + 9 hrs @ $25 | **$835.52** | ✅ costed |
 | **Greens washer — stainless tri-clamp manifold** (replaces PVC) — parts + 10 hrs @ $25 | **$522.91** | ✅ costed; tank + blower OWNED |
-| **48" flail mower, 3-pt PTO** — cut and compost crop residue in place | **$2,400.00** | Todd's figure — buy quality, not cheapest |
+| **48" flail mower, 3-pt PTO, STRAIGHT** — cut and compost crop residue in place | **$2,000.00** | **USED, Facebook Marketplace** — Todd 2026-10-02 |
 | Professional photography | $800.00 | est |
 | Wholesale line sheet | $500.00 | ⚠️ see note |
 | Signage | $500.00 | est |
-| **SUBTOTAL** | **$8,337.43** | |
+| **SUBTOTAL** | **$7,937.43** | |
 | **CEILING** | $15,000.00 | |
-| **UNALLOCATED** | **$6,662.57** | |
+| **UNALLOCATED** | **$7,062.57** | |
 
 **Removed 2026-10-02 at Todd's direction** — pending decisions on what the
 labelling actually becomes:

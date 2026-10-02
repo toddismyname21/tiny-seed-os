@@ -6,7 +6,36 @@ push back on it."*
 Right call. Do not pre-negotiate against yourself — put it in with a proper
 justification and let Pasa rule.
 
-## 💰 BUDGETED: $2,400 — Todd 2026-10-02
+## 💰 FINAL: $2,000 — USED, Facebook Marketplace — Todd 2026-10-02
+
+> *"Just put $2000 used flail on facebook marketplace."*
+
+**Buy used, not new.** Same call Todd made on the bagging table, and for the same
+reason: a flail is simple, heavy steel. Used buys a far better machine per dollar
+than new, and the parts that matter — rotor, bearings, gearbox — are all
+inspectable in person.
+
+**What to check before handing over money:**
+
+| Check | Why |
+|---|---|
+| **Spin the rotor by hand** | must turn freely and quietly. Rumble or grind = bearings, the expensive failure |
+| **Count missing / cracked hammers** | they must be replaced in balanced pairs; a few missing is fine and is a bargaining point |
+| **Look for weld repairs on the rotor** | a rebuilt rotor is often out of balance and will eat bearings |
+| **Gearbox: oil level, and any leak at the seals** | the other expensive failure |
+| **Belt condition and sheave wear** (if belt driven) | cheap to fix, good leverage on price |
+| **Driveline / PTO shaft included?** | a Cat I shaft is $150–250 if it is missing |
+| **Straight, not offset** | Todd needs to hit the bed the tractor is centred on |
+| **Brand** | Caroni, Befco, Land Pride, Woods all have parts. An unbranded import may not |
+
+**$2,000 used reaches a genuinely good machine** — the same money buys an entry
+import new. Prefer a dealer-supported brand so bearings and hammers stay
+available.
+
+*(Superseded: the $2,400 new-machine budget below. Amazon options kept for
+reference only.)*
+
+## Previous: $2,400 new — superseded
 
 *"We don't need to buy the absolute cheapest."*
 
