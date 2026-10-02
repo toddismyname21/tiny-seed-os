@@ -214,6 +214,39 @@ which is the normal outcome of submitting over a soft ceiling.
 
 ---
 
+# 🏡 LANDOWNER — all land is leased
+
+**Verified 2026-10-02** from Don Kretschmann's own invoice letterhead
+(`legal/kretschmann_tiny_seed_lease/invoices/788TinySeed.doc` dated 12/4/2024 and
+`801TinySeedpd.doc` dated 5/1/2025 — same details on both).
+
+| Field on the form | Enter |
+|---|---|
+| **Landowner name** | `Donald Kretschmann` *(appears as "Don Kretschmann" and "Donald Kretschmann" — use the full legal form)* |
+| **Landowner entity** | `Kretschmann Farm` |
+| **Landowner email** | `don@kretschmannfarm.com` |
+| **Landowner address** | `257 Zeigler Rd., Rochester, PA 15074` |
+
+⚠️ **Note the address is the same as the farm's** — Tiny Seed leases from Don at
+257 Zeigler Rd.
+
+## Primary field name
+
+**Todd 2026-10-02: *"that was field one for me."*** ✅ Consistent — the field
+selected for the application is Field 1 under both numbering systems.
+
+| | |
+|---|---|
+| **In FSA terms** *(use this — unambiguous to Pasa and FSA)* | **`PA / Beaver / Farm 1068 / Tract 446 / Field 1`** |
+| **Todd's own name for it** | **Field One** |
+| Acres | 33.55, **Highly Erodible Land**, FSA cropland |
+
+⚠️ **If the form wants the LANDOWNER's own name for the field**, that may be
+something different again — Don has farmed this ground far longer and may call it
+by a name of his own. **One text to Don settles it**, and the FSA identifier is
+the safe answer in the meantime because it is the only designation all three
+parties — Todd, Don and FSA — can verify against the same record.
+
 # 📋 FINAL — EVERYTHING TO ENTER
 
 | Field | Value |
