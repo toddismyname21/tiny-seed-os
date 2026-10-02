@@ -66,17 +66,17 @@ every line below needs a real listing, not an estimate. Prices read 2026-10-02.
 |---|---|---|
 | Branded packaging — label stock, 4 SKUs | $600.00 | 🔴 **needs quantities** — see below |
 | Branded packaging — art budget | $400.00 | 🔴 allowance |
-| Professional photography | $800.00 | 🔴 **needs a quote** — see below |
-| | **$1,800.00** | |
+| **Professional photography — 15 images** | **$1,000.00** | ✅ **QUOTED** — Photos By Aaron Sheedy, menu Feb 2026, filed at `quotes/` |
+| | **$2,000.00** | |
 
 ## Brand Building and Marketing
 
 | Item | Total | Source |
 |---|---|---|
 | Market signage — rigid + **chalkboards** | **$1,259.23** | ✅ **fully priced below** (budgeted $1,500, $240.77 headroom) |
-| Wholesale line sheet | $500.00 | ⬜ Todd |
+| ~~Wholesale line sheet~~ | ~~$500.00~~ | ❌ **DROPPED** — Todd can build it in-house at no cost; freed $500 funds the larger photo package |
 | "Won't You Be My Neighbor" campaign print | $600.00 | 🔴 allowance |
-| | **$2,359.23** | |
+| | **$1,859.23** | |
 
 ### ✅ SIGNAGE PACKAGE — priced 2026-10-02, including Todd's chalkboards
 
@@ -146,14 +146,14 @@ OEFFA may require approval before printing. Ask Lauren Pope.
 | Wash/Pack Station | $3,861.89 |
 | Cooling, Storage, Logistics | $1,991.21 |
 | Other (flail mower) | $2,000.00 |
-| Business Development and Planning | $1,800.00 |
-| Brand Building and Marketing | $2,359.23 |
+| Business Development and Planning | $2,000.00 |
+| Brand Building and Marketing | $1,859.23 |
 | Market & Event Material | $800.00 |
-| **MATERIALS** | **$12,812.33** |
+| **MATERIALS** | **$12,512.33** |
 | Labor — 31.5 owner hrs @ $50 | $1,575.00 |
 | Labor — 31.5 staff hrs @ $25 | $787.50 |
-| **TOTAL REQUESTED** | **$15,174.83** |
-| vs the $15,000 **soft** ceiling | 🟡 **$174.83 over** |
+| **TOTAL REQUESTED** | **$14,874.83** |
+| vs the $15,000 **soft** ceiling | ✅ **$125.17 UNDER** |
 
 > ⬇️ **Real pricing pulled the ask down from $15,739.93 to $15,415.60** — the
 > baskets and the chilled loop both came in under estimate, together saving
@@ -161,12 +161,59 @@ OEFFA may require approval before printing. Ask Lauren Pope.
 
 ---
 
-# 🔴 THE FOUR THINGS STILL NEEDED
+## ✅ PHOTOGRAPHY QUOTED — Photos By Aaron Sheedy, February 2026
+
+Menu filed at `docs/grants/quotes/Photos_By_Aaron_Sheedy_Menu_2026.pdf`.
+**A published price menu is exactly what Pasa asks for** — *"estimates, job
+quotes, or documentation of costs."* This uploads as-is.
+
+| Service | Price |
+|---|---|
+| still image | $75 |
+| 10 images | $700 |
+| ⭐ **15 images** | **$1,000** |
+| event photography ≤ 2 hours | $250 |
+| photo editing / onsite photos / social media mgmt | **$30/hr** |
+
+### Why 15 and not 10
+
+The shot list does not fit in ten:
+
+| | |
+|---|---|
+| **4 product hero shots** | Cherry Tomato · Baby Arugula · Something Fresh Mix · Petite Kale Mix — one each, non-negotiable, these are the branded SKUs |
+| field / crop in the ground | sells the organic story |
+| harvest and pack house | sells the **food-safety** story to wholesale buyers |
+| Todd / crew | the farm's face — CSA and the neighbor campaign |
+| market stand | feeds the signage, the line sheet and the website |
+
+Ten images means four product shots and six for everything else. **Fifteen is the
+honest scope.**
+
+### The trade that pays for it
+
+| Option | Total | vs ceiling |
+|---|---|---|
+| A — 10 images $700 | $15,074.83 | over $74.83 |
+| B — 15 images $1,000 | $15,374.83 | over $374.83 |
+| ⭐ **D — 15 images $1,000, drop the $500 line sheet** | **$14,874.83** | ✅ **under $125.17** |
+| E — 15 + 2hr event $1,250, drop line sheet | $15,124.83 | over $124.83 |
+
+⭐ **Option D applied.** The wholesale line sheet was always the softest line —
+it is a document, not a purchase, and Todd can build it in house at no cost. It
+was already first on the original cut list. **Trading it for five more
+photographs buys something the farm cannot make itself, and lands the whole
+budget under the ceiling.**
+
+💡 **Note the $30/hr editing rate** — well below the $50/hr owner rate Pasa pays.
+If more content is wanted later, that is the cheapest hour on this project.
+
+# 🔴 THE TWO THINGS STILL NEEDED
 
 | # | Item | What is needed | From |
 |---|---|---|---|
 | 1 | **Label stock, 4 SKUs** | **How many of each per year?** Label pricing is entirely quantity-driven — 1,000 vs 10,000 changes the per-unit cost several-fold. Cannot be priced without it | **Todd** |
-| 2 | **Photography** | A quote from an actual photographer. A day or half-day rate on letterhead is exactly the documentation Pasa asks for | **get a quote** |
+| 2 | ~~Photography~~ | ✅ **RESOLVED** — Aaron Sheedy menu received, 15 images $1,000 |  |
 | 3 | ~~Signage material~~ | ✅ **RESOLVED** — rigid aluminium + chalkboards, $1,259.23 priced |  |
 | 4 | **Booth package** | Which of the verified anchors above — and does the farm already own tables? | **Todd** |
 
