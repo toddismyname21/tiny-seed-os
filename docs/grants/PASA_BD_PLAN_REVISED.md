@@ -31,18 +31,13 @@ against actual farm equipment. Both from estimating rather than pricing.
 
 **Three touches → one and a half**, for about a tenth of CMI's table alone.
 
-## B. Fix drying — **$1,918–$2,877**
+## B. Drying — **REMOVED, $0**
 
-| Item | Price | Note |
-|---|---|---|
-| **Dynamic Electric Salad Spinner ×2–3** | **$959 ea** | ✅ verified. 5.2 gal, 200W, 500 RPM, **HACCP-compliant, ETL to NSF/ANSI** |
+**Todd 2026-10-02: he has already built his own spinners, and the $959 Dynamic
+units are too small for his volume.**
 
-Two gets you parallel capacity; three ends the queue. **$2,877 against CMI's
-$30,675.**
-
-*Also worth pricing: a converted top-load washing machine is the standard
-small-farm greens dryer — roughly $200 used, handles 10–20 lb a spin. Not
-glamorous, entirely normal at this scale, and our labor to build it counts.*
+Struck. Saves **$2,877**. Farm-built spinners — the converted-washing-machine
+approach — are standard at this scale and his are already working.
 
 ## C. Fix cooling — **$1,133.52** ✅ costed
 
@@ -84,43 +79,41 @@ auditor looks for.
 
 ---
 
-# BUDGET
+# BUDGET — as of 2026-10-02
 
-| | | |
+| Line | Amount | Source |
 |---|---|---|
-| **A** | Bagging — sealer, scales, table, stock, applicator | **$2,150** |
-| **B** | Drying — 3 × spinner | **$2,877** |
-| **C** | Cooling — forced air + monitoring | **$750** |
-| **D** | Brand and market materials | **$3,500** |
-| **E** | **GAP certification** | **$3,000** |
-| | **Subtotal** | **$12,277** |
-| | **Remaining** | **$2,723** |
+| **Used stainless bagging table** (Essex Junction VT) | **$1,500.00** | ✅ listing |
+| — transport, drive it (~1,260 mi round) | $310.00 | est |
+| 2 × stainless portion scales | **$298.00** | ✅ $149 ea |
+| **Band sealer with date + lot coder** | **$279.00** | ✅ VEVOR 4.2★/199 |
+| Bag + label stock (¼, 1, 3 lb) | $500.00 | est |
+| Label applicator | $500.00 | est — optional |
+| **Forced-air coolers ×2** — materials + 9 hrs @ $25 | **$835.52** | ✅ costed |
+| Label design — USDA organic seal, OEFFA statement | $1,200.00 | est |
+| Professional photography | $800.00 | est |
+| Wholesale line sheet | $500.00 | est |
+| Signage | $500.00 | est |
+| **GAP certification** | $3,000.00 | est — needs real PA fee |
+| **SUBTOTAL** | **$10,222.52** | |
+| **CEILING** | $15,000.00 | |
+| **REMAINING** | **$4,777.48** | |
 
-✅ **Largest single item: $3,000.** Nowhere near the $10,000 cap.
-✅ Shipping is separately expensable.
-✅ No soil disturbance, nothing excluded.
+✅ Largest single item **$3,000** — well under the $10,000 cap.
+✅ **Struck: 3 × salad spinner, $2,877.** Todd already built his own.
 
-## What to do with the remaining ~$2,700
+## ⭐ What the remaining $4,777 should buy
 
-| Option | Est. | Why |
+**The greens washer.** It is the one stage still unfixed and it was on Todd's
+original bottleneck list — *"a triple wash sink from TS Designs."*
+
+| Option | Est. | Note |
 |---|---|---|
-| **Greens washer / bubbler, farm scale** | $1,500–2,500 | the last unfixed stage. **Price Nolt's and Market Farm Implement** — both PA, both already our vendors |
-| Stainless pack surfaces + drainage mats | $1,000 | named category, helps GAP |
-| Totes and bulk containers | $800 | named category |
-| Strategy consulting | $1,500 | named category — someone to run the GAP process |
+| **Farm-scale greens washer / bubbler** | **$2,000–3,500** | **Quote Nolt's Produce Supply and Market Farm Implement** — both PA, both already our AIG R2 vendors. **NOT CMI or Charlie's** — they quote processor prices. |
+| **Air compressor** | $400–800 | ⚠️ **only if the VT table's pneumatic bag holders need shop air.** Ask the seller first. |
+| Stainless pack surfaces / drainage mats | $800 | named category, supports GAP |
+| Totes and bulk containers | $500 | named category |
 
----
+**With a washer at $3,000 the budget lands near $13,200**, leaving headroom for
+the compressor if the table needs one.
 
-# WHAT I STILL NEED
-
-| # | Gap | Who |
-|---|---|---|
-| 1 | **A real greens-washer quote at farm scale** — Nolt's, Market Farm Implement, Farmers Friend. **Not** CMI or Charlie's. | me |
-| 2 | **GAP audit fee for PA** — actual number, not my $3,000 estimate | me / PDA |
-| 3 | Which of the 6 fields in 1068/446 holds greens and tomatoes | Todd |
-| 4 | Are tarps/netting BD or Conservation? **If Conservation, this $15,000 is untouched.** | ask Chris |
-
-## On Charlie's
-
-Still no reply after 8 days. **Given CMI's pricing, do not wait on them.**
-Same supplier tier. If they quote, treat it as a data point, not a plan.
