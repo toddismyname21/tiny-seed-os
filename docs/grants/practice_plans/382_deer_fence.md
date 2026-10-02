@@ -18,6 +18,60 @@ too expensive to find in an operating budget and too unglamorous to prioritise.
 **This is the clearest example of Todd's own framing — "cost prohibitive
 practices that are better for the farm."**
 
+## ⭐ ELECTRIC IS COVERED — Todd asked 2026-10-02, and the answer is yes
+
+**382 has ten PA scenarios, and five of them are electric or non-permanent.**
+This matters because it sidesteps the leased-land problem entirely.
+
+| Scenario | HU rate | Over 1,900 ft (~5 ac) | Permanence |
+|---|---|---|---|
+| **Woven Wire, 96 inches** | **$8.14/ft** | **$15,466** | 🔴 permanent — needs Don's written agreement |
+| **High Tensile, ELECTRIC, 5 or more wires** | **$3.41/ft** | **$6,479** | ⭐ semi-permanent, **removable** |
+| Barbed or Smooth Wire, multi-strand | $3.19/ft | $6,061 | semi-permanent |
+| High Tensile, ELECTRIC, 4 wires or less | $2.59/ft | $4,921 | semi-permanent |
+| **Temporary / Portable Fence** | **$0.82/ft** | **$1,558** | ✅ fully removable |
+
+**Woven wire pays $8,987 more over the same perimeter.** That is the price of
+choosing removable.
+
+### The trade, honestly
+
+| | Woven wire 96" | **High-tensile electric, 5+** |
+|---|---|---|
+| Pays | $8.14/ft | $3.41/ft |
+| Landlord agreement | 🔴 **required** — it is a permanent improvement to Don's property | ⭐ **far easier** — posts and wire come out |
+| End of lease | you leave it behind | you take it with you |
+| Deer exclusion | ✅ physical barrier, works unconditionally | ⚠️ **depends entirely on design** |
+| Maintenance | almost none | ⚠️ **ongoing** — vegetation under the wire, energizer, grounding, voltage checks |
+| Materials cost | higher | lower |
+
+### 🔴 The question that actually decides it: does it stop deer?
+
+**A standard 5-wire electric cattle fence will not stop deer. Deer jump it.**
+
+Electric deer fencing works only with a **deliberate design** — typically either
+real height (7–9 wires to 8 feet) or a **3-D / slanted or double-fence layout**
+that defeats a deer's poor depth perception. Baiting the wire so they nose it
+once is also standard practice.
+
+⚠️ **I have not verified which designs NRCS accepts under the "five or more
+wires" scenario.** Ask Luka: *"What electric deer fence design meets the 382
+standard?"*
+
+> ⭐ **An electric fence that does not stop deer is worse than no fence** — you
+> carry the maintenance and still lose the crop. **Design is the whole question,
+> not the rate.**
+
+### My read
+
+**Go electric, at the 5-or-more-wire scenario, if the design can be made to
+work.** $6,479 on a removable fence you own and can take with you beats $15,466
+on something you gift to the landlord and have to negotiate for first — and it
+removes the single biggest obstacle to this practice happening at all.
+
+**But price the real materials before committing**, and settle the design
+question with Luka first.
+
 ## What we physically do
 
 | | |
@@ -52,10 +106,11 @@ it is the evidence that makes the case.
 
 ## 🔴 Practical notes
 
-⚠️ **Leased land, permanent structure.** A deer fence is a significant
-improvement to Don's property and cannot be taken with you. **This needs his
-written agreement before it is proposed**, and probably a conversation about what
-happens at the end of the lease.
+⚠️ **Leased land** — this is why the electric option matters. **Woven wire is a
+permanent improvement to Don's property** that cannot be removed, so it needs his
+written agreement and a conversation about the end of the lease. **High-tensile
+electric comes out with you**, which makes it a far smaller ask — though he
+should still know about it.
 
 ⚠️ **The CPA-52 will look at it** — post holes are soil disturbance and a fence
 changes wildlife movement. Not a barrier, but it will be reviewed.
