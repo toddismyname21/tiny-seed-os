@@ -26,13 +26,13 @@ blank** unless the form requires a zero.
 |---|---|
 | Business Development and Planning | **$1,000.00** |
 | Brand Building and Marketing | **$1,854.66** |
-| Market & Event Material | **$1,616.05** |
+| Market & Event Material | **$1,886.15** |
 | Food Safety, Certification, and Planning | *(blank — $0)* |
 | Wash/Pack Station and Post-Harvest Handling | **$3,861.89** |
 | Cooling, Storage, and Logistics | **$1,991.21** |
 | Product Protection Supplies | *(blank — $0)* |
 | **Other** | **$2,000.00** |
-| | **$12,323.81** |
+| | **$12,593.91** |
 
 ## Other — text field
 
@@ -87,15 +87,15 @@ water sanitation and monitoring for the recirculating chilled water loop.
 # FIELD 5 — Total Requested
 
 ```
-16498.81
+16768.91
 ```
 
 | | |
 |---|---|
-| Materials | $12,323.81 |
+| Materials | $12,593.91 |
 | Labor | $4,175.00 |
-| **Total** | **$16,498.81** |
-| vs the **soft** ceiling | **$1,498.81 over — submitting over, by decision** |
+| **Total** | **$16,768.91** |
+| vs the **soft** ceiling | **$1,768.91 over — submitting over, by decision** |
 
 ---
 
@@ -119,6 +119,26 @@ while a consistent market identity grows direct sales.
 *(3 sentences, within the 2–3 asked for.)*
 
 ---
+
+# ⭐ "OR SIMILAR" — now on every evidence sheet
+
+**Todd 2026-10-02: *"make sure we do or similar when we choose."*** Added to all
+six PDFs:
+
+> *"**Products named are examples OR SIMILAR.** Brand names, model numbers and
+> retailers are given to document a realistic price and specification only. Tiny
+> Seed Farm reserves the right to purchase an equivalent item of similar
+> specification from any supplier, including used equipment, at or below the
+> budgeted amount."*
+
+**This is how AIG Round 1 was written and it is why that grant worked.** Its
+approved lines read *"Ortomec Multi-Seed **or similar**"*, *"FORIGO G-25 Rock
+Burier **or similar**"*, *"Harvester 2000 **or similar**"* — and that wording is
+exactly what let the farm buy a **Sutton Ag Seed Spider against the Ortomec
+line** without a contract amendment.
+
+🔴 **Without it, a named model becomes a commitment.** With it, the budget is a
+ceiling and a specification rather than a shopping list.
 
 # FIELD 7 — Estimate Uploader
 

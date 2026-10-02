@@ -73,9 +73,11 @@ DATA = {
    "in selected neighbourhoods without purchasing a mailing list.",2500,0.26,
    "USPS published rate: EDDM Retail USPS Marketing Mail Flats, $0.26 per piece"),
  ]),
- "MarketAndEventMaterial": ("Market & Event Material", 1616.05, [
-  ("8 ft folding tables, 660 lb capacity",1,270.00,"Amazon, 4.6 stars, $99.99 ea reference"),
-  ("Custom printed tablecloths with farm logo, 6 ft fitted",10,38.99,"Amazon, 4.6 stars"),
+ "MarketAndEventMaterial": ("Market & Event Material", 1886.15, [
+  ("8 ft plastic folding tables OR SIMILAR, 4 units - big-box retail "
+   "(Home Depot / Lowe's / Staples class)",1,270.00,
+   "approx $60-67 each at big-box retail"),
+  ("Custom printed tablecloths with farm logo OR SIMILAR, 6 ft fitted",10,66.00,"4.8 stars / 120 reviews"),
   ("Branded wooden market display containers - lumber, nails, screws, "
    "hardware and finish. Standardises how all seven salad and tomato lines are "
    "presented across two simultaneous farmers markets.",1,956.15,
@@ -114,6 +116,11 @@ for key,(cat,total,rows) in DATA.items():
     st.append(t)
     st.append(Spacer(1,12))
     st.append(Paragraph(
+      "<b>Products named are examples OR SIMILAR.</b> Brand names, model numbers and "
+      "retailers are given to document a realistic price and specification only. "
+      "Tiny Seed Farm reserves the right to purchase an equivalent item of similar "
+      "specification from any supplier, including used equipment, at or below the "
+      "budgeted amount.<br/><br/>"
       "Prices were read from live retail listings on October 2, 2026. Where an item is "
       "marked as an allowance, a quote has not yet been obtained and the figure is an "
       "estimate. Pasa's Budget Builder accepts \"a screenshot of a store's price for items\" "
