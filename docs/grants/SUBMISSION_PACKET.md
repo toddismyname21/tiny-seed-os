@@ -66,21 +66,50 @@ consideration #1.
 
 *(59.0 owner hours × $50 · 49.0 staff hours × $25 · **108 hours total**)*
 
-## Explanation of how labor hours will be used
+## Explanation of how labor hours will be used — PASTE THIS
 
 ```
-Farm owner and staff hours cover five builds. Fabricating a stainless tri-clamp
-bubbler manifold for the greens washer to replace a PVC assembly that cannot be
-taken apart and cleaned. Building two pallet forced-air coolers on the University
-of Vermont design. Assembling a chilled water loop, which is an insulated ice
-reservoir and a sanitary circulating pump that chills the greens wash tank.
-Designing product labels in house for seven packaged salad and tomato lines.
-And building branded wooden market display containers, which standardize how all
-seven salad and tomato lines are presented across two simultaneous farmers
-markets. And ten owner hours to write the farm's food safety plan and standard
-operating procedures covering the new wash and cooling system, including wash
-water sanitation and monitoring for the recirculating chilled water loop.
+Wash station assembly: fabricating a stainless tri-clamp bubbler manifold for the
+greens washer, replacing a PVC assembly that cannot be taken apart to clean (10
+hours). Building two pallet forced-air coolers on the University of Vermont
+design (9 hours). Assembling a chilled water loop - an insulated ice reservoir,
+a sanitary stainless circulating pump, and tri-clamp supply and return lines -
+to chill the greens wash tank (12 hours). Designing product labels in house for
+seven salad and tomato lines (32 hours). Building branded wooden market display
+containers to standardize how product is presented across two simultaneous
+farmers markets (35 hours). Writing the farm's food safety plan and standard
+operating procedures for the new wash and cooling system, including wash water
+sanitation and monitoring for the recirculating loop (10 hours, owner).
 ```
+
+### The 108 hours, itemised
+
+| Task | Hours |
+|---|---|
+| Greens washer — stainless tri-clamp bubbler manifold | 10 |
+| Forced-air coolers ×2 — UVM pallet design | 9 |
+| Chilled water loop — ice tank, pump, plumbing, insulation | 12 |
+| Label design in house — 7 SKUs *(~4.5 hrs per design)* | 32 |
+| Branded market display containers *(15 original + 20 added)* | 35 |
+| **Food safety plan + SOPs — OWNER ONLY** | 10 |
+| **TOTAL** | **108** |
+
+| | Hours | Rate | Amount |
+|---|---|---|---|
+| Farm owner | 59 | $50 | **$2,950.00** |
+| Farm staff | 49 | $25 | **$1,225.00** |
+| | **108** | | **$4,175.00** |
+
+✅ **59 + 49 = 108**, matching the task total exactly.
+**Labor is 24.9% of the $16,794.75 ask** — reasonable for a build-heavy project
+where six of the seven line items are assembled rather than bought.
+
+> ⚠️ **If anyone asks why 32 hours of label design when no labels are funded:**
+> the farm prints its own on a Brother printer it already owns, and is working up
+> designs there until they are finalised and OEFFA has approved them. The design
+> work is real; the printing costs the grant nothing. That is the cheaper
+> arrangement, not an oversight.
+
 
 ---
 
