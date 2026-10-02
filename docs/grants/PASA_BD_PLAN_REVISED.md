@@ -101,6 +101,27 @@ auditor looks for.
 | **CEILING** | $15,000.00 | |
 | **UNALLOCATED** | **$47.57** | |
 
+## ⚠️ LABOR RERATED 2026-10-02 — the subtotal above understates the ask
+
+The Budget Builder form publishes Pasa's own labor rates: **$50/hr for farm
+owners, $25/hr for farm staff.** Every labor line above was costed at $25 before
+we had seen that.
+
+**Todd 2026-10-02: *"let's split the labor half and half."***
+
+| | |
+|---|---|
+| Materials only | **$13,377.43** |
+| Labor — 31.5 owner hrs @ $50 | $1,575.00 |
+| Labor — 31.5 staff hrs @ $25 | $787.50 |
+| **TOTAL REQUESTED on the form** | **$15,739.93** |
+| vs the soft $15,000 ceiling | **$739.93 over** |
+
+➡️ See `BUDGET_BUILDER_PREP.md` for the per-build split and the three options on
+the overage. **The $14,952.43 figure in the table above is the $25/hr version and
+is superseded.**
+
+
 ## Per-item cap test — whole budget
 
 **Todd, 2026-10-02:** *"the largest single item should be the table or the flail

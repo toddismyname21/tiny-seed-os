@@ -43,20 +43,51 @@ that is the owner rate and we have been under-claiming by half.**
 | Budget at $25/hr (current) | **$14,952.43** — $47.57 under |
 | Budget at $50/hr owner rate | **$16,527.43** — 🔴 **$1,527.43 OVER** |
 
-**❓ Decision needed from Todd — two questions:**
+## ✅ DECIDED 2026-10-02 — split the labor half and half
 
-1. **Who actually does this work?** Todd building the manifold and designing
-   labels is owner rate. A staff member assembling is $25. It can be split, and
-   the form has two boxes precisely because it expects that.
-2. **If owner rate, do we trim $1,527 or submit over?** The $15,000 is a **soft**
-   ceiling and Todd's read is that *"they are itching to give this money away."*
-   ⚠️ **Ask Chris whether over-ceiling submissions are accepted** rather than
-   assuming either way.
+**Todd: *"let's split the labor half and half."*** 63 hours → 31.5 owner / 31.5 staff.
 
-💡 **A middle path exists:** the 32 design hours are plainly owner work. The 31
-build hours could legitimately be staff. That gives
-32 × $50 + 31 × $25 = **$2,375**, landing the budget at **$15,752.43** — $752
-over instead of $1,527.
+| | Hours | Rate | Amount |
+|---|---|---|---|
+| **Farm owner labor hours** | **31.5** | $50/hr | **$1,575.00** |
+| **Farm staff labor hours** | **31.5** | $25/hr | **$787.50** |
+| | **63** | | **$2,362.50** |
+
+### The two numbers to type into the form
+
+> **Farm owner labor hours = $1,575.00**
+> **Farm staff labor hours = $787.50**
+
+### Per build, for the explanation field
+
+| Build | Hrs | Owner | Staff | Total |
+|---|---|---|---|---|
+| Greens washer tri-clamp manifold | 10 | 5.0 ($250.00) | 5.0 ($125.00) | $375.00 |
+| Forced-air coolers ×2 | 9 | 4.5 ($225.00) | 4.5 ($112.50) | $337.50 |
+| Chilled water loop | 12 | 6.0 ($300.00) | 6.0 ($150.00) | $450.00 |
+| Label design, 4 SKUs, in house | 32 | 16.0 ($800.00) | 16.0 ($400.00) | $1,200.00 |
+
+### Where that lands
+
+| | |
+|---|---|
+| Materials | **$13,377.43** |
+| Labor (63 hrs, split) | **$2,362.50** |
+| **TOTAL REQUESTED** | **$15,739.93** |
+| vs the $15,000 **soft** ceiling | 🟡 **$739.93 over** |
+
+⚠️ **$739.93 over a ceiling Pasa calls "soft."** Three ways to go, and this is
+Todd's call:
+
+| Option | Effect |
+|---|---|
+| ⭐ **Submit at $15,739.93 and let Pasa trim** | The Overview says *soft*, and the form invites a total rather than enforcing a cap. Lets Pasa decide what it will not cover instead of us guessing |
+| **Ask Chris first** | One email: *"the ceiling is soft — is a submission slightly above $15,000 acceptable, or should it come in under?"* Costs a day, removes all doubt |
+| Trim $739.93 | The soft lines are the line sheet ($500), which Todd can build in-house, and part of the campaign print |
+
+➡️ **Recommend asking Chris.** He has been responsive, the answer is binary, and
+there are seven days on the form link. Guessing wrong in either direction costs
+more than the question does.
 
 ---
 
