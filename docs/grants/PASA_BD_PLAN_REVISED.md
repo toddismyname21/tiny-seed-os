@@ -89,7 +89,7 @@ auditor looks for.
 | **Forced-air coolers ×2** — materials + 9 hrs @ $25 | **$835.52** | ✅ costed |
 | **Greens washer — stainless tri-clamp manifold** (replaces PVC) — parts + 10 hrs @ $25 | **$522.91** | ✅ costed; tank + blower OWNED |
 | **48" flail mower, 3-pt PTO, STRAIGHT** — cut and compost crop residue in place | **$2,000.00** | **USED, Facebook Marketplace** — Todd 2026-10-02 |
-| **Salad dryer baskets x2** — returns two idle spinners to service | **$900.00** | Hobart $404.99 ea verified; pending octagon fitment |
+| **Salad dryer baskets x2** — returns two idle spinners to service | **$900.00** | **Todd sourcing directly** (2026-10-02). Hobart $404.99 ea verified |
 | Professional photography | $800.00 | est |
 | Wholesale line sheet | $500.00 | ⚠️ see note |
 | Signage | $500.00 | est |
