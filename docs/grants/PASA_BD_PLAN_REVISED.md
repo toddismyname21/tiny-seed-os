@@ -83,24 +83,32 @@ auditor looks for.
 
 | Line | Amount | Source |
 |---|---|---|
-| **Used stainless bagging table** (Essex Junction VT) | **$1,500.00** | ✅ listing |
+| **Used stainless bagging table** (Essex Junction VT) — incl. buffer for add-ons | **$2,000.00** | ✅ listing $1,500 + buffer |
 | — transport / drive (~1,260 mi round) | **$500.00** | Todd's figure |
 | **Band sealer with date + lot coder** | **$279.00** | ✅ VEVOR 4.2★/199 |
-| Bag + label stock (¼, 1, 3 lb) | $500.00 | est |
-| Label applicator | $500.00 | est — optional |
+| Bag + label stock (¼, 1, 3 lb) | **$500.00** | est |
+| Label applicator | **$500.00** | est |
 | **Forced-air coolers ×2** — materials + 9 hrs @ $25 | **$835.52** | ✅ costed |
-| Label design — USDA organic seal, OEFFA statement | $1,200.00 | est |
-| Professional photography | $800.00 | est |
-| Wholesale line sheet | $500.00 | est |
-| Signage | $500.00 | est |
-| **GAP certification** | $3,000.00 | est — needs real PA fee |
-| **SUBTOTAL** | **$10,114.52** | |
+| **Greens washer — stainless tri-clamp manifold** (replaces PVC) — parts + 10 hrs @ $25 | **$522.91** | ✅ costed; tank + blower OWNED |
+| Label design — USDA organic seal, OEFFA statement | **$1,200.00** | est |
+| Professional photography | **$800.00** | est |
+| Wholesale line sheet | **$500.00** | est |
+| Signage | **$500.00** | est |
+| **GAP certification** | **$3,000.00** | est — needs real PA fee |
+| **SUBTOTAL** | **$11,137.43** | |
 | **CEILING** | $15,000.00 | |
-| **REMAINING** | **$4,885.48** | |
+| **REMAINING** | **$3,862.57** | |
 
 ✅ Largest single item **$3,000** — well under the $10,000 cap.
-✅ **Struck: 3 × salad spinner, $2,877** — Todd already built his own.
-✅ **Struck: 2 × bench scales, $1,377.98** — Todd's call, 2026-10-02.
+✅ Shipping separately expensable per the Overview.
+✅ No ground disturbance; nothing in an excluded category.
+
+**Struck along the way:** 3 × salad spinner $2,877 (Todd built his own) ·
+2 × bench scales $1,377.98 (Todd's call) · $7,200 Amazon bubble washer
+(replaced by the $522.91 stainless manifold build).
+
+**Owned, so $0 in this budget:** stock tank 120×20×12 · spa blower · walk-in
+coolers.
 
 ## ⭐ What the remaining $4,777 should buy
 
