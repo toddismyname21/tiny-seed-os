@@ -89,14 +89,14 @@ auditor looks for.
 | **Forced-air coolers ×2** — materials + 9 hrs @ $25 | **$835.52** | ✅ costed |
 | **Greens washer — stainless tri-clamp manifold** (replaces PVC) — parts + 10 hrs @ $25 | **$522.91** | ✅ costed; tank + blower OWNED |
 | **48" flail mower, 3-pt PTO, STRAIGHT** — cut and compost crop residue in place | **$2,000.00** | **USED, Facebook Marketplace** — Todd 2026-10-02 |
-| **Chilled water loop** — insulated ice tank + 316SS sanitary pump + TC plumbing + 12 hrs labor | **$2,315.00** | pump $565 verified; tank/plumbing estimated. See `CHILLED_WATER_LOOP.md` |
+| **Chilled water loop** — used stainless stock tank + 316SS sanitary pump + TC plumbing + insulation + 12 hrs labor | **$1,915.00** | tank $400 (Todd, FB Marketplace); pump $565 verified. See `CHILLED_WATER_LOOP.md` |
 | **Salad dryer baskets x2** — returns two idle spinners to service | **$900.00** | **Todd sourcing directly** (2026-10-02). Hobart $404.99 ea verified |
 | Professional photography | $800.00 | est |
 | Wholesale line sheet | $500.00 | ⚠️ see note |
 | Signage | $500.00 | est |
-| **SUBTOTAL** | **$11,152.43** | |
+| **SUBTOTAL** | **$10,752.43** | |
 | **CEILING** | $15,000.00 | |
-| **UNALLOCATED** | **$3,847.57** | |
+| **UNALLOCATED** | **$4,247.57** | |
 
 **Removed 2026-10-02 at Todd's direction** — pending decisions on what the
 labelling actually becomes:

@@ -67,7 +67,7 @@ constraint is not flow, it is how much ice the reservoir holds.
 |---|---|---|---|
 | **Goulds 3657 series centrifugal pump** — all **316 stainless**, ⅓ HP, 115V single-phase, 2.9 A max. Built for *"corrosive fluid handling in food processing"* | 1 | **$565.33** | ✅ price read 2026-10-02 |
 | *(alt)* Goulds SS0711AF, same series, **¾ HP**, 115V, 7.1 A | — | *$563.33* | ✅ more pump for the same money — **prefer this** |
-| **Secondary tank** — insulated food-grade stainless, 100–150 gal | 1 | **$800.00** | ⚠️ allowance — see sourcing below |
+| **Secondary tank** — **used stainless stock tank, Facebook Marketplace** | 1 | **$400.00** | Todd's figure, 2026-10-02 |
 | **Tri-clamp sanitary plumbing** — supply + return, ferrules, clamps, gaskets, valve | — | **$250.00** | est. from `GREENS_WASHER_BUILD.md` part prices |
 | **Sanitary flexible hose** — flexible runs between vessels | — | **$150.00** | est. |
 | **Perforated stainless ice basket** for the reservoir | 1 | **$100.00** | est.; keeps ice off the pump inlet |
@@ -75,7 +75,7 @@ constraint is not flow, it is how much ice the reservoir holds.
 | **Labor — 12 hrs @ $25** | — | **$300.00** | grant-eligible, Todd's rate |
 | **Wash tank** | — | **$0 — OWNED** | |
 | **Spa blower + manifold** | — | **$0 — already budgeted** at $522.91 | |
-| | | **TOTAL ≈ $2,315** | |
+| | | **TOTAL ≈ $1,915** | |
 
 ⚠️ **Four of the eight lines are estimates, not read prices.** The pump is real;
 the plumbing, hose, basket and insulation are sized by analogy to the manifold
@@ -105,11 +105,19 @@ equipment dealers and farm auctions.
 food-grade stainless, **insulated**, usually with an **agitator**, and often with
 **its own refrigeration** — which could remove the need to buy ice at all.
 
-> **Todd's own equipment list already carries this line:** *"Stainless Steel Tank
+> ✅ **DECIDED 2026-10-02 — $400, used stainless stock tank off Facebook
+> Marketplace.** Todd's own equipment list already carried *"Stainless Steel Tank
 > ×2 — FOR HYDROCOOLING AND WASHING — Facebook Marketplace — $1,000"* ($500
-> each). **The $800 allowance above is consistent with his own figure.**
-> ❓ **Were those ever bought?** If so, the tank line is **$0** and the loop
-> drops to roughly **$1,515.**
+> each), so $400 is in line with what he has seen them go for.
+>
+> ⚠️ **A stainless stock tank is NOT insulated** — unlike a bulk milk tank, which
+> is. **That makes the $150 insulation line load-bearing, not optional.** Bare
+> stainless in a warm pack house will melt ice to no purpose. Wrap it, or the
+> cold leaves before it reaches the greens.
+>
+> 💡 **Still worth watching for a used bulk milk tank** at a local auction. It
+> arrives insulated, agitated, and often refrigerated — which could remove the
+> ice purchase entirely. But $400 and a wrap gets the loop running now.
 
 ---
 
@@ -121,7 +129,7 @@ food-grade stainless, **insulated**, usually with an **agitator**, and often wit
 | Real gap | greens currently get **no cooling step at all**; they sit at ambient in a stock tank while being bagged |
 | Measurable benefit | *"a one-hour delay in cooling can reduce shelf life by a day or more"*; salad greens respire **4× faster at 50°F than 32°F** |
 | Market access | **shelf life is the entire wholesale argument.** Buyers reject on wilt and short life |
-| Per-item cap | ✅ largest single item is the **$800 tank** — nowhere near $10,000 |
+| Per-item cap | ✅ largest single item is the **$565 pump** — nowhere near $10,000 |
 | Food safety | tri-clamp sanitary fittings throughout, fully demountable — a quotable GAP strength |
 | Labor | eligible; we build it |
 
