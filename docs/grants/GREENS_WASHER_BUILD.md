@@ -16,6 +16,59 @@ what a GAP auditor expects to see on food-contact equipment:
 PVC would be a third the price and a tenth the defensibility. Threaded stainless
 is worse than both — threads are the hardest thing in a wash system to clean.
 
+## ⭐ THIS IS AN UPGRADE, NOT A NEW BUILD — and that is the stronger case
+
+**Todd 2026-10-02:** *"I have a cumbersome PVC manifold now, but I want to make
+it more food grade and cleanable, so the stainless makes sense."*
+
+That reframes the whole line item. We are not asking for a washer we do not
+have. We are **replacing a food-contact surface that cannot be properly cleaned
+with one that can.**
+
+### Why PVC is a real food-safety problem, not a preference
+
+| PVC manifold (now) | Sanitary stainless (proposed) |
+|---|---|
+| **Solvent-welded joints — cannot be taken apart.** The inside is unreachable, forever. | **Tri-clamp: every joint opens by hand**, whole interior accessible |
+| Scratches readily; scratches harbor **biofilm** | 304, internally polished, non-porous |
+| Clouds and degrades with sanitizer exposure | Takes chlorine, peracetic acid, hot water indefinitely |
+| Not a recognized sanitary standard | **3-A sanitary design**, the food-industry standard |
+| No way to inspect the interior | Open it and look — **an auditor can too** |
+
+**An un-cleanable food-contact surface in the wash line is exactly the kind of
+thing a GAP audit flags.** This is not a nice-to-have; it is remediation.
+
+### What this does for the application
+
+The line is no longer *"buy a greens washer."* It is:
+
+> **Replace the un-cleanable PVC wash manifold with demountable 304 sanitary
+> stainless, so every food-contact surface in the wash system can be
+> disassembled, cleaned, sanitized and inspected** — on salad greens and
+> tomatoes, grown on FSA farm 1068/446 under mulching (484).
+
+That connects directly to the **GAP certification line** sitting beside it in the
+budget. The two reinforce each other: certification is the goal, and this removes
+one of the obstacles to passing.
+
+### And it answers the questions I could not
+
+Because the PVC manifold **already works on this exact tank with this exact
+blower**, the open design questions are settled by what is already in the shed:
+
+- [ ] ⭐ **Measure the hole pattern on the PVC manifold** — size, spacing, count,
+      and which way they face. **Copy it.** That is real-world calibrated data
+      and it beats my arithmetic.
+- [ ] Note where the boil is strong or weak along its length — build the
+      stainless one to fix that.
+- [ ] Confirm the PVC's diameter and the blower fitting size, so the stainless
+      is ordered to match.
+
+**The "will one blower boil 16.7 sq ft" question is already answered — the PVC
+one does it.** Just replicate the open area.
+
+---
+
 ## THE TANK — already owned ✅
 
 **Todd 2026-10-02: existing stock tank is 120" × 20" × 12" deep.**
