@@ -25,7 +25,7 @@ against actual farm equipment. Both from estimating rather than pricing.
 |---|---|---|---|
 | **Continuous band sealer with date/lot coder** | **$250** | VEVOR / Sumeve FR-900 class, 4.0–4.2★ | kills the tie step; **prints lot code + pack date as it seals = GAP traceability** |
 | **2 × digital portion scales**, stainless, 66 lb | **$300** | FLB or equivalent, $149 ea | fill-to-weight, two stations |
-| **Pack table + funnels** — build it | **$600 materials** | stainless top, legs, funnels | **our labor is grant-eligible** |
+| **USED stainless bagging table** — 4'×6', casters, bag stands, **2 bag openings** | **$1,500** + ~$310 transport | ✅ Facebook Marketplace, Essex Junction VT | **vs CMI's $20,530 — 93% less.** See `BAGGING_TABLE_USED_VT.md` |
 | Bag/label stock | **$500** | | ¼ lb · 1 lb retail · 3 lb wholesale |
 | Label applicator | **$500** | | optional — see cut list |
 
