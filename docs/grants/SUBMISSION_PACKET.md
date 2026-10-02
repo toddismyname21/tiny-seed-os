@@ -55,6 +55,71 @@ consideration #1.
 
 ---
 
+# FIELD 3b — PER-CATEGORY DESCRIPTIONS (1–2 sentences each)
+
+## Business Development and Planning — `1000.00`
+```
+Professional farm and product photography covering our seven salad and tomato
+lines, the field, and the pack house, for use in wholesale materials, market
+signage, our website and our CSA campaign. Quoted against a local photographer's
+published 2026 rate menu.
+```
+
+## Brand Building and Marketing — `1880.50`
+```
+Market signage stating our certified organic status and our flagship products,
+plus chalkboards for daily pricing and availability, sufficient for two
+simultaneous farmers markets. Also a direct-mail campaign introducing the farm
+and our salad CSA to 2,500 surrounding households through USPS Every Door Direct
+Mail.
+```
+
+## Market & Event Material — `1886.15`
+```
+Booth infrastructure for two simultaneous farmers markets: folding tables, custom
+printed tablecloths carrying our logo, and materials to build branded wooden
+display containers that standardize how all seven salad and tomato lines are
+presented.
+```
+
+## Wash/Pack Station and Post-Harvest Handling — `3861.89`
+```
+A used stainless bagging table with two bag openings, a continuous band sealer
+that prints pack date and lot code as it seals, replacement baskets to return two
+idle salad spinners to service, and stainless tri-clamp parts to rebuild our
+greens washer manifold so it can be taken apart and cleaned. Together these
+replace a hand-bagging process that currently takes three separate touches per
+bag.
+```
+
+## Cooling, Storage, and Logistics — `1991.21`
+```
+Materials to build two pallet forced-air coolers for tomatoes, and a chilled
+water loop - an insulated ice reservoir with a sanitary stainless circulating
+pump - to hydrocool salad greens in the wash tank. Our greens currently receive
+no cooling step at all.
+```
+
+## Other — `2000.00`
+```
+A used 48-inch straight flail mower for mechanical weed control and to cut and
+compost crop residue in place, eliminating a tillage pass on highly erodible
+cropland. This streamlines crop termination and gives faster, less ecologically
+intrusive turnaround between plantings.
+```
+
+> ⚠️ **Note the warning on the Other field:** *"items outside of the categories
+> above may require **secondary approval and more time to process**."*
+>
+> **Expect the flail mower to take longer than the rest.** Two things work in its
+> favour: Pasa's own Overview uses *"purchasing **a mower for mechanical weed
+> control**"* as its worked example of a fundable under-$10k general item, and
+> the wording above is deliberately close to theirs. But at $2,000 it is the
+> second-largest line, so **do not be surprised if this one comes back with a
+> question** while the others clear.
+
+---
+
 # FIELD 4 — Labor
 
 > *"Current labor rates are $50/hr for farm owners and $25/hr for farm staff"*
