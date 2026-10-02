@@ -177,28 +177,63 @@ ceiling and a specification rather than a shopping list.
 | 3 | **Two commodities named** | Salad greens + tomatoes |
 | 4 | **Phone number verified from the registry** | A wrong number reached 68 emails on 2026-08-27 |
 
-## ⚠️ ONE ELIGIBILITY QUESTION TO SETTLE — postage
+---
 
-The campaign is now **direct mail**, so **$650 of the $930.50 is USPS postage.**
+# ✅ FIELDS — DECIDED 2026-10-02
 
-Pasa excludes *"Utilities, Insurance, credit cards fees and 'general operating
-expenses'."* **Postage is not named in that list**, and EDDM postage is the
-delivery of a marketing piece rather than an operating cost — the printing is
-worthless without it. The category *"General Marketing Materials —
-Professionally printed brochures, flyers, pamphlets"* plainly covers the print.
+| Commodity | FSA identifier | Acres | Type |
+|---|---|---|---|
+| **Salad greens** | **PA / Beaver / Farm 1068 / Tract 446 / Field 1** | 33.55 | **HEL**, cropland |
+| **Tomatoes** | **PA / Beaver / Farm 1068 / Tract 446 / Field 2** | 1.24 | **HEL**, cropland |
 
-🔴 **But it is genuinely ambiguous. Ask Chris before filing:**
+**Conservation practice, both fields: Mulching (484)** — tarping for occultation
+and solarisation, eliminating a tillage pass.
 
-> *"Our neighbour campaign is USPS Every Door Direct Mail. Printing is $280.50
-> and postage is $650. Is the postage eligible, or should we show printing only?"*
+Two of only four FSA-cropland-flagged fields on the operation, both HEL, same
+farm and tract. See `FIELD_SELECTION.md`.
 
-If postage is excluded, the campaign line drops to **$280.50** and the total
-falls to **$15,848.31**.
+---
 
-## Two questions worth asking Chris first — they could free $2,500
+# ✅ FILING WITHOUT PRE-CLEARING WITH CHRIS — Todd 2026-10-02
 
-1. *"Does the shipping exclusion cover transport to collect used equipment?"* → $500
-2. *"Can the flail mower sit on Conservation as residue management (329/345)?"* → $2,000
+*"I want to forgo the questions to Chris, and get this submitted."*
 
-**Either answer makes room for the food safety plan (~$1,750), which is the one
-thing missing from this budget.**
+**Defensible.** The decision was already to submit above a soft ceiling and let
+Pasa trim. The four questions would only have let us pre-trim on their behalf.
+Filing with everything in means **Pasa makes these four calls instead of us:**
+
+| Question not asked | What Pasa decides | At risk |
+|---|---|---|
+| Is EDDM postage eligible? | they allow it or strike it | $650.00 |
+| Is transport excluded as shipping? | counts against the ceiling | $500.00 |
+| Could the flail sit in Conservation? | stays in BD | $2,000.00 |
+| Must the practice be active now? | eligibility review | timing |
+
+**None of these block filing.** The worst case is that Pasa reduces the award,
+which is the normal outcome of submitting over a soft ceiling.
+
+---
+
+# 📋 FINAL — EVERYTHING TO ENTER
+
+| Field | Value |
+|---|---|
+| Farm Name | `Tiny Seed Farm LLC` |
+| Farmer Email | `todd@tinyseedfarmpgh.com` |
+| Business Development and Planning | `1000.00` |
+| Brand Building and Marketing | `1880.50` |
+| Market & Event Material | `1886.15` |
+| Food Safety, Certification, and Planning | *blank* |
+| Wash/Pack Station and Post-Harvest Handling | `3861.89` |
+| Cooling, Storage, and Logistics | `1991.21` |
+| Product Protection Supplies | *blank* |
+| **Other** | `2000.00` |
+| **Farm owner labor hours** | `2950.00` |
+| **Farm staff labor hours** | `1225.00` |
+| **Total Requested** | `16794.75` |
+
+**Uploads:** six `TinySeedFarm_*.pdf` from `docs/grants/submission/` plus
+`Photos_By_Aaron_Sheedy_Menu_2026.pdf`. 5.8 MB of 35 MB.
+
+🔴 **Phone number: read it from `config/verified_facts.json`. Do not type it from
+memory.**
