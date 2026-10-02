@@ -139,12 +139,33 @@ which costs us shelf life and keeps us out of wholesale accounts that require
 consistent pack weights and a lot code. This funding fixes that end of the
 operation with hydrocooling for greens, forced-air cooling for tomatoes, a
 bagging table, and a band sealer that prints pack date and lot code as it seals,
-which lets us hold and grow the chef and institutional accounts we already serve
-and bring seven named salad and tomato lines to market as consistent, traceable
-products. It also reaches customers we do not have today, through a direct-mail
-campaign to 2,500 surrounding households and a standardized presence at two
-simultaneous farmers markets that states our certified organic status.
+while a flail mower streamlines crop termination for faster and less
+ecologically intrusive turnaround between plantings, so we can hold and grow the
+chef and institutional accounts we already serve and bring seven named salad and
+tomato lines to market as consistent, traceable products. It also reaches
+customers we do not have today, through a direct-mail campaign to 2,500
+surrounding households and a standardized presence at two simultaneous farmers
+markets that states our certified organic status.
 ```
+
+> **Flail mower added 2026-10-02 at Todd's direction** — *"streamlines crop
+> termination and allows us faster, less ecologically intrusive reentry."* At
+> $2,000 it is the second-largest line and sits in **Other**, the category most
+> likely to draw a question. **It should not be absent from the narrative.**
+>
+> I changed one word: **"reentry" → "turnaround between plantings."** In produce,
+> *re-entry interval* means the wait after a pesticide application, and a
+> reviewer reading a food-safety-adjacent application could take it that way.
+> *Turnaround* says exactly what you mean with no second reading.
+>
+> ⭐ It also strengthens the logic rather than just adding a line: faster
+> turnaround means **more successions, which means more product** — which is why
+> the pack house has to be fixed at the same time. The flail makes the bottleneck
+> worse until the rest of this is built. That is a coherent argument, not a list.
+>
+> ✅ Consistent with the **Other** field text, which cites *"mechanical weed
+> control… eliminating a tillage pass on highly erodible cropland"* — Pasa's own
+> worked example.
 
 ### How it answers all three parts of their question
 
