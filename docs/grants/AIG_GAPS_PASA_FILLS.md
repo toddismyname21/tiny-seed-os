@@ -236,7 +236,8 @@ Do not use it as an argument.)*
 
 # 6. HOW THE GAPS MAP TO THE BUDGET
 
-Current committed: **$8,337.43.** Unallocated: **$6,662.57.**
+Current committed: **$8,337.43.** Unallocated: **$6,662.57** — and the ceiling
+is **soft**, so unallocated is a legitimate end state, not a hole to fill.
 
 ## Already in the budget, each closing a verified AIG gap
 
@@ -258,30 +259,44 @@ example purchasing **a mower for mechanical weed control** in an organic
 agroforestry system."* Our use — cutting and composting crop residue in place,
 tied to Mulching 484 — is the same shape as the example they chose to print.
 
-## Recommended for the remaining $6,662.57 — all AIG gaps, all named categories
+## ❌ STRUCK 2026-10-02 — I was budget-filling, not problem-solving
 
-| Priority | Item | Est. | Pasa category (verbatim) | Why |
-|---|---|---|---|---|
-| 1 | **Cooler racking / shelving** | $800 | *"Storage and Transport — Storage racks"* | 🔴 **the forced-air coolers do not work without it.** Air must move through stacked product, which needs racks, not a floor pile. Buying the cooler and not the rack wastes the cooler |
-| 2 | **Harvest totes + vented bulk containers** | $900 | *"Handling and Measurements — Bulk containers, totes"* | AIG bought a harvester and a platform. **Nothing holds the greens between field and wash.** Vented totes are also what forced-air cooling requires |
-| 3 | **Stainless pack surfaces + drainage mats** | $1,200 | *"Station Infrastructure — stainless steel surfaces, drainage mats"* | the named category, almost verbatim; also what a GAP auditor looks for |
-| 4 | **Temp / humidity monitors ×2** | $298 | *"Environment Monitoring — sensors and monitors"* | ✅ verified $149 ea. **Proves the cold chain to a wholesale buyer** — the monitor is a sales document, not just a gauge |
-| 5 | **Dollies / pallet jack** | $600 | *"Storage and Transport — dollies, pallet jacks"* | moving loaded totes by hand is the hidden labor cost between every station |
-| 6 | **Wash-water sanitation + test kit** | $400 | *"Food Safety… Operational Documentation"* / Other | greens wash water is the single highest food-safety risk in the whole operation, and the cheapest to control |
-| 7 | **Food safety plan / SOPs, professionally built** | $1,500 | *"Operational Documentation — food safety plans, standard operation procedures"* | ✅ named. **The prerequisite to GAP** — and far cheaper than the audit |
-| 8 | **Label design — organic seal + lot code space** | $900 | *"Packaging Design — product labels"* | currently struck. The sealer prints a lot code onto *something* — that something needs designing, and the USDA seal cannot be altered |
-| | **TOTAL** | **$6,598** | | leaves $64.57 |
+I recommended cooler racking, vented bulk containers, stainless surfaces,
+dollies, totes and a pallet jack against the unallocated $6,662.57.
 
-### Deliberately left out, per Todd
+**Todd:** *"DONT need cooler racking or vented bulk containers, I don't
+necessarily want to fund any of this."*
 
-| | Why |
+He is right and the error is worth naming, because it is a trap this whole
+document walks toward.
+
+**A gap in grant coverage is not a need.** AIG not having funded racks does not
+mean the farm lacks racks. It has been operating for years and already owns most
+ordinary pack-house hardware. I inferred need from absence-of-funding, which is
+the same mistake as inferring a fact from a code comment.
+
+**And the $15,000 is a SOFT ceiling, not a target.** There is no obligation to
+reach it. Three reasons a shorter budget is actually the stronger one:
+
+| | |
 |---|---|
-| GAP audit fee (~$3,000) | Todd struck it. **Item 7 above is the better first step** — the plan is required before any audit, costs half, and is independently useful |
-| Scales | Todd struck them after two wrong recommendations |
-| Pre-printed bags | arithmetic showed no payback below ~30,000 bags/yr |
-| Label applicator, bag stock | Todd: decide after the bagging process is settled |
+| **Every line must be defended** | tied to a specific FSA field, two commodities, and an active conservation practice. Padding adds surface area for a reviewer to reject |
+| **Every line must produce a receipt** | 20% of payment is held until *Project Completion Verification.* An item bought to fill a budget and then never bought becomes a verification problem |
+| **"Most specific items"** | Todd's own note from the Chris call: *"Choose most specific items because it could affect future funding."* A tight, obviously-necessary budget reads better than a full one |
 
----
+## Where the budget actually stands
+
+**$8,337.43 committed. That is a complete, defensible budget.**
+
+Worth noting what distinguishes the committed lines from the struck ones:
+**every committed line came from Todd describing an actual problem** — bags take
+three touches, the PVC manifold is cumbersome and not food-grade, crop residue
+needs cutting in place. **Every struck line came from me reading a category list
+and inventing a need.**
+
+➡️ **Do not propose further lines from the category list.** If the remaining
+$6,662.57 gets used, it should start from Todd naming something that is actually
+slowing the farm down.
 
 # 7. OPEN QUESTIONS — ranked by what they block
 

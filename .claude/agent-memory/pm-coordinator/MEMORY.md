@@ -6,6 +6,7 @@
 - [Open deadlines with money attached](project_open_deadlines.md) — Alberta's judgment praecipe (~30 days), Food Bank $5,852.60, Ray-Ban card-dispute window closes mid-Oct 2026.
 - [Farm Flex weekly cadence](project_flex_weekly_cadence.md) — the whole weekly loop: Thu auto-draft, Todd publishes, Tue 8am cutoff, Wed delivery. Flex list goes ONLY to flex members + store-credit holders (~41), NOT summer_veg (152).
 - [Don't over-explain to members](feedback_dont_over_explain.md) — established members know the portal. Weekly list emails = what's new, what's gone, the deadline, the link. No tutorials.
+- [Don't fill budgets](feedback_dont_fill_budgets.md) — a gap in grant coverage is NOT a need; a soft ceiling is NOT a target. Only budget problems Todd named out loud.
 - [Write plain](feedback_write_plain.md) — no clever lines or aphorisms in outbound email. Would Todd say it out loud? If not, cut it.
 
 ## ⭐ START HERE
