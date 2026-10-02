@@ -93,10 +93,13 @@ auditor looks for.
 | **Salad dryer baskets x2** — returns two idle spinners to service | **$900.00** | **Todd sourcing directly** (2026-10-02). Hobart $404.99 ea verified |
 | Professional photography | $800.00 | est |
 | Wholesale line sheet | $500.00 | ⚠️ see note |
-| Signage | $500.00 | est |
-| **SUBTOTAL** | **$10,752.43** | |
+| **Market signage — FLAGSHIP products + ORGANIC STATUS** | **$1,500.00** | Todd 2026-10-02. ⚠️ **replaces** the old generic $500 signage line |
+| **Booth infrastructure** — tables, racks, shelves, branded tablecloth | **$800.00** | Todd 2026-10-02. *Pasa category: "Market & Event Material — Booth Infrastructure"* |
+| **Branded packaging program — 4 SKUs** (Cherry Tomato · Baby Arugula · Something Fresh Mix · Petite Kale Mix): label stock $600 + art $400 + **in-house design 32 hrs @ $25 = $800** | **$1,800.00** | Todd 2026-10-02, design done in house |
+| **Salad CSA — "Won't You Be My Neighbor" campaign** — printed inserts/cards for local builder welcome packets | **$600.00** | Todd 2026-10-02 |
+| **SUBTOTAL** | **$14,952.43** | |
 | **CEILING** | $15,000.00 | |
-| **UNALLOCATED** | **$4,247.57** | |
+| **UNALLOCATED** | **$47.57** | |
 
 ## Per-item cap test — whole budget
 
