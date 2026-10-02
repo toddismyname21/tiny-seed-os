@@ -130,22 +130,50 @@ where six of the seven line items are assembled rather than bought.
 
 # FIELD 6 — How these investments reach new customers, bring new products to market, or increase sales
 
+## PASTE THIS (3 sentences)
+
 ```
-Tiny Seed Farm can grow more salad greens than it can wash, cool, pack and sell,
-because greens are currently bagged in three separate touches out of an open
-stock tank with no cooling step, which shortens shelf life and keeps us out of
-wholesale accounts that require consistent pack weights, a lot code and a
-reliable product. This funding closes that gap with rapid hydrocooling for greens
-and forced-air cooling for tomatoes to protect shelf life, and a bagging table
-and band sealer that prints pack date and lot code as it seals. It also builds a
-standardized market presence across two simultaneous farmers markets through
-custom display containers, signage stating our certified organic status and our
-flagship products, and a CSA campaign reaching new neighbours, so that longer
-shelf life and traceable pack weights hold our chef and institutional accounts
-while a consistent market identity grows direct sales.
+Right now we can grow more salad than we can wash, cool and pack - greens are
+bagged in three separate touches out of an open stock tank with no cooling step,
+which costs us shelf life and keeps us out of wholesale accounts that require
+consistent pack weights and a lot code. This funding fixes that end of the
+operation with hydrocooling for greens, forced-air cooling for tomatoes, a
+bagging table, and a band sealer that prints pack date and lot code as it seals,
+which lets us hold and grow the chef and institutional accounts we already serve
+and bring seven named salad and tomato lines to market as consistent, traceable
+products. It also reaches customers we do not have today, through a direct-mail
+campaign to 2,500 surrounding households and a standardized presence at two
+simultaneous farmers markets that states our certified organic status.
 ```
 
-*(3 sentences, within the 2–3 asked for.)*
+### How it answers all three parts of their question
+
+| They asked | The sentence that answers it |
+|---|---|
+| **Increase sales of existing products** | *"hold and grow the chef and institutional accounts we already serve"* |
+| **Bring new products to market** | *"bring seven named salad and tomato lines to market as consistent, traceable products"* |
+| **Reach new customers** | *"direct-mail campaign to 2,500 surrounding households"* + two markets |
+
+### Shorter version, if 3 feels long (2 sentences)
+
+```
+We can grow more salad than we can wash, cool and pack - greens are bagged in
+three separate touches out of an open stock tank with no cooling step, which
+costs shelf life and keeps us out of wholesale accounts that require consistent
+pack weights and a lot code. This funding fixes that with hydrocooling, forced-air
+cooling, a bagging table and a band sealer that prints pack date and lot code,
+letting us grow the chef and institutional accounts we already serve and bring
+seven salad and tomato lines to market as consistent traceable products, while a
+direct-mail campaign to 2,500 households and a standardized presence at two
+farmers markets reaches customers we do not have today.
+```
+
+> Every claim is checkable against the budget: three touches and the stock tank
+> are Todd's own description of the current process; hydrocooling for greens and
+> forced-air for tomatoes follow Penn State's crop-by-crop guidance; the band
+> sealer's date and lot coding is a funded line; seven SKUs are named; 2,500 is
+> the EDDM quantity costed; and the organic certification is OEFFA NOP 1600003839.
+
 
 ---
 
