@@ -16,29 +16,81 @@ what a GAP auditor expects to see on food-contact equipment:
 PVC would be a third the price and a tenth the defensibility. Threaded stainless
 is worse than both — threads are the hardest thing in a wash system to clean.
 
-## Bill of materials — every price verified on its own product page, 2026-10-02
+## THE TANK — already owned ✅
+
+**Todd 2026-10-02: existing stock tank is 120" × 20" × 12" deep.**
+
+| | |
+|---|---|
+| Footprint | **10 ft long × 20" wide** |
+| Depth | 12" |
+| Working volume @ 9" water | **~93 gallons** |
+| Surface area | 16.7 sq ft |
+
+**The tank line goes to $0.** That was the big unknown and it is solved.
+
+12" depth is shallow, which is **good for greens** — a short bubble rise is a
+gentle tumble rather than a churn. 20" wide means a single centre header covers
+it; no need for parallel runs.
+
+---
+
+## Manifold redesigned for a 10-foot tank — CENTER-FED
+
+The Dernord spool tube is **24" long**, so the earlier 3-section layout was far
+too short. New layout:
+
+```
+  cap | tube | tube | TEE | tube | tube | cap
+  └──────────── 96" header in a 120" tank ────────────┘
+        12" clearance at each end
+```
+
+⭐ **Feed the air at the CENTER, not the end.** Over a 96" run, end-feeding means
+air travels the full length and the far end gets a weak boil. A centre tee halves
+it to 48" each way and evens the whole tank out.
+
+## Bill of materials — all prices verified on their product pages, 2026-10-02
 
 | Part | Qty | Ea | Ext | Rating | Link |
 |---|---|---|---|---|---|
-| **Sanitary spool tube, 2" TC ends, 304 seamless** — header sections | 3 | $37.99 | **$113.97** | 4.8★/446 | https://www.amazon.com/dp/B076F46Y7N |
-| **Clamp tee, 3-way, 2" TC** (incl. 3 gaskets) — air inlet | 1 | $15.99 | $15.99 | 4.6★/109 | https://www.amazon.com/dp/B08198ZPPK |
-| **End cap, 2" TC — 6 PACK** (need 2) | 1 | $13.99 | $13.99 | 4.5★/29 | https://www.amazon.com/dp/B0DCS3FMH4 |
-| **Tri-clamp, wing nut + gasket — 10 PACK** (need 8) | 1 | $42.99 | **$42.99** | 4.8★/21 | https://www.amazon.com/dp/B0DP9TC1BN |
-| **Silicone gaskets, 2" — 12 PACK** (spares) | 1 | $7.98 | $7.98 | 4.4★/23 | https://www.amazon.com/dp/B0D7WFHHD4 |
-| Stainless standoffs / feet | — | $40.00 | $40.00 | *estimate* | fab from scrap or buy |
-| | | **PARTS** | **$234.92** | | |
+| **Spool tube, 24", 2" TC, 304 polished seamless** | **4** | $37.99 | **$151.96** | 4.8★/446 | https://www.amazon.com/dp/B076F46Y7N |
+| **Clamp tee, 3-way** — centre air inlet, incl. 3 gaskets | 1 | $15.99 | $15.99 | 4.6★/109 | https://www.amazon.com/dp/B08198ZPPK |
+| **End cap — 6 pack** (need 2) | 1 | $13.99 | $13.99 | 4.5★/29 | https://www.amazon.com/dp/B0DCS3FMH4 |
+| **Tri-clamps w/ wing nut + gasket — 10 pack** (need 7) | 1 | $42.99 | $42.99 | 4.8★/21 | https://www.amazon.com/dp/B0DP9TC1BN |
+| **Silicone gaskets — 12 pack** (spares) | 1 | $7.98 | $7.98 | 4.4★/23 | https://www.amazon.com/dp/B0D7WFHHD4 |
+| Stainless standoffs / feet | — | $40.00 | $40.00 | *estimate* | fab from scrap |
+| | | **PARTS** | **$272.91** | | |
+| **Stock tank** | 1 | — | **$0 — OWNED** | | 120×20×12 |
 | **Spa blower** | 1 | — | **$0 — OWNED** | | |
-| Labor — 8 hrs @ $25 | | | **$200.00** | | grant-eligible |
-| | | **TOTAL** | **$434.92** | | |
+| Labor — 10 hrs @ $25 | | | **$250.00** | | grant-eligible |
+| | | **TOTAL** | **$522.91** | | |
 
-**$69.94 cheaper than my estimate**, because the multipacks beat buying
-singles — 10 tri-clamps for $42.99 against 8 at $12.99 each, and 6 end caps for
-$13.99 against 2 at $7.99.
+**Against the $7,200 Amazon bubble washer: saves $6,677.**
 
-**Against the $7,200 Amazon bubble washer: saves $6,765.**
+Only the $40 standoffs are unsourced, and they can be made from scrap.
 
-**Only one line is still unsourced** — the $40 standoffs, which can likely be
-fabricated from scrap.
+### Hole layout for a 96" header
+
+Target total hole area ≈ blower outlet. A 2" outlet is **3.14 sq in**.
+**1/8" holes are 0.0123 sq in each.**
+
+| Target | Holes | Spacing over 96" |
+|---|---|---|
+| **Start here — half** | ~128 | one every **0.75"** |
+| Full | ~255 | one every 0.38" |
+
+**Start at half and open it up.** You can always drill more.
+
+### ⚠️ Will one spa blower boil 16.7 sq ft?
+
+That is a big surface for one blower. It may give a gentle roll rather than a
+vigorous boil — **which is fine, possibly better, for delicate greens.**
+
+**Test before drilling all 128 holes:** drill the centre 48" first, run it, see
+what the boil looks like. If it is strong, extend outward. If it is weak, you
+have learned that before committing the whole header — and a second blower on
+the opposite end of the tee is the fix.
 
 ### ⚠️ Match the size to your blower
 Spa blowers are commonly **1.5" or 2"** outlet. The BOM above assumes **2"**.
