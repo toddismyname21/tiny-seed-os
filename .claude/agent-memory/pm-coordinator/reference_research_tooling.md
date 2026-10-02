@@ -8,18 +8,34 @@ metadata:
 **Set up 2026-09-24 after an afternoon of failed lookups.** Todd: *"We need to
 figure out a way to enhance our research... This stinks we can't get this done."*
 
+## Search engines: the Bing problem
+
+Todd, 2026-10-02: *"who uses bing?"* — fair. Nobody. The reason is mechanical,
+not a preference:
+
+| Engine | Scrapes? |
+|---|---|
+| Google | ❌ blocks automated browsers hard |
+| Bing | ⚠️ usually works, but **serves junk/ad pages** — a flail-mower query returned hotel ads |
+| **DuckDuckGo html endpoint** | ✅ **try this first** — `html.duckduckgo.com/html/?q=` is static HTML, no JS, cleanest to parse |
+
+**Better than any of them: skip search engines entirely and go at the source
+site with `search_site.mjs`,** which types into the site's own search box. For
+prices that means going straight to the retailer or dealer — Messick's, Agri
+Supply, Everything Attachments — not asking an engine who sells it.
+
 ## The tools, in order of preference
 
-1. **`WebSearch` / `WebFetch`** — granted to pm-coordinator 2026-09-24, and
-   **confirmed working** the same day after restart (ran a real query, got real
-   results). Try these first. They did not exist before that date, which is why
-   every earlier lookup had to be delegated to a subagent.
-   **But do not stop at the WebSearch synthesis for anything load-bearing** — it
-   is itself a small model summarizing results, and can misread a spec exactly
-   the way a person can. For a number someone is about to act on physically
-   (torque spec, compression spec, a phone number), pull the actual source
-   WebSearch found and read it directly. WebFetch 403s on some sites
-   (jackssmallengines, ereplacementparts) — fall back to `fetch.mjs` below.
+1. ❌ **`WebSearch` — DISABLED. Stop trying it.** Re-tested 2026-10-02 in a
+   fresh session: `Error: No such tool available: WebSearch. WebSearch is
+   disabled for this session, in subagents as well as here.` **Including in
+   subagents** — so delegating does not route around it.
+   A 2026-09-24 note in this file claimed it was "confirmed working after
+   restart." **That was wrong and cost two sessions of false starts.** It was
+   added to `.claude/agents/pm-coordinator.md`, but the tool is disabled at a
+   level the agent definition does not control. Do not add it to a startup
+   prompt as though a restart will fix it.
+   `WebFetch` may still work — test it separately, they are not the same grant.
 2. **`scripts/research/*.mjs`** — headless Chromium via Playwright. Use when
    WebFetch is blocked or the page needs JavaScript.
    - `fetch.mjs <url>` — render any page, print visible text

@@ -25,9 +25,23 @@ What separates a $1,369 import from a $2,400 machine:
 
 | Machine | Price | Rating | Note |
 |---|---|---|---|
-| **MechMaxx VAM48** offset ditch-bank, 48" | **$2,079** | 4.3★/28 | **offset** — mows beside beds and under fencelines. A genuinely more useful tool. `B0DBDJKPXF` |
+| ~~MechMaxx VAM48 offset ditch-bank~~ | ~~$2,079~~ | | ❌ **RULED OUT — Todd wants STRAIGHT** |
 | Farmer Helper FH-EF125, 48", Cat I, 20HP+ | $1,728 | 3.8★/11 | |
 | MechMaxx EFS48, 48" light-duty | $1,369 | 4.2★/39 | the budget option `B0DBDLM774` |
+
+## ⚠️ STRAIGHT, NOT OFFSET — Todd 2026-10-02
+
+> *"I want the straight not the offset. I need to be able to hit the beds. My
+> landlord has an offset flail mower and I can mow a narrow bed without being in
+> the other bed."*
+
+**Straight only.** The machine has to cut the bed the tractor is centred on —
+that is the job. The offset case is already covered: the landlord has one, and
+borrowing it beats buying a second capability.
+
+Do not let a dealer upsell an offset on the grounds that it is "more
+versatile." It is the wrong tool for this job and the right tool is already
+available to borrow.
 
 ⭐ **Worth looking beyond Amazon at this budget.** $2,400 reaches the real
 farm-grade brands — **Caroni** (Italian, popular on compact tractors), **Befco**,

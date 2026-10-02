@@ -4,6 +4,18 @@ description: All loan officer, grant, and financial contacts with full email/pho
 type: reference
 ---
 
+## FSA — WHO TO CONTACT FOR WHAT
+
+**Farm Programs** — AD-1026, subsidiary prints, CLU / GeoJSON field boundaries,
+acreage reporting, farm/tract/field numbers:
+- **Sara Downs** — Sara.Downs@usda.gov
+- **Lisa Bauer** — Lisa.Bauer@usda.gov
+
+Todd 2026-10-01: *"These are the contacts I work with the most."* Use these for
+records and acreage, NOT the loan team below.
+
+**Farm Loan Programs** — the Direct Operating Loan file only:
+
 ## FSA Direct Operating Loan — USDA Farm Service Agency
 
 **Lead:** Allison Pruskowski
