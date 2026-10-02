@@ -6,6 +6,37 @@ push back on it."*
 Right call. Do not pre-negotiate against yourself — put it in with a proper
 justification and let Pasa rule.
 
+## 💰 BUDGETED: $2,400 — Todd 2026-10-02
+
+*"We don't need to buy the absolute cheapest."*
+
+Right call. A flail running hard on crop residue is the wrong place to economise.
+What separates a $1,369 import from a $2,400 machine:
+
+| | Why it matters on residue |
+|---|---|
+| **Rotor balance** | an out-of-balance rotor at 540 PTO destroys its own bearings |
+| **Bearing quality** | flails live or die on the rotor bearings |
+| **Hammer steel and retention** | thrown hammers are dangerous and the mounts wear |
+| **Gearbox / belt drive quality** | the part that fails first and strands the machine |
+| **Parts availability** | an orphaned import is scrap when a bearing goes |
+
+## Options inside the budget
+
+| Machine | Price | Rating | Note |
+|---|---|---|---|
+| **MechMaxx VAM48** offset ditch-bank, 48" | **$2,079** | 4.3★/28 | **offset** — mows beside beds and under fencelines. A genuinely more useful tool. `B0DBDJKPXF` |
+| Farmer Helper FH-EF125, 48", Cat I, 20HP+ | $1,728 | 3.8★/11 | |
+| MechMaxx EFS48, 48" light-duty | $1,369 | 4.2★/39 | the budget option `B0DBDLM774` |
+
+⭐ **Worth looking beyond Amazon at this budget.** $2,400 reaches the real
+farm-grade brands — **Caroni** (Italian, popular on compact tractors), **Befco**,
+**Land Pride**, **Woods**. None sell on Amazon; they go through dealers.
+
+**Market Farm Implement and Nolt's are both PA and already our vendors** — ask
+them what 48" flail they would put behind the MF 1240. A dealer machine also
+means parts and service locally, which an Amazon import does not.
+
 ## The pick
 
 **MechMaxx EFS48 — 48" PTO flail mower — $1,369.00**
