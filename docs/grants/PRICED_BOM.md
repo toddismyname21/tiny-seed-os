@@ -73,30 +73,54 @@ every line below needs a real listing, not an estimate. Prices read 2026-10-02.
 
 | Item | Total | Source |
 |---|---|---|
-| Market signage — flagship products + organic status | $1,500.00 | 🔴 package to specify — anchors below |
+| Market signage — rigid + **chalkboards** | **$1,259.23** | ✅ **fully priced below** (budgeted $1,500, $240.77 headroom) |
 | Wholesale line sheet | $500.00 | ⬜ Todd |
 | "Won't You Be My Neighbor" campaign print | $600.00 | 🔴 allowance |
-| | **$2,600.00** | |
+| | **$2,359.23** | |
 
-### Verified signage anchors
+### ✅ SIGNAGE PACKAGE — priced 2026-10-02, including Todd's chalkboards
 
-| Item | Price | Rating |
-|---|---|---|
-| Custom vinyl banner, 3' × 6', full colour 13 oz | $36.96 | 4.7★ |
-| Custom vinyl banner, 5' × 3', professionally printed | $45.00 | 4.8★ |
-| A-frame sidewalk sign, 24"×36", heavy duty | $65.78 | 5.0★ |
-| OrangeStar A-frame 24×36, 2-pack, double-sided | $158.90 | 4.4★ |
-| SmartSign A-frame w/ slide-in panels, 4-pack | $279.95 | 4.7★ |
+**Todd: *"include some really nice farmy chalk boards and chalk board a-frames."***
+Right instinct, and it splits the signage cleanly in two: **rigid signs carry
+what never changes** (flagship products, organic status), **chalkboards carry
+what changes daily** (prices, what is fresh, what sold out).
 
-⚠️ **Vinyl banners are cheap; $1,500 of them would be absurd.** A credible $1,500
-package is **rigid signs** — aluminium or dibond — for the four flagship products
-and organic status, plus two A-frames with changeable panels and a large farm
-banner. **Todd should specify the material**, because that is what moves this
-number, and rigid signage is what survives a season of markets.
+#### Rigid / permanent
 
-🔴 **Organic seal caution:** the USDA Organic seal cannot be altered, and OEFFA
-may require label and signage approval before use. **Confirm with Lauren Pope
-before anything is printed.**
+| Item | Qty | Unit | Total |
+|---|---|---|---|
+| Flagship product signs, 24×18 custom aluminium, .040 rustproof, 4.5★ | 4 | $45.79 | $183.16 |
+| **USDA ORGANIC STATUS sign**, 30×24 custom aluminium, 4.6★ | 1 | $110.00 | $110.00 |
+| Main farm sign, 30×24 custom aluminium, 4.6★ | 1 | $110.00 | $110.00 |
+| Farm banner, 3'×6' full-colour 13 oz vinyl, 4.7★ | 1 | $36.96 | $36.96 |
+| SmartSign A-frame w/ slide-in panels, 4-pack, 4.7★ | 1 | $279.95 | $279.95 |
+| | | | **$720.07** |
+
+#### Chalkboards
+
+| Item | Qty | Unit | Total |
+|---|---|---|---|
+| **A-frame chalkboard 40×20, double-sided magnetic, RUSTIC BROWN**, 4.6★ | 3 | $61.99 | $185.97 |
+| Wall/hanging chalkboard, burnt wood frame, 4.4★/500 | 4 | $39.99 | $159.96 |
+| Magnetic chalkboard 20×30, 4.5★/4.8K | 2 | $39.99 | $79.98 |
+| Tabletop chalkboard easel set, 8-pk 8.7×12, markers incl., 4.4★ | 1 | $31.34 | $31.34 |
+| Mini chalkboard price signs, 20-pk w/ easels, 4.7★ | 2 | $12.99 | $25.98 |
+| Chalk Ink professional chisel-tip markers, 4.6★ | 2 | $19.99 | $39.98 |
+| Chalkola white chalk markers, 5-pk, 4.6★ | 1 | $15.95 | $15.95 |
+| | | | **$539.16** |
+
+| | |
+|---|---|
+| **SIGNAGE PACKAGE TOTAL** | **$1,259.23** |
+| budgeted | $1,500.00 |
+| **headroom** | **$240.77** |
+
+⭐ **Trimming signage to the real $1,259.23 cuts the overage from $415.60 to
+$174.83.** Alternatively keep $1,500 and spend the headroom on bigger rigid
+panels or mounting hardware. **Todd's call.**
+
+🔴 **Organic seal caution stands:** the USDA Organic seal cannot be altered and
+OEFFA may require approval before printing. Ask Lauren Pope.
 
 ## Market & Event Material
 
@@ -123,13 +147,13 @@ before anything is printed.**
 | Cooling, Storage, Logistics | $1,991.21 |
 | Other (flail mower) | $2,000.00 |
 | Business Development and Planning | $1,800.00 |
-| Brand Building and Marketing | $2,600.00 |
+| Brand Building and Marketing | $2,359.23 |
 | Market & Event Material | $800.00 |
-| **MATERIALS** | **$13,053.10** |
+| **MATERIALS** | **$12,812.33** |
 | Labor — 31.5 owner hrs @ $50 | $1,575.00 |
 | Labor — 31.5 staff hrs @ $25 | $787.50 |
-| **TOTAL REQUESTED** | **$15,415.60** |
-| vs the $15,000 **soft** ceiling | 🟡 **$415.60 over** |
+| **TOTAL REQUESTED** | **$15,174.83** |
+| vs the $15,000 **soft** ceiling | 🟡 **$174.83 over** |
 
 > ⬇️ **Real pricing pulled the ask down from $15,739.93 to $15,415.60** — the
 > baskets and the chilled loop both came in under estimate, together saving
@@ -143,7 +167,7 @@ before anything is printed.**
 |---|---|---|---|
 | 1 | **Label stock, 4 SKUs** | **How many of each per year?** Label pricing is entirely quantity-driven — 1,000 vs 10,000 changes the per-unit cost several-fold. Cannot be priced without it | **Todd** |
 | 2 | **Photography** | A quote from an actual photographer. A day or half-day rate on letterhead is exactly the documentation Pasa asks for | **get a quote** |
-| 3 | **Signage material** | Rigid aluminium/dibond or vinyl? This is the whole $1,500 question | **Todd** |
+| 3 | ~~Signage material~~ | ✅ **RESOLVED** — rigid aluminium + chalkboards, $1,259.23 priced |  |
 | 4 | **Booth package** | Which of the verified anchors above — and does the farm already own tables? | **Todd** |
 
 **Everything else is priced from a live listing and ready to screenshot.**
