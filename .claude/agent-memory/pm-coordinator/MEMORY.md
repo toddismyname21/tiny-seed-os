@@ -71,6 +71,10 @@
 - [Flex portal state](project_flex_portal_state.md) — Flex is fully built/LIVE (not from-scratch); ghost-catalog toggle model; the real gap = NO photos in system (flex 0/library 3/shopify 0)
 - [Route-tab builder bug](project_route_tab_builder_bug.md) — /admin/route auto-create is INACCURATE (dups members, includes flowers/Week-A, misses Oakmont); route-SHEET is correct; fix=use resolveCycle; +week-labeling gotcha (default rolls to next Mon)
 
+## AMP / conservation
+- [HEL cropland — the organizing fact](project_hel_cropland.md) — 100% of FSA cropland (44.05 ac) is Highly Erodible Land. Lead every conservation talk with this.
+- [AMP conservation research](project_amp_conservation_research.md) — 1,835 verified NRCS PA scenarios on disk; 345 Non-Mechanical + 484 Synthetic are what fund tarps.
+
 ## Route Optimization
 - [Delivery route optimization initiative](project_route_optimization.md) — Google Route Optimization API (single-vehicle); 15 stops geocoded; BLOCKED on enabling Geocoding+RouteOpt APIs+billing on the GCP key; plan in docs/ROUTE_OPTIMIZATION_PLAN.md
 
