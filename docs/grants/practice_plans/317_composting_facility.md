@@ -18,6 +18,78 @@ It expires 2027-06-30.**
 **Two grants, two halves of one system, no overlap.** And a compost turner
 without a hard surface to work on is a machine looking for a job.
 
+## ✅ CONCRETE IS NOT REQUIRED — read from the standard 2026-10-02
+
+**Todd: *"Can we have a facility without a pad?"*** Yes. Read directly from
+**NRCS Conservation Practice Standard 317, September 2020**
+(`docs/grants/amp_program_docs/NRCS_317_Composting_Facility_Standard.pdf`).
+
+**Concrete appears twice in the entire standard, both times optional:**
+
+> *"**If** the composting facility is in a higher precipitation area or the site
+> will have heavy vehicle traffic, **consider** using a concrete base."*
+
+> *"Where seepage **will be an issue**, use NRCS CPSs Pond Sealing or Lining —
+> Geomembrane or Geosynthetic Clay Liner (521), **Concrete (522)**, or
+> **Compacted Soil Treatment (520)**."*
+
+**The binding requirement is a performance standard, not a material:**
+
+> *"**Prevent seepage of compost stack leachate in amounts that would pollute
+> surface or ground water.**"*
+
+And the standard itself points elsewhere for the surface:
+
+> *"For the design of a stable surface treatment, where appropriate, use criteria
+> in NRCS CPS **Heavy Use Area Protection (Code 561)**."*
+
+### Siting requirements that DO bind
+
+| | |
+|---|---|
+| **50 ft minimum** from wells, streams, or other water features | |
+| **Floor 2 ft or more above** the seasonal high water table | |
+| **Outside the 100-year floodplain** | or protected to a 25-yr event |
+| **Redirect upslope runoff away** from the site | crown it or ditch above it |
+| All-weather access | |
+| ⚠️ **Locate or remove field tiles** where seepage is a concern | old PA ground often has tile |
+
+## 🔴 THE REAL MISMATCH — not concrete, but scale and form
+
+**Todd's design: 30 × 200 ft = 6,000 sq ft of windrows, turned with a PTO turner.**
+
+**The only PA payment scenario is "Farm Bin, Concrete Floor, Wood or Concrete
+Walls"** at $5,840 base + $12.42/sq ft. At 6,000 sq ft that computes to
+**$80,360**, which is plainly not what the scenario is for. **It prices contained
+bins, not a windrow yard.**
+
+➡️ **The design and the published scenario do not match. That is the problem to
+solve, not the concrete.**
+
+## ⭐ And the windrow design is CORRECT for organic
+
+NOP §205.203 allows two compost methods. The **windrow method — 131–170°F for 15
+days with at least 5 turnings** — is exactly what a 30×200 yard with a PTO turner
+does. **Bins are the in-vessel / static aerated route. Windrows are the certified
+organic route**, and Todd has designed it correctly for the certification he
+holds.
+
+## 🔴 THREE QUESTIONS FOR LUKA
+
+1. *"Our design is windrows, not bins — 30 × 200, PTO-turned, which is the NOP
+   windrow method. Is there a scenario for a windrow composting pad, or does 317
+   only pay for bins in PA?"*
+2. *"The standard says concrete is 'considered,' not required, and points to
+   Compacted Soil Treatment (520) and Heavy Use Area Protection (561). Would a
+   compacted-stone or geotextile-and-aggregate surface qualify?"*
+3. *"If 317 only funds bins here, does Heavy Use Area Protection (561) fund the
+   windrow pad instead?"*
+
+⚠️ **561 is NOT on Pasa's 36-practice list.** If that is the right answer it may
+not be fundable through AMP at all. Worth knowing early.
+
+**Todd 2026-10-02: wants to implement this regardless of funding.**
+
 ## 2. What it is
 
 A dedicated area for making compost — contained, on an impervious surface, so
