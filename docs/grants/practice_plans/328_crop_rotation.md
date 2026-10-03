@@ -5,7 +5,44 @@
 | **Pays** | $145.13/ac (HU, "Irrigated to Dryland") — most scenarios are low per-acre |
 | **We buy** | nothing |
 
-## ⚠️ Honest assessment: low value here, but near-zero effort
+## ⭐ REVIEWED 2026-10-02 — two finds that change the assessment
+
+16 PA scenarios exist. Two matter:
+
+| Scenario (HU) | Rate |
+|---|---|
+| ⭐ **Add Crop Organic System** | **$103.15/ac** — nearly 3× plain Specialty Crops |
+| ⭐ **Specialty Crop, SMALL** | **$36.53 / 1,000 sq ft** |
+| Specialty Crops | $37.46/ac |
+| Perennial, Short-Term | $65.57/ac |
+| Winter or Spring Annual | $58.43/ac |
+| Basic, Two Crop Types | $14.05/ac |
+
+### 🔴 The "Specialty Crop, Small" scenario is priced per 1,000 sq ft
+
+**$36.53/kSqFt × 43.56 kSqFt per acre = $1,591 per acre equivalent**, against
+**$37.46/ac** under the plain Specialty Crops scenario.
+
+**That is 42× more for the same ground.**
+
+⚠️ I do not know what qualifies as "small," whether there is a threshold, or
+whether it is capped. **But it is the same structural pattern as 329's "Less Than
+Half Acre" and 484's "Row" scenario — NRCS prices intensive small-scale work
+differently, and the per-acre rate is the wrong one for a bed-scale farm.**
+
+➡️ **THE QUESTION FOR LUKA:** *"Does our intensive bed-scale vegetable production
+qualify for 'Specialty Crop, Small' at $36.53 per thousand square feet rather
+than the per-acre scenario?"*
+
+**At $37/ac on 7.6 acres this is $280 and barely worth the form. At the small
+scenario it could be thousands.** One question decides which.
+
+✅ **Also ask for "Add Crop Organic System" by name** — the farm is certified, and
+it pays 3× the plain rate.
+
+## Original assessment (superseded by the above)
+
+###  Honest assessment: low value here, but near-zero effort
 
 On 7.6 acres the per-acre rate is small money. **Include it because it costs
 nothing and it is already true**, not because it pays well.

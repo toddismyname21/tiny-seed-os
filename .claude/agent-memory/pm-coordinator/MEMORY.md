@@ -73,6 +73,7 @@
 
 ## AMP / conservation
 - [HEL cropland — the organizing fact](project_hel_cropland.md) — 100% of FSA cropland (44.05 ac) is Highly Erodible Land. Lead every conservation talk with this.
+- [AMP practice walkthrough — PAUSED AT #8](project_amp_conservation_walkthrough.md) — one-by-one review of the 36; production expanding 7.6→10-12 ac, which changes per-acre value.
 - [AMP conservation research](project_amp_conservation_research.md) — 1,835 verified NRCS PA scenarios on disk; 345 Non-Mechanical + 484 Synthetic are what fund tarps.
 
 ## Route Optimization

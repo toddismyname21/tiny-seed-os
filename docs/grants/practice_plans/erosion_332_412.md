@@ -17,6 +17,52 @@ are the direct response to it.
 
 ## 332 — Contour Buffer Strips
 
+### ✅ REVIEWED 2026-10-02
+
+| Scenario (HU) | Pays/ac |
+|---|---|
+| ⭐ **Specialty Crops, Foregone Income** | **$2,203.40** |
+| Native Species | $591.31 |
+| Introduced Species | $549.62 |
+
+**Specialty Crops pays 3.7× the others.** Insist on it — the farm grows specialty
+crops and the foregone income on vegetable ground is valued accordingly.
+
+**What it could pay on Field 1068/446/1 (33.55 ac HEL):**
+
+| Strips at | Acres | Pays |
+|---|---|---|
+| 5% | 1.68 | $3,696 |
+| 10% | 3.35 | $7,392 |
+| 15% | 5.03 | $11,089 |
+| 20% | 6.71 | $14,785 |
+
+### 🔴 THE QUESTION THAT DECIDES IT
+
+**Total production footprint is 7.6 acres. Field 1's 33.55 acres is TRACT area —
+most of it is not in beds.**
+
+| If the strips land on… | Then |
+|---|---|
+| **uncropped parts of Field 1** | near-free money, same logic as 327 |
+| **actual production beds** | you are permanently giving up growing space, and $2,203/ac is the compensation for that |
+
+⚠️ **I do not know how much of Field 1 is in production beds.** That single fact
+decides whether this is excellent or expensive.
+
+➡️ **Ask Luka to walk Field 1 at the site visit and show where contour strips
+would actually fall.**
+
+### Two cautions
+
+⚠️ **Must be laid out on the true contour by a planner with a level**, not by eye.
+Off-contour strips concentrate water instead of slowing it.
+
+⚠️ **Permanent, and it changes the field geometry forever.** The beds are long and
+machine-worked; contour strips cut across that. **Same tension as alley cropping
+with the precision cultivation system AIG funded**, though less severe.
+
+
 **What it is:** strips of permanent vegetation running **across the slope, on the
 contour**, between cropped strips. They break the slope length so water never
 builds enough speed to carry soil.
