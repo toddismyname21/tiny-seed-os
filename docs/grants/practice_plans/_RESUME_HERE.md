@@ -66,6 +66,56 @@ year."*** Up from **7.6**.
 | 3 | **The woods — does the lease give any access or management rights?** | **666 Forest Stand Improvement $2,582/ac**, possibly **379 Forest Farming** |
 | 4 | **Is wind a real problem on the salad blocks?** | **380 Windbreak**, **603 Herbaceous Wind Barriers** |
 
+# ⭐ MEETING STRATEGY — Todd 2026-10-02
+
+**The first meeting with Luka is a LISTENING meeting. Let Pasa present first.**
+
+> *"I also think for the first meeting with luka we should allow them to present
+> us with options too. Maybe there will be something we can work from and enhance
+> our chances."*
+
+**This does not contradict [[present-the-plan]] — it sequences it.**
+
+| Meeting | Mode | Why |
+|---|---|---|
+| **1st — with Luka** | ⭐ **LISTEN.** Let them lay out what they fund, what they have approved before, what they think fits | They know what gets through. They may name practices, scenarios or combinations we have not thought of. **Walking in with a fixed plan on day one forecloses that** |
+| **Then** | build the plan from everything learned | |
+| **2nd onward** | ⭐ **PRESENT THE PLAN.** One plan, specific acres, specific scenarios | Hedging after this point reads as uncertainty |
+
+## What to bring to meeting 1
+
+**Not a plan. A capability.** Todd should be able to answer any "could you do X?"
+with a specific, concrete yes — which is what the **per-code idea stacks** are
+for.
+
+| Bring | Do not bring |
+|---|---|
+| Beginning Farmer status, stated early | a fixed practice list |
+| The farm facts — 11 ac planned, 100% HEL cropland, organic, 3 clusters | a dollar target |
+| ⭐ **Idea stacks per code** — several concrete options ready under each | ❌ **any question about a per-farm cap** |
+| Questions about mechanics (how payment is calculated, what records qualify) | |
+
+**The idea stacks are ammunition, not a menu for Luka.** When he asks *"what
+would you do under 374?"*, Todd has five answers ready instead of one.
+
+---
+
+# 🔨 IN PROGRESS — per-code IDEA STACKS
+
+**Todd 2026-10-02: *"I want to take the next few days to work this stuff out, and
+have stacks of ideas for each code."***
+
+**The deliverable:** for every practice code, a stack of concrete, specific things
+Tiny Seed could do under it — not whether to, but what. So no question in that
+meeting gets a vague answer.
+
+**Format per code:** 4–8 specific ideas, each naming the block or structure, what
+would physically be done, and roughly what it costs.
+
+**Status:** not started. Build alongside the one-by-one walkthrough from #8.
+
+---
+
 # Running list of questions for Luka
 
 1. **How is the practice payment calculated — NRCS scenario rate, or actual invoices?** *(decides whether cost-under-funding gaps are real)*
