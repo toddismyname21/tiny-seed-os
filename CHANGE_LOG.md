@@ -1,3 +1,72 @@
+## 2026-10-06 — CSA labels: promises without labels now print (PM/fullstack)
+- apps/csa-portal/src/pages/admin/labels/[...slug].astro:
+  1. SYNTHESIZED MAKE-UP LABELS: open member_notices for customers with NO label this week now print a make-up-only label at their stop (Kristin Stumm's missed make-up box case). Unresolvable → screen-only orphan card (EN/ES).
+  2. FLOWER-ONLY BANNER FALLBACK: make-up banners now ride the flower label when the customer has no box label (David Northrop bok choy case).
+- Verified on live prod page: 135→137 labels (Stumm @ Zelienople, Dum @ Bloomfield), Northrop flower label carries banner. Deployed to Vercel prod.
+
+## 2026-09-24 (night) — PM_ARCHITECT — Machine specs verified from factory manuals; tooling confirmed working
+
+**Tooling check (Todd asked me to confirm, not assume):** `WebSearch` works —
+ran a real query, got results. But per `.claude/rules/no-guessing.md` a
+search-engine's synthesized answer is itself a layer that can be wrong on a
+number someone is about to wrench to, so every fact below was additionally
+verified by pulling the primary-source PDF/page directly and, for anything in
+a merged-cell table, rendering the actual page image rather than trusting a
+linear text extraction (the same failure mode as the AIG .docx column error —
+see `.claude/agent-memory/pm-coordinator/feedback_docx_cell_verification.md`).
+`gh`/Chrome check: did not get to it this session — need to ask Todd whether
+he's launched Chrome once and added the extension.
+
+**Settled the Mule 550's engine question** (the reason this mattered: the plan
+was leaning on a leak-down test specifically to *dodge* an unanswered question
+about whether cranking compression readings mean anything on this engine).
+Confirmed from the Kawasaki FE120–FE400 factory service manual, read directly
+and cross-checked against rendered page images:
+- FE290 **does** have an automatic compression release (ACR) — general spec
+  table states it outright, not inferred.
+- Compression minimum: 290 kPa/42 psi recoil-cranked, 390 kPa/57 psi
+  electric-cranked, WITH the ACR active — factory service limit, not a
+  "healthy" number.
+- Valve lash: 0.12 mm intake and exhaust, cold — and the FE290 does **not**
+  have a hydraulic lash adjuster (that's FE350/400 only), so lash genuinely
+  needs setting, unlike the mower.
+- Spark plug: NGK BPR5ES, gap 0.7–0.8 mm. Torque unverified — not in the pages
+  I could read.
+
+**Resolved the mower's outstanding tune-up numbers** from the Kohler CV11-CV16
+owner's manual, cross-checked against the Jack's Small Engines parts catalog
+keyed specifically to spec 14107 (not just the general CV14 model) — both
+agree exactly: spark plug Champion RC12YC / Kohler 12 132 02-S at 1.0mm gap,
+oil filter 52 050 02-S, SAE 10W-30, 1.9L crankcase capacity with filter.
+
+**Fuel pump vs. gravity feed, both machines — still not settled**, and said so
+plainly rather than rounding up. New evidence (the spec-14107 catalog lists a
+full fuel-pump parts set, not an optional accessory) leans the mower toward
+"has one," but OEM diagrams bundle running-change alternates, so this stays a
+physical look-and-tell for Todd on both machines.
+
+**Saved the two source manuals locally** at `docs/equipment/reference_pdfs/`
+(Kawasaki FE-series service manual, Kohler CV11-CV16 owner's manual) since the
+original hosts (a hobbyist site, a parts retailer) aren't guaranteed to stay up.
+**Caught before it became a false claim:** this repo's `.gitignore` excludes
+all `*.pdf` repo-wide, so these two files sit on local disk only — not backed
+up to git/GitHub. Flagged to Todd rather than silently leaving the docs
+implying otherwise; his call whether to carve out a `.gitignore` exception.
+
+**Files touched:** `docs/equipment/MULE_550_NO_POWER_DIAGNOSIS.md`,
+`docs/equipment/MOWER_KOHLER_CV14S_CARB_AND_TUNEUP.md`,
+`docs/equipment/WINTER_2026_BUY_LIST.md`, `docs/equipment/MACHINE_REGISTRY.md`,
+`docs/equipment/reference_pdfs/*.pdf` (new).
+
+**Still open, honestly:** Mule VIN, Simplicity chassis model, fuel pump/gravity
+for both machines, Mule spark-plug torque, whether the HIFROM tune-up kit's
+included plug actually matches NGK BPR5ES. All three of Todd's owed facts
+(VIN, chassis model, pump-vs-gravity) remain his to answer — none of them were
+discoverable from documentation, by design; they're physical facts about the
+specific machine in front of him.
+
+---
+
 ## 2026-09-18 (evening) — PM_ARCHITECT — Deployed; fall roster verified clean
 
 Todd approved both blocked actions.

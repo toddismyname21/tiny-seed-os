@@ -136,6 +136,10 @@ const LABEL_STRINGS: Record<Lang, {
   addonColorCode: string;
   /** Loud header on the owed-make-up band (0092 label change). */
   makeupHdr: string;
+  /** Screen-only notice: open make-ups whose customer has NO label this week
+   *  AND no resolvable stop — these can't print anywhere, chase by hand. */
+  makeupOrphanHdr: (n: number) => string;
+  makeupOrphanBody: string;
   otherAddon: string;
   noStops: string;
   // Empty states
@@ -178,6 +182,8 @@ const LABEL_STRINGS: Record<Lang, {
     sizeColorCode: 'Box size color code',
     addonColorCode: 'Add-on color code',
     makeupHdr: '\u26a0 MAKE-UP OWED \u2014 PACK THIS',
+    makeupOrphanHdr: (n) => `\u26a0 ${n} make-up${n === 1 ? '' : 's'} owed with NO label and no stop`,
+    makeupOrphanBody: 'These customers are owed an open make-up (member_notices) but have no label this week and no resolvable stop to print one at. They will NOT appear in the printed stack \u2014 handle each by hand (see /admin/notices).',
     otherAddon: 'Other add-on',
     noStops: 'No active stops for this week.',
     emptyFiltered: 'No labels match this filter for this week. Try clearing the filter or picking another week.',
@@ -222,6 +228,8 @@ const LABEL_STRINGS: Record<Lang, {
     sizeColorCode: 'Código de color de tamaño',
     addonColorCode: 'Código de color de extras',
     makeupHdr: '\u26a0 COMPENSACIÓN PENDIENTE \u2014 EMPACAR ESTO',
+    makeupOrphanHdr: (n) => `\u26a0 ${n} compensaci${n === 1 ? 'ón' : 'ones'} pendiente${n === 1 ? '' : 's'} SIN etiqueta y sin parada`,
+    makeupOrphanBody: 'Estos clientes tienen una compensación pendiente (member_notices) pero no tienen etiqueta esta semana ni parada donde imprimirla. NO aparecerán en las etiquetas impresas — atienda cada caso a mano (ver /admin/notices).',
     otherAddon: 'Otro extra',
     noStops: 'No hay paradas activas esta semana.',
     emptyFiltered: 'Ninguna etiqueta coincide con este filtro esta semana. Quite el filtro o elija otra semana.',
@@ -889,6 +897,63 @@ for (const stop of stopsOrdered) {
   }
 }
 
+/* ── MAKE-UP-ONLY LABELS (Todd 2026-10-06) ────────────────────────────
+ * "Can we have some way that promises without labels get added to the
+ * labels for the stop?" — Open make-ups (member_notices) ride existing
+ * labels, but a customer with NO label this week printed NOWHERE in the
+ * stack: Kristin Stumm's make-up box (flex member, no order that week ⇒ no
+ * label) lived only on the pack sheet and was missed at labeling time.
+ *
+ * Every customer owed an open make-up who has no label this week gets a
+ * SYNTHESIZED make-up label at their stop — name + stop band + the loud
+ * make-up banner, no box contents (the banner IS the instruction). The
+ * customer's stop is resolved from their cycle rows (preferring box-type
+ * shares); home-delivery members resolve through the home_delivery
+ * sentinel stop like every other label. A make-up customer with NO
+ * resolvable stop can't print anywhere → screen-only orphan notice. */
+const labeledCustomerIds = new Set(labels.map((l) => l.member.customer_id));
+const makeupOrphans: Array<{ name: string; titles: string[] }> = [];
+for (const [customerId, titles] of makeupsByCustomer) {
+  if (labeledCustomerIds.has(customerId)) continue;
+  let placed: { stop: StopTotals; member: CycleMember } | null = null;
+  for (const stop of stopsOrdered) {
+    const rows = (cycle.byStop.get(stop.stop_id) ?? []).filter(
+      (m) => m.customer_id === customerId,
+    );
+    if (rows.length === 0) continue;
+    const best = rows.slice().sort((a, b) => sharePriority(a) - sharePriority(b))[0];
+    if (!placed || sharePriority(best) < sharePriority(placed.member)) {
+      placed = { stop, member: best };
+    }
+  }
+  if (!placed) {
+    const anyRow = cycle.members.find((m) => m.customer_id === customerId);
+    makeupOrphans.push({ name: anyRow?.contact_name ?? '(not in this cycle)', titles });
+    continue;
+  }
+  labels.push({
+    member: placed.member,
+    stop: placed.stop,
+    distDate: distDateForStop(placed.stop),
+    composition: null, // no box contents — the make-up banner is the instruction
+    addonChips: [],
+    flexLines: [],
+    owes: false,
+    kind: 'box',
+    hasFlower: false,
+  });
+}
+makeupOrphans.sort((a, b) => a.name.localeCompare(b.name));
+
+/* Make-up banners print on BOX labels; a flower-ONLY customer (no box label
+ * this week) would otherwise never show their banner anywhere a packer looks
+ * (David Northrop's $15 bok choy make-up, 2026-10-06). The render gate below
+ * uses this set: flower labels DO show the banner when the customer has no
+ * box-kind label to carry it. */
+const boxBannerCustomerIds = new Set(
+  labels.filter((l) => l.kind === 'box' && !l.container).map((l) => l.member.customer_id),
+);
+
 // Add-on-only customers we could NOT place (no active stop for their add-on) —
 // screen-only notice so admin can chase them down (they otherwise can't pack).
 const droppedOrphanSummary = Array.from(addonOnlyCustomerIds)
@@ -1045,6 +1110,20 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
         >
           {t.clearFilter}
         </a>
+      </div>
+    </Card>
+  )}
+
+  {makeupOrphans.length > 0 && (
+    <Card padding="md" elevation="sm" class="screen-only" tone="warning">
+      <div class="text-sm text-ts-text">
+        <p class="font-semibold">{t.makeupOrphanHdr(makeupOrphans.length)}</p>
+        <p class="mt-1 text-xs text-ts-text-secondary">{t.makeupOrphanBody}</p>
+        <ul class="mt-2 list-disc space-y-0.5 pl-5 text-xs text-ts-text">
+          {makeupOrphans.map((o) => (
+            <li><strong>{o.name}</strong> — {o.titles.join(' · ')}</li>
+          ))}
+        </ul>
       </div>
     </Card>
   )}
@@ -1230,7 +1309,12 @@ const LOGO_SRC = '/tiny-seed-logo-bw.png';
                     {label.kind === 'box' && label.hasFlower && (
                       <div class="label-flower-note">{t.alsoFlower}</div>
                     )}
-                    {label.kind !== 'flower' && !label.container && (makeupsByCustomer.get(label.member.customer_id)?.length ?? 0) > 0 && (
+                    {/* Make-up banner: on box labels always; on FLOWER labels
+                        only when the customer has no box label this week to
+                        carry it (flower-only members — Northrop 2026-10-06). */}
+                    {!label.container
+                      && (label.kind !== 'flower' || !boxBannerCustomerIds.has(label.member.customer_id))
+                      && (makeupsByCustomer.get(label.member.customer_id)?.length ?? 0) > 0 && (
                       <div class="label-makeup">
                         <div class="label-makeup-hdr">{t.makeupHdr}</div>
                         {makeupsByCustomer.get(label.member.customer_id)!.map((m) => (
