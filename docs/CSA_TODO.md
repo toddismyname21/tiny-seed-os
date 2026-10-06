@@ -2,6 +2,13 @@
 
 _Started 2026-06-08. PM-maintained. Newest deferrals at top of each section._
 
+## 🚨 FULL FLEX AUDIT + RECONCILIATION (Todd 2026-10-06, HIGH PRIORITY)
+**Todd's directive (verbatim):** "the left over money carries into flex. We have to figure out and reconcile everyone's flex. I am concerned we have problems here. So get FULL FLEX AUDIT AND RECONCILLIATION ONTO OUR LIST."
+**Policy confirmed by Todd 2026-10-06:** leftover summer flex money CARRIES INTO fall flex.
+**Why the concern is justified (known debt):** flex still does NOT deduct at order (see SHORT LIST below — never shipped); debits are backfilled ad-hoc (`scripts/backfill_flex_debits.py`); multiple hand-entered credits this season (Christine Mueller $35, Kristin Stumm comps, gift card BG43 $25→flex, Goat Rodeo-style owed items) and hand-entered orders that bypassed the normal path. Summer→Fall rollover (fall starts 10/14) is the forcing deadline.
+**Scope:** for EVERY flex member: starting balance (Shopify store credit + any top-ups) − every flex_orders debit (all statuses audited) ± manual credits/adjustments (with provenance) = reconciled carry-over balance into fall. Flag every mismatch with evidence; member-facing statement optional after Todd reviews.
+**Timing:** before/at fall season start (first fall boxes Oct 14). Deliverable: per-member reconciliation sheet + corrections list for Todd approval.
+
 ## 🚩 SHORT LIST — FLEX MUST DEDUCT AT ORDER (Todd 2026-06-18, HIGH PRIORITY, PORTAL SESSION)
 **Decision (Todd):** Flex balance must **debit the moment an order is placed**, NOT at fulfillment. **Assumption = the order will get fulfilled; if something doesn't go out, we make it up** (credit/refund that amount back). 
 **Why it's a big deal:** today flex orders sit `status='pending'` and the Shopify store-credit balance **never deducts** — members see a full balance all season and can't tell what they've spent. Verified: **Nikki Matusiak** balance still $672 after ~$60 ordered (2 wks, all pending); **Nancy Bergman** same pending state + couldn't see her list. Revenue/▸balance integrity issue.
