@@ -63,6 +63,9 @@ def main():
     ap.add_argument("--subject", required=True)
     ap.add_argument("--textfile", required=True, help="path to plain-text body; {{first_name}} supported")
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--week", help="cycle week (YYYY-MM-DD, any day — snapped to Monday). "
+                                   "REQUIRED for box-content kinds; audience is restricted to "
+                                   "members actually receiving a box that week (resolveCycle).")
     a = ap.parse_args()
 
     shares = [s.strip() for s in a.shares.split(",") if s.strip()]
@@ -71,6 +74,33 @@ def main():
     if bad:
         sys.exit(f"BLOCKED: content '{a.content}' is only valid for {sorted(valid)}; "
                  f"you targeted {bad}. Fix the audience or the content kind.")
+
+    # ── CYCLE-ORACLE GATE (2026-10-07 incident) ─────────────────────────
+    # BOX-content kinds describe "this week's box". Targeting by SHARE HELD
+    # sent that to 43 members with NO box coming (biweekly off-week /
+    # completed shares) — same failure class as 2026-09-02. For these kinds
+    # the audience is NON-NEGOTIABLY intersected with resolveCycle's
+    # receiving list via scripts/receiving_emails.mts. --week is REQUIRED.
+    # There is NO override flag, on purpose.
+    BOX_CONTENT = {"summer_box", "spring_box", "fall_box"}
+    receiving = None
+    if a.content in BOX_CONTENT:
+        if not a.week:
+            sys.exit(f"BLOCKED: content '{a.content}' is box-content — pass --week YYYY-MM-DD "
+                     "so the audience can be restricted to members ACTUALLY receiving a box "
+                     "that cycle (resolveCycle oracle). No override exists.")
+        import subprocess
+        share_csv = ",".join(sorted(valid))
+        try:
+            out = subprocess.run(
+                ["npx", "tsx", str(ROOT / "scripts" / "receiving_emails.mts"), a.week, share_csv],
+                capture_output=True, text=True, timeout=120, cwd=str(ROOT), check=True)
+        except subprocess.CalledProcessError as ex:
+            sys.exit(f"BLOCKED: receiving_emails.mts failed — cannot verify the box audience.\n{ex.stderr[:500]}")
+        receiving = {l.strip() for l in out.stdout.splitlines() if l.strip() and "@" in l}
+        if not receiving:
+            sys.exit(f"BLOCKED: oracle returned ZERO receiving members for week {a.week} — "
+                     "wrong week, or nobody gets a box. Not sending.")
 
     env = load_env()
     URL = env["PUBLIC_SUPABASE_URL"]; KEY = env["SUPABASE_SERVICE_ROLE_KEY"]
@@ -90,6 +120,8 @@ def main():
         em = (c.get("email") or "").strip().lower()
         if not em or em in TEST or any(s in em for s in TESTSUB):
             continue
+        if receiving is not None and em not in receiving:
+            continue  # cycle-oracle gate: no box this week → no "this week's box" email
         people.setdefault(em, {"first": (c.get("contact_name") or "there").split()[0].capitalize(),
                                "shares": set()})["shares"].add(m["share_type"])
 
