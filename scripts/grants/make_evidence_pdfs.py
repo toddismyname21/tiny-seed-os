@@ -23,8 +23,11 @@ TODAY=datetime.date.today().strftime('%B %-d, %Y')
 DATA = {
  "WashPackStation": ("Wash/Pack Station and Post-Harvest Handling", 3861.89, [
   ("Used stainless bagging table, 4'x6', casters, 2 bag openings",1,1500.00,
-   "Facebook Marketplace listing, Essex Junction VT"),
-  ("Buffer for add-ons / fittings to the table",1,500.00,"allowance"),
+   "Facebook Marketplace listing, Essex Junction VT - "
+   "facebook.com/marketplace/item/1059170920217267"),
+  ("Parts to return the bagging table to working order - the seller has "
+   "disclosed that parts are required before the table is operational",1,500.00,
+   "condition disclosed by seller; exact parts to be determined on inspection"),
   ("Transport / drive to collect (approx 1,260 mi round trip)",1,500.00,
    "fuel + time; NOTE Pasa treats shipping as a separate expense"),
   ("Continuous band sealer with date + lot code hot-stamp printer",1,279.00,
@@ -116,7 +119,16 @@ for key,(cat,total,rows) in DATA.items():
         ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3)]))
     st.append(t)
     st.append(Spacer(1,12))
+    NOTE_TABLE = (
+      "<b>Note on the bagging table.</b> A comparable NEW double-bagging table was "
+      "quoted to this farm at <b>$20,530</b> by a commercial processing equipment "
+      "supplier. The used table at $1,500, the parts the seller has disclosed are "
+      "required to make it operational at $500, and the transport to collect it at "
+      "$500 total <b>$2,500</b> - roughly 88% less. Buying used and repairing is the "
+      "reason this category is affordable at all.<br/><br/>"
+    ) if key == "WashPackStation" else ""
     st.append(Paragraph(
+      NOTE_TABLE +
       "<b>Products named are examples OR SIMILAR.</b> Brand names, model numbers and "
       "retailers are given to document a realistic price and specification only. "
       "Tiny Seed Farm reserves the right to purchase an equivalent item of similar "
