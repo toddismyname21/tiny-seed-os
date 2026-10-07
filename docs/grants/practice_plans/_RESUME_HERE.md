@@ -57,64 +57,55 @@ year."*** Up from **7.6**.
 
 ---
 
-# Four facts only Todd can supply — each unlocks a practice
+# ✅ THE FOUR FACTS — ANSWERED 2026-10-02
 
-| # | Question | Unlocks |
+| Question | Todd's answer | Result |
 |---|---|---|
-| 1 | **Is there a stream, creek or wet drainage on any tract?** | **391 Riparian Forest Buffer, $6,359.93/ac** — one of the highest rates on the list |
-| 2 | **The pond — whose is it, can you draw irrigation from it?** | **636 Water Harvesting Catchment** — approved in Pasa's case study |
-| 3 | **The woods — does the lease give any access or management rights?** | **666 Forest Stand Improvement $2,582/ac**, possibly **379 Forest Farming** |
-| 4 | **Is wind a real problem on the salad blocks?** | **380 Windbreak**, **603 Herbaceous Wind Barriers** |
+| Stream, creek or wet drainage? | **No** | ❌ **391 Riparian Forest Buffer — CLOSED** |
+| **Pond — do you irrigate from it?** | **YES** | ⭐ **636 — reframed, see below** |
+| Woods — any lease access? | **Nothing** | ❌ **666 Forest Stand Improvement, 379 Forest Farming — CLOSED** |
+| Wind a problem on the salad? | **No** | ❌ **380 Windbreak, 603 Herbaceous Wind Barriers — CLOSED** |
 
-# ⭐ MEETING STRATEGY — Todd 2026-10-02
+**Four practices off the list with stated reasons. 32 remain.**
 
-**The first meeting with Luka is a LISTENING meeting. Let Pasa present first.**
+## ⭐ 636 Water Harvesting Catchment — reframed, and it is live
 
-> *"I also think for the first meeting with luka we should allow them to present
-> us with options too. Maybe there will be something we can work from and enhance
-> our chances."*
+Read CPS 636 directly
+(`docs/grants/amp_program_docs/NRCS_636_Water_Harvesting_Catchment.pdf`).
 
-**This does not contradict [[present-the-plan]] — it sequences it.**
+> **Definition:** *"A facility for collecting and storing water from an area that
+> has been treated to **increase precipitation runoff**."*
 
-| Meeting | Mode | Why |
+🔴 **The existing pond is NOT the practice.** 636 funds *building* a catchment and
+storage system. But the standard explicitly covers:
+
+> *"collection and storage of runoff from areas such as watersheds, impervious
+> surfaces, **HIGH TUNNELS**, and other temporary structures."*
+
+⭐ **High tunnels are named in the standard. Tiny Seed has tunnels, and that water
+currently goes into the ground beside them.**
+
+| Tunnels | Per inch of rain | **Per year @ 40"** |
 |---|---|---|
-| **1st — with Luka** | ⭐ **LISTEN.** Let them lay out what they fund, what they have approved before, what they think fits | They know what gets through. They may name practices, scenarios or combinations we have not thought of. **Walking in with a fixed plan on day one forecloses that** |
-| **Then** | build the plan from everything learned | |
-| **2nd onward** | ⭐ **PRESENT THE PLAN.** One plan, specific acres, specific scenarios | Hedging after this point reads as uncertainty |
+| 1 × 30'×96' | 1,794 gal | 71,770 gal |
+| **2 × 30'×96'** | **3,588 gal** | **143,539 gal** |
+| 3 × 30'×96' | 5,383 gal | 215,309 gal |
 
-## What to bring to meeting 1
+⚠️ **Traditional roofs — barn, greenhouse — go to CPS 558 Roof Runoff Structure,
+which is NOT on Pasa's list.** Tunnels only.
 
-**Not a plan. A capability.** Todd should be able to answer any "could you do X?"
-with a specific, concrete yes — which is what the **per-code idea stacks** are
-for.
+⚠️ **Risk:** the three stated purposes are livestock water, fish and wildlife
+water, and *"other conservation purposes where additional water is needed."*
+**Crop irrigation is not named** — it must land under the third.
 
-| Bring | Do not bring |
-|---|---|
-| Beginning Farmer status, stated early | a fixed practice list |
-| The farm facts — 11 ac planned, 100% HEL cropland, organic, 3 clusters | a dollar target |
-| ⭐ **Idea stacks per code** — several concrete options ready under each | ❌ **any question about a per-farm cap** |
-| Questions about mechanics (how payment is calculated, what records qualify) | |
+⚠️ **No PA rate published for 636.** Pasa's case study farm got it approved for
+*"water storage for irrigation,"* so it happens, but the rate is unknown.
 
-**The idea stacks are ammunition, not a menu for Luka.** When he asks *"what
-would you do under 374?"*, Todd has five answers ready instead of one.
+### How to put it — as a plan, not a question
 
----
-
-# 🔨 IN PROGRESS — per-code IDEA STACKS
-
-**Todd 2026-10-02: *"I want to take the next few days to work this stuff out, and
-have stacks of ideas for each code."***
-
-**The deliverable:** for every practice code, a stack of concrete, specific things
-Tiny Seed could do under it — not whether to, but what. So no question in that
-meeting gets a vague answer.
-
-**Format per code:** 4–8 specific ideas, each naming the block or structure, what
-would physically be done, and roughly what it costs.
-
-**Status:** not started. Build alongside the one-by-one walkthrough from #8.
-
----
+> *"We irrigate from the pond and want to reduce that draw. We're catching tunnel
+> runoff into storage under 636 — the standard names high tunnels specifically.
+> What's the PA rate?"*
 
 # Running list of questions for Luka
 

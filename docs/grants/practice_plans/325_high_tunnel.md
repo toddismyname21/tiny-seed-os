@@ -8,6 +8,72 @@
 **The cap is the binding number.** A 30'×96' tunnel is 2,880 sq ft → base plus
 implementation blows past $10,000, so **assume $10,000 per tunnel.**
 
+## ✅ REVIEWED 2026-10-06 — Todd's actual structures
+
+| | Sq ft |
+|---|---|
+| **TODD'S OWN** — 1 × 30×90 + **4 × 15×90 caterpillar tunnels** | **8,100** |
+| Don's — 20×100, 30×100 (seedlings + some in-ground), 15×100 (perennial herbs) | 6,500 |
+| **Total under cover** | **14,600** (0.34 ac) |
+
+### ✅ Caterpillar tunnels QUALIFY — read from CPS 325
+
+> *"The high tunnel frame must be constructed of **metal, wood, or durable
+> plastic**; and be **at least 6 feet in height at the peak**."*
+> *"covering material... shall have a **4-year-minimum lifespan**."*
+
+**Nothing about permanence, foundations, or being immovable.** A 15×90 cat tunnel
+with a 6 ft peak and decent poly meets the standard.
+
+### 🔴 But two criteria DO bind
+
+> *"**Crops must be grown in the natural soil profile.**"*
+> *"does not apply to crops not grown in the natural soil profile (i.e.
+> **tables/benches**, portable pots, hydroponically)."*
+
+🔴 **Don's 30×100 is used for seedlings — benches do not qualify.** The
+*"some in-ground growing"* portion might; the bench portion will not.
+✅ The 15×100 (perennial herbs) and 20×100 are in-ground — fine.
+
+### 🔴 THE $40,000 QUESTION
+
+Every tunnel exceeds the cap alone:
+
+| | Sq ft | Uncapped | Capped |
+|---|---|---|---|
+| 30×90 | 2,700 | $22,478 | $10,000 |
+| 15×90 cat | 1,350 | $14,553 | $10,000 |
+
+**The PA bulletin says "capped at $10,000 per operating unit" and never defines
+"operating unit."**
+
+| If it means | Todd's 5 own tunnels pay |
+|---|---|
+| **per tunnel** | **$50,000** |
+| per farm operation | **$10,000** |
+
+**That undefined phrase is the biggest unresolved number in the conservation
+file.**
+
+### THE PLAN
+
+**Erect Todd's own five — the 30×90 and four 15×90 cat tunnels, 8,100 sq ft.**
+They are his, they are movable, and **they need no negotiation with Don.**
+
+**Don's three are the negotiation** — claiming a practice on structures he does
+not own needs Don's agreement and a written arrangement about who carries the
+practice obligation.
+
+⭐ **The lever for that conversation already exists:** tunnel runoff under **636**
+reduces draw on **Don's pond**. An improvement to his property that costs him
+nothing.
+
+### Two questions for Luka
+
+1. **Is the $10,000 cap per tunnel or per operation?**
+2. **Do caterpillar tunnels qualify?** *(The standard says yes — metal/wood/durable
+   plastic, 6 ft peak, 4-year cover. Ask so it is on the record.)*
+
 ## 1. What it is
 
 An unheated, covered structure growing crops **in the ground** — not a

@@ -80,6 +80,39 @@ laid out properly — on the contour, not by eye. That is what the TAP is for.**
 
 ## 412 — Grassed Waterway
 
+### ⏸️ REVIEWED 2026-10-02 — PARKED, pending one fact from Todd
+
+| Scenario (HU) | Rate/ac |
+|---|---|
+| ⭐ **Grassed Waterway with Checks** | **$3,939.05** |
+| Grass Waterway | $2,957.23 |
+
+Only two scenarios. **"With checks" pays $982/ac more** — checks are small
+structures across the channel that slow flow further. ⚠️ Checks are **soil
+disturbance** and the CPA-52 will scrutinise them; the plain scenario at $2,957
+avoids that question if review gets difficult.
+
+**One of the highest per-acre rates on the entire list** — behind only Riparian
+Buffer (closed, no stream) and Contour Buffer Strips at $2,203.
+
+### 🔴 THE UNANSWERED QUESTION
+
+**Where does water concentrate on this ground after a heavy rain?**
+
+Not in any record I have. It is something Todd has watched happen and almost
+certainly never written down.
+
+| If… | Then |
+|---|---|
+| there is a drainage line / swale through or below cropped ground that washes | ⭐ **near the top of the list** — $1,500–$3,000 realistically, since most waterways here would be well under an acre |
+| the ground sheds evenly with no concentrated flow | ❌ **412 does not apply. Drop it.** |
+
+**On HEL ground concentrated flow is the mechanism that actually moves soil** —
+sheet erosion is slow, but a gully takes a bed out in one storm.
+
+➡️ **ASK TODD: after a big storm, where does the water run?**
+
+
 **What it is:** a shaped, grassed channel following the natural drainage line, so
 concentrated water flows over grass instead of cutting a gully through the field.
 
