@@ -119,6 +119,118 @@ for n,q,why in Q:
     A(KeepTogether(body))
 
 A(PageBreak())
+A(Paragraph("OUR IDEAS, PRACTICE BY PRACTICE", H1))
+A(Paragraph("<b>If he asks “what would you do under this one?” — these are the answers.</b> "
+            "All specific to our ground. Rates are PA FY26, Historically Underserved.", SM))
+
+STACKS=[
+("374","FARMSTEAD ENERGY — biggest stack. Each item a SEPARATE flat payment",[
+ ("Variable speed drive on the chilled-water circulating pump","new wash-line loop","$1,459"),
+ ("Scroll compressor replacement","walk-in cooler","$3,898"),
+ ("Plate cooler — pre-cool wash water off well water before the ice tank","wash station","$5,377"),
+ ("Automatic controller, multiple function — temp, vent and heat on one unit","greenhouse","$2,605"),
+ ("Telemetry controller — remote cooler and greenhouse monitoring with alarms","cooler + greenhouse","$2,447"),
+ ("High-efficiency exhaust fan, 48 inch or larger","30×90 tunnel / greenhouse","$2,467"),
+ ("High-efficiency exhaust fans, 36–47 inch, two of them","cat tunnels","$1,728 ea"),
+ ("NEMA Premium motor over 2 HP","irrigation pump","$1,594"),
+ ("Variable speed drive, 1–10 HP motor","irrigation pump","$1,459"),
+ ("Root-zone heating, roughly 300 linear feet of propagation bench","greenhouse","$966"),
+ ("NEMA Premium motors, 2 HP or under","pack house spinners","$945 ea")]),
+("595","PEST MANAGEMENT — PAMS, Small Farm scenario, $6,575 flat",[
+ ("Insect netting over the brassica salad blocks","JS and F blocks","flea beetle is the defining pest"),
+ ("Hoops and clips to carry the netting","per succession","goes on and off with the crop"),
+ ("Weekly scouting programme — written counts, named thresholds, by block","all blocks","the documented backbone"),
+ ("Beneficial habitat — beetle bank and pollinator borders","field edges","suppression leg of PAMS"),
+ ("Trap crops on block edges","perimeter","pull flea beetle off the cash crop"),
+ ("Sticky cards, hand lens, scouting kit","—","the monitoring hardware"),
+ ("Row cover on early plantings","spring","exclusion before pressure builds"),
+ ("Sanitation protocol — trays, pack house, prompt residue removal","—","prevention leg")]),
+("484","MULCHING — tarps AND straw, different ground",[
+ ("Black silage tarp, occultation between salad successions","F and JS blocks","Synthetic Material"),
+ ("Clear film solarisation, July–August","worst weed-pressure blocks","Synthetic Material"),
+ ("Straw mulch on tomatoes","FSA Field 1068/446/2","Natural Material"),
+ ("Straw mulch on garlic, overwinter","—","Natural Material"),
+ ("Straw mulch on perennial herbs","Don's 15×100","Natural Material"),
+ ("Straw mulch on winter squash — keeps fruit off the soil","—","Natural Material"),
+ ("Tarp reel or winder so tarps store dry and last","—","equipment"),
+ ("Grow the straw on-farm, neighbour bales it","—","eliminates herbicide-carryover risk")]),
+("340","COVER CROP — Adaptive Management, $6,075 flat",[
+ ("Cereal rye after the last summer crop","overwinter","the workhorse"),
+ ("Rye and hairy vetch where nitrogen is wanted","overwinter","legume mix"),
+ ("Buckwheat in short summer gaps","30–45 days","between successions"),
+ ("Oats, winterkilled, where an early spring bed is needed","fall","no spring termination"),
+ ("Multi-species mix on ground going into tomatoes","Field 2","rooting depth and diversity"),
+ ("Mechanical termination — flail or crimp, never tillage","—","feeds 345 and 329"),
+ ("Interseeded clover as living mulch","trial block","")]),
+("345/329","REDUCED TILL and NO-TILL — $6,075 and $3,631 flat",[
+ ("Flail mow residue, tarp, replant — no steel in the soil","salad blocks","the standard turnover"),
+ ("Designate no-till blocks explicitly against reduced-till blocks","K1, K2 no-till","keeps the two claims clean"),
+ ("Dibble transplants into undisturbed beds","—","rather than forming fresh"),
+ ("Permanent bed geometry — traffic never on beds","all blocks","paths stay paths"),
+ ("Roller-crimp cover crops rather than incorporating","—",""),
+ ("Weed pressure scored on a fixed scale, same blocks, every turnover","—","the honest measure"),
+ ("A documented retreat — a block that fails and returns to reduced-till","—","that IS adaptive management")]),
+("441","MICRO IRRIGATION — Microjet base cost $8,501",[
+ ("Microjet over salad beds for hot-day evaporative cooling","salad blocks","cooling is a named purpose in CPS 441"),
+ ("Surface PE with emitters on tomato and long-season beds","Field 2","lasts years, not a season"),
+ ("Hoop House Surface Microirrigation, $0.40/sqft","8,100 sqft own tunnels","$3,240"),
+ ("Filtration and pressure regulation on the pond draw","—","reduces plugging"),
+ ("Zone valves so blocks irrigate independently","—",""),
+ ("Soil moisture sensors to drive scheduling","—","records for the practice")]),
+("327/386/422","HABITAT — paid on ground we are not cropping",[
+ ("Beetle bank, 500 ft through the salad blocks","Field 1","422 at $5.39/ft"),
+ ("Twenty-foot pollinator field border around Field 1","Field 1 perimeter","386 at $1,006/ac"),
+ ("Native and pollinator conservation cover on tractor-turn corners","corners","327 at $1,061/ac"),
+ ("Wildlife hedgerow on the woods edges, about 1,000 ft","cluster boundaries","422 or 612"),
+ ("Productive hedgerow — elderberry, aronia, hazelnut","woods edge","habitat and a crop"),
+ ("Flowering strips between the three clusters","—","pollinator corridor")]),
+("336","SOIL CARBON AMENDMENT",[
+ ("Spread our own compost across the production blocks","all blocks","$321/ac"),
+ ("Biochar, if OEFFA confirms it is NOP-allowed","trial blocks","$1,712/ac"),
+ ("Biochar and compost blended","—","$958/ac"),
+ ("Test every compost batch so the rates are real","—","feeds 590"),
+ ("Track soil organic matter by block, Logan Labs, annually","—","the proof")]),
+("317","COMPOSTING FACILITY",[
+ ("Thirty by two hundred foot windrow yard, PTO-turned","near the barn","the NOP windrow method"),
+ ("Compacted stone and geotextile surface","—","CPS 317 does not require concrete"),
+ ("Crown the pad and ditch above it","—","redirect upslope runoff, as the standard requires"),
+ ("Site 50+ ft from water, 2 ft above seasonal high water table","—","standard siting criteria"),
+ ("Temperature, feedstock and turning logs","—","NOP already requires these")]),
+("325","HIGH TUNNEL",[
+ ("Erect the 30×90 — ours, no negotiation needed","—","$10,000 cap"),
+ ("Erect all four 15×90 caterpillar tunnels","—","standard allows durable plastic, 6 ft peak"),
+ ("Winter salad production under cover","—","flagship crop when the field is dead"),
+ ("In-ground growing only — benches do not qualify","—","CPS 325 criterion"),
+ ("Gutter the tunnels to feed 636","—","water harvesting"),
+ ("High-efficiency fan and controller in each","—","separate 374 payments")]),
+("382","FENCE",[
+ ("High-tensile electric, five or more wires","$3.41/ft","removable — far easier with the landlord"),
+ ("Fence the highest-pressure cluster first","—","rather than all three at once"),
+ ("Three-D or slanted design","—","a flat five-wire will not stop deer"),
+ ("Gates wide enough for the tractor and the Mule","—",""),
+ ("Solar energiser per cluster","—",""),
+ ("Photographing deer damage now","—","the justification nobody ever has")]),
+("636","WATER HARVESTING CATCHMENT",[
+ ("Gutter the 30×90 tunnel and pipe to storage","—","high tunnels are named in CPS 636"),
+ ("Gutter all four cat tunnels into a shared line","—",""),
+ ("Storage tanks sized to about a week of irrigation","—",""),
+ ("Feed the microjet system from stored water","—","reduces draw on the pond"),
+ ("Frame it as reducing draw on Don's pond","—","an improvement that costs him nothing")]),
+("590/328/575/670","THE QUIETER ONES",[
+ ("590 — Logan Labs by block annually, written nutrient plan per block before the season, compost analysed each batch, documented adjustment","—","$2,999 flat"),
+ ("328 — salad to fruiting to cover with family separation; straw grain year in the rotation; ask whether the OSP rotation plan satisfies it","—","$103/ac organic"),
+ ("575 — geotextile and stone on the field-to-packhouse route and around the wash station","—","mud is a contamination route"),
+ ("670 — LED and controller over the bagging table, greenhouse photoperiod controller, cooler door switches","—","$505 per controller")])]
+for code,title,items in STACKS:
+    body=[Paragraph(f"<b>{code} — {title}</b>", H2)]
+    rows=[[Paragraph('<b>Idea</b>',CELL),Paragraph('<b>Where</b>',CELL),Paragraph('<b>Note</b>',CELL)]]
+    for a_,b_,c_ in items:
+        rows.append([Paragraph(a_,CELL),Paragraph(b_,CELL),Paragraph(c_,CELL)])
+    body.append(tbl(rows,[3.5*inch,1.5*inch,1.7*inch]))
+    body.append(Spacer(1,9))
+    A(KeepTogether(body))
+
+A(PageBreak())
 A(Paragraph("ALL 36 PRACTICES PASA WILL FUND", H1))
 A(Paragraph("From <i>Pasa Conservation Technical Assistance: List of Conservation Practices</i>. "
             "<b>Status column is my assessment, not theirs</b> — if Luka suggests something "
